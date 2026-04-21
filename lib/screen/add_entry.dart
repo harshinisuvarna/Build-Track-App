@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddEntryScreen extends StatefulWidget {
   const AddEntryScreen({super.key});
@@ -46,14 +47,11 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         child: Column(
           children: [
             AppTopBar(
-              title: 'Add entry',
-              isSubScreen: true,
-              leftIcon: Icons.arrow_back,
-              onLeftTap: () => Navigator.maybePop(context),
+              title: 'SiteTrack',
               rightWidget: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.grey.shade300,
-                child: const Icon(Icons.person, color: Colors.grey, size: 18),
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
             Expanded(
@@ -63,10 +61,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 28),
-                    const Text(
+                    Text(
                       'What are you\nadding?',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
                         color: textDark,
@@ -75,10 +73,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Select the entry type to log for the current shift.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
@@ -104,9 +102,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                         );
                         Navigator.maybePop(context);
                       },
-                      child: const Text(
+                      child: Text(
                         'Save as Draft',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           color: textGray,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -121,6 +119,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -173,7 +172,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 children: [
                   Text(
                     entry['title'] as String,
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 19,
                       fontWeight: FontWeight.w900,
                       color: textDark,
@@ -182,7 +181,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   const SizedBox(height: 5),
                   Text(
                     entry['subtitle'] as String,
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 13,
                       color: textGray,
                       fontWeight: FontWeight.w500,
@@ -238,10 +237,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ),
           ],
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'Continue',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 17,
               fontWeight: FontWeight.w700,

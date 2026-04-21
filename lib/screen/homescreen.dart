@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -14,8 +13,6 @@ class _HomeScreenState extends State<HomeScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
-
-  int _selectedNavIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -62,104 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _navItem(0, Icons.home_rounded, 'HOME'),
-              _navItem(1, Icons.bar_chart_outlined, 'PROJECTS'),
-              _navEntryButton(),
-              _navItem(3, Icons.inventory_2_outlined, 'INVENTORY'),
-              _navItem(4, Icons.assessment_outlined, 'REPORTS'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(int index, IconData icon, String label) {
-    final isActive = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = index),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: isActive ? primaryBlue : textGray,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navEntryButton() {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = 2),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: primaryBlue,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: primaryBlue.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: _selectedNavIndex == 2 ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: const AppBottomNav(),
     );
   }
 

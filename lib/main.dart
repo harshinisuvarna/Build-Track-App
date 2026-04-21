@@ -1,7 +1,17 @@
-import 'package:buildtrack_mobile/screen/updated_progress.dart';
+import 'package:buildtrack_mobile/controller/nav_controller.dart';
+import 'package:buildtrack_mobile/screen/homescreen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => NavController(),
+      child: const MyApp(),
+    ),
+  );
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
@@ -9,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const UpdateProgressScreen (),
+      home: const HomeScreen(),
     );
   }
 }

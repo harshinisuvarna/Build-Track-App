@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
-
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
@@ -13,10 +12,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
-
-  int _selectedNavIndex = 4;
-  int _tabIndex = 0; // Monthly=0, Quarterly=1, Yearly=2
-  int _unitIndex = 0; // SQFT=0, CUYD=1
+  int _tabIndex = 0;
+  int _unitIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +55,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
+      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -539,139 +536,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
     );
   }
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
-
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
-              _navItem(
-                context,
-                1,
-                Icons.architecture_outlined,
-                'PROJECTS',
-                route: '/projects',
-              ),
-              _navEntryButton(context),
-              _navItem(
-                context,
-                3,
-                Icons.inventory_2_outlined,
-                'INVENTORY',
-                route: '/inventory',
-              ),
-              _navItem(
-                context,
-                4,
-                Icons.bar_chart_outlined,
-                'REPORTS',
-                route: '/reports',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(
-    BuildContext context,
-    int index,
-    IconData icon,
-    String label, {
-    String? route,
-  }) {
-    final isActive = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedNavIndex = index);
-        if (route != null && route != '/reports') {
-          Navigator.pushNamed(context, route);
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: isActive ? primaryBlue : textGray,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navEntryButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedNavIndex = 2);
-        Navigator.pushNamed(context, '/add-entry');
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: primaryBlue,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: primaryBlue.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: _selectedNavIndex == 2 ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
-
-// ── Line Chart Painter ────────────────────────────────────────────────────────
 
 class _LineChartPainter extends CustomPainter {
   @override

@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -88,9 +89,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             _stepCircle('2', filled: true),
           ],
         ),
-        const Text(
+        Text(
           'STEP 2 OF 2',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: primaryBlue,
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -112,7 +113,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       child: Center(
         child: Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: filled ? Colors.white : primaryBlue,
             fontWeight: FontWeight.w800,
             fontSize: 14,
@@ -138,9 +139,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Item name',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: primaryBlue,
               fontWeight: FontWeight.w700,
               fontSize: 14,
@@ -167,7 +168,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 10),
                     ),
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: textDark,
@@ -184,9 +185,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Quantity',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
@@ -213,16 +214,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   vertical: 10,
                                 ),
                               ),
-                              style: const TextStyle(
+                              style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: textDark,
                               ),
                             ),
                           ),
-                          const Text(
+                          Text(
                             'm³',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               color: textGray,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -239,9 +240,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Rate',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
@@ -256,9 +257,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Text(
+                          Text(
                             '\$ ',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               color: textGray,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -276,7 +277,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   vertical: 10,
                                 ),
                               ),
-                              style: const TextStyle(
+                              style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: textDark,
@@ -304,9 +305,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'TOTAL AMOUNT',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -316,7 +317,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '\$ ${_computeTotal()}',
-                      style: const TextStyle(
+                      style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
@@ -343,9 +344,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
           const SizedBox(height: 20),
           RichText(
-            text: const TextSpan(
+            text: TextSpan(
               text: 'Supplier ID ',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: primaryBlue,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
@@ -353,7 +354,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               children: [
                 TextSpan(
                   text: '(Required)',
-                  style: TextStyle(color: errorRed),
+                  style: GoogleFonts.inter(color: errorRed),
                 ),
               ],
             ),
@@ -384,7 +385,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       _supplierSelected
                           ? 'ABC Suppliers Ltd.'
                           : 'Select supplier',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: _supplierSelected ? textDark : textGray,
                         fontSize: 15,
                         fontWeight: _supplierSelected
@@ -407,9 +408,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
           if (_supplierError) ...[
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Please select a valid supplier from the database.',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: errorRed,
                 fontSize: 11.5,
                 fontStyle: FontStyle.italic,
@@ -417,9 +418,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
           ],
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Upload Receipt / Bill',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: primaryBlue,
               fontWeight: FontWeight.w700,
               fontSize: 14,
@@ -456,18 +457,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Tap to upload bill',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                       color: textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'PNG, JPG OR PDF UP TO 10MB',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: textGray,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -502,16 +503,19 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Select Supplier',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 16),
             ...['ABC Suppliers Ltd.', 'Metro Build Co.', 'SteelWorks Inc.'].map(
               (s) => ListTile(
                 title: Text(
                   s,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                 ),
                 leading: const Icon(Icons.business, color: primaryBlue),
                 onTap: () {
@@ -556,12 +560,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Save entry',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,

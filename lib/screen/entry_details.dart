@@ -16,7 +16,7 @@ class EntryDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             AppTopBar(
-              title: 'Entry details',
+              title: 'Add Entry',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
