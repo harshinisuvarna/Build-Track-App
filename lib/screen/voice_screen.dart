@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ReviewVoiceEntryScreen extends StatefulWidget {
   const ReviewVoiceEntryScreen({super.key});
@@ -77,21 +78,24 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             child: const Icon(Icons.verified, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Parsed from voice',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: purple,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Confidence: 98.4% • Voice timestamp 10:42 AM',
-                style: TextStyle(color: Color(0xFF9B7FD6), fontSize: 12),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF9B7FD6),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -119,21 +123,24 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Material Log',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 22,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       color: textDark,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
                     'Site: North District Phase 2',
-                    style: TextStyle(color: textGray, fontSize: 12.5),
+                    style: GoogleFonts.inter(
+                      color: textGray,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ],
               ),
@@ -190,10 +197,10 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   r'$1,812.50',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800,
                     fontSize: 24,
                     color: primaryBlue,
                     letterSpacing: -0.5,
@@ -208,9 +215,9 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                     color: const Color(0xFFEEF0FF),
                     borderRadius: BorderRadius.circular(7),
                   ),
-                  child: const Text(
+                  child: Text(
                     'AUTO',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: primaryBlue,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -229,10 +236,10 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   Widget _fieldLabel(String label) {
     return Text(
       label,
-      style: const TextStyle(
+      style: GoogleFonts.inter(
         fontSize: 11,
         color: textGray,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         letterSpacing: 0.9,
       ),
     );
@@ -248,8 +255,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
       ),
       child: Text(
         value,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
+        style: GoogleFonts.inter(
+          fontWeight: FontWeight.w800,
           fontSize: 15.5,
           color: textDark,
         ),
@@ -261,13 +268,13 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.format_align_left, color: primaryBlue, size: 15),
-            SizedBox(width: 7),
+            const Icon(Icons.format_align_left, color: primaryBlue, size: 15),
+            const SizedBox(width: 7),
             Text(
               'ORIGINAL AUDIO TRANSCRIPT',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: primaryBlue,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -277,12 +284,12 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           '"Hey SiteTrack, record a material entry for North District. '
           'We just received 12.5 cubic meters of C35 ready-mix concrete. '
           'Rate is fixed at 145 per unit. Confirming receipt for 1,812 '
           'dollars and 50 cents. Log this under structural foundations."',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: textDark,
             fontSize: 14,
             fontStyle: FontStyle.italic,
@@ -315,17 +322,17 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 22),
-            SizedBox(width: 10),
+            const Icon(Icons.check_circle, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
             Text(
               'Confirm and save',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],

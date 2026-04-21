@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -86,9 +87,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Text(
                   tabs[i],
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style:  GoogleFonts.inter(
                     color: active ? Colors.white : textGray,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
@@ -112,18 +113,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             'All Active Projects',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
+            style:  GoogleFonts.inter(
+              fontWeight: FontWeight.w800,
               fontSize: 15,
               color: textDark,
             ),
           ),
-          Icon(Icons.keyboard_arrow_down, color: textGray, size: 22),
+          const Icon(Icons.keyboard_arrow_down, color: textGray, size: 22),
         ],
       ),
     );
@@ -221,17 +222,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 9),
           Text(
             label,
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 10,
               color: textGray,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.w900,
               color: textDark,
@@ -244,7 +245,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 4),
               Text(
                 subText,
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   color: subColor,
                   fontWeight: FontWeight.w700,
@@ -279,21 +280,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Cost per Unit',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
                       color: textDark,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
                     'Concrete pouring efficiency\nvs target',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: textGray,
                       fontSize: 12.5,
                       height: 1.4,
@@ -322,7 +323,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                         child: Text(
                           e.value,
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             color: sel ? Colors.white : textGray,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -346,37 +347,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              Text('WK 12', style: TextStyle(color: textGray, fontSize: 11)),
-              Text('WK 13', style: TextStyle(color: textGray, fontSize: 11)),
-              Text('WK 14', style: TextStyle(color: textGray, fontSize: 11)),
-              Text('WK 15', style: TextStyle(color: textGray, fontSize: 11)),
-              Text('WK 16', style: TextStyle(color: textGray, fontSize: 11)),
-              Text('WK 17', style: TextStyle(color: textGray, fontSize: 11)),
+            children: [
+              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
             ],
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
-              Icon(Icons.circle, color: primaryBlue, size: 10),
-              SizedBox(width: 6),
+              const Icon(Icons.circle, color: primaryBlue, size: 10),
+              const SizedBox(width: 6),
               Text(
                 r'Actual: $14.20/sqft',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: textDark,
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(width: 18),
-              Icon(Icons.circle, color: Color(0xFFBBC0D0), size: 10),
-              SizedBox(width: 6),
-              Text(
+              const SizedBox(width: 18),
+              const Icon(Icons.circle, color: Color(0xFFBBC0D0), size: 10),
+              const SizedBox(width: 6),
+               Text(
                 r'Target: $13.50/sqft',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: textGray,
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -404,11 +405,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Category Budget',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: textDark,
             ),
           ),
@@ -433,7 +434,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 fontWeight: FontWeight.w800,
                 fontSize: 12.5,
                 color: textDark,
@@ -442,7 +443,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
             Text(
               pct,
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
                 color: color,
@@ -499,20 +500,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Efficiency Report',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 18,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Labour costs are 12% under budget for this quarter due to optimized scheduling.',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white70,
               fontSize: 13.5,
               height: 1.4,
@@ -521,9 +522,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/notifications'),
-            child: const Text(
+            child: Text(
               'View Details',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 14,

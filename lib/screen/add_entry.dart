@@ -66,7 +66,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 34,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         color: textDark,
                         letterSpacing: -0.6,
                         height: 1.15,
@@ -79,7 +79,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 34),
@@ -107,7 +107,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                         style: GoogleFonts.inter(
                           color: textGray,
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -174,7 +174,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     entry['title'] as String,
                     style: GoogleFonts.inter(
                       fontSize: 19,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       color: textDark,
                     ),
                   ),
@@ -184,7 +184,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: textGray,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w800,
                       height: 1.4,
                     ),
                   ),
@@ -243,7 +243,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 17,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),

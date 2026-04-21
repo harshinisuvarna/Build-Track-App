@@ -94,7 +94,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           style: GoogleFonts.inter(
             color: primaryBlue,
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             letterSpacing: 0.5,
           ),
         ),
@@ -143,7 +143,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             'Item name',
             style: GoogleFonts.inter(
               color: primaryBlue,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),
@@ -170,7 +170,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     ),
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                       color: textDark,
                     ),
                   ),
@@ -189,7 +189,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       'Quantity',
                       style: GoogleFonts.inter(
                         color: primaryBlue,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         fontSize: 14,
                       ),
                     ),
@@ -216,7 +216,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                               ),
                               style: GoogleFonts.inter(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
                                 color: textDark,
                               ),
                             ),
@@ -262,7 +262,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             style: GoogleFonts.inter(
                               color: textGray,
                               fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           Expanded(
@@ -279,7 +279,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                               ),
                               style: GoogleFonts.inter(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
                                 color: textDark,
                               ),
                             ),
@@ -310,7 +310,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -320,7 +320,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontSize: 24,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -389,8 +389,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                         color: _supplierSelected ? textDark : textGray,
                         fontSize: 15,
                         fontWeight: _supplierSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
+                            ? FontWeight.w800
+                            : FontWeight.w800,
                       ),
                     ),
                   ),
@@ -422,7 +422,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             'Upload Receipt / Bill',
             style: GoogleFonts.inter(
               color: primaryBlue,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),
@@ -460,7 +460,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   Text(
                     'Tap to upload bill',
                     style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 15,
                       color: textDark,
                     ),
@@ -507,15 +507,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               'Select Supplier',
               style: GoogleFonts.inter(
                 fontSize: 18,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
               ),
-            ),
+            ),  
             const SizedBox(height: 16),
             ...['ABC Suppliers Ltd.', 'Metro Build Co.', 'SteelWorks Inc.'].map(
               (s) => ListTile(
                 title: Text(
                   s,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w800),
                 ),
                 leading: const Icon(Icons.business, color: primaryBlue),
                 onTap: () {
@@ -568,7 +568,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
             SizedBox(width: 8),

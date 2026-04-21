@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,19 +81,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: const Icon(Icons.person, color: Colors.grey),
                     ),
                     const SizedBox(width: 12),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Neurofin Admin',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
                         ),
                         Text(
                           'Project Foreman',
-                          style: TextStyle(color: textGray, fontSize: 13),
+                          style: GoogleFonts.inter(color: textGray, fontSize: 13),
                         ),
                       ],
                     ),
@@ -111,11 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text(
+                title: Text(
                   'Log out',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     color: Colors.red,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 onTap: () {},
@@ -132,14 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
       leading: Icon(icon, color: textDark, size: 22),
       title: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        style:  GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 15),
       ),
       trailing: trailing != null
           ? Text(
               trailing,
-              style: const TextStyle(
+              style:  GoogleFonts.inter(
                 color: textGray,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w800,
               ),
             )
           : null,
@@ -162,24 +163,24 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(Icons.architecture, color: primaryBlue, size: 18),
-              SizedBox(width: 8),
+              const Icon(Icons.architecture, color: primaryBlue, size: 18),
+              const SizedBox(width: 8),
               Text(
                 'Skyline Residences Phase II',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w800,
                   fontSize: 15,
                   color: textDark,
                 ),
               ),
             ],
           ),
-          Icon(Icons.keyboard_arrow_down, color: textGray),
+          const Icon(Icons.keyboard_arrow_down, color: textGray),
         ],
       ),
     );
@@ -202,23 +203,23 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'OVERALL PROGRESS',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: textGray,
               letterSpacing: 0.8,
             ),
           ),
           const SizedBox(height: 6),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '68.4%',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 34,
                   fontWeight: FontWeight.w800,
                   color: textDark,
@@ -229,15 +230,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     '12 Days Ahead',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: primaryBlue,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 14,
                     ),
                   ),
                   Text(
                     'Target: Oct 24',
-                    style: TextStyle(color: textGray, fontSize: 12),
+                    style: GoogleFonts.inter(color: textGray, fontSize: 12),
                   ),
                 ],
               ),
@@ -305,17 +306,17 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 11,
               color: textGray,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.w800,
               color: textDark,
@@ -332,10 +333,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 4),
               Text(
                 sub,
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   color: isOver ? Colors.redAccent : purple,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -385,9 +386,9 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w800,
             color: textDark,
           ),
         ),
@@ -414,16 +415,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.mic, color: Colors.white, size: 24),
-              SizedBox(width: 10),
+              const Icon(Icons.mic, color: Colors.white, size: 24),
+              const SizedBox(width: 10),
               Text(
                 'Speak Update',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -431,14 +432,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             'AI FOREMAN IS LISTENING',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white70,
               fontSize: 11,
               letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -452,9 +453,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Recent Activity',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: textDark,
@@ -462,11 +463,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, '/notifications'),
-              child: const Text(
+              child: Text(
                 'View All',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: primaryBlue,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
               ),
@@ -539,8 +540,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800,
                     fontSize: 13.5,
                     color: textDark,
                   ),
@@ -548,7 +549,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 11.5, color: textGray),
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: textGray,
+                  ),
                 ),
               ],
             ),
@@ -561,10 +565,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Text(
               badge,
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: badgeColor,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),

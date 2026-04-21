@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -42,9 +43,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Today',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                             color: textDark,
@@ -59,9 +60,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             color: primaryBlue,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text(
+                          child: Text(
                             '3 NEW',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -78,9 +79,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     const SizedBox(height: 12),
                     _weeklyReportCard(),
                     const SizedBox(height: 26),
-                    const Text(
+                    Text(
                       'Yesterday',
-                      style: TextStyle(
+                      style:  GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: textGray,
@@ -147,9 +148,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   size: 20,
                 ),
               ),
-              const Text(
+              Text(
                 '12m ago',
-                style: TextStyle(color: textGray, fontSize: 11),
+                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
               ),
             ],
           ),
@@ -165,31 +166,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'CRITICAL ALERT',
-                style: TextStyle(
+                style:  GoogleFonts.inter(
                   color: Colors.red,
                   fontSize: 10,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: 0.9,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 7),
-          const Text(
+          Text(
             'Structural Beam Deflection Detected',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: textDark,
               height: 1.3,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Sensor 4B in Sector 7 reports stress levels exceeding 15% threshold. Immediate inspection required at the Western support pillar.',
-            style: TextStyle(color: textGray, fontSize: 13, height: 1.4),
+            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 14),
           Row(
@@ -205,9 +206,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Resolve',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -223,9 +224,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: const Text(
+                  child: Text(
                     'View Map',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style:  GoogleFonts.inter(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -269,9 +270,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   size: 20,
                 ),
               ),
-              const Text(
+              Text(
                 '2h ago',
-                style: TextStyle(color: textGray, fontSize: 11),
+                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
               ),
             ],
           ),
@@ -287,30 +288,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'INVENTORY WARNING',
-                style: TextStyle(
+                style:  GoogleFonts.inter(
                   color: Colors.orange,
                   fontSize: 10,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: 0.9,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 7),
-          const Text(
+          Text(
             'Low Cement Stock (Phase 2)',
-            style: TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: textDark,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             "Current supply will be depleted by tomorrow's afternoon shift. Re-order scheduled but requires manual approval.",
-            style: TextStyle(color: textGray, fontSize: 13, height: 1.4),
+            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
           ),
         ],
       ),
@@ -349,35 +350,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   size: 20,
                 ),
               ),
-              const Text(
+              Text(
                 '5h ago',
-                style: TextStyle(color: textGray, fontSize: 11),
+                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'WEEKLY REPORT',
-            style: TextStyle(
+            style:  GoogleFonts.inter(
               color: primaryBlue,
               fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               letterSpacing: 0.9,
             ),
           ),
           const SizedBox(height: 7),
-          const Text(
+          Text(
             'Project Velocity Insight',
-            style: TextStyle(
+            style:  GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: textDark,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Efficiency on Sector 4 has increased by 12% following the new logistics deployment. View the full technical breakdown.',
-            style: TextStyle(color: textGray, fontSize: 13, height: 1.4),
+            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
           ),
         ],
       ),
@@ -420,7 +421,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style:  GoogleFonts.inter(
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                     color: textDark,
@@ -429,7 +430,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: const TextStyle(
+                  style:  GoogleFonts.inter(
                     color: textGray,
                     fontSize: 12.5,
                     height: 1.4,
@@ -439,7 +440,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(time, style: const TextStyle(color: textGray, fontSize: 11)),
+          Text(time, style:  GoogleFonts.inter(color: textGray, fontSize: 11)),
         ],
       ),
     );

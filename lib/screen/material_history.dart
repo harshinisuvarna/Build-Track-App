@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CementHistoryScreen extends StatefulWidget {
   const CementHistoryScreen({super.key});
@@ -128,34 +129,34 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'TOTAL CURRENT STOCK',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: textGray,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               letterSpacing: 1.1,
             ),
           ),
           const SizedBox(height: 10),
           RichText(
-            text: const TextSpan(
+            text: TextSpan(
               children: [
                 TextSpan(
                   text: '1,248',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     fontSize: 56,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF5B3FE0),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF5B3FE0),
                     letterSpacing: -2,
                     height: 1,
                   ),
                 ),
                 TextSpan(
                   text: '  Units',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     fontSize: 20,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w800,
                     color: textGray,
                   ),
                 ),
@@ -183,7 +184,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         const SizedBox(width: 7),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.inter(
             color: purple,
             fontWeight: FontWeight.w800,
             fontSize: 12.5,
@@ -199,21 +200,21 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Movement Logs',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: textDark,
               ),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
             Text(
               'Tracking historical distribution',
-              style: TextStyle(color: textGray, fontSize: 12.5),
+              style: GoogleFonts.inter(color: textGray, fontSize: 12.5),
             ),
           ],
         ),
@@ -224,18 +225,18 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFFDDE0F0)),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Text(
                 'Filter',
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: primaryBlue,
                   fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
               ),
-              SizedBox(width: 5),
-              Icon(Icons.tune, color: primaryBlue, size: 16),
+              const SizedBox(width: 5),
+              const Icon(Icons.tune, color: primaryBlue, size: 16),
             ],
           ),
         ),
@@ -282,7 +283,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.w800,
                     fontSize: 14.5,
                     color: textDark,
@@ -291,7 +292,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: textGray, fontSize: 11.5),
+                  style: GoogleFonts.inter(color: textGray, fontSize: 11.5),
                 ),
               ],
             ),
@@ -301,9 +302,9 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             children: [
               Text(
                 qty,
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   color: isPositive ? primaryBlue : const Color(0xFFE040FB),
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 19,
                 ),
               ),
@@ -311,7 +312,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
               Text(
                 date,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
+                style: GoogleFonts.inter(
                   color: textGray,
                   fontSize: 10,
                   height: 1.3,

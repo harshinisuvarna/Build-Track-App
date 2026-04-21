@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -46,9 +47,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         color: primaryBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
+                      child: Text(
                         'LIVE PIPELINE',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           color: primaryBlue,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
@@ -61,9 +62,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Active Builds',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 30,
                             fontWeight: FontWeight.w900,
                             color: textDark,
@@ -79,9 +80,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             color: const Color(0xFFEEF0FF),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text(
+                          child: Text(
                             '12 Sites',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               color: primaryBlue,
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
@@ -180,7 +181,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
+                  style:  GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: textDark,
@@ -201,7 +202,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ),
                 child: Text(
                   stage,
-                  style: TextStyle(
+                  style:  GoogleFonts.inter(
                     color: stageColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -214,27 +215,27 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           const SizedBox(height: 5),
           Text(
             location,
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               color: textGray,
               fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Overall Progress',
-                style: TextStyle(
+                style:  GoogleFonts.inter(
                   color: textDark,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
               ),
               Text(
                 percent,
-                style: const TextStyle(
+                style:  GoogleFonts.inter(
                   color: primaryBlue,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -261,18 +262,18 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               _avatarRow(avatarColors, extraCount),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/update-progress'),
-                child: const Row(
+                child: Row(
                   children: [
                     Text(
                       'View Details',
-                      style: TextStyle(
+                      style:  GoogleFonts.inter(
                         color: primaryBlue,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
                   ],
                 ),
               ),
@@ -315,7 +316,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               child: Center(
                 child: Text(
                   '+$extra',
-                  style: const TextStyle(
+                  style:  GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: primaryBlue,

@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -38,22 +39,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Inventory',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 30,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         color: textDark,
                         letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Real-time material tracking and logistical oversight.',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -406,20 +407,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
-                    const Column(
+                    Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           '12%',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             color: Colors.white,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 17,
                           ),
                         ),
                         Text(
                           'REMAINING',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             color: Colors.white60,
                             fontSize: 8,
                             letterSpacing: 0.5,
