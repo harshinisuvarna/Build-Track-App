@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 class CementHistoryScreen extends StatefulWidget {
   const CementHistoryScreen({super.key});
-
   @override
   State<CementHistoryScreen> createState() => _CementHistoryScreenState();
 }
@@ -14,21 +13,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
-
   int _selectedNavIndex = 3;
-  String _materialName = 'Material History';
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is Map) {
-      final name = args['materialName'] as String?;
-      if (name != null) {
-        setState(() => _materialName = name);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +25,10 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
           children: [
             AppTopBar(
               title: 'SiteTrack',
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/notifications'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
             Expanded(

@@ -1,14 +1,13 @@
+import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 
 class EntryDetailScreen extends StatelessWidget {
   const EntryDetailScreen({super.key});
-
   static const primaryBlue = Color(0xFF2233DD);
   static const purple = Color(0xFF6B3FE7);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,7 +15,17 @@ class EntryDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(context),
+            AppTopBar(
+              title: 'Entry details',
+              isSubScreen: true,
+              leftIcon: Icons.arrow_back,
+              onLeftTap: () => Navigator.maybePop(context),
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade300,
+                child: const Icon(Icons.person, color: Colors.grey, size: 18),
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -41,41 +50,6 @@ class EntryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back, color: textDark, size: 22),
-          ),
-          const Text('Entry detail',
-              style: TextStyle(
-                  color: textDark, fontSize: 17, fontWeight: FontWeight.w700)),
-          TextButton(
-            // FIX: Edit pushes to add-material with prefilled args so user can edit
-            onPressed: () => Navigator.pushNamed(
-              context,
-              '/add-material',
-              arguments: {
-                'type': 'material',
-                'isEditing': true,
-                'prefill': 'High-Tensile Steel Rebar (12mm)',
-              },
-            ),
-            child: const Text('Edit',
-                style: TextStyle(
-                    color: primaryBlue,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMaterialBadge() {
     return Align(
       alignment: Alignment.centerLeft,
@@ -90,12 +64,15 @@ class EntryDetailScreen extends StatelessWidget {
           children: [
             Icon(Icons.inventory_2_outlined, color: purple, size: 14),
             SizedBox(width: 6),
-            Text('MATERIAL',
-                style: TextStyle(
-                    color: purple,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8)),
+            Text(
+              'MATERIAL',
+              style: TextStyle(
+                color: purple,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
           ],
         ),
       ),
@@ -109,25 +86,34 @@ class EntryDetailScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('ITEM',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: textGray,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
+          const Text(
+            'ITEM',
+            style: TextStyle(
+              fontSize: 11,
+              color: textGray,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 6),
-          const Text('High-Tensile Steel Rebar (12mm)',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: textDark,
-                  height: 1.3)),
+          const Text(
+            'High-Tensile Steel Rebar (12mm)',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: textDark,
+              height: 1.3,
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(color: Color(0xFFEEF0F5)),
           const SizedBox(height: 14),
@@ -137,18 +123,24 @@ class EntryDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Text('QUANTITY',
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: textGray,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8)),
+                    Text(
+                      'QUANTITY',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: textGray,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('250 Units',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: textDark)),
+                    Text(
+                      '250 Units',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: textDark,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -156,18 +148,24 @@ class EntryDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Text('RATE',
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: textGray,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8)),
+                    Text(
+                      'RATE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: textGray,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('\$14.50 / unit',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: textDark)),
+                    Text(
+                      '\$14.50 / unit',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: textDark,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -176,55 +174,77 @@ class EntryDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(color: Color(0xFFEEF0F5)),
           const SizedBox(height: 14),
-          const Text('TOTAL COST',
-              style: TextStyle(
-                  fontSize: 10,
-                  color: textGray,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
+          const Text(
+            'TOTAL COST',
+            style: TextStyle(
+              fontSize: 10,
+              color: textGray,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 4),
-          const Text('\$3,625.00',
-              style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  color: primaryBlue,
-                  letterSpacing: -0.5)),
+          const Text(
+            '\$3,625.00',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              color: primaryBlue,
+              letterSpacing: -0.5,
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(color: Color(0xFFEEF0F5)),
           const SizedBox(height: 14),
-          const Text('PROJECT',
-              style: TextStyle(
-                  fontSize: 10,
-                  color: textGray,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
+          const Text(
+            'PROJECT',
+            style: TextStyle(
+              fontSize: 10,
+              color: textGray,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 6),
           const Row(
             children: [
               Icon(Icons.architecture, color: primaryBlue, size: 16),
               SizedBox(width: 6),
-              Text('Metro Plaza Phase II',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14.5, color: textDark)),
+              Text(
+                'Metro Plaza Phase II',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                  color: textDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
           const Divider(color: Color(0xFFEEF0F5)),
           const SizedBox(height: 14),
-          const Text('DATE',
-              style: TextStyle(
-                  fontSize: 10,
-                  color: textGray,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
+          const Text(
+            'DATE',
+            style: TextStyle(
+              fontSize: 10,
+              color: textGray,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 6),
           const Row(
             children: [
               Icon(Icons.calendar_today_outlined, color: primaryBlue, size: 15),
               SizedBox(width: 6),
-              Text('Oct 24, 2023 • 09:45 AM',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14.5, color: textDark)),
+              Text(
+                'Oct 24, 2023 • 09:45 AM',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                  color: textDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -264,12 +284,15 @@ class EntryDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ATTACHED RECEIPT',
-            style: TextStyle(
-                fontSize: 11,
-                color: textGray,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8)),
+        const Text(
+          'ATTACHED RECEIPT',
+          style: TextStyle(
+            fontSize: 11,
+            color: textGray,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 12),
         Container(
           height: 160,
@@ -279,7 +302,9 @@ class EntryDetailScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06), blurRadius: 10)
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+              ),
             ],
           ),
           child: Column(
@@ -292,13 +317,21 @@ class EntryDetailScreen extends StatelessWidget {
                   color: Color(0xFFFFF176),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.receipt_long,
-                    color: Colors.amber, size: 40),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: Colors.amber,
+                  size: 40,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text('Receipt.pdf',
-                  style: TextStyle(
-                      color: textGray, fontSize: 12, fontWeight: FontWeight.w600)),
+              const Text(
+                'Receipt.pdf',
+                style: TextStyle(
+                  color: textGray,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -314,7 +347,7 @@ class EntryDetailScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: InkWell(
@@ -325,11 +358,14 @@ class EntryDetailScreen extends StatelessWidget {
           children: [
             Icon(Icons.delete_outline, color: Colors.red, size: 20),
             SizedBox(width: 8),
-            Text('Delete Entry',
-                style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
+            Text(
+              'Delete Entry',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
       ),
@@ -341,16 +377,23 @@ class EntryDetailScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete Entry?',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Delete Entry?',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text(
-            'This action cannot be undone. The entry will be permanently removed.'),
+          'This action cannot be undone. The entry will be permanently removed.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(
-                    color: Color(0xFF7B8A9E), fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF7B8A9E),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -360,7 +403,8 @@ class EntryDetailScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),

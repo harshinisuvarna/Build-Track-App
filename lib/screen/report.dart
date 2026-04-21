@@ -14,7 +14,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  int _selectedNavIndex = 4; 
+  int _selectedNavIndex = 4;
   int _tabIndex = 0; // Monthly=0, Quarterly=1, Yearly=2
   int _unitIndex = 0; // SQFT=0, CUYD=1
 
@@ -28,17 +28,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             AppTopBar(
               title: 'SiteTrack',
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/notifications'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
             Expanded(
