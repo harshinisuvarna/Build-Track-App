@@ -4,18 +4,16 @@ class UpdateProgressScreen extends StatefulWidget {
   const UpdateProgressScreen({super.key});
 
   @override
-  State<UpdateProgressScreen> createState() =>
-      _UpdateProgressScreenState();
+  State<UpdateProgressScreen> createState() => _UpdateProgressScreenState();
 }
 
-class _UpdateProgressScreenState
-    extends State<UpdateProgressScreen> {
+class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  int _selectedNavIndex = 1; // PROJECTS is active
+  int _selectedNavIndex = 1;
   int _stageIndex = 0;
   final _stages = ['Reinforcement', 'Formwork', 'Curing'];
   final TextEditingController _progressCtrl = TextEditingController();
@@ -52,7 +50,7 @@ class _UpdateProgressScreenState
                     const SizedBox(height: 20),
                     _buildDocumentation(),
                     const SizedBox(height: 20),
-                    _buildMaterialConsumption(),
+                    _buildMaterialConsumption(context),
                     const SizedBox(height: 30),
                     _buildSaveButton(context),
                   ],
@@ -66,8 +64,6 @@ class _UpdateProgressScreenState
     );
   }
 
-  // ── Top Bar ───────────────────────────────────────────────────────────────
-
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -76,26 +72,20 @@ class _UpdateProgressScreenState
         children: [
           GestureDetector(
             onTap: () => Navigator.maybePop(context),
-            child: const Icon(Icons.arrow_back,
-                color: textDark, size: 22),
+            child: const Icon(Icons.arrow_back, color: textDark, size: 22),
           ),
           const Text('Update progress',
               style: TextStyle(
-                  color: textDark,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800)),
+                  color: textDark, fontSize: 17, fontWeight: FontWeight.w800)),
           CircleAvatar(
             radius: 19,
             backgroundColor: Colors.blue.shade700,
-            child: const Icon(Icons.person,
-                color: Colors.white, size: 20),
+            child: const Icon(Icons.person, color: Colors.white, size: 20),
           ),
         ],
       ),
     );
   }
-
-  // ── Current Stage Card ────────────────────────────────────────────────────
 
   Widget _buildCurrentStageCard() {
     return Container(
@@ -104,17 +94,14 @@ class _UpdateProgressScreenState
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFEEF4FF),
               borderRadius: BorderRadius.circular(20),
@@ -146,22 +133,18 @@ class _UpdateProgressScreenState
                   color: const Color(0xFFF4F4F8),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.architecture,
-                    color: textGray, size: 20),
+                child: const Icon(Icons.architecture, color: textGray, size: 20),
               ),
             ],
           ),
           const SizedBox(height: 6),
           const Row(
             children: [
-              Icon(Icons.location_on_outlined,
-                  color: textGray, size: 14),
+              Icon(Icons.location_on_outlined, color: textGray, size: 14),
               SizedBox(width: 4),
               Text('Sector B-12 • Level 04',
                   style: TextStyle(
-                      color: textGray,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500)),
+                      color: textGray, fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
           const SizedBox(height: 14),
@@ -171,8 +154,7 @@ class _UpdateProgressScreenState
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         Text('COMPLETION',
                             style: TextStyle(
@@ -194,8 +176,7 @@ class _UpdateProgressScreenState
                         value: 0.65,
                         backgroundColor: Color(0xFFE8ECF8),
                         valueColor:
-                            AlwaysStoppedAnimation<Color>(
-                                primaryBlue),
+                            AlwaysStoppedAnimation<Color>(primaryBlue),
                         minHeight: 7,
                       ),
                     ),
@@ -212,10 +193,7 @@ class _UpdateProgressScreenState
   }
 
   Widget _avatarStack() {
-    const colors = [
-      Color(0xFF5B6CF6),
-      Color(0xFF9C59B5),
-    ];
+    const colors = [Color(0xFF5B6CF6), Color(0xFF9C59B5)];
     return Row(
       children: [
         ...List.generate(2, (i) {
@@ -224,28 +202,23 @@ class _UpdateProgressScreenState
             child: CircleAvatar(
               radius: 15,
               backgroundColor: colors[i],
-              child: const Icon(Icons.person,
-                  color: Colors.white, size: 14),
+              child: const Icon(Icons.person, color: Colors.white, size: 14),
             ),
           );
         }),
         Transform.translate(
           offset: const Offset(-18, 0),
-          child: CircleAvatar(
+          child: const CircleAvatar(
             radius: 15,
-            backgroundColor: const Color(0xFFEEF0FF),
-            child: const Text('+4',
+            backgroundColor: Color(0xFFEEF0FF),
+            child: Text('+4',
                 style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: primaryBlue)),
+                    fontSize: 9, fontWeight: FontWeight.w800, color: primaryBlue)),
           ),
         ),
       ],
     );
   }
-
-  // ── Select Stage ──────────────────────────────────────────────────────────
 
   Widget _buildSelectStage() {
     return Column(
@@ -253,9 +226,7 @@ class _UpdateProgressScreenState
       children: [
         const Text('Select Stage',
             style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: textDark)),
+                fontSize: 17, fontWeight: FontWeight.w900, color: textDark)),
         const SizedBox(height: 12),
         Row(
           children: _stages.asMap().entries.map((e) {
@@ -263,19 +234,17 @@ class _UpdateProgressScreenState
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () =>
-                    setState(() => _stageIndex = e.key),
+                onTap: () => setState(() => _stageIndex = e.key),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                   decoration: BoxDecoration(
                     color: sel ? primaryBlue : Colors.white,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: 0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 8)
                     ],
                   ),
@@ -293,44 +262,36 @@ class _UpdateProgressScreenState
     );
   }
 
-  // ── Progress Details ──────────────────────────────────────────────────────
-
   Widget _buildProgressDetailsField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Work progress details',
             style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: textDark)),
+                fontSize: 17, fontWeight: FontWeight.w900, color: textDark)),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: const Color(0xFFDDE0F0), width: 1.5),
+            border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
           ),
           child: TextField(
             controller: _progressCtrl,
             maxLines: 5,
             decoration: const InputDecoration(
               hintText: 'Describe the tasks completed today...',
-              hintStyle:
-                  TextStyle(color: textGray, fontSize: 14),
+              hintStyle: TextStyle(color: textGray, fontSize: 14),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(14),
             ),
-            style: const TextStyle(
-                fontSize: 14, color: textDark, height: 1.5),
+            style:
+                const TextStyle(fontSize: 14, color: textDark, height: 1.5),
           ),
         ),
       ],
     );
   }
-
-  // ── Date Field ────────────────────────────────────────────────────────────
 
   Widget _buildDateField() {
     return Column(
@@ -338,22 +299,18 @@ class _UpdateProgressScreenState
       children: [
         const Text('Update Date',
             style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: textDark)),
+                fontSize: 17, fontWeight: FontWeight.w900, color: textDark)),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: const Color(0xFFDDE0F0), width: 1.5),
+            border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
           ),
           child: const Row(
             children: [
-              Icon(Icons.calendar_month_outlined,
-                  color: primaryBlue, size: 19),
+              Icon(Icons.calendar_month_outlined, color: primaryBlue, size: 19),
               SizedBox(width: 10),
               Text('October 24, 2023',
                   style: TextStyle(
@@ -367,36 +324,36 @@ class _UpdateProgressScreenState
     );
   }
 
-  // ── Documentation ─────────────────────────────────────────────────────────
-
   Widget _buildDocumentation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Documentation',
             style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: textDark)),
+                fontSize: 17, fontWeight: FontWeight.w900, color: textDark)),
         const SizedBox(height: 10),
         GestureDetector(
-          onTap: () {},
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Camera / file picker would open here')),
+            );
+          },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 30),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: const Color(0xFFCCCFE8), width: 1.5),
+              border:
+                  Border.all(color: const Color(0xFFCCCFE8), width: 1.5),
             ),
             child: Column(
               children: [
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF0FF),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEEF0FF),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.camera_alt_outlined,
@@ -416,18 +373,15 @@ class _UpdateProgressScreenState
     );
   }
 
-  // ── Material Consumption ──────────────────────────────────────────────────
-
-  Widget _buildMaterialConsumption() {
+  // FIX: added context param so ADD MATERIAL button can navigate
+  Widget _buildMaterialConsumption(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
         ],
       ),
       child: Column(
@@ -442,12 +396,16 @@ class _UpdateProgressScreenState
                       color: textGray,
                       letterSpacing: 0.7)),
               TextButton(
-                onPressed: () {},
+                // FIX: ADD MATERIAL now navigates to add-material screen
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  '/add-material',
+                  arguments: {'type': 'material'},
+                ),
                 style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
-                    tapTargetSize:
-                        MaterialTapTargetSize.shrinkWrap),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                 child: const Text('ADD MATERIAL',
                     style: TextStyle(
                         color: primaryBlue,
@@ -472,34 +430,27 @@ class _UpdateProgressScreenState
         Container(
           width: 8,
           height: 8,
-          decoration: const BoxDecoration(
-              color: primaryBlue, shape: BoxShape.circle),
+          decoration:
+              const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
         ),
         const SizedBox(width: 10),
         Text(label,
             style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14.5,
-                color: textDark)),
+                fontWeight: FontWeight.w700, fontSize: 14.5, color: textDark)),
         const SizedBox(width: 8),
         Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 9, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
           decoration: BoxDecoration(
             color: const Color(0xFFEEF0FF),
             borderRadius: BorderRadius.circular(7),
           ),
           child: Text(qty,
               style: const TextStyle(
-                  color: primaryBlue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800)),
+                  color: primaryBlue, fontSize: 12, fontWeight: FontWeight.w800)),
         ),
       ],
     );
   }
-
-  // ── Save Button ───────────────────────────────────────────────────────────
 
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
@@ -524,8 +475,7 @@ class _UpdateProgressScreenState
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline,
-                color: Colors.white, size: 22),
+            Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
             SizedBox(width: 10),
             Text('Save progress update',
                 style: TextStyle(
@@ -537,8 +487,6 @@ class _UpdateProgressScreenState
       ),
     );
   }
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
 
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
@@ -560,13 +508,12 @@ class _UpdateProgressScreenState
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME',
-                  route: '/home'),
-              _navItem(context, 1, Icons.architecture_outlined,
-                  'PROJECTS', route: '/projects'),
+              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
+              _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS',
+                  route: '/projects'),
               _navEntryButton(context),
-              _navItem(context, 3, Icons.inventory_2_outlined,
-                  'INVENTORY', route: '/inventory'),
+              _navItem(context, 3, Icons.inventory_2_outlined, 'INVENTORY',
+                  route: '/inventory'),
               _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS',
                   route: '/reports'),
             ],
@@ -576,8 +523,7 @@ class _UpdateProgressScreenState
     );
   }
 
-  Widget _navItem(BuildContext context, int index, IconData icon,
-      String label,
+  Widget _navItem(BuildContext context, int index, IconData icon, String label,
       {String? route}) {
     final isActive = _selectedNavIndex == index;
     return GestureDetector(
@@ -591,9 +537,7 @@ class _UpdateProgressScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 22,
-                color: isActive ? primaryBlue : textGray),
+            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
@@ -630,21 +574,16 @@ class _UpdateProgressScreenState
                 ),
               ],
             ),
-            child: const Icon(Icons.add,
-                color: Colors.white, size: 24),
+            child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: _selectedNavIndex == 2
-                  ? primaryBlue
-                  : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
+          Text('ENTRY',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: _selectedNavIndex == 2 ? primaryBlue : textGray,
+                letterSpacing: 0.3,
+              )),
         ],
       ),
     );

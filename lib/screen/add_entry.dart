@@ -13,27 +13,27 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  int _selectedNavIndex = 2; // ENTRY is active
+  int _selectedNavIndex = 2;
   int _selectedEntry = 0; // 0=Material, 1=Labour, 2=Equipment
 
   final List<Map<String, dynamic>> _entries = [
     {
       'icon': Icons.category,
       'title': 'Material',
-      'subtitle':
-          'Log concrete, steel, lumber, or site-specific procurement items.',
+      'subtitle': 'Log concrete, steel, lumber, or site-specific procurement items.',
+      'type': 'material',
     },
     {
       'icon': Icons.people,
       'title': 'Labour',
-      'subtitle':
-          'Track crew hours, specialized trade performance, and site presence.',
+      'subtitle': 'Track crew hours, specialized trade performance, and site presence.',
+      'type': 'labour',
     },
     {
       'icon': Icons.precision_manufacturing,
       'title': 'Equipment',
-      'subtitle':
-          'Record heavy machinery runtime, fuel logs, and maintenance events.',
+      'subtitle': 'Record heavy machinery runtime, fuel logs, and maintenance events.',
+      'type': 'equipment',
     },
   ];
 
@@ -68,9 +68,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       'Select the entry type to log for the current shift.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: textGray,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500),
+                          color: textGray, fontSize: 14.5, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 34),
                     ...List.generate(_entries.length, (index) {
@@ -82,14 +80,21 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     const SizedBox(height: 22),
                     _buildContinueButton(context),
                     const SizedBox(height: 16),
+                    // FIX: Save as Draft now pops back instead of doing nothing
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Entry saved as draft'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        Navigator.maybePop(context);
+                      },
                       child: const Text(
                         'Save as Draft',
                         style: TextStyle(
-                            color: textGray,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600),
+                            color: textGray, fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -104,8 +109,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
   }
 
-  // ── Top Bar ───────────────────────────────────────────────────────────────
-
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -116,13 +119,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             onTap: () => Navigator.maybePop(context),
             child: const Icon(Icons.arrow_back, color: textDark, size: 22),
           ),
-          const Text(
-            'Add entry',
-            style: TextStyle(
-                color: textDark,
-                fontSize: 17,
-                fontWeight: FontWeight.w800),
-          ),
+          const Text('Add entry',
+              style: TextStyle(color: textDark, fontSize: 17, fontWeight: FontWeight.w800)),
           CircleAvatar(
             radius: 18,
             backgroundColor: Colors.grey.shade300,
@@ -132,8 +130,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       ),
     );
   }
-
-  // ── Entry Card ────────────────────────────────────────────────────────────
 
   Widget _entryCard(int index) {
     final entry = _entries[index];
@@ -169,16 +165,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? primaryBlue
-                    : const Color(0xFFF0F2F8),
+                color: isSelected ? primaryBlue : const Color(0xFFF0F2F8),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 entry['icon'] as IconData,
-                color: isSelected
-                    ? Colors.white
-                    : Colors.grey.shade500,
+                color: isSelected ? Colors.white : Colors.grey.shade500,
                 size: 28,
               ),
             ),
@@ -187,22 +179,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    entry['title'] as String,
-                    style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        color: textDark),
-                  ),
+                  Text(entry['title'] as String,
+                      style: const TextStyle(
+                          fontSize: 19, fontWeight: FontWeight.w900, color: textDark)),
                   const SizedBox(height: 5),
-                  Text(
-                    entry['subtitle'] as String,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        color: textGray,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4),
-                  ),
+                  Text(entry['subtitle'] as String,
+                      style: const TextStyle(
+                          fontSize: 13, color: textGray, fontWeight: FontWeight.w500, height: 1.4)),
                 ],
               ),
             ),
@@ -211,10 +194,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               Container(
                 width: 26,
                 height: 26,
-                decoration: const BoxDecoration(
-                    color: primaryBlue, shape: BoxShape.circle),
-                child: const Icon(Icons.check,
-                    color: Colors.white, size: 15),
+                decoration:
+                    const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                child: const Icon(Icons.check, color: Colors.white, size: 15),
               ),
             ],
           ],
@@ -223,16 +205,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
   }
 
-  // ── Continue Button ───────────────────────────────────────────────────────
-
   Widget _buildContinueButton(BuildContext context) {
     return GestureDetector(
+      // FIX: passes the selected entry type as an argument to add-material
       onTap: () {
-        if (_selectedEntry == 0) {
-          Navigator.pushNamed(context, '/add-material');
-        } else {
-          Navigator.pushNamed(context, '/add-material');
-        }
+        final selectedType = _entries[_selectedEntry]['type'] as String;
+        Navigator.pushNamed(
+          context,
+          '/add-material',
+          arguments: {'type': selectedType},
+        );
       },
       child: Container(
         width: double.infinity,
@@ -252,19 +234,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           ],
         ),
         child: const Center(
-          child: Text(
-            'Continue',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700),
-          ),
+          child: Text('Continue',
+              style: TextStyle(
+                  color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
         ),
       ),
     );
   }
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
 
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
@@ -286,15 +262,11 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME',
-                  route: '/home'),
-              _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS',
-                  route: '/projects'),
+              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
+              _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS', route: '/projects'),
               _navEntryButton(context),
-              _navItem(context, 3, Icons.inventory_2_outlined, 'INVENTORY',
-                  route: '/inventory'),
-              _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS',
-                  route: '/reports'),
+              _navItem(context, 3, Icons.inventory_2_outlined, 'INVENTORY', route: '/inventory'),
+              _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS', route: '/reports'),
             ],
           ),
         ),
@@ -302,8 +274,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
   }
 
-  Widget _navItem(BuildContext context, int index, IconData icon,
-      String label,
+  Widget _navItem(BuildContext context, int index, IconData icon, String label,
       {String? route}) {
     final isActive = _selectedNavIndex == index;
     return GestureDetector(
@@ -319,9 +290,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 22,
-                color: isActive ? primaryBlue : textGray),
+            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
@@ -338,6 +307,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   Widget _navEntryButton(BuildContext context) {
     final isActive = _selectedNavIndex == 2;
     return GestureDetector(
+      // FIX: already on this screen, just highlight it — no push needed
       onTap: () => setState(() => _selectedNavIndex = 2),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -359,15 +329,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: isActive ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
+          Text('ENTRY',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: isActive ? primaryBlue : textGray,
+                letterSpacing: 0.3,
+              )),
         ],
       ),
     );

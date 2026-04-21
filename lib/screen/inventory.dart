@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  int _selectedNavIndex = 3; // INVENTORY is active
+  int _selectedNavIndex = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +25,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
         bottom: false,
         child: Column(
           children: [
-            _buildTopBar(context),
+            AppTopBar(
+              title: 'SiteTrack',
+              rightWidget: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/notifications'),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey.shade800,
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -40,12 +55,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             color: textDark,
                             letterSpacing: -0.5)),
                     const SizedBox(height: 4),
-                    const Text(
-                        'Real-time material tracking and logistical oversight.',
+                    const Text('Real-time material tracking and logistical oversight.',
                         style: TextStyle(
-                            color: textGray,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500)),
+                            color: textGray, fontSize: 13, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 14),
                     _buildSearchBar(),
                     const SizedBox(height: 14),
@@ -60,6 +72,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       levelColor: primaryBlue,
                       bottomColor: primaryBlue,
                       actionIcon: Icons.add,
+                      // FIX: each card passes its material name as argument
+                      materialName: 'Steel Rebar 12mm',
                     ),
                     const SizedBox(height: 12),
                     _inventoryCard(
@@ -73,6 +87,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       levelColor: Colors.redAccent,
                       bottomColor: Colors.redAccent,
                       actionIcon: Icons.shopping_cart_outlined,
+                      materialName: 'Primer White X-2',
                     ),
                     const SizedBox(height: 12),
                     _inventoryCard(
@@ -86,9 +101,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       levelColor: Colors.orange,
                       bottomColor: Colors.orange,
                       actionIcon: Icons.add,
+                      materialName: 'Portland Cement',
                     ),
                     const SizedBox(height: 12),
-                    _urgentCard(),
+                    _urgentCard(context),
                     const SizedBox(height: 12),
                     _inventoryCard(
                       context: context,
@@ -101,6 +117,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       levelColor: primaryBlue,
                       bottomColor: primaryBlue,
                       actionIcon: Icons.add,
+                      materialName: 'HVAC Copper Pipes',
                     ),
                   ],
                 ),
@@ -113,64 +130,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Top Bar ───────────────────────────────────────────────────────────────
-
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('SiteTrack',
-              style: TextStyle(
-                  color: primaryBlue,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900)),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, '/cement-history'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFDDE0F0)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.history, size: 14, color: purple),
-                      SizedBox(width: 5),
-                      Text('History',
-                          style: TextStyle(
-                              color: purple,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                radius: 19,
-                backgroundColor: Colors.grey.shade800,
-                child: const Text('N',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Search Bar ────────────────────────────────────────────────────────────
-
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -178,9 +137,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
         ],
       ),
       child: Row(
@@ -205,8 +162,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Inventory Card ────────────────────────────────────────────────────────
-
   Widget _inventoryCard({
     required BuildContext context,
     required IconData icon,
@@ -218,20 +173,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required Color levelColor,
     required Color bottomColor,
     required IconData actionIcon,
+    required String materialName,
   }) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/cement-history'),
+      // FIX: passes material name as argument so cement-history screen knows what to show
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/cement-history',
+        arguments: {'materialName': materialName},
+      ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border(
-              bottom: BorderSide(color: bottomColor, width: 3.5)),
+          border: Border(bottom: BorderSide(color: bottomColor, width: 3.5)),
           boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
           ],
         ),
         child: Column(
@@ -249,8 +207,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 9, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
                     color: levelColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
@@ -279,8 +236,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               color: textDark)),
                       const SizedBox(height: 2),
                       Text(lastUpdated,
-                          style: const TextStyle(
-                              color: textGray, fontSize: 11.5)),
+                          style: const TextStyle(color: textGray, fontSize: 11.5)),
                       const SizedBox(height: 8),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -312,8 +268,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       color: const Color(0xFFF0F2FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(actionIcon,
-                        color: primaryBlue, size: 20),
+                    child: Icon(actionIcon, color: primaryBlue, size: 20),
                   ),
                 ),
               ],
@@ -325,9 +280,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Urgent Card ───────────────────────────────────────────────────────────
-
-  Widget _urgentCard() {
+  Widget _urgentCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -371,27 +324,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const SizedBox(height: 8),
           const Text(
               'Stock level critically low for the upcoming facade installation phase.',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.4)),
+              style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
           const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 11),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
+              GestureDetector(
+                // FIX: Restock Now navigates to add-material with the item pre-filled
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/add-material',
+                  arguments: {'type': 'material', 'prefill': 'Glazing Panels Section B-12'},
                 ),
-                child: const Text('Restock Now',
-                    style: TextStyle(
-                        color: Color(0xFF2233DD),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Text('Restock Now',
+                      style: TextStyle(
+                          color: Color(0xFF2233DD),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14)),
+                ),
               ),
               SizedBox(
                 width: 78,
@@ -406,8 +363,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         value: 0.12,
                         strokeWidth: 7,
                         backgroundColor: Colors.white24,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
                     const Column(
@@ -435,8 +391,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
-
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -457,8 +411,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME',
-                  route: '/home'),
+              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
               _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS',
                   route: '/projects'),
               _navEntryButton(context),
@@ -473,8 +426,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _navItem(BuildContext context, int index, IconData icon,
-      String label,
+  Widget _navItem(BuildContext context, int index, IconData icon, String label,
       {String? route}) {
     final isActive = _selectedNavIndex == index;
     return GestureDetector(
@@ -490,9 +442,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 22,
-                color: isActive ? primaryBlue : textGray),
+            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
@@ -532,15 +482,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
             child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: _selectedNavIndex == 2 ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
+          Text('ENTRY',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: _selectedNavIndex == 2 ? primaryBlue : textGray,
+                letterSpacing: 0.3,
+              )),
         ],
       ),
     );

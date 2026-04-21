@@ -1,11 +1,11 @@
+import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 
 class CementHistoryScreen extends StatefulWidget {
   const CementHistoryScreen({super.key});
 
   @override
-  State<CementHistoryScreen> createState() =>
-      _CementHistoryScreenState();
+  State<CementHistoryScreen> createState() => _CementHistoryScreenState();
 }
 
 class _CementHistoryScreenState extends State<CementHistoryScreen> {
@@ -15,7 +15,20 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  int _selectedNavIndex = 3; // INVENTORY is active
+  int _selectedNavIndex = 3;
+  String _materialName = 'Material History';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final name = args['materialName'] as String?;
+      if (name != null) {
+        setState(() => _materialName = name);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +38,21 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         bottom: false,
         child: Column(
           children: [
-            _buildTopBar(context),
+            AppTopBar(
+              title: 'SiteTrack',
+              rightWidget: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/notifications'),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey.shade800,
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -42,8 +69,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                       iconBg: const Color(0xFFEEF0FF),
                       iconColor: primaryBlue,
                       name: 'Portland Type II',
-                      subtitle:
-                          'Stock Replenishment • #INV-9921',
+                      subtitle: 'Stock Replenishment • #INV-9921',
                       qty: '+450',
                       date: 'OCT 24,\n2023',
                       isPositive: true,
@@ -55,8 +81,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                       iconBg: const Color(0xFFF0EEFF),
                       iconColor: purple,
                       name: 'Portland Type II',
-                      subtitle:
-                          'Slab Pouring - Block B • #INV-9884',
+                      subtitle: 'Slab Pouring - Block B • #INV-9884',
                       qty: '-120',
                       date: 'OCT 22,\n2023',
                       isPositive: false,
@@ -68,8 +93,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                       iconBg: const Color(0xFFF0EEFF),
                       iconColor: purple,
                       name: 'Quick-Set Specialty',
-                      subtitle:
-                          'Column Reinforcement • #INV-9851',
+                      subtitle: 'Column Reinforcement • #INV-9851',
                       qty: '-45',
                       date: 'OCT 20,\n2023',
                       isPositive: false,
@@ -81,8 +105,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                       iconBg: const Color(0xFFEEF0FF),
                       iconColor: primaryBlue,
                       name: 'Portland Type II',
-                      subtitle:
-                          'Stock Replenishment • #INV-9820',
+                      subtitle: 'Stock Replenishment • #INV-9820',
                       qty: '+200',
                       date: 'OCT 18,\n2023',
                       isPositive: true,
@@ -111,51 +134,10 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
     );
   }
 
-  // ── Top Bar ───────────────────────────────────────────────────────────────
-
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.maybePop(context),
-            child: const Icon(Icons.arrow_back,
-                color: textDark, size: 22),
-          ),
-          const Text('Cement History',
-              style: TextStyle(
-                  color: primaryBlue,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800)),
-          Row(
-            children: [
-              const Icon(Icons.search, color: textDark, size: 22),
-              const SizedBox(width: 14),
-              CircleAvatar(
-                radius: 19,
-                backgroundColor: Colors.grey.shade800,
-                child: const Text('N',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Stock Card ────────────────────────────────────────────────────────────
-
   Widget _buildStockCard() {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFEEEFFF), Color(0xFFF5F0FF)],
@@ -167,12 +149,15 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
       child: Column(
         children: [
-          const Text('TOTAL CURRENT STOCK',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: textGray,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1)),
+          const Text(
+            'TOTAL CURRENT STOCK',
+            style: TextStyle(
+              fontSize: 12,
+              color: textGray,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
+          ),
           const SizedBox(height: 10),
           RichText(
             text: const TextSpan(
@@ -180,18 +165,20 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                 TextSpan(
                   text: '1,248',
                   style: TextStyle(
-                      fontSize: 56,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF5B3FE0),
-                      letterSpacing: -2,
-                      height: 1),
+                    fontSize: 56,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF5B3FE0),
+                    letterSpacing: -2,
+                    height: 1,
+                  ),
                 ),
                 TextSpan(
                   text: '  Units',
                   style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: textGray),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: textGray,
+                  ),
                 ),
               ],
             ),
@@ -200,11 +187,9 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _stockBadge(
-                  Icons.category_outlined, 'GRADE A-500'),
+              _stockBadge(Icons.category_outlined, 'GRADE A-500'),
               const SizedBox(width: 30),
-              _stockBadge(
-                  Icons.home_work_outlined, 'SECTOR 04'),
+              _stockBadge(Icons.home_work_outlined, 'SECTOR 04'),
             ],
           ),
         ],
@@ -217,17 +202,18 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       children: [
         Icon(icon, color: purple, size: 18),
         const SizedBox(width: 7),
-        Text(label,
-            style: const TextStyle(
-                color: purple,
-                fontWeight: FontWeight.w800,
-                fontSize: 12.5,
-                letterSpacing: 0.3)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: purple,
+            fontWeight: FontWeight.w800,
+            fontSize: 12.5,
+            letterSpacing: 0.3,
+          ),
+        ),
       ],
     );
   }
-
-  // ── Movement Header ───────────────────────────────────────────────────────
 
   Widget _buildMovementHeader() {
     return Row(
@@ -237,19 +223,23 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Movement Logs',
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: textDark)),
+            Text(
+              'Movement Logs',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: textDark,
+              ),
+            ),
             SizedBox(height: 3),
-            Text('Tracking historical distribution',
-                style: TextStyle(color: textGray, fontSize: 12.5)),
+            Text(
+              'Tracking historical distribution',
+              style: TextStyle(color: textGray, fontSize: 12.5),
+            ),
           ],
         ),
         Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
@@ -257,11 +247,14 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
           ),
           child: const Row(
             children: [
-              Text('Filter',
-                  style: TextStyle(
-                      color: primaryBlue,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13)),
+              Text(
+                'Filter',
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
               SizedBox(width: 5),
               Icon(Icons.tune, color: primaryBlue, size: 16),
             ],
@@ -270,8 +263,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-
-  // ── Single Movement Row ───────────────────────────────────────────────────
 
   Widget _movementItem({
     required IconData icon,
@@ -291,9 +282,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: accent, width: 3.5)),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -302,8 +291,9 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(12)),
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: iconColor, size: 21),
           ),
           const SizedBox(width: 12),
@@ -311,15 +301,19 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.5,
-                        color: textDark)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                    color: textDark,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(subtitle,
-                    style: const TextStyle(
-                        color: textGray, fontSize: 11.5)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: textGray, fontSize: 11.5),
+                ),
               ],
             ),
           ),
@@ -329,27 +323,27 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
               Text(
                 qty,
                 style: TextStyle(
-                    color: isPositive
-                        ? primaryBlue
-                        : const Color(0xFFE040FB),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 19),
+                  color: isPositive ? primaryBlue : const Color(0xFFE040FB),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 19,
+                ),
               ),
               const SizedBox(height: 2),
-              Text(date,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                      color: textGray,
-                      fontSize: 10,
-                      height: 1.3)),
+              Text(
+                date,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: textGray,
+                  fontSize: 10,
+                  height: 1.3,
+                ),
+              ),
             ],
           ),
         ],
       ),
     );
   }
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
 
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
@@ -371,15 +365,29 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME',
-                  route: '/home'),
-              _navItem(context, 1, Icons.architecture_outlined,
-                  'PROJECTS', route: '/projects'),
+              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
+              _navItem(
+                context,
+                1,
+                Icons.architecture_outlined,
+                'PROJECTS',
+                route: '/projects',
+              ),
               _navEntryButton(context),
-              _navItem(context, 3, Icons.inventory_2_outlined,
-                  'INVENTORY', route: '/inventory'),
-              _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS',
-                  route: '/reports'),
+              _navItem(
+                context,
+                3,
+                Icons.inventory_2_outlined,
+                'INVENTORY',
+                route: '/inventory',
+              ),
+              _navItem(
+                context,
+                4,
+                Icons.bar_chart_outlined,
+                'REPORTS',
+                route: '/reports',
+              ),
             ],
           ),
         ),
@@ -387,9 +395,13 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
     );
   }
 
-  Widget _navItem(BuildContext context, int index, IconData icon,
-      String label,
-      {String? route}) {
+  Widget _navItem(
+    BuildContext context,
+    int index,
+    IconData icon,
+    String label, {
+    String? route,
+  }) {
     final isActive = _selectedNavIndex == index;
     return GestureDetector(
       onTap: () {
@@ -402,16 +414,17 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 22,
-                color: isActive ? primaryBlue : textGray),
+            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
             const SizedBox(height: 3),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: isActive ? primaryBlue : textGray,
-                    letterSpacing: 0.3)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: isActive ? primaryBlue : textGray,
+                letterSpacing: 0.3,
+              ),
+            ),
           ],
         ),
       ),
@@ -441,8 +454,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                 ),
               ],
             ),
-            child: const Icon(Icons.add,
-                color: Colors.white, size: 24),
+            child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 3),
           Text(

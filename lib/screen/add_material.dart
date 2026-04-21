@@ -16,14 +16,44 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   final _qtyController = TextEditingController(text: '45');
   final _rateController = TextEditingController(text: '120');
-  bool _supplierError = true;
-  int _selectedNavIndex = 2; // ENTRY is active
+  final _nameController = TextEditingController(text: 'Premium Ready-Mix Concret');
+  bool _supplierError = false;
+  bool _supplierSelected = false;
+  int _selectedNavIndex = 2;
+
+  // FIX: read args passed from add_entry or inventory
+  String _entryType = 'material';
+  bool _isEditing = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      _entryType = args['type'] as String? ?? 'material';
+      _isEditing = args['isEditing'] as bool? ?? false;
+      final prefill = args['prefill'] as String?;
+      if (prefill != null) {
+        _nameController.text = prefill;
+      }
+    }
+  }
 
   @override
   void dispose() {
     _qtyController.dispose();
     _rateController.dispose();
+    _nameController.dispose();
     super.dispose();
+  }
+
+  String get _screenTitle {
+    if (_isEditing) return 'Edit Entry';
+    switch (_entryType) {
+      case 'labour': return 'Add Labour';
+      case 'equipment': return 'Add Equipment';
+      default: return 'Add Material';
+    }
   }
 
   @override
@@ -55,7 +85,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -69,9 +99,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             onTap: () => Navigator.pop(context),
             child: const Icon(Icons.arrow_back, color: textDark, size: 22),
           ),
-          const Text(
-            'Add Material',
-            style: TextStyle(
+          Text(
+            _screenTitle,
+            style: const TextStyle(
                 color: primaryBlue, fontSize: 17, fontWeight: FontWeight.w800),
           ),
           CircleAvatar(
@@ -91,7 +121,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         Row(
           children: [
             _stepCircle('1', filled: true),
-            // Dashed line between steps
             SizedBox(
               width: 36,
               child: CustomPaint(
@@ -141,43 +170,42 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05), blurRadius: 12)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12)
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Item name
           const Text('Item name',
               style: TextStyle(
-                  color: primaryBlue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14)),
+                  color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 8),
+          // FIX: item name is now editable and uses controller (prefilled from args)
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: const BoxDecoration(
-              border:
-                  Border(bottom: BorderSide(color: primaryBlue, width: 2)),
+              border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.inventory_2_outlined,
-                    color: textGray, size: 18),
-                SizedBox(width: 10),
-                Text('Premium Ready-Mix Concret',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: textDark)),
+                const Icon(Icons.inventory_2_outlined, color: textGray, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600, color: textDark),
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // Quantity and Rate
           Row(
             children: [
               Expanded(
@@ -193,8 +221,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     Container(
                       decoration: const BoxDecoration(
                         border: Border(
-                            bottom:
-                                BorderSide(color: primaryBlue, width: 2)),
+                            bottom: BorderSide(color: primaryBlue, width: 2)),
                       ),
                       child: Row(
                         children: [
@@ -202,10 +229,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             child: TextField(
                               controller: _qtyController,
                               keyboardType: TextInputType.number,
+                              onChanged: (_) => setState(() {}),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 10),
+                                contentPadding:
+                                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                               ),
                               style: const TextStyle(
                                   fontSize: 18,
@@ -238,8 +266,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     Container(
                       decoration: const BoxDecoration(
                         border: Border(
-                            bottom:
-                                BorderSide(color: primaryBlue, width: 2)),
+                            bottom: BorderSide(color: primaryBlue, width: 2)),
                       ),
                       child: Row(
                         children: [
@@ -252,10 +279,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             child: TextField(
                               controller: _rateController,
                               keyboardType: TextInputType.number,
+                              onChanged: (_) => setState(() {}),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 10),
+                                contentPadding:
+                                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                               ),
                               style: const TextStyle(
                                   fontSize: 18,
@@ -273,7 +301,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Total amount
+          // FIX: total amount is computed live from qty * rate
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -283,22 +311,24 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('TOTAL AMOUNT',
+                    const Text('TOTAL AMOUNT',
                         style: TextStyle(
                             color: textGray,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8)),
-                    SizedBox(height: 4),
-                    Text('\$ 5,400.00',
-                        style: TextStyle(
-                            color: primaryBlue,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$ ${_computeTotal()}',
+                      style: const TextStyle(
+                          color: primaryBlue,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3),
+                    ),
                   ],
                 ),
                 Container(
@@ -316,14 +346,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Supplier ID
           RichText(
             text: const TextSpan(
               text: 'Supplier ID ',
               style: TextStyle(
-                  color: primaryBlue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14),
+                  color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14),
               children: [
                 TextSpan(
                   text: '(Required)',
@@ -333,28 +360,38 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                    color: _supplierError ? errorRed : primaryBlue,
-                    width: 2),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.business_outlined,
-                    color: textGray, size: 18),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text('Select supplier',
-                      style: TextStyle(color: textGray, fontSize: 15)),
+          // FIX: supplier tap shows bottom sheet picker
+          GestureDetector(
+            onTap: () => _showSupplierPicker(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                      color: _supplierError ? errorRed : primaryBlue, width: 2),
                 ),
-                if (_supplierError)
-                  const Icon(Icons.error, color: errorRed, size: 22),
-              ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.business_outlined, color: textGray, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _supplierSelected ? 'ABC Suppliers Ltd.' : 'Select supplier',
+                      style: TextStyle(
+                          color: _supplierSelected ? textDark : textGray,
+                          fontSize: 15,
+                          fontWeight: _supplierSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400),
+                    ),
+                  ),
+                  if (_supplierError)
+                    const Icon(Icons.error, color: errorRed, size: 22),
+                  if (_supplierSelected)
+                    const Icon(Icons.check_circle, color: Colors.green, size: 22),
+                ],
+              ),
             ),
           ),
           if (_supplierError) ...[
@@ -362,32 +399,28 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             const Text(
               'Please select a valid supplier from the database.',
               style: TextStyle(
-                  color: errorRed,
-                  fontSize: 11.5,
-                  fontStyle: FontStyle.italic),
+                  color: errorRed, fontSize: 11.5, fontStyle: FontStyle.italic),
             ),
           ],
           const SizedBox(height: 20),
 
-          // Upload receipt
           const Text('Upload Receipt / Bill',
               style: TextStyle(
-                  color: primaryBlue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14)),
+                  color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('File picker would open here')),
+              );
+            },
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 28),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F9FF),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFCCCFE8),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFFCCCFE8), width: 1.5),
               ),
               child: Column(
                 children: [
@@ -423,11 +456,57 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
+  String _computeTotal() {
+    final qty = double.tryParse(_qtyController.text) ?? 0;
+    final rate = double.tryParse(_rateController.text) ?? 0;
+    final total = qty * rate;
+    return total.toStringAsFixed(2);
+  }
+
+  void _showSupplierPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Select Supplier',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            ...['ABC Suppliers Ltd.', 'Metro Build Co.', 'SteelWorks Inc.']
+                .map((s) => ListTile(
+                      title: Text(s,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      leading: const Icon(Icons.business, color: primaryBlue),
+                      onTap: () {
+                        setState(() {
+                          _supplierSelected = true;
+                          _supplierError = false;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                    )),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        setState(() => _supplierError = false);
-        Navigator.pushNamed(context, '/review-voice');
+        // FIX: validate supplier before saving
+        if (!_supplierSelected) {
+          setState(() => _supplierError = true);
+          return;
+        }
+        // FIX: save goes back to home clearing the entry stack
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/home', (route) => false);
       },
       child: Container(
         width: double.infinity,
@@ -464,7 +543,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   // ── Bottom Nav ────────────────────────────────────────────────────────────
 
-  Widget _buildBottomNavBar() {
+  Widget _buildBottomNavBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -484,11 +563,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(0, Icons.home_rounded, 'HOME'),
-              _navItem(1, Icons.bar_chart_outlined, 'PROJECTS'),
-              _navEntryButton(),
-              _navItem(3, Icons.inventory_2_outlined, 'INVENTORY'),
-              _navItem(4, Icons.assessment_outlined, 'REPORTS'),
+              // FIX: all nav items now properly navigate
+              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
+              _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS',
+                  route: '/projects'),
+              _navEntryButton(context),
+              _navItem(context, 3, Icons.inventory_2_outlined, 'INVENTORY',
+                  route: '/inventory'),
+              _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS',
+                  route: '/reports'),
             ],
           ),
         ),
@@ -496,10 +579,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  Widget _navItem(int index, IconData icon, String label) {
+  Widget _navItem(BuildContext context, int index, IconData icon, String label,
+      {String? route}) {
     final isActive = _selectedNavIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = index),
+      onTap: () {
+        setState(() => _selectedNavIndex = index);
+        if (route != null) Navigator.pushNamed(context, route);
+      },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 64,
@@ -509,22 +596,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           children: [
             Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
             const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: isActive ? primaryBlue : textGray,
-                letterSpacing: 0.3,
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? primaryBlue : textGray,
+                  letterSpacing: 0.3,
+                )),
           ],
         ),
       ),
     );
   }
 
-  Widget _navEntryButton() {
+  Widget _navEntryButton(BuildContext context) {
+    final isActive = _selectedNavIndex == 2;
     return GestureDetector(
       onTap: () => setState(() => _selectedNavIndex = 2),
       child: Column(
@@ -547,22 +633,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: _selectedNavIndex == 2 ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
+          Text('ENTRY',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: isActive ? primaryBlue : textGray,
+                letterSpacing: 0.3,
+              )),
         ],
       ),
     );
   }
 }
-
-// ── Dashed Line Painter ───────────────────────────────────────────────────────
 
 class _DashedLinePainter extends CustomPainter {
   @override
@@ -573,14 +655,10 @@ class _DashedLinePainter extends CustomPainter {
       ..color = const Color(0xFF2233DD)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
-
     double startX = 0;
     while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, size.height / 2),
-        Offset(startX + dashWidth, size.height / 2),
-        paint,
-      );
+      canvas.drawLine(Offset(startX, size.height / 2),
+          Offset(startX + dashWidth, size.height / 2), paint);
       startX += dashWidth + dashSpace;
     }
   }

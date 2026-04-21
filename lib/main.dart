@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/screen/add_entry.dart';
+import 'package:buildtrack_mobile/screen/report.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const MyApp());
@@ -9,7 +9,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const AddEntryScreen (),
+      home: const ReportsScreen (),
     );
   }
 }
