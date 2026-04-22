@@ -1,5 +1,5 @@
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
-import 'package:buildtrack_mobile/screen/review_equipment.dart';
+import 'package:buildtrack_mobile/screen/notification.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const ReviewEquipmentEntryScreen(),
+      home: const NotificationsScreen(),
     );
   }
 }
