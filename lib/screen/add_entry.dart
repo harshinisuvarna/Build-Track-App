@@ -7,7 +7,7 @@ class AddEntryScreen extends StatefulWidget {
   @override
   State<AddEntryScreen> createState() => _AddEntryScreenState();
 }
-
+// Add entry screen with options for Material, Labour, and Equipment. Each option has an icon, title, and subtitle. User can select one and continue to the next screen or save as draft.
 class _AddEntryScreenState extends State<AddEntryScreen> {
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
