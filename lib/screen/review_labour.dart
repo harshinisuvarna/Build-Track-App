@@ -1,15 +1,26 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ReviewLabourEntryScreen extends StatelessWidget {
+class ReviewLabourEntryScreen extends StatefulWidget {
   const ReviewLabourEntryScreen({super.key});
+  @override
+  State<ReviewLabourEntryScreen> createState() =>
+      _ReviewLabourEntryScreenState();
+}
 
+class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
   static const voicePurple = Color(0xFF6C3FC8);
+
+  // ✅ FIX: receipt attachment state + confirm loading state
+  String? _receiptFile;
+  bool _isConfirming = false;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +36,11 @@ class ReviewLabourEntryScreen extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.maybePop(context),
-                    child: const Icon(Icons.arrow_back, color: textDark, size: 22),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: textDark,
+                      size: 22,
+                    ),
                   ),
                   Expanded(
                     child: Center(
@@ -58,6 +73,9 @@ class ReviewLabourEntryScreen extends StatelessWidget {
                     _buildVoiceBanner(),
                     const SizedBox(height: 20),
                     _buildLabourCard(context),
+                    const SizedBox(height: 20),
+                    // ✅ FIX: receipt section
+                    _buildReceiptSection(),
                     const SizedBox(height: 20),
                     _buildTranscript(),
                     const SizedBox(height: 32),
@@ -241,11 +259,16 @@ class ReviewLabourEntryScreen extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: primaryBlue.withValues(alpha: 0.25)),
+                    border: Border.all(
+                      color: primaryBlue.withValues(alpha: 0.25),
+                    ),
                   ),
                   child: Text(
                     'AUTO',
@@ -262,6 +285,141 @@ class ReviewLabourEntryScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // ✅ FIX: receipt attachment section
+  Widget _buildReceiptSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Attach Receipt (Optional)',
+          style: GoogleFonts.inter(
+            color: primaryBlue,
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: _receiptFile == null
+              ? () {
+                  setState(
+                    () => _receiptFile =
+                        'labour_receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Receipt attached')),
+                  );
+                }
+              : null,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: _receiptFile != null
+                  ? const Color(0xFFEEF8EE)
+                  : const Color(0xFFF8F9FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _receiptFile != null
+                    ? Colors.green.shade300
+                    : const Color(0xFFCCCFE8),
+                width: 1.5,
+              ),
+            ),
+            child: _receiptFile != null
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Receipt attached',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: textDark,
+                              ),
+                            ),
+                            Text(
+                              _receiptFile!,
+                              style: GoogleFonts.inter(
+                                color: textGray,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () => setState(() => _receiptFile = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.redAccent,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.cloud_upload_outlined,
+                          color: primaryBlue,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap to attach receipt',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'PNG, JPG OR PDF UP TO 10MB',
+                        style: GoogleFonts.inter(
+                          color: textGray,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -299,71 +457,101 @@ class ReviewLabourEntryScreen extends StatelessWidget {
     );
   }
 
+  // ✅ FIX: loading state prevents double-tap
   Widget _buildConfirmButton(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBlue.withValues(alpha: 0.4),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+      onTap: _isConfirming
+          ? null
+          : () async {
+              setState(() => _isConfirming = true);
+              await Future.delayed(const Duration(milliseconds: 600));
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            },
+      child: AnimatedOpacity(
+        opacity: _isConfirming ? 0.7 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Text(
-              'Confirm and save',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: [
+              BoxShadow(
+                color: primaryBlue.withValues(alpha: 0.4),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: _isConfirming
+              ? const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Confirm and save',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: textGray,
-          letterSpacing: 0.8,
-        ),
-      );
+    text,
+    style: GoogleFonts.inter(
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      color: textGray,
+      letterSpacing: 0.8,
+    ),
+  );
 
   Widget _box(String value) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4F6FB),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          value,
-          style: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: textDark,
-          ),
-        ),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF4F6FB),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      value,
+      style: GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: textDark,
+      ),
+    ),
+  );
 }

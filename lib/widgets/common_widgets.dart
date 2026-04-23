@@ -3,12 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AppTopBar
+// Uses Stack + Align so the title is ALWAYS perfectly centered regardless of
+// the width of leftIcon or rightWidget.
+// ─────────────────────────────────────────────────────────────────────────────
 class AppTopBar extends StatelessWidget {
   final String title;
   final IconData? leftIcon;
   final VoidCallback? onLeftTap;
+
+  /// Arbitrary widget placed on the right (buttons, avatars, etc.)
   final Widget? rightWidget;
+
+  /// When true: smaller font + dark color (sub-screens / back-button screens)
+  /// When false: larger font + primaryBlue (main tab screens)
   final bool isSubScreen;
+
   const AppTopBar({
     super.key,
     required this.title,
@@ -17,46 +28,73 @@ class AppTopBar extends StatelessWidget {
     this.rightWidget,
     this.isSubScreen = false,
   });
-  static const primaryBlue = Color(0xFF2233DD);
-  static const textDark = Color(0xFF0F1724);
+
+  static const _primaryBlue = Color(0xFF2233DD);
+  static const _textDark = Color(0xFF0F1724);
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (leftIcon != null)
-            GestureDetector(
-              onTap: onLeftTap,
-              child: Icon(leftIcon, color: textDark, size: 22),
-            )
-          else
-            const SizedBox(width: 24),
-          Expanded(
-            child: Center(
+      child: SizedBox(
+        height: 44,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ── Centre: title is always truly centred ─────────────────────
+            Align(
+              alignment: Alignment.center,
               child: Text(
                 title,
                 style: GoogleFonts.inter(
-                  color: isSubScreen ? textDark : primaryBlue,
+                  color: isSubScreen ? _textDark : _primaryBlue,
                   fontSize: isSubScreen ? 17 : 20,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
                 ),
               ),
             ),
-          ),
-          rightWidget ?? const SizedBox(width: 24),
-        ],
+
+            // ── Left side ────────────────────────────────────────────────
+            Align(
+              alignment: Alignment.centerLeft,
+              child: leftIcon != null
+                  ? GestureDetector(
+                      onTap: onLeftTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(leftIcon, color: _textDark, size: 24),
+                      ),
+                    )
+                  : const SizedBox(width: 32),
+            ),
+
+            // ── Right side ───────────────────────────────────────────────
+            Align(
+              alignment: Alignment.centerRight,
+              child: IntrinsicWidth(
+                child: rightWidget ?? const SizedBox(width: 32),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AppBottomNav
+// Single source of truth for bottom navigation across all main screens.
+// Reads and writes NavController via Provider.
+// ─────────────────────────────────────────────────────────────────────────────
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
-  static const primaryBlue = Color(0xFF2233DD);
-  static const textGray = Color(0xFF7B8A9E);
+
+  static const _primaryBlue = Color(0xFF2233DD);
+  static const _textGray = Color(0xFF7B8A9E);
+
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavController>();
@@ -77,23 +115,14 @@ class AppBottomNav extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _navItem(context, nav, 0, Icons.home_rounded, 'HOME'),
               _navItem(
-                context,
-                nav,
-                1,
-                Icons.architecture_outlined,
-                'PROJECTS',
-              ),
+                  context, nav, 1, Icons.architecture_outlined, 'PROJECTS'),
               _entryButton(context, nav),
               _navItem(
-                context,
-                nav,
-                3,
-                Icons.inventory_2_outlined,
-                'INVENTORY',
-              ),
+                  context, nav, 3, Icons.inventory_2_outlined, 'INVENTORY'),
               _navItem(context, nav, 4, Icons.bar_chart_outlined, 'REPORTS'),
             ],
           ),
@@ -112,19 +141,25 @@ class AppBottomNav extends StatelessWidget {
     final isActive = nav.index == index;
     return GestureDetector(
       onTap: () => nav.setIndex(index, context),
+      behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 64,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
+            Icon(
+              icon,
+              size: 22,
+              color: isActive ? _primaryBlue : _textGray,
+            ),
             const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
-                color: isActive ? primaryBlue : textGray,
+                color: isActive ? _primaryBlue : _textGray,
                 letterSpacing: 0.3,
               ),
             ),
@@ -145,11 +180,11 @@ class AppBottomNav extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: primaryBlue,
+              color: _primaryBlue,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withValues(alpha: 0.4),
+                  color: _primaryBlue.withValues(alpha: 0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -163,7 +198,8 @@ class AppBottomNav extends StatelessWidget {
             style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
-              color: isActive ? primaryBlue : textGray,
+              color: isActive ? _primaryBlue : _textGray,
+              letterSpacing: 0.3,
             ),
           ),
         ],

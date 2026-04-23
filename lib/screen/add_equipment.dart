@@ -13,12 +13,23 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
+  static const errorRed = Color(0xFFD32F2F);
 
-  final _hoursController = TextEditingController(text: '6');
-  final _rateController = TextEditingController(text: '85');
-  final _nameController = TextEditingController(text: 'Excavator JCB 3CX');
-  final _fuelController = TextEditingController(text: '42');
+  // ❌ FIX: removed hardcoded default values — controllers start empty
+  final _hoursController = TextEditingController();
+  final _rateController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _fuelController = TextEditingController();
   final _operatorController = TextEditingController();
+
+  // ✅ FIX: receipt + loading state
+  String? _receiptFile;
+  bool _isSaving = false;
+
+  // ✅ FIX: per-field error strings
+  String? _nameError;
+  String? _hoursError;
+  String? _rateError;
 
   @override
   void dispose() {
@@ -30,8 +41,35 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     super.dispose();
   }
 
+  String _computeTotal() {
+    final hours = double.tryParse(_hoursController.text) ?? 0;
+    final rate = double.tryParse(_rateController.text) ?? 0;
+    return (hours * rate).toStringAsFixed(2);
+  }
+
+  // ✅ FIX: centralised validation
+  bool _validate() {
+    bool ok = true;
+    setState(() {
+      _nameError = _nameController.text.trim().isEmpty
+          ? 'Equipment name is required'
+          : null;
+      final hours = double.tryParse(_hoursController.text);
+      _hoursError = (hours == null || hours <= 0)
+          ? 'Enter valid hours > 0'
+          : null;
+      final rate = double.tryParse(_rateController.text);
+      _rateError = (rate == null || rate <= 0) ? 'Enter valid cost > 0' : null;
+      ok = _nameError == null && _hoursError == null && _rateError == null;
+    });
+    return ok;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // ✅ FIX: keyboard-aware bottom padding
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -52,7 +90,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                // ✅ FIX: extra bottom padding for keyboard
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
                 child: Column(
                   children: [
                     const SizedBox(height: 14),
@@ -166,9 +205,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 10),
+                      // ✅ FIX: hint since no default value
+                      hintText: 'Enter equipment name',
+                      hintStyle: GoogleFonts.inter(
+                        color: textGray,
+                        fontSize: 15,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     style: GoogleFonts.inter(
                       fontSize: 16,
@@ -180,6 +225,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ],
             ),
           ),
+          // ✅ FIX: inline name error
+          if (_nameError != null) ...[
+            const SizedBox(height: 4),
+            _errorText(_nameError!),
+          ],
           const SizedBox(height: 20),
 
           // Usage Hours & Cost per Hour
@@ -213,6 +263,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                               onChanged: (_) => setState(() {}),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
+                                hintText: '0',
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 0,
                                   vertical: 10,
@@ -236,6 +287,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ],
                       ),
                     ),
+                    // ✅ FIX: inline hours error
+                    if (_hoursError != null) ...[
+                      const SizedBox(height: 4),
+                      _errorText(_hoursError!),
+                    ],
                   ],
                 ),
               ),
@@ -276,6 +332,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                               onChanged: (_) => setState(() {}),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
+                                hintText: '0',
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 0,
                                   vertical: 10,
@@ -291,6 +348,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ],
                       ),
                     ),
+                    // ✅ FIX: inline rate error
+                    if (_rateError != null) ...[
+                      const SizedBox(height: 4),
+                      _errorText(_rateError!),
+                    ],
                   ],
                 ),
               ),
@@ -450,7 +512,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Upload Log
+          // ✅ FIX: receipt upload section with state + remove button
           Text(
             'Upload Equipment Log / Bill',
             style: GoogleFonts.inter(
@@ -460,24 +522,95 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          GestureDetector(
+          _uploadBox(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('File picker would open here')),
+              setState(
+                () => _receiptFile =
+                    'equip_log_${DateTime.now().millisecondsSinceEpoch}.pdf',
               );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Log attached')));
             },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 28),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFCCCFE8),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
+            onRemove: () => setState(() => _receiptFile = null),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ FIX: stateful upload box with remove button
+  Widget _uploadBox({
+    required VoidCallback onTap,
+    required VoidCallback onRemove,
+  }) {
+    return GestureDetector(
+      onTap: _receiptFile == null ? onTap : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 28),
+        decoration: BoxDecoration(
+          color: _receiptFile != null
+              ? const Color(0xFFEEF8EE)
+              : const Color(0xFFF8F9FF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _receiptFile != null
+                ? Colors.green.shade300
+                : const Color(0xFFCCCFE8),
+            width: 1.5,
+          ),
+        ),
+        child: _receiptFile != null
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 26),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Log attached',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: textDark,
+                          ),
+                        ),
+                        Text(
+                          _receiptFile!,
+                          style: GoogleFonts.inter(
+                            color: textGray,
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // ✅ FIX: remove (❌) button
+                  GestureDetector(
+                    onTap: onRemove,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.redAccent,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              )
+            : Column(
                 children: [
                   Container(
                     width: 52,
@@ -513,61 +646,103 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  String _computeTotal() {
-    final hours = double.tryParse(_hoursController.text) ?? 0;
-    final rate = double.tryParse(_rateController.text) ?? 0;
-    final total = hours * rate;
-    return total.toStringAsFixed(2);
-  }
-
+  // ✅ FIX: validate + loading state + correct navigation
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBlue.withValues(alpha: 0.4),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+      onTap: _isSaving
+          ? null
+          : () async {
+              if (!_validate()) return;
+              setState(() => _isSaving = true);
+              await Future.delayed(const Duration(milliseconds: 600));
+              if (!mounted) return;
+              Navigator.pushNamed(
+                context,
+                '/logs',
+                arguments: {
+                  'type': 'equipment',
+                  'name': _nameController.text,
+                  'newEntry': {
+                    'title': _nameController.text,
+                    'ref': '#EQP-${DateTime.now().millisecondsSinceEpoch}',
+                    'amount': '+${_hoursController.text} hrs',
+                    'date': 'Today',
+                    'isPositive': true,
+                    'icon': Icons.construction_outlined,
+                    'receipt': _receiptFile,
+                  },
+                },
+              );
+              setState(() => _isSaving = false);
+            },
+      child: AnimatedOpacity(
+        opacity: _isSaving ? 0.7 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Save entry',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: [
+              BoxShadow(
+                color: primaryBlue.withValues(alpha: 0.4),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-          ],
+            ],
+          ),
+          child: _isSaving
+              ? const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Save entry',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ],
+                ),
         ),
       ),
     );
   }
+
+  Widget _errorText(String msg) => Text(
+    msg,
+    style: const TextStyle(
+      color: errorRed,
+      fontSize: 11.5,
+      fontStyle: FontStyle.italic,
+    ),
+  );
 }
 
 class _DashedLinePainter extends CustomPainter {

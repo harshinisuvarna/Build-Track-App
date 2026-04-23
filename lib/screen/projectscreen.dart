@@ -1,3 +1,5 @@
+import 'package:buildtrack_mobile/screen/add_project.dart';
+import 'package:buildtrack_mobile/screens/add_project_screen.dart';
 import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,10 +16,23 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddProjectScreen()),
+          );
+        },
+        backgroundColor: primaryBlue,
+        shape: const CircleBorder(),
+        elevation: 4,
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
+      ),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -136,6 +151,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       avatarColors: const [Color(0xFF2ECC71)],
                       extraCount: 0,
                     ),
+                    const SizedBox(height: 80), // space so FAB doesn't cover last card
                   ],
                 ),
               ),
@@ -181,7 +197,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               Expanded(
                 child: Text(
                   name,
-                  style:  GoogleFonts.inter(
+                  style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: textDark,
@@ -202,7 +218,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ),
                 child: Text(
                   stage,
-                  style:  GoogleFonts.inter(
+                  style: GoogleFonts.inter(
                     color: stageColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -215,7 +231,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           const SizedBox(height: 5),
           Text(
             location,
-            style:  GoogleFonts.inter(
+            style: GoogleFonts.inter(
               color: textGray,
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -227,7 +243,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             children: [
               Text(
                 'Overall Progress',
-                style:  GoogleFonts.inter(
+                style: GoogleFonts.inter(
                   color: textDark,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -235,7 +251,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               ),
               Text(
                 percent,
-                style:  GoogleFonts.inter(
+                style: GoogleFonts.inter(
                   color: primaryBlue,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -266,7 +282,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   children: [
                     Text(
                       'View Details',
-                      style:  GoogleFonts.inter(
+                      style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
@@ -316,7 +332,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               child: Center(
                 child: Text(
                   '+$extra',
-                  style:  GoogleFonts.inter(
+                  style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: primaryBlue,

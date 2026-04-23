@@ -348,36 +348,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
-              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
-              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
-              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
-              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
-              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 11)),
+              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               const Icon(Icons.circle, color: primaryBlue, size: 10),
-              const SizedBox(width: 6),
-              Text(
-                r'Actual: $14.20/sqft',
-                style: GoogleFonts.inter(
-                  color: textDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  r'Actual: $14.20/sqft',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: textDark,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 12),
               const Icon(Icons.circle, color: Color(0xFFBBC0D0), size: 10),
-              const SizedBox(width: 6),
-               Text(
-                r'Target: $13.50/sqft',
-                style: GoogleFonts.inter(
-                  color: textGray,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  r'Target: $13.50/sqft',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: textGray,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],

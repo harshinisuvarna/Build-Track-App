@@ -32,42 +32,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         bottom: false,
         child: Column(
           children: [
-            // ── Top bar: back | BLUE title | avatar ──────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.maybePop(context),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: textDark,
-                      size: 22,
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Update progress',
-                        style: GoogleFonts.inter(
-                          color: primaryBlue,          // ← fixed: was black
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // ← fixed: dark avatar matching other screens
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey.shade800,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ],
+            AppTopBar(
+              title: 'Update progress',
+              isSubScreen: true,
+              leftIcon: Icons.arrow_back,
+              onLeftTap: () => Navigator.maybePop(context),
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
 

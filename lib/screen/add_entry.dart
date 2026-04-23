@@ -2,41 +2,210 @@ import 'package:buildtrack_mobile/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AddEntryScreen extends StatefulWidget {
+class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
-  @override
-  State<AddEntryScreen> createState() => _AddEntryScreenState();
-}
 
-class _AddEntryScreenState extends State<AddEntryScreen> {
   static const primaryBlue = Color(0xFF2233DD);
+  static const purple = Color(0xFF6B3FE7);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
-  int _selectedEntry = 0;
-  final List<Map<String, dynamic>> _entries = [
+
+  static const List<Map<String, dynamic>> _entries = [
     {
       'icon': Icons.category,
       'title': 'Material',
-      'subtitle':
-          'Log concrete, steel, lumber, or site-specific procurement items.',
+      'subtitle': 'Log concrete, steel, lumber, or site-specific procurement items.',
       'type': 'material',
     },
     {
       'icon': Icons.people,
       'title': 'Labour',
-      'subtitle':
-          'Track crew hours, specialized trade performance, and site presence.',
+      'subtitle': 'Track crew hours, specialized trade performance, and site presence.',
       'type': 'labour',
     },
     {
       'icon': Icons.precision_manufacturing,
       'title': 'Equipment',
-      'subtitle':
-          'Record heavy machinery runtime, fuel logs, and maintenance events.',
+      'subtitle': 'Record heavy machinery runtime, fuel logs, and maintenance events.',
       'type': 'equipment',
     },
   ];
+
+  // ── Bottom sheet: Voice or Manual entry ─────────────────────────────────
+  void _showEntryOptions(BuildContext context, String type) {
+    const Map<String, String> voiceRoutes = {
+      'material': '/review-material',
+      'labour': '/review-labour',
+      'equipment': '/review-equipment',
+    };
+    const Map<String, String> manualRoutes = {
+      'material': '/add-material',
+      'labour': '/add-labour',
+      'equipment': '/add-equipment',
+    };
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE0F0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'How do you want to add?',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: textDark,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
+                style: GoogleFonts.inter(color: textGray, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+
+              // Use Voice
+              _bottomSheetOption(
+                icon: Icons.mic,
+                iconColor: primaryBlue,
+                iconBg: const Color(0xFFEEF0FF),
+                title: 'Use Voice',
+                subtitle: 'Speak and let AI capture the details',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final route = voiceRoutes[type];
+                  if (route != null) {
+                    Navigator.pushReplacementNamed(
+                      context,
+                      route,
+                      arguments: {'type': type},
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Enter Manually
+              _bottomSheetOption(
+                icon: Icons.edit_outlined,
+                iconColor: purple,
+                iconBg: const Color(0xFFF0EEFF),
+                title: 'Enter Manually',
+                subtitle: 'Fill the form manually',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final route = manualRoutes[type];
+                  if (route != null) {
+                    Navigator.pushReplacementNamed(
+                      context,
+                      route,
+                      arguments: {'type': type},
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Cancel
+              GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.inter(
+                    color: textGray,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Bottom sheet option tile ─────────────────────────────────────────────
+  Widget _bottomSheetOption({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE0E5FF)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        color: textGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: textGray, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,38 +248,17 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       style: GoogleFonts.inter(
                         color: textGray,
                         fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 34),
+                    // Each card tap directly opens the popup — no Continue needed
                     ...List.generate(_entries.length, (index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 14),
-                        child: _entryCard(index),
+                        child: _entryCard(context, index),
                       );
                     }),
-                    const SizedBox(height: 22),
-                    _buildContinueButton(context),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Entry saved as draft'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                        Navigator.maybePop(context);
-                      },
-                      child: Text(
-                        'Save as Draft',
-                        style: GoogleFonts.inter(
-                          color: textGray,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -123,26 +271,40 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
   }
 
-  Widget _entryCard(int index) {
+  // ── Entry card ───────────────────────────────────────────────────────────
+  Widget _entryCard(BuildContext context, int index) {
     final entry = _entries[index];
-    final isSelected = _selectedEntry == index;
+    final String type = entry['type'] as String;
+
+    // Restore original icon colors per type
+    final Map<String, Color> iconColors = {
+      'material': primaryBlue,
+      'labour': purple,
+      'equipment': const Color(0xFF7B3FE7),
+    };
+    final Map<String, Color> iconBgColors = {
+      'material': primaryBlue.withValues(alpha: 0.1),
+      'labour': purple.withValues(alpha: 0.1),
+      'equipment': const Color(0xFF7B3FE7).withValues(alpha: 0.1),
+    };
+    final Color iconColor = iconColors[type] ?? primaryBlue;
+    final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);
+
     return GestureDetector(
-      onTap: () => setState(() => _selectedEntry = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      // Tap opens the Voice / Manual bottom sheet for this type
+      onTap: () => _showEntryOptions(context, type),
+      child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? primaryBlue : Colors.transparent,
+            color: Colors.transparent,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: isSelected
-                  ? primaryBlue.withValues(alpha: 0.14)
-                  : Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 14,
               offset: const Offset(0, 2),
             ),
@@ -151,17 +313,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            Container(
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: isSelected ? primaryBlue : const Color(0xFFF0F2F8),
+                color: iconBg,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 entry['icon'] as IconData,
-                color: isSelected ? Colors.white : Colors.grey.shade500,
+                color: iconColor,
                 size: 28,
               ),
             ),
@@ -184,74 +345,23 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: textGray,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                       height: 1.4,
                     ),
                   ),
                 ],
               ),
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Container(
-                width: 26,
-                height: 26,
-                decoration: const BoxDecoration(
-                  color: primaryBlue,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 15),
+            // Chevron hint — indicates the card is tappable
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Icon(
+                Icons.chevron_right,
+                color: textGray.withValues(alpha: 0.5),
+                size: 20,
               ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContinueButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        final selectedType = _entries[_selectedEntry]['type'] as String;
-        // Route each type to its dedicated screen
-        const routes = {
-          'material': '/add-material',
-          'labour': '/add-labour',
-          'equipment': '/add-equipment',
-        };
-        Navigator.pushNamed(
-          context,
-          routes[selectedType] ?? '/add-material',
-          arguments: {'type': selectedType},
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBlue.withValues(alpha: 0.4),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
             ),
           ],
-        ),
-        child: Center(
-          child: Text(
-            'Continue',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
         ),
       ),
     );
