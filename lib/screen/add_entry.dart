@@ -7,7 +7,7 @@ class AddEntryScreen extends StatefulWidget {
   @override
   State<AddEntryScreen> createState() => _AddEntryScreenState();
 }
-// Add entry screen with options for Material, and Equipment. Each option has an icon, title, and subtitle. User can select one and continue to the next screen or save as draft.
+
 class _AddEntryScreenState extends State<AddEntryScreen> {
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
@@ -213,9 +213,15 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     return GestureDetector(
       onTap: () {
         final selectedType = _entries[_selectedEntry]['type'] as String;
+        // Route each type to its dedicated screen
+        const routes = {
+          'material': '/add-material',
+          'labour': '/add-labour',
+          'equipment': '/add-equipment',
+        };
         Navigator.pushNamed(
           context,
-          '/add-material',
+          routes[selectedType] ?? '/add-material',
           arguments: {'type': selectedType},
         );
       },

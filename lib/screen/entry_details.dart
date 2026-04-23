@@ -14,10 +14,11 @@ class EntryDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             AppTopBar(
-              title: 'Add Entry',
+              title: 'Entry Detail',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),

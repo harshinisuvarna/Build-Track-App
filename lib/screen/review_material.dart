@@ -55,6 +55,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           ],
         ),
       ),
+      // Fixed: was missing bottomNavigationBar
+      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -78,26 +80,30 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             child: const Icon(Icons.verified, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Parsed from voice',
-                style: GoogleFonts.inter(
-                  color: purple,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Parsed from voice',
+                  style: GoogleFonts.inter(
+                    color: purple,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Confidence: 98.4% • Voice timestamp 10:42 AM',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF9B7FD6),
-                  fontSize: 12,
+                const SizedBox(height: 2),
+                Text(
+                  'Confidence: 98.4% • Voice timestamp 10:42 AM',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF9B7FD6),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
