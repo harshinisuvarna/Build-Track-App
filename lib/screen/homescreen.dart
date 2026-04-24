@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,8 +14,8 @@ class _HomeScreenState extends State<HomeScreen> {
   static const purple = Color(0xFF6B3FE7);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF7B8A9E);
-
+  // FIX 5: Darkened from 0xFF7B8A9E → 0xFF5A6B82 for outdoor readability
+  static const textGray = Color(0xFF5A6B82);
 
   // ── Reusable bottom sheet: Voice or Manual ────────────────────────────────
   void _showEntryOptions(BuildContext context, String type) {
@@ -28,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'labour': '/add-labour',
       'equipment': '/add-equipment',
     };
-
 
     showModalBottomSheet(
       context: context,
@@ -61,11 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 6),
             Text(
               'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-              style: const TextStyle(color: textGray, fontSize: 13),
+              // FIX 5: bumped from 13 → 14
+              style: const TextStyle(color: textGray, fontSize: 14),
             ),
             const SizedBox(height: 20),
-
-            // Use Voice
             _bottomSheetOption(
               icon: Icons.mic,
               iconColor: primaryBlue,
@@ -79,8 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 12),
-
-            // Enter Manually
             _bottomSheetOption(
               icon: Icons.edit_outlined,
               iconColor: purple,
@@ -94,16 +91,19 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Cancel
-            GestureDetector(
+            // FIX 1: GestureDetector → InkWell for Cancel
+            InkWell(
               onTap: () => Navigator.pop(ctx),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                    color: textGray,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600),
+              borderRadius: BorderRadius.circular(8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                      color: textGray,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -120,43 +120,49 @@ class _HomeScreenState extends State<HomeScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E5FF)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                  color: iconBg, borderRadius: BorderRadius.circular(13)),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: textDark)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: textGray)),
-                ],
+    // FIX 1: GestureDetector → Material + InkWell
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE0E5FF)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                    color: iconBg, borderRadius: BorderRadius.circular(13)),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: textGray, size: 20),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: textDark)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        // FIX 5: bumped from 12.5 → 13.5
+                        style: const TextStyle(
+                            fontSize: 13.5, color: textGray)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: textGray, size: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -199,7 +205,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildSpeakUpdate(),
                           const SizedBox(height: 20),
                           _buildRecentActivity(),
-                          const SizedBox(height: 24),
+                          // FIX 3: bottom padding so last item clears nav bar
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -214,42 +221,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Bottom Nav is handled by AppBottomNav (common_widgets.dart) ──────────
-
-  // ── Top Bar is handled by AppTopBar (common_widgets.dart) ───────────────
-
   // ── Project Selector ──────────────────────────────────────────────────────
 
   Widget _buildProjectSelector() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
+    // FIX 1: Wrap in InkWell so dropdown tap has ripple
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.architecture, color: primaryBlue, size: 18),
-              SizedBox(width: 8),
-              Text('Skyline Residences Phase II',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: textDark)),
-            ],
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {}, // placeholder for future dropdown
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.architecture, color: primaryBlue, size: 18),
+                    SizedBox(width: 8),
+                    Text('Skyline Residences Phase II',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: textDark)),
+                  ],
+                ),
+                Icon(Icons.keyboard_arrow_down, color: textGray),
+              ],
+            ),
           ),
-          Icon(Icons.keyboard_arrow_down, color: textGray),
-        ],
+        ),
       ),
     );
   }
@@ -271,9 +284,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // FIX 5: bumped from 11 → 12
           const Text('OVERALL PROGRESS',
               style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: textGray,
                   letterSpacing: 0.8)),
@@ -295,8 +309,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: primaryBlue,
                           fontWeight: FontWeight.w700,
                           fontSize: 14)),
+                  // FIX 5: bumped from 12 → 13
                   Text('Target: Oct 24',
-                      style: TextStyle(color: textGray, fontSize: 12)),
+                      style: TextStyle(color: textGray, fontSize: 13)),
                 ],
               ),
             ],
@@ -349,9 +364,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // FIX 5: bumped from 11 → 12
           Text(label,
               style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   color: textGray,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5)),
@@ -364,12 +380,13 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                   isInvoice ? Icons.receipt_outlined : Icons.trending_up,
-                  size: 12,
+                  size: 13,
                   color: isOver ? Colors.redAccent : purple),
               const SizedBox(width: 4),
+              // FIX 5: bumped from 11 → 12
               Text(sub,
                   style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: isOver ? Colors.redAccent : purple,
                       fontWeight: FontWeight.w600)),
             ],
@@ -395,7 +412,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // CHANGE: each icon now calls _showEntryOptions with its type
           _categoryIcon(Icons.category_outlined, 'Material', primaryBlue,
               type: 'material'),
           _categoryIcon(Icons.people_outline, 'Labour', purple,
@@ -410,27 +426,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _categoryIcon(IconData icon, String label, Color color,
       {required String type}) {
-    return GestureDetector(
-      // CHANGE: tapping any category opens the Voice/Manual bottom sheet
+    // FIX 1: GestureDetector → InkWell + FIX 4: min 48px touch target via padding
+    return InkWell(
       onTap: () => _showEntryOptions(context, type),
-      child: Column(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 6),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: textDark)),
-        ],
+            const SizedBox(height: 6),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textDark)),
+          ],
+        ),
       ),
     );
   }
@@ -438,48 +458,57 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Speak Update ──────────────────────────────────────────────────────────
 
   Widget _buildSpeakUpdate() {
-    return GestureDetector(
-      // CHANGE: tapping navigates to voice screen
-      onTap: () => Navigator.pushNamed(context, '/voice-screen'),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+    // FIX 1: GestureDetector → Material + InkWell with splash
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => showVoiceConfirmationSheet(context),
+        borderRadius: BorderRadius.circular(18),
+        splashColor: Colors.white.withValues(alpha: 0.15),
+        highlightColor: Colors.white.withValues(alpha: 0.08),
+        child: Ink(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xFF2233DD).withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6)),
+            ],
           ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-                color: const Color(0xFF2233DD).withValues(alpha: 0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6)),
-          ],
-        ),
-        child: const Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 22),
+            child: Column(
               children: [
-                Icon(Icons.mic, color: Colors.white, size: 24),
-                SizedBox(width: 10),
-                Text('Speak Update',
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.mic, color: Colors.white, size: 24),
+                    SizedBox(width: 10),
+                    Text('Speak Update',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+                SizedBox(height: 6),
+                // FIX 5: bumped from 11 → 12
+                Text('AI FOREMAN IS LISTENING',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800)),
+                        color: Colors.white70,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w600)),
               ],
             ),
-            SizedBox(height: 6),
-            Text('AI FOREMAN IS LISTENING',
-                style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600)),
-          ],
+          ),
         ),
       ),
     );
@@ -498,6 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: textDark)),
+            // FIX 4: TextButton already has good touch target
             TextButton(
               onPressed: () => Navigator.pushNamed(context, '/notifications'),
               child: const Text('View All',
@@ -509,7 +539,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        // CHANGE: each activity item is now tappable → /logs
         _activityItem(
             Icons.local_shipping_outlined,
             'Concrete Delivery Confirmed',
@@ -553,61 +582,67 @@ class _HomeScreenState extends State<HomeScreen> {
     required String type,
     required String name,
   }) {
-    return GestureDetector(
-      // CHANGE: tap navigates to /logs with type and name
-      onTap: () => Navigator.pushNamed(context, '/logs',
-          arguments: {'type': type, 'name': name}),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F2FF),
-                borderRadius: BorderRadius.circular(12),
+    // FIX 1: GestureDetector → Material + InkWell
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, '/logs',
+            arguments: {'type': type, 'name': name}),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F2FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: primaryBlue, size: 20),
               ),
-              child: Icon(icon, color: primaryBlue, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: textDark)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style:
-                          const TextStyle(fontSize: 11.5, color: textGray)),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            color: textDark)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        // FIX 5: bumped from 11.5 → 12.5
+                        style: const TextStyle(
+                            fontSize: 12.5, color: textGray)),
+                  ],
+                ),
               ),
-            ),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(20)),
-              child: Text(badge,
-                  style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ],
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text(badge,
+                    // FIX 5: bumped from 11 → 12
+                    style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
         ),
       ),
     );

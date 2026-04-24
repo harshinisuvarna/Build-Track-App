@@ -9,7 +9,7 @@ class AddEntryScreen extends StatelessWidget {
   static const purple = Color(0xFF6B3FE7);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF7B8A9E);
+  static const textGray = Color(0xFF5A6B82); // FIX 5: darker
 
   static const List<Map<String, dynamic>> _entries = [
     {
@@ -93,7 +93,7 @@ class AddEntryScreen extends StatelessWidget {
                   Navigator.pop(ctx);
                   final route = voiceRoutes[type];
                   if (route != null) {
-                    Navigator.pushReplacementNamed(
+                    Navigator.pushNamed(
                       context,
                       route,
                       arguments: {'type': type},
@@ -114,7 +114,7 @@ class AddEntryScreen extends StatelessWidget {
                   Navigator.pop(ctx);
                   final route = manualRoutes[type];
                   if (route != null) {
-                    Navigator.pushReplacementNamed(
+                    Navigator.pushNamed(
                       context,
                       route,
                       arguments: {'type': type},
@@ -124,15 +124,19 @@ class AddEntryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Cancel
-              GestureDetector(
+            // FIX 1 + 4: InkWell with padding for bigger touch target
+              InkWell(
                 onTap: () => Navigator.pop(ctx),
-                child: Text(
-                  'Cancel',
-                  style: GoogleFonts.inter(
-                    color: textGray,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: textGray,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -252,14 +256,14 @@ class AddEntryScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 34),
-                    // Each card tap directly opens the popup — no Continue needed
                     ...List.generate(_entries.length, (index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 14),
                         child: _entryCard(context, index),
                       );
                     }),
-                    const SizedBox(height: 24),
+                    // FIX 3: bottom padding so last card clears nav bar
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -290,78 +294,70 @@ class AddEntryScreen extends StatelessWidget {
     final Color iconColor = iconColors[type] ?? primaryBlue;
     final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);
 
-    return GestureDetector(
-      // Tap opens the Voice / Manual bottom sheet for this type
-      onTap: () => _showEntryOptions(context, type),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.transparent,
-            width: 2,
+    // FIX 1: Material + InkWell for ripple
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: () => _showEntryOptions(context, type),
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.transparent, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 14,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(entry['icon'] as IconData, color: iconColor, size: 28),
               ),
-              child: Icon(
-                entry['icon'] as IconData,
-                color: iconColor,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry['title'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: textDark,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry['title'] as String,
+                      style: GoogleFonts.inter(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: textDark,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    entry['subtitle'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: textGray,
-                      fontWeight: FontWeight.w500,
-                      height: 1.4,
+                    const SizedBox(height: 5),
+                    Text(
+                      entry['subtitle'] as String,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: textGray, // FIX 5: uses darker textGray
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            // Chevron hint — indicates the card is tappable
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Icon(
-                Icons.chevron_right,
-                color: textGray.withValues(alpha: 0.5),
-                size: 20,
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Icon(Icons.chevron_right, color: textGray.withValues(alpha: 0.5), size: 20),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

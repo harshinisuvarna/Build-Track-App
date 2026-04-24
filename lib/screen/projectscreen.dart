@@ -14,7 +14,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   static const purple = Color(0xFF9B59B6);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF7B8A9E);
+  static const textGray = Color(0xFF5A6B82); // FIX 5: darker for outdoor readability
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 100), // FIX 3: clear nav bar
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -150,7 +150,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       avatarColors: const [Color(0xFF2ECC71)],
                       extraCount: 0,
                     ),
-                    const SizedBox(height: 80), // space so FAB doesn't cover last card
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -174,10 +174,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     required List<Color> avatarColors,
     required int extraCount,
   }) {
-    return Container(
+    // FIX 1: Material + InkWell for ripple on card tap
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, '/update-progress'),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -275,28 +281,35 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _avatarRow(avatarColors, extraCount),
-              GestureDetector(
+              // FIX 1 + 4: InkWell with padding for 44px touch target
+              InkWell(
                 onTap: () => Navigator.pushNamed(context, '/update-progress'),
-                child: Row(
-                  children: [
-                    Text(
-                      'View Details',
-                      style: GoogleFonts.inter(
-                        color: primaryBlue,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        'View Details',
+                        style: GoogleFonts.inter(
+                          color: primaryBlue,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
-                  ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ],
       ),
-    );
+        ), // InkWell child
+      ), // InkWell
+    ); // Material
   }
 
   Widget _avatarRow(List<Color> colors, int extra) {

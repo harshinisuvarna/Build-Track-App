@@ -306,7 +306,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
   Widget _buildConfirmButton(BuildContext context) {
     return GestureDetector(
       onTap: () =>
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
+          Navigator.pop(context),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

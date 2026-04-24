@@ -136,9 +136,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back, color: textDark, size: 22),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: () => Navigator.maybePop(context),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.arrow_back, color: textDark, size: 22),
+              ),
+            ),
           ),
           Text(
             _screenTitle,

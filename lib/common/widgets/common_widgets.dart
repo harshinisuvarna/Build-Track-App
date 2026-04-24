@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AppTopBar
-// Uses Stack + Align so the title is ALWAYS perfectly centered regardless of
-// the width of leftIcon or rightWidget.
-// ─────────────────────────────────────────────────────────────────────────────
+
 class AppTopBar extends StatelessWidget {
   final String title;
   final IconData? leftIcon;
@@ -42,15 +38,18 @@ class AppTopBar extends StatelessWidget {
           children: [
             // ── Left side ────────────────────────────────────────────────
             leftIcon != null
-                ? GestureDetector(
-                    onTap: onLeftTap,
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(leftIcon, color: _textDark, size: 24),
+                ? Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: onLeftTap,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10), // 44px total target
+                        child: Icon(leftIcon, color: _textDark, size: 24),
+                      ),
                     ),
                   )
-                : const SizedBox(width: 32),
+                : const SizedBox(width: 44),
 
             // ── Centre: title fills remaining space, text centred ─────────
             Expanded(
@@ -87,7 +86,7 @@ class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
 
   static const _primaryBlue = Color(0xFF2233DD);
-  static const _textGray = Color(0xFF7B8A9E);
+  static const _textGray = Color(0xFF5A6B82); // FIX 5: darker
 
   @override
   Widget build(BuildContext context) {
@@ -133,31 +132,35 @@ class AppBottomNav extends StatelessWidget {
     String label,
   ) {
     final isActive = nav.index == index;
-    return GestureDetector(
+    // FIX 1: InkWell for ripple on bottom nav items
+    return InkWell(
       onTap: () => nav.setIndex(index, context),
-      behavior: HitTestBehavior.opaque,
+      borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isActive ? _primaryBlue : _textGray,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 22,
                 color: isActive ? _primaryBlue : _textGray,
-                letterSpacing: 0.3,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? _primaryBlue : _textGray,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -165,8 +168,10 @@ class AppBottomNav extends StatelessWidget {
 
   Widget _entryButton(BuildContext context, NavController nav) {
     final isActive = nav.index == 2;
-    return GestureDetector(
+    // FIX 1: InkWell for ripple on the + entry button
+    return InkWell(
       onTap: () => nav.setIndex(2, context),
+      borderRadius: BorderRadius.circular(22),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

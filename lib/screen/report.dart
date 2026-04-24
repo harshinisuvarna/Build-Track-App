@@ -12,9 +12,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF7B8A9E);
+  static const textGray = Color(0xFF5A6B82); // FIX 5: darker
   int _tabIndex = 0;
   int _unitIndex = 0;
+  // FIX 2: PageController for swipeable tabs
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +40,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
+            // ── Tabs (pinned) ─────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _buildTabs(),
+            ),
+            // FIX 2: PageView for swipe between Monthly/Quarterly/Yearly
             Expanded(
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Column(
-                  children: [
-                    _buildTabs(),
-                    const SizedBox(height: 14),
-                    _buildProjectFilter(),
-                    const SizedBox(height: 14),
-                    _buildMetricGrid(),
-                    const SizedBox(height: 14),
-                    _buildChartCard(),
-                    const SizedBox(height: 14),
-                    _buildCategoryBudget(),
-                    const SizedBox(height: 14),
-                    _buildEfficiencyReport(context),
-                  ],
-                ),
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (i) => setState(() => _tabIndex = i),
+                children: List.generate(3, (_) => SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 100), // FIX 3
+                  child: Column(
+                    children: [
+                      _buildProjectFilter(),
+                      const SizedBox(height: 14),
+                      _buildMetricGrid(),
+                      const SizedBox(height: 14),
+                      _buildChartCard(),
+                      const SizedBox(height: 14),
+                      _buildCategoryBudget(),
+                      const SizedBox(height: 14),
+                      _buildEfficiencyReport(context),
+                    ],
+                  ),
+                )),
               ),
             ),
           ],
@@ -75,11 +91,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: List.generate(tabs.length, (i) {
           final active = i == _tabIndex;
           return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _tabIndex = i),
+            // FIX 1: InkWell
+            child: InkWell(
+              onTap: () {
+                setState(() => _tabIndex = i);
+                // FIX 2: sync tap to PageView
+                _pageController.animateToPage(i, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+              },
+              borderRadius: BorderRadius.circular(26),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: const EdgeInsets.symmetric(vertical: 11), // FIX 4: taller
                 decoration: BoxDecoration(
                   color: active ? primaryBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
@@ -87,7 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Text(
                   tabs[i],
                   textAlign: TextAlign.center,
-                  style:  GoogleFonts.inter(
+                  style: GoogleFonts.inter(
                     color: active ? Colors.white : textGray,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -313,12 +335,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Row(
                   children: ['SQFT', 'CUYD'].asMap().entries.map((e) {
                     final sel = e.key == _unitIndex;
-                    return GestureDetector(
+                    // FIX 1 + 4: InkWell with larger touch target
+                    return InkWell(
                       onTap: () => setState(() => _unitIndex = e.key),
-                      child: Container(
+                      borderRadius: BorderRadius.circular(6),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 7,
+                          horizontal: 13, // FIX 4: wider
+                          vertical: 9,    // FIX 4: taller
                         ),
                         decoration: BoxDecoration(
                           color: sel ? primaryBlue : Colors.transparent,
@@ -328,7 +353,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           e.value,
                           style: GoogleFonts.inter(
                             color: sel ? Colors.white : textGray,
-                            fontSize: 11,
+                            fontSize: 12, // FIX 5: bumped from 11
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -351,12 +376,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
-              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
-              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
-              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
-              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
-              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 10)),
+              // FIX 5: bumped from 10 → 12 for outdoor readability
+              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
+              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
+              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
+              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
+              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
+              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 12),
@@ -366,7 +392,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  r'Actual: $14.20/sqft',
+                  _unitIndex == 0 ? r'Actual: $14.20/sqft' : r'Actual: $383.40/cuyd',
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     color: textDark,
@@ -380,7 +406,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  r'Target: $13.50/sqft',
+                  _unitIndex == 0 ? r'Target: $13.50/sqft' : r'Target: $364.50/cuyd',
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     color: textGray,
@@ -529,16 +555,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          GestureDetector(
+          // FIX 1 + 4: InkWell with padding for proper touch target
+          InkWell(
             onTap: () => Navigator.pushNamed(context, '/notifications'),
-            child: Text(
-              'View Details',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                decoration: TextDecoration.underline,
-                decorationColor: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            splashColor: Colors.white24,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                'View Details  →',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white,
+                ),
               ),
             ),
           ),

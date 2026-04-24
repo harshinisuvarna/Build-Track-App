@@ -424,11 +424,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               setState(() => _isConfirming = true);
               await Future.delayed(const Duration(milliseconds: 600));
               if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/home',
-                (route) => false,
-              );
+              Navigator.pop(context);
             },
       child: AnimatedOpacity(
         opacity: _isConfirming ? 0.7 : 1.0,
