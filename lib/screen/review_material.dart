@@ -189,7 +189,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     _fieldLabel('RATE'),
                     const SizedBox(height: 6),
-                    _fieldBox(r'$145.00'),
+                    _fieldBox(r'₹145.00'),
                   ],
                 ),
               ),
@@ -208,7 +208,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  r'$1,812.50',
+                  r'₹1,812.50',
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w800,
                     fontSize: 24,
@@ -403,7 +403,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           '"Hey SiteTrack, record a material entry for North District. '
           'We just received 12.5 cubic meters of C35 ready-mix concrete. '
           'Rate is fixed at 145 per unit. Confirming receipt for 1,812 '
-          'dollars and 50 cents. Log this under structural foundations."',
+          'rupees and 50 paise. Log this under structural foundations."',
           style: GoogleFonts.inter(
             color: textDark,
             fontSize: 14,

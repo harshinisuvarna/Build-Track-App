@@ -337,10 +337,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-            child: _costCard('TOTAL COST', '\$2.44M', '2.1% Over Est.', true)),
+            child: _costCard('TOTAL COST', '₹2.44M', '2.1% Over Est.', true)),
         const SizedBox(width: 12),
         Expanded(
-            child: _costCard("TODAY'S SPEND", '\$14,280', '8 Invoices', false,
+            child: _costCard("TODAY'S SPEND", '₹14,280', '8 Invoices', false,
                 isInvoice: true)),
       ],
     );

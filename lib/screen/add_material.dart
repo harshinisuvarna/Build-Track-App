@@ -235,7 +235,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     _labeledUnderlineFieldPrefix(
                       'Rate',
                       _rateController,
-                      '\$',
+                      '₹',
                       keyboardType: TextInputType.number,
                       onChanged: (_) => setState(() {}),
                     ),
@@ -566,7 +566,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$ ${_computeTotal()}',
+                '₹ ${_computeTotal()}',
                 style: const TextStyle(
                   color: primaryBlue,
                   fontSize: 24,

@@ -95,8 +95,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 14),
-                    _buildStepIndicator(),
-                    const SizedBox(height: 18),
                     _buildFormCard(),
                     const SizedBox(height: 28),
                     _buildSaveButton(context),
@@ -109,57 +107,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         ),
       ),
       bottomNavigationBar: const AppBottomNav(),
-    );
-  }
-
-  Widget _buildStepIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            _stepCircle('1', filled: true),
-            SizedBox(
-              width: 36,
-              child: CustomPaint(
-                painter: _DashedLinePainter(),
-                size: const Size(36, 2),
-              ),
-            ),
-            _stepCircle('2', filled: true),
-          ],
-        ),
-        Text(
-          'STEP 2 OF 2',
-          style: GoogleFonts.inter(
-            color: primaryBlue,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _stepCircle(String label, {required bool filled}) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: filled ? primaryBlue : const Color(0xFFEEF0FF),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            color: filled ? Colors.white : primaryBlue,
-            fontWeight: FontWeight.w800,
-            fontSize: 14,
-          ),
-        ),
-      ),
     );
   }
 
@@ -318,7 +265,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       child: Row(
                         children: [
                           Text(
-                            '\$ ',
+                            '₹ ',
                             style: GoogleFonts.inter(
                               color: textGray,
                               fontSize: 16,
@@ -384,7 +331,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$ ${_computeTotal()}',
+                      '₹ ${_computeTotal()}',
                       style: GoogleFonts.inter(
                         color: primaryBlue,
                         fontSize: 24,
@@ -743,28 +690,4 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       fontStyle: FontStyle.italic,
     ),
   );
-}
-
-class _DashedLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dashWidth = 5.0;
-    const dashSpace = 3.0;
-    final paint = Paint()
-      ..color = const Color(0xFF2233DD)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, size.height / 2),
-        Offset(startX + dashWidth, size.height / 2),
-        paint,
-      );
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedLinePainter oldDelegate) => false;
 }

@@ -212,7 +212,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                   children: [
                     _label('COST / HOUR'),
                     const SizedBox(height: 8),
-                    _box('\$85.00'),
+                    _box('₹85.00'),
                   ],
                 ),
               ),
@@ -236,7 +236,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '\$510.00',
+                  '₹510.00',
                   style: GoogleFonts.inter(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -290,7 +290,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '"Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 dollars per hour. Fuel consumed was 42 liters. Total cost is 510 dollars. Log under earthworks and excavation."',
+          '"Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation."',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: textGray,

@@ -163,7 +163,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _metricCard(
                 icon: Icons.credit_card_outlined,
                 label: 'TOTAL COST',
-                value: r'$2.4M',
+                value: r'₹2.4M',
                 subIcon: Icons.trending_up,
                 subText: '12% vs LY',
                 subColor: Colors.pinkAccent,
@@ -174,7 +174,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _metricCard(
                 icon: Icons.architecture,
                 label: 'MATERIAL',
-                value: r'$842k',
+                value: r'₹842k',
                 subIcon: Icons.check_box_outline_blank,
                 subText: 'On Track',
                 subColor: textGray,
@@ -189,7 +189,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _metricCard(
                 icon: Icons.people_outline,
                 label: 'LABOUR',
-                value: r'$1.2M',
+                value: r'₹1.2M',
                 subIcon: Icons.trending_up,
                 subText: '+4% Over',
                 subColor: Colors.pinkAccent,
@@ -200,7 +200,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _metricCard(
                 icon: Icons.construction_outlined,
                 label: 'EQUIPMENT',
-                value: r'$318k',
+                value: r'₹318k',
                 subIcon: Icons.trending_down,
                 subText: '-2% Saving',
                 subColor: Colors.green,
@@ -392,7 +392,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  _unitIndex == 0 ? r'Actual: $14.20/sqft' : r'Actual: $383.40/cuyd',
+                  _unitIndex == 0 ? r'Actual: ₹14.20/sqft' : r'Actual: ₹383.40/cuyd',
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     color: textDark,
@@ -406,7 +406,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  _unitIndex == 0 ? r'Target: $13.50/sqft' : r'Target: $364.50/cuyd',
+                  _unitIndex == 0 ? r'Target: ₹13.50/sqft' : r'Target: ₹364.50/cuyd',
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     color: textGray,

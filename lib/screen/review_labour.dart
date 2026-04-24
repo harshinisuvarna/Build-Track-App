@@ -230,7 +230,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   children: [
                     _label('RATE'),
                     const SizedBox(height: 8),
-                    _box('\$18.00'),
+                    _box('₹18.00'),
                   ],
                 ),
               ),
@@ -250,7 +250,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '\$144.00',
+                  '₹144.00',
                   style: GoogleFonts.inter(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -444,7 +444,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          '"Hey SiteTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 dollars per hour. Total comes to 144 dollars. Log this under structural block work."',
+          '"Hey SiteTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 rupees per hour. Total comes to 144 rupees. Log this under structural block work."',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: textGray,
