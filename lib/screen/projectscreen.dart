@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/screen/add_project.dart';
-import 'package:buildtrack_mobile/screens/add_project_screen.dart';
-import 'package:buildtrack_mobile/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
