@@ -38,14 +38,26 @@ class AppTopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: SizedBox(
         height: 44,
-        child: Stack(
-          alignment: Alignment.center,
+        child: Row(
           children: [
-            // ── Centre: title is always truly centred ─────────────────────
-            Align(
-              alignment: Alignment.center,
+            // ── Left side ────────────────────────────────────────────────
+            leftIcon != null
+                ? GestureDetector(
+                    onTap: onLeftTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(leftIcon, color: _textDark, size: 24),
+                    ),
+                  )
+                : const SizedBox(width: 32),
+
+            // ── Centre: title fills remaining space, text centred ─────────
+            Expanded(
               child: Text(
                 title,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
                   color: isSubScreen ? _textDark : _primaryBlue,
                   fontSize: isSubScreen ? 17 : 20,
@@ -55,27 +67,9 @@ class AppTopBar extends StatelessWidget {
               ),
             ),
 
-            // ── Left side ────────────────────────────────────────────────
-            Align(
-              alignment: Alignment.centerLeft,
-              child: leftIcon != null
-                  ? GestureDetector(
-                      onTap: onLeftTap,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(leftIcon, color: _textDark, size: 24),
-                      ),
-                    )
-                  : const SizedBox(width: 32),
-            ),
-
             // ── Right side ───────────────────────────────────────────────
-            Align(
-              alignment: Alignment.centerRight,
-              child: IntrinsicWidth(
-                child: rightWidget ?? const SizedBox(width: 32),
-              ),
+            IntrinsicWidth(
+              child: rightWidget ?? const SizedBox(width: 32),
             ),
           ],
         ),

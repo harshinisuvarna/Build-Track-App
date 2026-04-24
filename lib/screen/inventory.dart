@@ -172,48 +172,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           children: [
             AppTopBar(
               title: 'SiteTrack',
-              rightWidget: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/cement-history'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFDDE0F0)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 14,
-                            color: Color(0xFF6B3FE7),
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'History',
-                            style: TextStyle(
-                              color: Color(0xFF6B3FE7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  CircleAvatar(
-                    radius: 19,
-                    backgroundColor: Colors.grey,
-                    child: const Text('N'),
-                  ),
-                ],
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
             Expanded(

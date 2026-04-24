@@ -280,28 +280,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cost per Unit',
-                    style: GoogleFonts.inter(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      color: textDark,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cost per Unit',
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: textDark,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Concrete pouring efficiency\nvs target',
-                    style: GoogleFonts.inter(
-                      color: textGray,
-                      fontSize: 12.5,
-                      height: 1.4,
+                    const SizedBox(height: 3),
+                    Text(
+                      'Concrete pouring efficiency vs target',
+                      style: GoogleFonts.inter(
+                        color: textGray,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFDDE0F0)),

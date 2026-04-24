@@ -15,7 +15,6 @@ class _HomeScreenState extends State<HomeScreen> {
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
 
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ── Reusable bottom sheet: Voice or Manual ────────────────────────────────
   void _showEntryOptions(BuildContext context, String type) {
@@ -166,9 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: bgColor,
-      drawer: _buildDrawer(),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -176,15 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Pinned top bar — never scrolls ─────────────────────────
             AppTopBar(
               title: 'SiteTrack',
-              leftIcon: Icons.menu,
-              onLeftTap: () => _scaffoldKey.currentState?.openDrawer(),
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/notifications'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
-                ),
+              rightWidget: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade800,
+                child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
             // ── Scrollable screen body ──────────────────────────────────
@@ -223,77 +215,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Bottom Nav is handled by AppBottomNav (common_widgets.dart) ──────────
-
-  // ── Drawer ────────────────────────────────────────────────────────────────
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Container(
-        color: Colors.white,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.grey.shade200,
-                      child: const Icon(Icons.person, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Neurofin Admin',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 16)),
-                        Text('Project Foreman',
-                            style: TextStyle(color: textGray, fontSize: 13)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              _drawerItem(Icons.inventory_2_outlined, 'Manage materials',
-                  onTap: () => Navigator.pushNamed(context, '/inventory')),
-              _drawerItem(Icons.people_outline, 'Manage labour',
-                  onTap: () => Navigator.pushNamed(context, '/inventory')),
-              _drawerItem(Icons.construction_outlined, 'Manage equipment',
-                  onTap: () => Navigator.pushNamed(context, '/inventory')),
-              _drawerItem(Icons.language_outlined, 'Language',
-                  trailing: 'EN-US'),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Log out',
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.w600)),
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _drawerItem(IconData icon, String label,
-      {String? trailing, VoidCallback? onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: textDark, size: 22),
-      title: Text(label,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
-      trailing: trailing != null
-          ? Text(trailing,
-              style: const TextStyle(
-                  color: textGray, fontWeight: FontWeight.w500))
-          : null,
-      onTap: onTap ?? () {},
-    );
-  }
 
   // ── Top Bar is handled by AppTopBar (common_widgets.dart) ───────────────
 
