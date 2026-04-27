@@ -1,6 +1,7 @@
+import 'package:buildtrack_mobile/common/themes/app_theme.dart';
+import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -9,13 +10,14 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
+
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF5A6B82); // FIX 5: darker
+  static const textGray = Color(0xFF5A6B82);
+
   int _tabIndex = 0;
   int _unitIndex = 0;
-  // FIX 2: PageController for swipeable tabs
   final PageController _pageController = PageController();
 
   @override
@@ -33,40 +35,58 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           children: [
             AppTopBar(
-              title: 'SiteTrack',
+              title: 'Dashboard',
               rightWidget: CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.grey.shade800,
                 child: const Icon(Icons.person, color: Colors.white, size: 18),
               ),
             ),
-            // ── Tabs (pinned) ─────────────────────────────────────
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: _buildTabs(),
             ),
-            // FIX 2: PageView for swipe between Monthly/Quarterly/Yearly
+
             Expanded(
               child: PageView(
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _tabIndex = i),
-                children: List.generate(3, (_) => SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 100), // FIX 3
-                  child: Column(
-                    children: [
-                      _buildProjectFilter(),
-                      const SizedBox(height: 14),
-                      _buildMetricGrid(),
-                      const SizedBox(height: 14),
-                      _buildChartCard(),
-                      const SizedBox(height: 14),
-                      _buildCategoryBudget(),
-                      const SizedBox(height: 14),
-                      _buildEfficiencyReport(context),
-                    ],
+                children: List.generate(
+                  3,
+                  (_) => SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        // 1. Project filter
+                        _buildProjectFilter(),
+                        const SizedBox(height: 14),
+
+                        // 2. Summary metric cards
+                        const AppSectionHeader(title: 'Cost Summary'),
+                        _buildMetricGrid(),
+                        const SizedBox(height: 14),
+
+                        // 3. Cost-per-unit chart
+                        const AppSectionHeader(title: 'Cost per Unit'),
+                        _buildChartCard(),
+                        const SizedBox(height: 14),
+
+                        // 4. Category budget progress
+                        const AppSectionHeader(title: 'Category Budget'),
+                        _buildCategoryBudget(),
+                        const SizedBox(height: 14),
+
+                        // 5. Efficiency banner
+                        _buildEfficiencyReport(context),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
                   ),
-                )),
+                ),
               ),
             ),
           ],
@@ -84,24 +104,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Row(
         children: List.generate(tabs.length, (i) {
           final active = i == _tabIndex;
           return Expanded(
-            // FIX 1: InkWell
             child: InkWell(
               onTap: () {
                 setState(() => _tabIndex = i);
-                // FIX 2: sync tap to PageView
-                _pageController.animateToPage(i, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+                _pageController.animateToPage(
+                  i,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                );
               },
               borderRadius: BorderRadius.circular(26),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 11), // FIX 4: taller
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
                   color: active ? primaryBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
@@ -109,9 +132,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Text(
                   tabs[i],
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: active ? Colors.white : textGray,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
                 ),
@@ -123,26 +146,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // ── Project Filter ────────────────────────────────────────────────────────
-
   Widget _buildProjectFilter() {
-    return Container(
+    return AppCard(
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
-        ],
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             'All Active Projects',
-            style:  GoogleFonts.inter(
-              fontWeight: FontWeight.w800,
-              fontSize: 15,
+            style: AppTheme.bodyLarge.copyWith(
+              fontWeight: FontWeight.w700,
               color: textDark,
             ),
           ),
@@ -151,8 +165,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
     );
   }
-
-  // ── 4 Metric Cards ────────────────────────────────────────────────────────
 
   Widget _buildMetricGrid() {
     return Column(
@@ -226,7 +238,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -244,17 +257,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 9),
           Text(
             label,
-            style:  GoogleFonts.inter(
-              fontSize: 10,
-              color: textGray,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
+            style: AppTheme.label.copyWith(color: textGray, fontSize: 10),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style:  GoogleFonts.inter(
+            style: AppTheme.heading2.copyWith(
               fontSize: 22,
               fontWeight: FontWeight.w900,
               color: textDark,
@@ -265,12 +273,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
             children: [
               Icon(subIcon, size: 13, color: subColor),
               const SizedBox(width: 4),
-              Text(
-                subText,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: subColor,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  subText,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: subColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -280,24 +291,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // ── Chart Card ────────────────────────────────────────────────────────────
-
   Widget _buildChartCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+    return AppCard(
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row — unit toggle
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,25 +308,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   children: [
                     Text(
                       'Cost per Unit',
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        color: textDark,
-                      ),
+                      style: AppTheme.heading3.copyWith(color: textDark),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'Concrete pouring efficiency vs target',
-                      style: GoogleFonts.inter(
-                        color: textGray,
-                        fontSize: 12.5,
-                        height: 1.4,
-                      ),
+                      style: AppTheme.caption.copyWith(
+                          color: textGray, height: 1.4),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
+              // Unit toggle — logic unchanged
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFDDE0F0)),
@@ -335,26 +329,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Row(
                   children: ['SQFT', 'CUYD'].asMap().entries.map((e) {
                     final sel = e.key == _unitIndex;
-                    // FIX 1 + 4: InkWell with larger touch target
                     return InkWell(
                       onTap: () => setState(() => _unitIndex = e.key),
                       borderRadius: BorderRadius.circular(6),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 13, // FIX 4: wider
-                          vertical: 9,    // FIX 4: taller
-                        ),
+                            horizontal: 13, vertical: 9),
                         decoration: BoxDecoration(
                           color: sel ? primaryBlue : Colors.transparent,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           e.value,
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             color: sel ? Colors.white : textGray,
-                            fontSize: 12, // FIX 5: bumped from 11
-                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -365,6 +356,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ],
           ),
           const SizedBox(height: 18),
+
+          // Line chart — logic unchanged
           SizedBox(
             height: 110,
             child: CustomPaint(
@@ -373,32 +366,30 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           const SizedBox(height: 10),
+
+          // Week labels — unchanged
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // FIX 5: bumped from 10 → 12 for outdoor readability
-              Text('WK 12', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-              Text('WK 13', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-              Text('WK 14', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-              Text('WK 15', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-              Text('WK 16', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-              Text('WK 17', style: GoogleFonts.inter(color: textGray, fontSize: 12)),
-            ],
+            children: ['WK 12', 'WK 13', 'WK 14', 'WK 15', 'WK 16', 'WK 17']
+                .map((w) => Text(w,
+                    style: AppTheme.caption.copyWith(color: textGray)))
+                .toList(),
           ),
           const SizedBox(height: 12),
+
+          // Legend — logic unchanged
           Row(
             children: [
               const Icon(Icons.circle, color: primaryBlue, size: 10),
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  _unitIndex == 0 ? r'Actual: ₹14.20/sqft' : r'Actual: ₹383.40/cuyd',
+                  _unitIndex == 0
+                      ? r'Actual: ₹14.20/sqft'
+                      : r'Actual: ₹383.40/cuyd',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: textDark,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: AppTheme.caption.copyWith(
+                      color: textDark, fontWeight: FontWeight.w700),
                 ),
               ),
               const SizedBox(width: 12),
@@ -406,13 +397,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  _unitIndex == 0 ? r'Target: ₹13.50/sqft' : r'Target: ₹364.50/cuyd',
+                  _unitIndex == 0
+                      ? r'Target: ₹13.50/sqft'
+                      : r'Target: ₹364.50/cuyd',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: textGray,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: AppTheme.caption.copyWith(
+                      color: textGray, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -422,39 +412,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // ── Category Budget ───────────────────────────────────────────────────────
-
   Widget _buildCategoryBudget() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+    return AppCard(
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Category Budget',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textDark,
-            ),
+            'Budget Usage by Category',
+            style: AppTheme.heading3.copyWith(color: textDark),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _budgetBar('STRUCTURAL', 0.82, '82%', primaryBlue),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _budgetBar('ELECTRICAL', 0.45, '45%', const Color(0xFF8B3FE7)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _budgetBar('FINISHING', 0.18, '18%', const Color(0xFF9B5FFF)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _budgetBar('LANDSCAPING', 0.95, '95%', Colors.red),
         ],
       ),
@@ -469,17 +443,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Text(
               label,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 12.5,
-                color: textDark,
-                letterSpacing: 0.4,
-              ),
+              style: AppTheme.label.copyWith(
+                  color: textDark, fontSize: 12, letterSpacing: 0.4),
             ),
             Text(
               pct,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
                 fontSize: 13,
                 color: color,
               ),
@@ -499,8 +469,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ],
     );
   }
-
-  // ── Efficiency Report Banner ──────────────────────────────────────────────
 
   Widget _buildEfficiencyReport(BuildContext context) {
     return Container(
@@ -528,34 +496,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.bar_chart,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: const Icon(Icons.bar_chart, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
                 'Efficiency Report',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                ),
+                style: AppTheme.heading3.copyWith(color: Colors.white),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             'Labour costs are 12% under budget for this quarter due to optimized scheduling.',
-            style: GoogleFonts.inter(
-              color: Colors.white70,
-              fontSize: 13.5,
-              height: 1.4,
-            ),
+            style: AppTheme.body.copyWith(
+                color: Colors.white70, height: 1.4),
           ),
           const SizedBox(height: 12),
-          // FIX 1 + 4: InkWell with padding for proper touch target
+          // Navigation — logic unchanged
           InkWell(
             onTap: () => Navigator.pushNamed(context, '/notifications'),
             borderRadius: BorderRadius.circular(4),
@@ -564,10 +521,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
                 'View Details  →',
-                style: GoogleFonts.inter(
+                style: AppTheme.body.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                   decoration: TextDecoration.underline,
                   decorationColor: Colors.white,
                 ),
@@ -625,12 +581,9 @@ class _LineChartPainter extends CustomPainter {
       final cp1 = Offset((pts[i].dx + pts[i + 1].dx) / 2, pts[i].dy);
       final cp2 = Offset((pts[i].dx + pts[i + 1].dx) / 2, pts[i + 1].dy);
       path.cubicTo(
-        cp1.dx,
-        cp1.dy,
-        cp2.dx,
-        cp2.dy,
-        pts[i + 1].dx,
-        pts[i + 1].dy,
+        cp1.dx, cp1.dy,
+        cp2.dx, cp2.dy,
+        pts[i + 1].dx, pts[i + 1].dy,
       );
     }
     canvas.drawPath(path, paint);

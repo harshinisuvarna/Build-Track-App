@@ -57,7 +57,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         bottom: false,
         child: Column(
           children: [
-            // ── Top Bar ──────────────────────────────────────────
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -99,7 +99,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               ),
             ),
 
-            // ── Form ─────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),

@@ -1,3 +1,5 @@
+import 'package:buildtrack_mobile/common/themes/app_theme.dart';
+import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
 
 class AddMaterialScreen extends StatefulWidget {
@@ -8,13 +10,13 @@ class AddMaterialScreen extends StatefulWidget {
 }
 
 class _AddMaterialScreenState extends State<AddMaterialScreen> {
+
   static const primaryBlue = Color(0xFF2233DD);
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
   static const errorRed = Color(0xFFD32F2F);
 
-  // ❌ FIX: removed hardcoded default values — controllers start empty
   final _nameController = TextEditingController();
   final _qtyController = TextEditingController();
   final _rateController = TextEditingController();
@@ -23,10 +25,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   bool _supplierSelected = false;
   int _selectedNavIndex = 2;
   bool _isEditing = false;
-  // FIX: loading state to prevent double-tap
   bool _isSaving = false;
 
-  // FIX: per-field error strings for inline validation feedback
   String? _nameError;
   String? _qtyError;
   String? _rateError;
@@ -67,7 +67,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return (qty * rate).toStringAsFixed(2);
   }
 
-  // ✅ FIX: centralised validation — returns true only when all fields are valid
   bool _validate() {
     bool ok = true;
     setState(() {
@@ -94,12 +93,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIX: keyboard-aware bottom padding so fields aren't hidden
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: bgColor,
-      // ✅ FIX: resizeToAvoidBottomInset true (default) combined with padding below
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -108,15 +105,129 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                // ✅ FIX: extra bottom padding equals keyboard height
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomInset),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
-                    _buildFormCard(context),
-                    const SizedBox(height: 28),
+
+                    const AppSectionHeader(title: 'Basic Details'),
+                    AppCard(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Material Name
+                          _sectionLabel('Material Name'),
+                          const SizedBox(height: 8),
+                          _underlineField(
+                            Icons.inventory_2_outlined,
+                            _nameController,
+                            hint: 'Enter material name',
+                          ),
+                          if (_nameError != null) ...[
+                            const SizedBox(height: 4),
+                            _errorText(_nameError!),
+                          ],
+                          const SizedBox(height: 20),
+
+                          // Supplier
+                          _supplierField(),
+                          if (_supplierError) ...[
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Please select a valid supplier from the database.',
+                              style: TextStyle(
+                                color: errorRed,
+                                fontSize: 11.5,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const AppSectionHeader(title: 'Purchase Details'),
+                    AppCard(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Quantity + Rate row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _labeledUnderlineField(
+                                      'Quantity',
+                                      _qtyController,
+                                      'm³',
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                    if (_qtyError != null) ...[
+                                      const SizedBox(height: 4),
+                                      _errorText(_qtyError!),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _labeledUnderlineFieldPrefix(
+                                      'Rate per Unit',
+                                      _rateController,
+                                      '₹',
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                    if (_rateError != null) ...[
+                                      const SizedBox(height: 4),
+                                      _errorText(_rateError!),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Total amount auto-computed
+                          _totalCard(),
+                        ],
+                      ),
+                    ),
+
+                    const AppSectionHeader(title: 'Receipt / Bill'),
+                    AppCard(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: _uploadBox(
+                        context,
+                        label: 'Tap to upload bill',
+                        uploadedFile: _receiptFile,
+                        onTap: () {
+                          setState(
+                            () => _receiptFile =
+                                'receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Receipt attached: receipt.pdf')),
+                          );
+                        },
+                        onRemove: () => setState(() => _receiptFile = null),
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
                     _buildSaveButton(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -127,8 +238,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
-
-  // ── Top Bar ───────────────────────────────────────────────────────────────
 
   Widget _buildTopBar(BuildContext context) {
     return Padding(
@@ -149,11 +258,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
           Text(
             _screenTitle,
-            style: const TextStyle(
-              color: primaryBlue,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppTheme.heading3.copyWith(color: primaryBlue),
           ),
           CircleAvatar(
             radius: 18,
@@ -165,153 +270,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  // ── Form Card ─────────────────────────────────────────────────────────────
-
-  Widget _buildFormCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Item name
-          const Text(
-            'Item name',
-            style: TextStyle(
-              color: primaryBlue,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _underlineField(
-            Icons.inventory_2_outlined,
-            _nameController,
-            hint: 'Enter material name',
-          ),
-          // ✅ FIX: inline name error
-          if (_nameError != null) ...[
-            const SizedBox(height: 4),
-            _errorText(_nameError!),
-          ],
-          const SizedBox(height: 20),
-
-          // Quantity + Rate
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _labeledUnderlineField(
-                      'Quantity',
-                      _qtyController,
-                      'm³',
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    // ✅ FIX: inline qty error
-                    if (_qtyError != null) ...[
-                      const SizedBox(height: 4),
-                      _errorText(_qtyError!),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _labeledUnderlineFieldPrefix(
-                      'Rate',
-                      _rateController,
-                      '₹',
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    // ✅ FIX: inline rate error
-                    if (_rateError != null) ...[
-                      const SizedBox(height: 4),
-                      _errorText(_rateError!),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-
-          // Total
-          _totalCard(),
-          const SizedBox(height: 20),
-
-          // Supplier
-          _supplierField(),
-          if (_supplierError) ...[
-            const SizedBox(height: 6),
-            const Text(
-              'Please select a valid supplier from the database.',
-              style: TextStyle(
-                color: errorRed,
-                fontSize: 11.5,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-
-          // Upload Receipt
-          const Text(
-            'Upload Receipt / Bill',
-            style: TextStyle(
-              color: primaryBlue,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _uploadBox(
-            context,
-            label: 'Tap to upload bill',
-            uploadedFile: _receiptFile,
-            onTap: () {
-              setState(
-                () => _receiptFile =
-                    'receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Receipt attached: receipt.pdf')),
-              );
-            },
-            // ✅ FIX: remove receipt callback
-            onRemove: () => setState(() => _receiptFile = null),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Save Button ───────────────────────────────────────────────────────────
-
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
-      // ✅ FIX: validate first; disable during save to prevent double-tap
       onTap: _isSaving
           ? null
           : () async {
               if (!_validate()) return;
               setState(() => _isSaving = true);
-              // Simulate async save (replace with real API call)
               await Future.delayed(const Duration(milliseconds: 600));
               if (!mounted) return;
               Navigator.pushNamed(
@@ -339,7 +304,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         duration: const Duration(milliseconds: 200),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.symmetric(vertical: 17),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
@@ -355,7 +320,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
             ],
           ),
-          // ✅ FIX: show CircularProgressIndicator while saving
           child: _isSaving
               ? const Center(
                   child: SizedBox(
@@ -371,10 +335,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Save entry',
+                      'Save Entry',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -387,15 +351,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  // ── Reusable field helpers ────────────────────────────────────────────────
-
   Widget _underlineField(
     IconData icon,
     TextEditingController ctrl, {
     String hint = '',
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
       ),
@@ -434,14 +396,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
+        _sectionLabel(label),
         const SizedBox(height: 8),
         Container(
           decoration: const BoxDecoration(
@@ -456,10 +411,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   onChanged: onChanged,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 10,
-                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                   ),
                   style: const TextStyle(
                     fontSize: 18,
@@ -493,14 +446,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
+        _sectionLabel(label),
         const SizedBox(height: 8),
         Container(
           decoration: const BoxDecoration(
@@ -523,10 +469,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   onChanged: onChanged,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 10,
-                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                   ),
                   style: const TextStyle(
                     fontSize: 18,
@@ -583,11 +527,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               color: primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.calculate_outlined,
-              color: primaryBlue,
-              size: 20,
-            ),
+            child: const Icon(Icons.calculate_outlined,
+                color: primaryBlue, size: 20),
           ),
         ],
       ),
@@ -600,11 +541,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       children: [
         RichText(
           text: const TextSpan(
-            text: 'Supplier ID ',
+            text: 'Supplier ',
             style: TextStyle(
               color: primaryBlue,
               fontWeight: FontWeight.w700,
-              fontSize: 14,
+              fontSize: 13,
+              letterSpacing: 0.5,
             ),
             children: [
               TextSpan(
@@ -618,7 +560,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         GestureDetector(
           onTap: () => _showSupplierPicker(),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 14),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
@@ -657,7 +599,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  // ✅ FIX: added `onRemove` callback + remove (❌) button when file attached
   Widget _uploadBox(
     BuildContext context, {
     required String label,
@@ -669,12 +610,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       onTap: uploadedFile == null ? onTap : null,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 28),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
           color: uploadedFile != null
               ? const Color(0xFFEEF8EE)
               : const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: uploadedFile != null
                 ? Colors.green.shade300
@@ -709,7 +650,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // ✅ FIX: ❌ remove button — stops propagation via explicit callback
                   GestureDetector(
                     onTap: onRemove,
                     child: Container(
@@ -718,11 +658,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                         color: Colors.red.shade50,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.redAccent,
-                        size: 18,
-                      ),
+                      child: const Icon(Icons.close,
+                          color: Colors.redAccent, size: 18),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -737,30 +674,20 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       color: primaryBlue.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.cloud_upload_outlined,
-                      color: primaryBlue,
-                      size: 26,
-                    ),
+                    child: const Icon(Icons.cloud_upload_outlined,
+                        color: primaryBlue, size: 26),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: textDark,
-                    ),
+                    style: AppTheme.bodyLarge
+                        .copyWith(fontWeight: FontWeight.w700, color: textDark),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'PNG, JPG OR PDF UP TO 10MB',
-                    style: TextStyle(
-                      color: textGray,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
+                    style: AppTheme.caption.copyWith(
+                        color: textGray, letterSpacing: 0.3, fontSize: 11),
                   ),
                 ],
               ),
@@ -771,7 +698,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   void _showSupplierPicker() {
     showModalBottomSheet(
       context: context,
-      // ✅ FIX: white bg + SafeArea + rounded top (consistent bottom sheet)
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -783,7 +709,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag handle
               Center(
                 child: Container(
                   width: 40,
@@ -800,7 +725,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
-              // ✅ FIX: card-style list items
               ...[
                 'ABC Suppliers Ltd.',
                 'Metro Build Co.',
@@ -822,23 +746,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+                            horizontal: 16, vertical: 14),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.business,
-                              color: primaryBlue,
-                              size: 20,
-                            ),
+                            const Icon(Icons.business,
+                                color: primaryBlue, size: 20),
                             const SizedBox(width: 12),
                             Text(
                               s,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
+                                  fontWeight: FontWeight.w600, fontSize: 15),
                             ),
                           ],
                         ),
@@ -853,8 +770,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       ),
     );
   }
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────────
 
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
@@ -877,28 +792,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
-              _navItem(
-                context,
-                1,
-                Icons.architecture_outlined,
-                'PROJECTS',
-                route: '/projects',
-              ),
+              _navItem(context, 1, Icons.architecture_outlined, 'PROJECTS',
+                  route: '/projects'),
               _navEntryButton(context),
-              _navItem(
-                context,
-                3,
-                Icons.inventory_2_outlined,
-                'INVENTORY',
-                route: '/inventory',
-              ),
-              _navItem(
-                context,
-                4,
-                Icons.bar_chart_outlined,
-                'REPORTS',
-                route: '/reports',
-              ),
+              _navItem(context, 3, Icons.inventory_2_outlined, 'INVENTORY',
+                  route: '/inventory'),
+              _navItem(context, 4, Icons.bar_chart_outlined, 'REPORTS',
+                  route: '/reports'),
             ],
           ),
         ),
@@ -981,13 +881,22 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  // ── Error text helper ─────────────────────────────────────────────────────
+  Widget _sectionLabel(String label) => Text(
+        label,
+        style: const TextStyle(
+          color: primaryBlue,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          letterSpacing: 0.5,
+        ),
+      );
+
   Widget _errorText(String msg) => Text(
-    msg,
-    style: const TextStyle(
-      color: errorRed,
-      fontSize: 11.5,
-      fontStyle: FontStyle.italic,
-    ),
-  );
+        msg,
+        style: const TextStyle(
+          color: errorRed,
+          fontSize: 11.5,
+          fontStyle: FontStyle.italic,
+        ),
+      );
 }

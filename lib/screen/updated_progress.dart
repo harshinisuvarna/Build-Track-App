@@ -44,7 +44,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               ),
             ),
 
-            // ── Scrollable body ───────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -77,7 +76,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Current Active Stage card ─────────────────────────────────────────────
   Widget _buildCurrentStageCard() {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -244,7 +242,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Select Stage chips ────────────────────────────────────────────────────
   Widget _buildSelectStage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +299,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Work progress details textarea ───────────────────────────────────────
   Widget _buildProgressDetailsField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +344,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Update Date ───────────────────────────────────────────────────────────
   Widget _buildDateField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,7 +393,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Documentation upload ──────────────────────────────────────────────────
   Widget _buildDocumentation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,7 +473,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Material Consumption card ─────────────────────────────────────────────
   Widget _buildMaterialConsumption(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -575,7 +568,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Save progress button ──────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.maybePop(context),

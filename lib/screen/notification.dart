@@ -1,6 +1,6 @@
+import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -13,6 +13,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   static const bgColor = Color(0xFFF4F6FB);
   static const textDark = Color(0xFF0F1724);
   static const textGray = Color(0xFF7B8A9E);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,27 +46,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       children: [
                         Text(
                           'Today',
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: textDark,
-                          ),
+                          style: AppTheme.heading2.copyWith(color: textDark),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 5,
-                          ),
+                              horizontal: 12, vertical: 5),
                           decoration: BoxDecoration(
                             color: primaryBlue,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             '3 NEW',
-                            style: GoogleFonts.inter(
+                            style: AppTheme.label.copyWith(
                               color: Colors.white,
                               fontSize: 11,
-                              fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -81,11 +75,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     const SizedBox(height: 26),
                     Text(
                       'Yesterday',
-                      style:  GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: textGray,
-                      ),
+                      style: AppTheme.heading3.copyWith(color: textGray),
                     ),
                     const SizedBox(height: 12),
                     _yesterdayCard(
@@ -107,6 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           'Arrival of electrical components moved from Tuesday to Wednesday 08:00 AM.',
                       time: '1d ago',
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -125,7 +116,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border(left: BorderSide(color: Colors.red.shade400, width: 4)),
         boxShadow: [
-          BoxShadow(color: Colors.red.withValues(alpha: 0.07), blurRadius: 14),
+          BoxShadow(
+              color: Colors.red.withValues(alpha: 0.07), blurRadius: 14),
         ],
       ),
       child: Column(
@@ -139,58 +131,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.red.shade400,
-                  size: 20,
-                ),
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(11)),
+                child: Icon(Icons.warning_amber_rounded,
+                    color: Colors.red.shade400, size: 20),
               ),
-              Text(
-                '12m ago',
-                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
-              ),
+              Text('12m ago',
+                  style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
+          Row(children: [
+            Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'CRITICAL ALERT',
-                style:  GoogleFonts.inter(
-                  color: Colors.red,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.9,
-                ),
-              ),
-            ],
-          ),
+                    color: Colors.red, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text('CRITICAL ALERT',
+                style: AppTheme.label.copyWith(
+                    color: Colors.red, fontSize: 10, letterSpacing: 0.9)),
+          ]),
           const SizedBox(height: 7),
           Text(
             'Structural Beam Deflection Detected',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textDark,
-              height: 1.3,
-            ),
+            style: AppTheme.heading3
+                .copyWith(color: textDark, fontSize: 18, height: 1.3),
           ),
           const SizedBox(height: 6),
           Text(
             'Sensor 4B in Sector 7 reports stress levels exceeding 15% threshold. Immediate inspection required at the Western support pillar.',
-            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
+            style: AppTheme.body.copyWith(color: textGray, height: 1.4),
           ),
           const SizedBox(height: 14),
           Row(
@@ -202,14 +173,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     foregroundColor: Colors.red,
                     side: BorderSide(color: Colors.red.shade300),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+                        borderRadius: BorderRadius.circular(30)),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: Text(
-                    'Resolve',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w800),
-                  ),
+                  child: Text('Resolve',
+                      style: AppTheme.body.copyWith(
+                          color: Colors.red, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -220,14 +189,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     foregroundColor: textDark,
                     side: const BorderSide(color: Color(0xFFDDE0F0)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+                        borderRadius: BorderRadius.circular(30)),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
-                  child: Text(
-                    'View Map',
-                    style:  GoogleFonts.inter(fontWeight: FontWeight.w700),
-                  ),
+                  child: Text('View Map',
+                      style: AppTheme.body.copyWith(
+                          color: textDark, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -243,12 +210,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: const Border(left: BorderSide(color: Colors.orange, width: 4)),
+        border:
+            const Border(left: BorderSide(color: Colors.orange, width: 4)),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.06),
-            blurRadius: 12,
-          ),
+              color: Colors.orange.withValues(alpha: 0.06), blurRadius: 12),
         ],
       ),
       child: Column(
@@ -261,57 +227,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8EE),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  color: Colors.orange,
-                  size: 20,
-                ),
+                    color: const Color(0xFFFFF8EE),
+                    borderRadius: BorderRadius.circular(11)),
+                child: const Icon(Icons.inventory_2_outlined,
+                    color: Colors.orange, size: 20),
               ),
-              Text(
-                '2h ago',
-                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
-              ),
+              Text('2h ago',
+                  style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
+          Row(children: [
+            Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'INVENTORY WARNING',
-                style:  GoogleFonts.inter(
-                  color: Colors.orange,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.9,
-                ),
-              ),
-            ],
-          ),
+                    color: Colors.orange, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text('INVENTORY WARNING',
+                style: AppTheme.label.copyWith(
+                    color: Colors.orange, fontSize: 10, letterSpacing: 0.9)),
+          ]),
           const SizedBox(height: 7),
           Text(
             'Low Cement Stock (Phase 2)',
-            style:  GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textDark,
-            ),
+            style: AppTheme.heading3.copyWith(color: textDark, fontSize: 18),
           ),
           const SizedBox(height: 6),
           Text(
             "Current supply will be depleted by tomorrow's afternoon shift. Re-order scheduled but requires manual approval.",
-            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
+            style: AppTheme.body.copyWith(color: textGray, height: 1.4),
           ),
         ],
       ),
@@ -326,9 +271,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-          ),
+              color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -341,44 +284,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF0FF),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(
-                  Icons.bar_chart,
-                  color: primaryBlue,
-                  size: 20,
-                ),
+                    color: const Color(0xFFEEF0FF),
+                    borderRadius: BorderRadius.circular(11)),
+                child: const Icon(Icons.bar_chart, color: primaryBlue, size: 20),
               ),
-              Text(
-                '5h ago',
-                style:  GoogleFonts.inter(color: textGray, fontSize: 11),
-              ),
+              Text('5h ago',
+                  style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            'WEEKLY REPORT',
-            style:  GoogleFonts.inter(
-              color: primaryBlue,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.9,
-            ),
-          ),
+          Text('WEEKLY REPORT',
+              style: AppTheme.label.copyWith(
+                  color: primaryBlue, fontSize: 10, letterSpacing: 0.9)),
           const SizedBox(height: 7),
           Text(
             'Project Velocity Insight',
-            style:  GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: textDark,
-            ),
+            style: AppTheme.heading3.copyWith(color: textDark, fontSize: 18),
           ),
           const SizedBox(height: 6),
           Text(
             'Efficiency on Sector 4 has increased by 12% following the new logistics deployment. View the full technical breakdown.',
-            style:  GoogleFonts.inter(color: textGray, fontSize: 13, height: 1.4),
+            style: AppTheme.body.copyWith(color: textGray, height: 1.4),
           ),
         ],
       ),
@@ -399,7 +325,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -409,9 +336,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(11),
-            ),
+                color: iconBg, borderRadius: BorderRadius.circular(11)),
             child: Icon(icon, color: iconColor, size: 19),
           ),
           const SizedBox(width: 12),
@@ -419,28 +344,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style:  GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    color: textDark,
-                  ),
-                ),
+                Text(title,
+                    style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700, color: textDark)),
                 const SizedBox(height: 3),
-                Text(
-                  body,
-                  style:  GoogleFonts.inter(
-                    color: textGray,
-                    fontSize: 12.5,
-                    height: 1.4,
-                  ),
-                ),
+                Text(body,
+                    style: AppTheme.caption.copyWith(
+                        color: textGray, height: 1.4, fontSize: 12.5)),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text(time, style:  GoogleFonts.inter(color: textGray, fontSize: 11)),
+          Text(time, style: AppTheme.caption.copyWith(color: textGray)),
         ],
       ),
     );

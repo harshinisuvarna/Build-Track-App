@@ -108,7 +108,7 @@ class AppButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               onTap: (enabled && !isLoading) ? onPressed : null,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Center(
                   child: isLoading
                       ? SizedBox(
@@ -130,7 +130,7 @@ class AppButton extends StatelessWidget {
                               label,
                               style: TextStyle(
                                 fontFamily: 'Roboto',
-                                fontSize: 15,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 color: fg,
                                 letterSpacing: 0.2,
@@ -156,7 +156,7 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.outline:
         return (Colors.transparent, AppTheme.primary, AppTheme.primary);
       case AppButtonVariant.danger:
-        return (AppTheme.error, Colors.white, AppTheme.error);
+        return (const Color(0xFFFEE2E2), AppTheme.error, const Color(0xFFFEE2E2));
     }
   }
 }
