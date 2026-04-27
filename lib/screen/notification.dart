@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,10 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  static const primaryBlue = Color(0xFF2233DD);
-  static const bgColor = Color(0xFFF4F6FB);
-  static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF7B8A9E);
+  static const primaryBlue = AppColors.primary;
+  static const bgColor     = AppColors.gradientStart;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {

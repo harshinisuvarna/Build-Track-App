@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:buildtrack_mobile/screen/add_entry.dart';
 import 'package:buildtrack_mobile/screen/add_equipment.dart';
@@ -37,14 +38,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'BuildTrack',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF4F6FB),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2233DD),
-          brightness: Brightness.light,
-        ),
-      ),
+      theme: AppTheme.lightTheme,
 
       // ── Initial screen (tab index 0 = Home) ──────────────────────────
       initialRoute: '/home',

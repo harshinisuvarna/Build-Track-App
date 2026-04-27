@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -83,8 +84,8 @@ class _AddEntrySheet extends StatefulWidget {
 }
 
 class _AddEntrySheetState extends State<_AddEntrySheet> {
-  static const textDark    = Color(0xFF0F1724);
-  static const textGray    = Color(0xFF7B8A9E);
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   String? _selectedId;
 
@@ -178,9 +179,9 @@ class _EntryCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const primaryBlue = Color(0xFF2233DD);
-  static const textDark    = Color(0xFF0F1724);
-  static const textGray    = Color(0xFF7B8A9E);
+  static const primaryBlue = AppColors.primary;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {

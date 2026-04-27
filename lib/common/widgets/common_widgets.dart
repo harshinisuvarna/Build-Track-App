@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,8 +26,8 @@ class AppTopBar extends StatelessWidget {
     this.isSubScreen = false,
   });
 
-  static const _primaryBlue = Color(0xFF2233DD);
-  static const _textDark = Color(0xFF0F1724);
+  static const _primaryBlue = AppColors.primary;
+  static const _textDark    = AppColors.textDark;
 
   @override
   Widget build(BuildContext context) {
@@ -85,15 +86,15 @@ class AppTopBar extends StatelessWidget {
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
 
-  static const _primaryBlue = Color(0xFF2233DD);
-  static const _textGray = Color(0xFF5A6B82); // FIX 5: darker
+  static const _primaryBlue = AppColors.primary;
+  static const _textGray    = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavController>();
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBg,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),

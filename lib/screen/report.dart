@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -11,10 +12,10 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
 
-  static const primaryBlue = Color(0xFF2233DD);
-  static const bgColor = Color(0xFFF4F6FB);
-  static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF5A6B82);
+  static const primaryBlue = AppColors.primary;
+  static const bgColor     = AppColors.gradientStart;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   int _tabIndex = 0;
   int _unitIndex = 0;
@@ -540,7 +541,7 @@ class _LineChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final actualPaint = Paint()
-      ..color = const Color(0xFF2233DD)
+      ..color = AppColors.primary
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

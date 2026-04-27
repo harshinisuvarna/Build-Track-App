@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/screen/add_project.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +11,11 @@ class ProjectsScreen extends StatefulWidget {
 }
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
-  static const primaryBlue = Color(0xFF2233DD);
-  static const purple = Color(0xFF9B59B6);
-  static const bgColor = Color(0xFFF4F6FB);
-  static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF5A6B82); // FIX 5: darker for outdoor readability
+  static const primaryBlue = AppColors.primary;
+  static const purple      = AppColors.primary;
+  static const bgColor     = AppColors.gradientStart;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {

@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -14,11 +15,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const primaryBlue = Color(0xFF2233DD);
-  static const purple = Color(0xFF6B3FE7);
-  static const bgColor = Color(0xFFF4F6FB);
-  static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF5A6B82);
+  static const primaryBlue = AppColors.primary;
+  static const purple      = AppColors.primary;
+  static const bgColor     = AppColors.gradientStart;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
@@ -238,10 +239,10 @@ class _AdminDashboard extends StatelessWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
 
-  static const primaryBlue = Color(0xFF2233DD);
-  static const purple = Color(0xFF6B3FE7);
-  static const textDark = Color(0xFF0F1724);
-  static const textGray = Color(0xFF5A6B82);
+  static const primaryBlue = AppColors.primary;
+  static const purple      = AppColors.primary;
+  static const textDark    = AppColors.textDark;
+  static const textGray    = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {

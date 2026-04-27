@@ -1,3 +1,4 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
@@ -55,8 +56,8 @@ class AppLayout extends StatelessWidget {
               leading: leading,
               actions: actions,
               elevation: 0,
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.cardBg,
+              foregroundColor: AppColors.textDark,
             )
           : null,
       floatingActionButton: floatingActionButton,
@@ -112,8 +113,8 @@ class AppScrollLayout extends StatelessWidget {
               leading: leading,
               actions: actions,
               elevation: 0,
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.cardBg,
+              foregroundColor: AppColors.textDark,
             )
           : null,
       floatingActionButton: floatingActionButton,
@@ -181,8 +182,8 @@ class AppSubScreenLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
         centerTitle: true,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.cardBg,
+        foregroundColor: AppColors.textDark,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
@@ -247,8 +248,8 @@ class AppTabLayout extends StatelessWidget {
         title: Text(title),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.cardBg,
+        foregroundColor: AppColors.textDark,
         actions: actions,
       ),
       body: SafeArea(
