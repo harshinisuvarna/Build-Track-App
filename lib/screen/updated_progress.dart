@@ -2,6 +2,8 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
 class UpdateProgressScreen extends StatefulWidget {
   const UpdateProgressScreen({super.key});
@@ -18,6 +20,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   int _stageIndex = 0;
   final _stages = ['Reinforcement', 'Formwork', 'Curing'];
   final TextEditingController _progressCtrl = TextEditingController();
+
+  PickedAttachment? _attachment;
 
   @override
   void dispose() {
@@ -407,68 +411,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Camera / file picker would open here'),
-              ),
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: const Color(0xFFCCCFE8),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEEF0FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt_outlined,
-                    color: primaryBlue,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Upload site photos',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'PNG, JPG OR PDF UP TO 10MB',
-                  style: GoogleFonts.inter(
-                    color: textGray,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        UploadBox(
+          attachment: _attachment,
+          emptyLabel: 'Tap to add site photo',
+          onPicked: (a) => setState(() => _attachment = a),
+          onRemove: () => setState(() => _attachment = null),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:buildtrack_mobile/screen/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/add_labour.dart';
 import 'package:buildtrack_mobile/screen/add_material.dart';
 import 'package:buildtrack_mobile/screen/create_workspace.dart';
+import 'package:buildtrack_mobile/screen/edit_profile.dart';
 import 'package:buildtrack_mobile/screen/entry_details.dart';
 import 'package:buildtrack_mobile/screen/forget_password.dart';
 import 'package:buildtrack_mobile/screen/homescreen.dart';
@@ -55,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/forgot-password':  (_) => const ForgotPasswordScreen(),
         '/create-workspace': (_) => const CreateWorkspaceScreen(),
         '/profile':          (_) => const ProfileScreen(),
+        '/edit-profile':     (_) => const EditProfileScreen(),
 
         // ── Main tabs ────────────────────────────────────────────────────
         '/home':      (_) => const HomeScreen(),

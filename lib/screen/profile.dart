@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
 /// Shape of the user data this screen expects.
 /// Navigate to '/profile' with:
@@ -21,8 +24,12 @@ class ProfileUserData {
   final String email;
   final String role;
 
-  /// Fallback shown when no arguments are passed to the route.
-  static const empty = ProfileUserData(name: '—', email: '—', role: '—');
+  /// Fallback built from UserSession when no arguments are passed to the route.
+  static ProfileUserData get sessionFallback => ProfileUserData(
+    name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
+    email: '${UserSession.userId}@buildtrack.app',
+    role: UserSession.roleLabel,
+  );
 }
 
 class ProfileScreen extends StatefulWidget {
@@ -35,10 +42,17 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
 
-  /// Reads user data injected via Navigator.pushNamed arguments.
+  File? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final file = await pickImageFromGallery(context);
+    if (file != null && mounted) setState(() => _selectedImage = file);
+  }
+
+  /// Reads user data from route arguments, falling back to UserSession.
   ProfileUserData get _user {
     final args = ModalRoute.of(context)?.settings.arguments;
-    return args is ProfileUserData ? args : ProfileUserData.empty;
+    return args is ProfileUserData ? args : ProfileUserData.sessionFallback;
   }
 
   @override
@@ -57,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             'BuildTrack Version 2.4.0 (2024)',
             style: AppTheme.caption.copyWith(
-              color: AppColors.textLight.withValues(alpha: 0.7),
+              color: Colors.grey.shade600,
             ),
           ),
         ],
@@ -118,48 +132,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAvatar() {
     return Stack(
       children: [
-        Container(
-          width: 88,
-          height: 88,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.6),
-              width: 3,
-            ),
-          ),
-          child: const ClipOval(
-            child: ColoredBox(
-              color: Color(0xFFE8473F),
-              child: Icon(Icons.person, color: Colors.white, size: 48),
-            ),
+        GestureDetector(
+          onTap: _pickImage,
+          child: CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            backgroundImage:
+                _selectedImage != null ? FileImage(_selectedImage!) : null,
+            child: _selectedImage == null
+                ? const Icon(Icons.person, size: 40, color: Colors.white)
+                : null,
           ),
         ),
         Positioned(
           bottom: 0,
           right: 0,
-          child: Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.edit,
-              color: AppColors.primary,
-              size: 14,
+          child: GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.edit,
+                color: AppColors.primary,
+                size: 14,
+              ),
             ),
           ),
         ),
@@ -205,7 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSettingsTile(
             icon: Icons.person_outline,
             label: 'Edit Profile',
-            onTap: () {}, // TODO: navigate to edit profile
+            onTap: () => Navigator.pushNamed(context, '/edit-profile'),
             showDivider: true,
           ),
           _buildSettingsTile(
@@ -323,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   void _onLogoutPressed() {
-    // TODO: call AuthController.logout() before navigating
+    UserSession.clear();                           // clear session data
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/login',

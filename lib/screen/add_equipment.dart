@@ -1,10 +1,11 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -25,6 +26,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _nameController = TextEditingController();
   final _fuelController = TextEditingController();
   final _operatorController = TextEditingController();
+
+  PickedAttachment? _attachment;
 
   String? _receiptFile;
   bool _isSaving = false;
@@ -442,79 +445,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     required VoidCallback onTap,
     required VoidCallback onRemove,
   }) {
-    return GestureDetector(
-      onTap: _receiptFile == null ? onTap : null,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: _receiptFile != null
-              ? const Color(0xFFEEF8EE)
-              : const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _receiptFile != null
-                ? Colors.green.shade300
-                : const Color(0xFFCCCFE8),
-            width: 1.5,
-          ),
-        ),
-        child: _receiptFile != null
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 26),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(attachedLabel,
-                            style: AppTheme.bodyLarge.copyWith(
-                                fontWeight: FontWeight.w700, color: textDark)),
-                        Text(_receiptFile!,
-                            style: AppTheme.caption.copyWith(color: textGray),
-                            overflow: TextOverflow.ellipsis),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: onRemove,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                          color: Colors.red.shade50, shape: BoxShape.circle),
-                      child: const Icon(Icons.close,
-                          color: Colors.redAccent, size: 18),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              )
-            : Column(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: primaryBlue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.cloud_upload_outlined,
-                        color: primaryBlue, size: 26),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(uploadLabel,
-                      style: AppTheme.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w700, color: textDark)),
-                  const SizedBox(height: 4),
-                  Text('PNG, JPG OR PDF UP TO 10MB',
-                      style: AppTheme.caption
-                          .copyWith(color: textGray, fontSize: 11)),
-                ],
-              ),
-      ),
+    return UploadBox(
+      attachment: _attachment,
+      emptyLabel: uploadLabel,
+      onPicked: (a) => setState(() => _attachment = a),
+      onRemove: () => setState(() => _attachment = null),
     );
   }
 

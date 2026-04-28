@@ -1,9 +1,9 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
 class ReviewLabourEntryScreen extends StatefulWidget {
   const ReviewLabourEntryScreen({super.key});
@@ -19,8 +19,9 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
   static const textGray    = AppColors.textLight;
   static const voicePurple = AppColors.primary;
 
+  PickedAttachment? _attachment;
+
   // ✅ FIX: receipt attachment state + confirm loading state
-  String? _receiptFile;
   bool _isConfirming = false;
 
   @override
@@ -303,122 +304,11 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        GestureDetector(
-          onTap: _receiptFile == null
-              ? () {
-                  setState(
-                    () => _receiptFile =
-                        'labour_receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Receipt attached')),
-                  );
-                }
-              : null,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            decoration: BoxDecoration(
-              color: _receiptFile != null
-                  ? const Color(0xFFEEF8EE)
-                  : const Color(0xFFF8F9FF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: _receiptFile != null
-                    ? Colors.green.shade300
-                    : const Color(0xFFCCCFE8),
-                width: 1.5,
-              ),
-            ),
-            child: _receiptFile != null
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Receipt attached',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: textDark,
-                              ),
-                            ),
-                            Text(
-                              _receiptFile!,
-                              style: GoogleFonts.inter(
-                                color: textGray,
-                                fontSize: 12,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () => setState(() => _receiptFile = null),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.redAccent,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: primaryBlue.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.cloud_upload_outlined,
-                          color: primaryBlue,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap to attach receipt',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          color: textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'PNG, JPG OR PDF UP TO 10MB',
-                        style: GoogleFonts.inter(
-                          color: textGray,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
+        UploadBox(
+          attachment: _attachment,
+          emptyLabel: 'Tap to attach receipt',
+          onPicked: (a) => setState(() => _attachment = a),
+          onRemove: () => setState(() => _attachment = null),
         ),
       ],
     );

@@ -4,6 +4,8 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -33,6 +35,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   String? _nameError;
   String? _qtyError;
   String? _rateError;
+
+  PickedAttachment? _attachment;
 
   String? _receiptFile;
 
@@ -222,22 +226,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     const AppSectionHeader(title: 'Receipt / Bill'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
-                      child: _uploadBox(
-                        context,
-                        label: 'Tap to upload bill',
-                        uploadedFile: _receiptFile,
-                        onTap: () {
-                          setState(
-                            () => _receiptFile =
-                                'receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Receipt attached: receipt.pdf')),
-                          );
-                        },
-                        onRemove: () => setState(() => _receiptFile = null),
-                      ),
+                      child: _uploadBox(),
                     ),
 
                     const SizedBox(height: 4),
@@ -620,99 +609,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  Widget _uploadBox(
-    BuildContext context, {
-    required String label,
-    required String? uploadedFile,
-    required VoidCallback onTap,
-    required VoidCallback onRemove,
-  }) {
-    return GestureDetector(
-      onTap: uploadedFile == null ? onTap : null,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: uploadedFile != null
-              ? const Color(0xFFEEF8EE)
-              : const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: uploadedFile != null
-                ? Colors.green.shade300
-                : const Color(0xFFCCCFE8),
-            width: 1.5,
-          ),
-        ),
-        child: uploadedFile != null
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 26),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Receipt attached',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            color: textDark,
-                          ),
-                        ),
-                        Text(
-                          uploadedFile,
-                          style: const TextStyle(color: textGray, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: onRemove,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close,
-                          color: Colors.redAccent, size: 18),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              )
-            : Column(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: primaryBlue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.cloud_upload_outlined,
-                        color: primaryBlue, size: 26),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    label,
-                    style: AppTheme.bodyLarge
-                        .copyWith(fontWeight: FontWeight.w700, color: textDark),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'PNG, JPG OR PDF UP TO 10MB',
-                    style: AppTheme.caption.copyWith(
-                        color: textGray, letterSpacing: 0.3, fontSize: 11),
-                  ),
-                ],
-              ),
-      ),
+  Widget _uploadBox() {
+    return UploadBox(
+      attachment: _attachment,
+      emptyLabel: 'Tap to attach bill',
+      onPicked: (a) => setState(() => _attachment = a),
+      onRemove: () => setState(() => _attachment = null),
     );
   }
 

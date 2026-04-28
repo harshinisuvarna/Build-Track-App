@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 
 class CreateWorkspaceScreen extends StatefulWidget {
@@ -220,7 +221,56 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   void _onCreatePressed() {
-    // TODO: delegate to AuthController.createWorkspace(...)
-    Navigator.pushNamed(context, '/login');
+    // Basic validation
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text;
+    final confirm = _confirmCtrl.text;
+
+    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields')),
+      );
+      return;
+    }
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+    if (pass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+    if (pass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    // Map selected role string → UserRole enum
+    final roleMap = {
+      'Admin': UserRole.admin,
+      'Supervisor': UserRole.supervisor,
+      'Mason': UserRole.mason,
+    };
+
+    // Set session (swap for real API registration call when backend is ready)
+    UserSession.set(
+      userId: email,
+      role: roleMap[_selectedRole] ?? UserRole.admin,
+      projectId: '',
+    );
+
+    // Navigate to home, clearing the back stack
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/home',
+      (route) => false,
+    );
   }
 }

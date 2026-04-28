@@ -10,6 +10,7 @@
 ///   UserSession.projectId   // → 'p001'
 ///   UserSession.roleLabel   // → 'Admin'
 ///   UserSession.isAdmin     // → true
+library;
 
 enum UserRole { admin, supervisor, mason }
 

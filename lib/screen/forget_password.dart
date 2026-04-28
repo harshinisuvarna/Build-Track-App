@@ -140,12 +140,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   void _onResetPressed() {
-    // TODO: delegate to AuthController.resetPassword(_emailCtrl.text)
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+    // TODO: call real password-reset API when backend is ready.
+    // e.g. AuthService.sendPasswordReset(email)
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reset link sent to your email'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text('Reset link sent to $email'),
+        duration: const Duration(seconds: 3),
       ),
     );
+    Navigator.pop(context);
   }
 }
