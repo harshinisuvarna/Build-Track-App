@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // ── Temp test: remove once real auth is wired ──
     UserSession.set(
       userId: 'u1',
-      role: UserRole.admin, // change to .admin / .mason to test
+      role: UserRole.supervisor, // change to .admin / .mason to test
       projectId: 'p1',
     );
   }
@@ -507,33 +507,79 @@ class _AdminDashboard extends StatelessWidget {
 
 // SUPERVISOR DASHBOARD
 
-class _SupervisorDashboard extends StatelessWidget {
+class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard();
 
-  static const _pending = [
+  @override
+  State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
+}
+
+class _SupervisorDashboardState extends State<_SupervisorDashboard> {
+  static const _pendingItems = [
     {'mason': 'Rajan Kumar', 'task': 'Column Casting – Level 3', 'time': 'Submitted • 08:30 AM', 'floor': 'Floor 3 • Block A'},
     {'mason': 'Suresh Babu', 'task': 'Slab Reinforcement – Level 2', 'time': 'Submitted • 09:15 AM', 'floor': 'Floor 2 • Block B'},
     {'mason': 'Anwar Sheikh', 'task': 'Plinth Beam Work', 'time': 'Submitted • 10:00 AM', 'floor': 'Ground • Parking'},
   ];
 
+  // 'pending' | 'approved' | 'rejected'
+  late List<String> _statuses;
+
+  @override
+  void initState() {
+    super.initState();
+    _statuses = List.filled(_pendingItems.length, 'pending');
+  }
+
+  void _approve(int i) {
+    setState(() => _statuses[i] = 'approved');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${_pendingItems[i]['task']} approved'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _reject(int i) {
+    setState(() => _statuses[i] = 'rejected');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${_pendingItems[i]['task']} rejected'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final pendingCount = _statuses.where((s) => s == 'pending').length;
+    final approvedCount = _statuses.where((s) => s == 'approved').length;
+    final rejectedCount = _statuses.where((s) => s == 'rejected').length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Summary chips
         Row(
           children: [
-            _summaryChip('3', 'Pending', AppTheme.warning),
+            _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
             const SizedBox(width: 10),
-            _summaryChip('12', 'Approved Today', AppTheme.success),
+            _summaryChip('${approvedCount + 12}', 'Approved Today', AppTheme.success),
             const SizedBox(width: 10),
-            _summaryChip('1', 'Rejected', AppTheme.error),
+            _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
           ],
         ),
         const SizedBox(height: 16),
         const AppSectionHeader(title: 'Pending Approvals'),
-        ..._pending.map((item) => _pendingCard(context, item)),
+        ...List.generate(_pendingItems.length, (i) => _pendingCard(context, _pendingItems[i], i)),
         const SizedBox(height: 8),
         const AppSectionHeader(title: 'Recent Updates'),
         AppCard(
@@ -571,9 +617,25 @@ class _SupervisorDashboard extends StatelessWidget {
     );
   }
 
-  Widget _pendingCard(BuildContext context, Map<String, String> item) {
+  Widget _pendingCard(BuildContext context, Map<String, String> item, int index) {
+    final status = _statuses[index];
+    final isPending = status == 'pending';
+
+    // Status badge color
+    Color badgeColor;
+    String badgeLabel;
+    if (status == 'approved') {
+      badgeColor = Colors.green;
+      badgeLabel = 'Approved';
+    } else if (status == 'rejected') {
+      badgeColor = Colors.red;
+      badgeLabel = 'Rejected';
+    } else {
+      badgeColor = AppTheme.warning;
+      badgeLabel = 'Pending';
+    }
+
     return AppCard(
-      onTap: () {}, // tappable — navigate to detail when wired
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -598,7 +660,6 @@ class _SupervisorDashboard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Floor badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -621,20 +682,19 @@ class _SupervisorDashboard extends StatelessWidget {
             children: [
               Expanded(child: Text(item['task']!, style: AppTheme.heading3)),
               const SizedBox(width: 8),
-              // Pending status badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning.withValues(alpha: 0.12),
+                  color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.4)),
+                  border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
                 ),
                 child: Text(
-                  'Pending',
+                  badgeLabel,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.warning,
+                    color: badgeColor,
                   ),
                 ),
               ),
@@ -649,7 +709,8 @@ class _SupervisorDashboard extends StatelessWidget {
                 child: AppButton(
                   label: 'Approve',
                   icon: Icons.check_circle_outline,
-                  onPressed: () {},
+                  onPressed: isPending ? () => _approve(index) : () {},
+                  enabled: isPending,
                 ),
               ),
               const SizedBox(width: 12),
@@ -658,7 +719,8 @@ class _SupervisorDashboard extends StatelessWidget {
                   label: 'Reject',
                   icon: Icons.cancel_outlined,
                   variant: AppButtonVariant.danger,
-                  onPressed: () {},
+                  onPressed: isPending ? () => _reject(index) : () {},
+                  enabled: isPending,
                 ),
               ),
             ],

@@ -56,12 +56,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                       ),
                     ),
                   ),
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundImage: const NetworkImage(
-                      'https://i.pravatar.cc/150?img=3',
-                    ),
-                  ),
+                  const SizedBox(width: 22),
                 ],
               ),
             ),

@@ -20,6 +20,14 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   int _stageIndex = 0;
   final _stages = ['Reinforcement', 'Formwork', 'Curing'];
   final TextEditingController _progressCtrl = TextEditingController();
+  
+  double _completionProgress = 0.65;
+  DateTime _selectedDate = DateTime.now();
+
+  static const _months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   PickedAttachment? _attachment;
 
@@ -42,11 +50,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.grey.shade800,
-                child: const Icon(Icons.person, color: Colors.white, size: 18),
-              ),
             ),
 
             Expanded(
@@ -182,7 +185,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           ),
                         ),
                         Text(
-                          '65%',
+                          '${(_completionProgress * 100).toInt()}%',
                           style: GoogleFonts.inter(
                             color: primaryBlue,
                             fontWeight: FontWeight.w800,
@@ -191,15 +194,22 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: const LinearProgressIndicator(
-                        value: 0.65,
-                        backgroundColor: Color(0xFFE8ECF8),
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(primaryBlue),
-                        minHeight: 7,
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 7,
+                        activeTrackColor: primaryBlue,
+                        inactiveTrackColor: const Color(0xFFE8ECF8),
+                        thumbColor: primaryBlue,
+                        overlayColor: primaryBlue.withValues(alpha: 0.1),
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                      ),
+                      child: Slider(
+                        value: _completionProgress,
+                        onChanged: (val) {
+                          setState(() {
+                            _completionProgress = val;
+                          });
+                        },
                       ),
                     ),
                   ],
@@ -350,6 +360,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   }
 
   Widget _buildDateField() {
+    final dateStr = '${_months[_selectedDate.month - 1]} ${_selectedDate.day}, ${_selectedDate.year}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -362,36 +373,61 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.calendar_month_outlined,
-                color: primaryBlue,
-                size: 19,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'October 24, 2023',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: textDark,
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _selectedDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: primaryBlue, // header background color
+                      onPrimary: Colors.white, // header text color
+                      onSurface: textDark, // body text color
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              setState(() => _selectedDate = picked);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_month_outlined,
+                  color: primaryBlue,
+                  size: 19,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  dateStr,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: textDark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

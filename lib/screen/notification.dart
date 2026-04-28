@@ -28,11 +28,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.grey.shade300,
-                child: const Icon(Icons.person, color: Colors.grey, size: 18),
-              ),
             ),
             Expanded(
               child: SingleChildScrollView(

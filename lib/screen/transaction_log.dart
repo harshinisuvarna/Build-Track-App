@@ -193,22 +193,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.search, color: textDark, size: 22),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey.shade800,
-                    child: const Text('N',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14)),
-                  ),
-                ],
-              ),
+              rightWidget: const Icon(Icons.search, color: textDark, size: 22),
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFEEF0F8)),
             Expanded(

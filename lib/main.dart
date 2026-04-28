@@ -4,6 +4,7 @@ import 'package:buildtrack_mobile/screen/add_entry.dart';
 import 'package:buildtrack_mobile/screen/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/add_labour.dart';
 import 'package:buildtrack_mobile/screen/add_material.dart';
+import 'package:buildtrack_mobile/screen/assign_role.dart';
 import 'package:buildtrack_mobile/screen/create_workspace.dart';
 import 'package:buildtrack_mobile/screen/edit_profile.dart';
 import 'package:buildtrack_mobile/screen/entry_details.dart';
@@ -59,11 +60,12 @@ class MyApp extends StatelessWidget {
         '/edit-profile':     (_) => const EditProfileScreen(),
 
         // ── Main tabs ────────────────────────────────────────────────────
-        '/home':      (_) => const HomeScreen(),
-        '/projects':  (_) => const ProjectsScreen(),
-        '/add-entry': (_) => const AddEntryScreen(),
-        '/inventory': (_) => const InventoryScreen(),
-        '/reports':   (_) => const ReportsScreen(),
+        '/home':        (_) => const HomeScreen(),
+        '/projects':    (_) => const ProjectsScreen(),
+        '/add-entry':   (_) => const AddEntryScreen(),
+        '/inventory':   (_) => const InventoryScreen(),
+        '/reports':     (_) => const ReportsScreen(),
+        '/assign-role': (_) => const AssignRoleScreen(),
 
         // ── Sub-screens ──────────────────────────────────────────────────
         '/notifications':   (_) => const NotificationsScreen(),

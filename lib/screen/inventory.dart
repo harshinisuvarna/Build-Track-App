@@ -19,10 +19,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   final PageController _pageController = PageController();
   int _tabIndex = 0;
+  
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  bool _matchSearch(String name) {
+    return _searchQuery.isEmpty || name.toLowerCase().contains(_searchQuery.toLowerCase());
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -223,23 +231,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Row(children: [
         const Icon(Icons.search, color: textGray, size: 20),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: TextField(
-            decoration: InputDecoration(
+            controller: _searchCtrl,
+            onChanged: (val) => setState(() => _searchQuery = val),
+            decoration: const InputDecoration(
               hintText: 'Search materials, SKU, or site log...',
               hintStyle: TextStyle(color: textGray, fontSize: 14),
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
             ),
-            style: TextStyle(color: textDark, fontSize: 14),
+            style: const TextStyle(color: textDark, fontSize: 14),
           ),
         ),
         Material(
           color: primaryBlue,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
-            onTap: () {},
+            onTap: _showFilterOptions,
             borderRadius: BorderRadius.circular(10),
             child: const SizedBox(
                 width: 36,
@@ -298,39 +308,95 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildMaterialsTab(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         child: Column(children: [
-          _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.layers_outlined, name: 'Portland Cement', lastUpdated: 'Last updated 5h ago', qty: '450', unit: 'bags', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'material'),
-          const SizedBox(height: 12),
-          _urgentCard(context),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'),
+          if (_matchSearch('Steel Rebar 12mm')) ...[
+            _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Primer White X-2')) ...[
+            _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Portland Cement')) ...[
+            _inventoryCard(context: context, icon: Icons.layers_outlined, name: 'Portland Cement', lastUpdated: 'Last updated 5h ago', qty: '450', unit: 'bags', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'material'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('urgent material')) ...[
+            _urgentCard(context),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('HVAC Copper Pipes')) ...[
+            _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'),
+          ],
         ]),
       );
 
   Widget _buildLabourTab(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         child: Column(children: [
-          _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.people_outline, name: 'Masonry Team', lastUpdated: 'Last updated 3h ago', qty: '8', unit: 'workers', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'labour'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.electric_bolt_outlined, name: 'Electrical Crew', lastUpdated: 'Last updated 6h ago', qty: '5', unit: 'workers', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'labour'),
+          if (_matchSearch('Concrete Form Workers')) ...[
+            _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Masonry Team')) ...[
+            _inventoryCard(context: context, icon: Icons.people_outline, name: 'Masonry Team', lastUpdated: 'Last updated 3h ago', qty: '8', unit: 'workers', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'labour'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Electrical Crew')) ...[
+            _inventoryCard(context: context, icon: Icons.electric_bolt_outlined, name: 'Electrical Crew', lastUpdated: 'Last updated 6h ago', qty: '5', unit: 'workers', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'labour'),
+          ],
         ]),
       );
 
   Widget _buildEquipmentTab(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         child: Column(children: [
-          _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'),
-          const SizedBox(height: 12),
-          _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'),
+          if (_matchSearch('Tower Crane TC-7')) ...[
+            _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Concrete Mixer CM-3')) ...[
+            _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'),
+            const SizedBox(height: 12),
+          ],
+          if (_matchSearch('Excavator EX-200')) ...[
+            _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'),
+          ],
         ]),
       );
+
+  void _showFilterOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Filter By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textDark)),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.sort_by_alpha, color: textGray),
+              title: const Text('Sort by Name (A-Z)'),
+              onTap: () { Navigator.pop(ctx); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning_amber_rounded, color: textGray),
+              title: const Text('Show Low Stock First'),
+              onTap: () { Navigator.pop(ctx); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.access_time, color: textGray),
+              title: const Text('Recently Updated'),
+              onTap: () { Navigator.pop(ctx); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _inventoryCard({
     required BuildContext context,
