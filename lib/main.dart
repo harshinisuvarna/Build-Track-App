@@ -4,11 +4,15 @@ import 'package:buildtrack_mobile/screen/add_entry.dart';
 import 'package:buildtrack_mobile/screen/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/add_labour.dart';
 import 'package:buildtrack_mobile/screen/add_material.dart';
+import 'package:buildtrack_mobile/screen/create_workspace.dart';
 import 'package:buildtrack_mobile/screen/entry_details.dart';
+import 'package:buildtrack_mobile/screen/forget_password.dart';
 import 'package:buildtrack_mobile/screen/homescreen.dart';
 import 'package:buildtrack_mobile/screen/inventory.dart';
+import 'package:buildtrack_mobile/screen/login.dart';
 import 'package:buildtrack_mobile/screen/material_history.dart';
 import 'package:buildtrack_mobile/screen/notification.dart';
+import 'package:buildtrack_mobile/screen/profile.dart';
 import 'package:buildtrack_mobile/screen/projectscreen.dart';
 import 'package:buildtrack_mobile/screen/receipt_viewer.dart';
 import 'package:buildtrack_mobile/screen/report.dart';
@@ -40,11 +44,18 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
 
-      // ── Initial screen (tab index 0 = Home) ──────────────────────────
-      initialRoute: '/home',
+      // ── Initial screen ────────────────────────────────────────────────
+      initialRoute: '/',
 
       // ── Named route table ─────────────────────────────────────────────
       routes: {
+        // ── Auth flow ────────────────────────────────────────────────────
+        '/':                 (_) => const LoginScreen(),
+        '/login':            (_) => const LoginScreen(),
+        '/forgot-password':  (_) => const ForgotPasswordScreen(),
+        '/create-workspace': (_) => const CreateWorkspaceScreen(),
+        '/profile':          (_) => const ProfileScreen(),
+
         // ── Main tabs ────────────────────────────────────────────────────
         '/home':      (_) => const HomeScreen(),
         '/projects':  (_) => const ProjectsScreen(),
@@ -53,12 +64,12 @@ class MyApp extends StatelessWidget {
         '/reports':   (_) => const ReportsScreen(),
 
         // ── Sub-screens ──────────────────────────────────────────────────
-        '/notifications':  (_) => const NotificationsScreen(),
-        '/logs':           (_) => const TransactionLogsScreen(),
-        '/entry-detail':   (_) => const EntryDetailScreen(),
-        '/update-progress':(_) => const UpdateProgressScreen(),
-        '/cement-history': (_) => const CementHistoryScreen(),
-        '/receipt-viewer': (_) => const ReceiptViewerScreen(),
+        '/notifications':   (_) => const NotificationsScreen(),
+        '/logs':            (_) => const TransactionLogsScreen(),
+        '/entry-detail':    (_) => const EntryDetailScreen(),
+        '/update-progress': (_) => const UpdateProgressScreen(),
+        '/cement-history':  (_) => const CementHistoryScreen(),
+        '/receipt-viewer':  (_) => const ReceiptViewerScreen(),
 
         // ── Voice review screens ──────────────────────────────────────────
         '/review-material':  (_) => const ReviewVoiceEntryScreen(),

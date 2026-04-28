@@ -1,6 +1,8 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 
 class AddMaterialScreen extends StatefulWidget {
@@ -40,6 +42,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       _isEditing = args['isEditing'] as bool? ?? false;
+
+      // Block editing approved entries
+      if (_isEditing && (args['status'] as String?) == 'approved') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.maybePop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Approved entries cannot be edited')),
+          );
+        });
+        return;
+      }
+
       if (_isEditing) {
         _nameController.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
@@ -287,15 +301,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 arguments: {
                   'type': 'material',
                   'name': _nameController.text,
-                  'newEntry': {
-                    'title': _nameController.text,
-                    'ref': '#MAT-${DateTime.now().millisecondsSinceEpoch}',
-                    'amount': '+${_qtyController.text}',
-                    'date': 'Today',
-                    'isPositive': true,
-                    'icon': Icons.inventory_2_outlined,
-                    'receipt': _receiptFile,
-                  },
+                  'newEntry': Entry(
+                    id: 'MAT-${DateTime.now().millisecondsSinceEpoch}',
+                    type: EntryType.material,
+                    projectId: UserSession.projectId,
+                    createdBy: UserSession.userId,
+                  ).toMap()
+                    ..addAll({
+                      'title':      _nameController.text,
+                      'ref':        '#MAT-${DateTime.now().millisecondsSinceEpoch}',
+                      'amount':     '+${_qtyController.text}',
+                      'date':       'Today',
+                      'isPositive': true,
+                      'icon':       Icons.inventory_2_outlined,
+                      'receipt':    _receiptFile,
+                    }),
                 },
               );
               setState(() => _isSaving = false);

@@ -2,6 +2,8 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
@@ -26,10 +28,42 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   String? _receiptFile;
   bool _isSaving = false;
+  bool _isEditing = false;
+  bool _argsLoaded = false;
 
   String? _nameError;
   String? _hoursError;
   String? _rateError;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsLoaded) return;
+    _argsLoaded = true;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      _isEditing = args['isEditing'] as bool? ?? false;
+
+      // Block editing approved entries
+      if (_isEditing && (args['status'] as String?) == 'approved') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.maybePop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Approved entries cannot be edited')),
+          );
+        });
+        return;
+      }
+
+      if (_isEditing) {
+        _nameController.text =
+            args['title'] as String? ?? args['name'] as String? ?? '';
+        final rawAmount = args['amount']?.toString() ?? '';
+        _hoursController.text = rawAmount.replaceAll('+', '').replaceAll('-', '').replaceAll(' hrs', '');
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -75,7 +109,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         child: Column(
           children: [
             AppTopBar(
-              title: 'Add Equipment',
+              title: _isEditing ? 'Edit Equipment' : 'Add Equipment',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -500,15 +534,21 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 arguments: {
                   'type': 'equipment',
                   'name': _nameController.text,
-                  'newEntry': {
-                    'title': _nameController.text,
-                    'ref': '#EQP-${DateTime.now().millisecondsSinceEpoch}',
-                    'amount': '+${_hoursController.text} hrs',
-                    'date': 'Today',
-                    'isPositive': true,
-                    'icon': Icons.construction_outlined,
-                    'receipt': _receiptFile,
-                  },
+                  'newEntry': Entry(
+                    id: 'EQP-${DateTime.now().millisecondsSinceEpoch}',
+                    type: EntryType.equipment,
+                    projectId: UserSession.projectId,
+                    createdBy: UserSession.userId,
+                  ).toMap()
+                    ..addAll({
+                      'title':      _nameController.text,
+                      'ref':        '#EQP-${DateTime.now().millisecondsSinceEpoch}',
+                      'amount':     '+${_hoursController.text} hrs',
+                      'date':       'Today',
+                      'isPositive': true,
+                      'icon':       Icons.construction_outlined,
+                      'receipt':    _receiptFile,
+                    }),
                 },
               );
               setState(() => _isSaving = false);

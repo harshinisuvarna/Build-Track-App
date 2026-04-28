@@ -501,3 +501,78 @@ class AppEmptyState extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. StatusBadge
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Displays entry status as a compact, colored pill badge.
+///
+/// Usage:
+///   StatusBadge(status: 'pending')
+///   StatusBadge(status: 'approved')
+///   StatusBadge(status: 'rejected')
+class StatusBadge extends StatelessWidget {
+  const StatusBadge({super.key, required this.status});
+
+  final String status;
+
+  Color get _color {
+    switch (status) {
+      case 'approved': return const Color(0xFF2E7D32);
+      case 'rejected': return const Color(0xFFC62828);
+      default:         return const Color(0xFFE65100); // pending → orange
+    }
+  }
+
+  Color get _bg {
+    switch (status) {
+      case 'approved': return const Color(0xFFE8F5E9);
+      case 'rejected': return const Color(0xFFFFEBEE);
+      default:         return const Color(0xFFFFF3E0);
+    }
+  }
+
+  IconData get _icon {
+    switch (status) {
+      case 'approved': return Icons.check_circle_outline;
+      case 'rejected': return Icons.cancel_outlined;
+      default:         return Icons.hourglass_empty_outlined;
+    }
+  }
+
+  String get _label {
+    switch (status) {
+      case 'approved': return 'APPROVED';
+      case 'rejected': return 'REJECTED';
+      default:         return 'PENDING';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_icon, color: _color, size: 12),
+          const SizedBox(width: 5),
+          Text(
+            _label,
+            style: TextStyle(
+              color: _color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

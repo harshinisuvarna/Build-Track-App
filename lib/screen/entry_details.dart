@@ -1,91 +1,161 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/entry_permissions.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 
-class EntryDetailScreen extends StatelessWidget {
+class EntryDetailScreen extends StatefulWidget {
   const EntryDetailScreen({super.key});
 
+  @override
+  State<EntryDetailScreen> createState() => _EntryDetailScreenState();
+}
+
+class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const primaryBlue = AppColors.primary;
   static const purple      = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
 
+  // ── Mutable approval state ─────────────────────────────────────────────────
+  EntryStatus _status     = EntryStatus.pending;
+  String?     _approvedBy;
+  DateTime?   _approvedAt;
+  bool        _argsLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsLoaded) return;
+    _argsLoaded = true;
+
+    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    final statusStr = args['status'] as String? ?? 'pending';
+    _status     = EntryStatus.values.firstWhere(
+      (e) => e.name == statusStr,
+      orElse: () => EntryStatus.pending,
+    );
+    _approvedBy = args['approvedBy'] as String?;
+    final approvedAtStr = args['approvedAt'] as String?;
+    _approvedAt = approvedAtStr != null ? DateTime.tryParse(approvedAtStr) : null;
+  }
+
+  // ── Approve / Reject ───────────────────────────────────────────────────────
+
+  void _approve() {
+    if (_status != EntryStatus.pending) return;
+    setState(() {
+      _status     = EntryStatus.approved;
+      _approvedBy = UserSession.userId;
+      _approvedAt = DateTime.now();
+    });
+    _showFeedback('Entry approved successfully', Colors.green);
+  }
+
+  void _reject() {
+    if (_status != EntryStatus.pending) return;
+    setState(() {
+      _status     = EntryStatus.rejected;
+      _approvedBy = UserSession.userId;
+      _approvedAt = DateTime.now();
+    });
+    _showFeedback('Entry rejected', Colors.red);
+  }
+
+  void _showFeedback(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // ── Static helpers ─────────────────────────────────────────────────────────
+
   static Color _typeColor(String type) {
     switch (type) {
-      case 'labour':
-        return const Color(0xFF2E7D32);
-      case 'equipment':
-        return const Color(0xFFE65100);
-      default:
-        return primaryBlue;
+      case 'labour':    return const Color(0xFF2E7D32);
+      case 'equipment': return const Color(0xFFE65100);
+      default:          return primaryBlue;
     }
   }
 
   static Color _typeBg(String type) {
     switch (type) {
-      case 'labour':
-        return const Color(0xFFE8F5E9);
-      case 'equipment':
-        return const Color(0xFFFFF3E0);
-      default:
-        return const Color(0xFFEEF0FF);
+      case 'labour':    return const Color(0xFFE8F5E9);
+      case 'equipment': return const Color(0xFFFFF3E0);
+      default:          return const Color(0xFFEEF0FF);
     }
   }
 
   static IconData _typeIcon(String type) {
     switch (type) {
-      case 'labour':
-        return Icons.people_outline;
-      case 'equipment':
-        return Icons.construction_outlined;
-      default:
-        return Icons.inventory_2_outlined;
+      case 'labour':    return Icons.people_outline;
+      case 'equipment': return Icons.construction_outlined;
+      default:          return Icons.inventory_2_outlined;
     }
   }
 
   static String _typeLabel(String type) {
     switch (type) {
-      case 'labour':
-        return 'LABOUR';
-      case 'equipment':
-        return 'EQUIPMENT';
-      default:
-        return 'MATERIAL';
+      case 'labour':    return 'LABOUR';
+      case 'equipment': return 'EQUIPMENT';
+      default:          return 'MATERIAL';
     }
   }
 
   static String _editRoute(String type) {
     switch (type) {
-      case 'labour':
-        return '/add-labour';
-      case 'equipment':
-        return '/add-equipment';
-      default:
-        return '/add-material';
+      case 'labour':    return '/add-labour';
+      case 'equipment': return '/add-equipment';
+      default:          return '/add-material';
     }
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // All data read from route args — logic unchanged
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final String title = args['title'] as String? ?? 'Stock Entry';
-    final String ref = args['ref'] as String? ?? '#INV-0000';
-    final String amount = args['amount'] as String? ?? '+0';
-    final String date = args['date'] as String? ?? 'Unknown date';
-    final String type = args['type'] as String? ?? 'material';
-    final String name = args['name'] as String? ?? 'Item';
-    final bool isPositive = args['isPositive'] as bool? ?? true;
-    final String? receipt = args['receipt'] as String?;
+    final String title     = args['title']      as String? ?? 'Stock Entry';
+    final String ref       = args['ref']        as String? ?? '#INV-0000';
+    final String amount    = args['amount']     as String? ?? '+0';
+    final String date      = args['date']       as String? ?? 'Unknown date';
+    final String type      = args['type']       as String? ?? 'material';
+    final String name      = args['name']       as String? ?? 'Item';
+    final bool   isPositive = args['isPositive'] as bool?  ?? true;
+    final String? receipt  = args['receipt']    as String?;
+
+    // Permissions from centralised helper
+    final String createdBy = args['createdBy'] as String? ?? '';
+    final String projectId = args['projectId'] as String? ?? '';
+
+    final bool canEdit = EntryPermissions.canEdit(
+      status: _status.name,
+      createdBy: createdBy,
+      projectId: projectId,
+    );
+    final bool canApprove = EntryPermissions.canApprove();
+    final bool canDelete = EntryPermissions.canDelete(
+      status: _status.name,
+      createdBy: createdBy,
+      projectId: projectId,
+    );
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(context, type, args),
+            _buildTopBar(context, type, args, canEdit),
             const Divider(height: 1, thickness: 1, color: Color(0xFFEEF0F8)),
             Expanded(
               child: SingleChildScrollView(
@@ -95,7 +165,13 @@ class EntryDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    _buildTypeBadge(type),
+                    Row(
+                      children: [
+                        _buildTypeBadge(type),
+                        const SizedBox(width: 8),
+                        StatusBadge(status: _status.name),
+                      ],
+                    ),
                     const SizedBox(height: 16),
 
                     AppCard(
@@ -103,7 +179,6 @@ class EntryDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Item name — most prominent
                           _fieldLabel('ITEM'),
                           const SizedBox(height: 6),
                           Text(
@@ -129,7 +204,6 @@ class EntryDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Quantity + Reference row
                           Row(
                             children: [
                               Expanded(
@@ -173,7 +247,6 @@ class EntryDetailScreen extends StatelessWidget {
 
                           const AppDivider(verticalPadding: 12),
 
-                          // Date
                           _fieldLabel('DATE'),
                           const SizedBox(height: 6),
                           Row(
@@ -191,9 +264,31 @@ class EntryDetailScreen extends StatelessWidget {
                             ],
                           ),
 
+                          // Show approvedBy / approvedAt when resolved
+                          if (_approvedBy != null) ...[
+                            const AppDivider(verticalPadding: 12),
+                            _fieldLabel('REVIEWED BY'),
+                            const SizedBox(height: 6),
+                            Text(
+                              _approvedBy!,
+                              style: AppTheme.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: textDark,
+                              ),
+                            ),
+                            if (_approvedAt != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_approvedAt!.day}/${_approvedAt!.month}/${_approvedAt!.year} '
+                                '${_approvedAt!.hour.toString().padLeft(2, '0')}:'
+                                '${_approvedAt!.minute.toString().padLeft(2, '0')}',
+                                style: AppTheme.caption.copyWith(color: textGray),
+                              ),
+                            ],
+                          ],
+
                           const SizedBox(height: 14),
 
-                          // Affects info banner — logic unchanged
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -202,17 +297,20 @@ class EntryDetailScreen extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.info_outline, color: purple, size: 16),
+                                const Icon(Icons.info_outline,
+                                    color: purple, size: 16),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: RichText(
                                     text: const TextSpan(
-                                      style: TextStyle(color: textDark, fontSize: 13),
+                                      style: TextStyle(
+                                          color: textDark, fontSize: 13),
                                       children: [
                                         TextSpan(text: 'This entry affects: '),
                                         TextSpan(
                                           text: 'Inventory, Reports',
-                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700),
                                         ),
                                       ],
                                     ),
@@ -239,29 +337,33 @@ class EntryDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppButton(
-                            label: 'Approve',
-                            icon: Icons.check_circle_outline,
-                            onPressed: () {},
+                    // ── Approve / Reject — only for Admin & Supervisor ───────
+                    if (canApprove)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppButton(
+                              label: 'Approve',
+                              icon: Icons.check_circle_outline,
+                              onPressed: _approve,
+                              enabled: _status == EntryStatus.pending,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AppButton(
-                            label: 'Reject',
-                            icon: Icons.cancel_outlined,
-                            variant: AppButtonVariant.danger,
-                            onPressed: () {},
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AppButton(
+                              label: 'Reject',
+                              icon: Icons.cancel_outlined,
+                              variant: AppButtonVariant.danger,
+                              onPressed: _reject,
+                              enabled: _status == EntryStatus.pending,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                        ],
+                      ),
+                    if (canApprove) const SizedBox(height: 14),
 
-                    _buildDeleteButton(context),
+                    if (canDelete) _buildDeleteButton(context),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -273,7 +375,9 @@ class EntryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context, String type, Map args) {
+  // ── Unchanged widgets ──────────────────────────────────────────────────────
+
+  Widget _buildTopBar(BuildContext context, String type, Map args, bool canEdit) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
@@ -287,7 +391,8 @@ class EntryDetailScreen extends StatelessWidget {
                 color: const Color(0xFFF0F2FF),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back, color: textDark, size: 20),
+              child:
+                  const Icon(Icons.arrow_back, color: textDark, size: 20),
             ),
           ),
           const SizedBox(width: 12),
@@ -297,29 +402,31 @@ class EntryDetailScreen extends StatelessWidget {
               style: AppTheme.heading3.copyWith(color: textDark),
             ),
           ),
-          // Edit button — logic unchanged
-          TextButton(
-            onPressed: () => Navigator.pushNamed(
-              context,
-              _editRoute(type),
-              arguments: {...args, 'isEditing': true},
-            ),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              backgroundColor: const Color(0xFFEEF0FF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          // Edit button — shown only if user has permission
+          if (canEdit)
+            TextButton(
+              onPressed: () => Navigator.pushNamed(
+                context,
+                _editRoute(type),
+                arguments: {...args, 'isEditing': true, 'status': _status.name},
+              ),
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                backgroundColor: const Color(0xFFEEF0FF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Edit',
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
             ),
-            child: const Text(
-              'Edit',
-              style: TextStyle(
-                color: primaryBlue,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -418,7 +525,8 @@ class EntryDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: Colors.green, size: 20),
+                  const Icon(Icons.chevron_right,
+                      color: Colors.green, size: 20),
                 ],
               )
             : Row(
@@ -470,7 +578,8 @@ class EntryDetailScreen extends StatelessWidget {
             border: Border.all(color: const Color(0xFFFFE0E0)),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6),
             ],
           ),
           child: const Row(
@@ -497,7 +606,8 @@ class EntryDetailScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Delete Entry?',
           style: TextStyle(fontWeight: FontWeight.w800),
@@ -510,7 +620,8 @@ class EntryDetailScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
               'Cancel',
-              style: TextStyle(color: textGray, fontWeight: FontWeight.w600),
+              style:
+                  TextStyle(color: textGray, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
@@ -523,12 +634,13 @@ class EntryDetailScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 10),
             ),
             child: const Text(
               'Delete',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -536,10 +648,8 @@ class EntryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _fieldLabel(String label) {
-    return Text(
-      label,
-      style: AppTheme.label.copyWith(color: textGray),
-    );
-  }
+  Widget _fieldLabel(String label) => Text(
+        label,
+        style: AppTheme.label.copyWith(color: textGray),
+      );
 }

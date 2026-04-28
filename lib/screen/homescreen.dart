@@ -3,9 +3,8 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
-
-String userRole = 'Admin'; // 'Admin' | 'Supervisor' | 'Mason'
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +19,17 @@ class _HomeScreenState extends State<HomeScreen> {
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
+
+  @override
+  void initState() {
+    super.initState();
+    // ── Temp test: remove once real auth is wired ──
+    UserSession.set(
+      userId: 'u1',
+      role: UserRole.admin, // change to .admin / .mason to test
+      projectId: 'p1',
+    );
+  }
 
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
@@ -151,48 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static const Map<String, IconData> _roleIcons = {
-    'Admin': Icons.workspace_premium_outlined,
-    'Supervisor': Icons.engineering_outlined,
-    'Mason': Icons.construction_outlined,
-  };
-
-  Widget _buildRoleSwitcher() {
-    return AppCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.manage_accounts_outlined, color: AppTheme.primary, size: 20),
-          const SizedBox(width: 10),
-          Text('Role:', style: AppTheme.body.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: userRole,
-                isDense: true,
-                items: ['Admin', 'Supervisor', 'Mason'].map((r) {
-                  return DropdownMenuItem<String>(
-                    value: r,
-                    child: Row(
-                      children: [
-                        Icon(_roleIcons[r], size: 16, color: AppTheme.primary),
-                        const SizedBox(width: 6),
-                        Text(r),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => userRole = val!),
-                style: AppTheme.bodyLarge.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,10 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildRoleSwitcher(),
-                    if (userRole == 'Admin') _AdminDashboard(onEntryTap: _showEntryOptions),
-                    if (userRole == 'Supervisor') const _SupervisorDashboard(),
-                    if (userRole == 'Mason') _MasonDashboard(onEntryTap: _showEntryOptions),
+                    if (UserSession.isAdmin) _AdminDashboard(onEntryTap: _showEntryOptions),
+                    if (UserSession.isSupervisor) const _SupervisorDashboard(),
+                    if (UserSession.isMason) _MasonDashboard(onEntryTap: _showEntryOptions),
                   ],
                 ),
               ),

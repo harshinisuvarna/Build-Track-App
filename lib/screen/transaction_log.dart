@@ -1,6 +1,8 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
+import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:flutter/material.dart';
 
 class TransactionLogsScreen extends StatefulWidget {
@@ -81,13 +83,15 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   ];
 
   List<Map<String, dynamic>> get _filteredLogs {
+    // Role-based visibility filter
+    final visible = EntryPermissions.filterMaps(_allLogs);
     switch (_filterIndex) {
       case 1:
-        return _allLogs.where((l) => l['isPositive'] == true).toList();
+        return visible.where((l) => l['isPositive'] == true).toList();
       case 2:
-        return _allLogs.where((l) => l['isPositive'] == false).toList();
+        return visible.where((l) => l['isPositive'] == false).toList();
       default:
-        return List.from(_allLogs);
+        return List.from(visible);
     }
   }
 
@@ -430,6 +434,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'type': _itemType,
             'name': _itemName,
             'receipt': receipt,
+            'createdBy': log['createdBy'] ?? '',
+            'projectId': log['projectId'] ?? '',
+            'status': log['status'] ?? 'pending',
           },
         ),
         child: Container(
@@ -490,6 +497,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                     log['date'] as String? ?? '',
                     style: AppTheme.caption.copyWith(color: textGray),
                   ),
+                  const SizedBox(height: 4),
+                  StatusBadge(status: log['status'] as String? ?? 'pending'),
                   if (receipt != null && receipt.isNotEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: 2),
