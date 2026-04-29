@@ -2,7 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
 
 class AssignRoleScreen extends StatefulWidget {
@@ -72,7 +72,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = UserSession.isAdmin;
+    final isAdmin = RoleManager.canAssignRole;
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,

@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // ── Temp test: remove once real auth is wired ──
     UserSession.set(
       userId: 'u1',
-      role: UserRole.supervisor, // change to .admin / .mason to test
+      role: UserRole.admin, // change to .admin / .mason to test
       projectId: 'p1',
     );
   }

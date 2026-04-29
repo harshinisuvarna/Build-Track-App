@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 
 /// Centralised permission checks for entries.
@@ -55,7 +56,7 @@ class EntryPermissions {
 
   /// Whether the current user may approve/reject this entry.
   static bool canApprove() {
-    return UserSession.isAdmin || UserSession.isSupervisor;
+    return RoleManager.canApproveEntries;
   }
 
   // ── Visibility / Filtering ──────────────────────────────────────────────

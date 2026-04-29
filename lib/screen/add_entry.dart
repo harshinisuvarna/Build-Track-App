@@ -2,7 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
 
 class AddEntryScreen extends StatelessWidget {
@@ -257,16 +257,14 @@ class AddEntryScreen extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-
-                    // ── Team & Access ─────────────────────────────────────
-                    const AppSectionHeader(title: 'Team & Access'),
-                    _teamAccessCard(context),
-
-                    const SizedBox(height: 12),
-
-                    // ── Admin-only notice ─────────────────────────────────
-                    _adminNotice(),
+                    // ── Team & Access (Admin only) ────────────────────
+                    if (RoleManager.canViewTeamAccess) ...[
+                      const SizedBox(height: 24),
+                      const AppSectionHeader(title: 'Team & Access'),
+                      _teamAccessCard(context),
+                      const SizedBox(height: 12),
+                      _adminNotice(),
+                    ],
                   ],
                 ),
               ),
