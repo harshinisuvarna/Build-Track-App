@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/screen/add_entry.dart';
 import 'package:buildtrack_mobile/screen/add_equipment.dart';
@@ -16,6 +17,7 @@ import 'package:buildtrack_mobile/screen/login.dart';
 import 'package:buildtrack_mobile/screen/material_history.dart';
 import 'package:buildtrack_mobile/screen/notification.dart';
 import 'package:buildtrack_mobile/screen/profile.dart';
+import 'package:buildtrack_mobile/screen/project_detail.dart';
 import 'package:buildtrack_mobile/screen/projectscreen.dart';
 import 'package:buildtrack_mobile/screen/receipt_viewer.dart';
 import 'package:buildtrack_mobile/screen/report.dart';
@@ -27,11 +29,19 @@ import 'package:buildtrack_mobile/screen/updated_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Pre-load project data before the UI renders
+  final projectProvider = ProjectProvider();
+  await projectProvider.load();
+
   runApp(
-    // ── Single ChangeNotifierProvider for NavController ──────────────────
-    ChangeNotifierProvider(
-      create: (_) => NavController(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NavController()),
+        // Re-use the already-loaded provider instance
+        ChangeNotifierProvider.value(value: projectProvider),
+      ],
       child: const MyApp(),
     ),
   );
@@ -47,12 +57,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
 
-      // ── Initial screen ────────────────────────────────────────────────
       initialRoute: '/',
 
-      // ── Named route table ─────────────────────────────────────────────
       routes: {
-        // ── Auth flow ────────────────────────────────────────────────────
+        // ── Auth flow ─────────────────────────────────────────────────────────
         '/':                 (_) => const LoginScreen(),
         '/login':            (_) => const LoginScreen(),
         '/forgot-password':  (_) => const ForgotPasswordScreen(),
@@ -60,7 +68,7 @@ class MyApp extends StatelessWidget {
         '/profile':          (_) => const ProfileScreen(),
         '/edit-profile':     (_) => const EditProfileScreen(),
 
-        // ── Main tabs ────────────────────────────────────────────────────
+        // ── Main tabs ─────────────────────────────────────────────────────────
         '/home':        (_) => const HomeScreen(),
         '/projects':    (_) => const ProjectsScreen(),
         '/add-entry':   (_) => const AddEntryScreen(),
@@ -68,7 +76,10 @@ class MyApp extends StatelessWidget {
         '/reports':     (_) => const ReportsScreen(),
         '/assign-role': (_) => const AssignRoleScreen(),
 
-        // ── Sub-screens ──────────────────────────────────────────────────
+        // ── Project detail (NEW) ──────────────────────────────────────────────
+        '/project-detail': (_) => const ProjectDetailScreen(),
+
+        // ── Sub-screens ───────────────────────────────────────────────────────
         '/notifications':   (_) => const NotificationsScreen(),
         '/logs':            (_) => const TransactionLogsScreen(),
         '/entry-detail':    (_) => const EntryDetailScreen(),
@@ -76,22 +87,21 @@ class MyApp extends StatelessWidget {
         '/cement-history':  (_) => const CementHistoryScreen(),
         '/receipt-viewer':  (_) => const ReceiptViewerScreen(),
 
-        // ── Voice review screens ──────────────────────────────────────────
+        // ── Voice review screens ──────────────────────────────────────────────
         '/review-material':  (_) => const ReviewVoiceEntryScreen(),
         '/review-labour':    (_) => const ReviewLabourEntryScreen(),
         '/review-equipment': (_) => const ReviewEquipmentEntryScreen(),
 
-        // ── Manual entry forms ────────────────────────────────────────────
+        // ── Manual entry forms ────────────────────────────────────────────────
         '/add-material':  (_) => const AddMaterialScreen(),
         '/add-labour':    (_) => const AddLabourScreen(),
         '/add-equipment': (_) => const AddEquipmentScreen(),
       },
 
-      // ── Route guard for restricted screens ─────────────────────────
+      // ── Route guard ────────────────────────────────────────────────────────
       onGenerateRoute: (settings) {
         final name = settings.name ?? '';
         if (!RoleManager.canNavigate(name)) {
-          // Block navigation — show feedback on the current screen
           return MaterialPageRoute(
             builder: (context) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -115,7 +125,7 @@ class MyApp extends StatelessWidget {
             },
           );
         }
-        return null; // fall through to the routes table
+        return null;
       },
     );
   }

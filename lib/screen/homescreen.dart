@@ -3,8 +3,10 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -205,22 +207,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ADMIN DASHBOARD
 
-class _AdminDashboard extends StatelessWidget {
+// (project list is now driven by ProjectProvider — see _AdminDashboardState)
+
+class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
 
+  @override
+  State<_AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<_AdminDashboard> {
   static const primaryBlue = AppColors.primary;
   static const purple      = AppColors.primary;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
 
+  // No local _selectedProject — we drive off ProjectProvider.selectedProject
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<ProjectProvider>();
+    final project  = provider.selectedProject;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Project selector
-        _buildProjectSelector(),
+        _buildProjectSelector(context, provider),
         const SizedBox(height: 14),
 
         // Overall progress card
@@ -230,26 +244,45 @@ class _AdminDashboard extends StatelessWidget {
             children: [
               const Text('OVERALL PROGRESS',
                   style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700, color: textGray, letterSpacing: 0.8)),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: textGray,
+                      letterSpacing: 0.8)),
               const SizedBox(height: 6),
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('68.4%',
-                      style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: textDark)),
+                  Text(
+                    project != null
+                        ? '${(project.progress * 100).toStringAsFixed(1)}%'
+                        : '—',
+                    style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        color: textDark),
+                  ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('12 Days Ahead',
-                          style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14)),
-                      Text('Target: Oct 24', style: TextStyle(color: textGray, fontSize: 13)),
+                      Text(
+                        project?.name ?? 'No project',
+                        style: const TextStyle(
+                            color: primaryBlue,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13),
+                      ),
+                      Text(
+                        project != null ? project.city : '',
+                        style: const TextStyle(color: textGray, fontSize: 13),
+                      ),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              const AppProgressBar(label: '', percent: 0.684),
+              AppProgressBar(
+                  label: '', percent: project?.progress ?? 0),
             ],
           ),
         ),
@@ -257,9 +290,26 @@ class _AdminDashboard extends StatelessWidget {
         // Cost row
         Row(
           children: [
-            Expanded(child: _costCard('TOTAL COST', '₹2.44M', '2.1% Over Est.', true)),
+            Expanded(
+              child: _costCard(
+                'TOTAL COST',
+                project?.formattedSpent ?? '₹—',
+                project != null
+                    ? '${(project.budgetUtilization * 100).toStringAsFixed(0)}% Used'
+                    : '—',
+                project != null && project.budgetUtilization > 0.9,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _costCard("TODAY'S SPEND", '₹14,280', '8 Invoices', false, isInvoice: true)),
+            Expanded(
+              child: _costCard(
+                'BUDGET',
+                project?.formattedBudget ?? '₹—',
+                'Remaining: ${project?.formattedRemaining ?? '—'}',
+                false,
+                isInvoice: true,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -300,6 +350,7 @@ class _AdminDashboard extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 14),
 
         // Speak update
         _buildSpeakUpdate(context),
@@ -311,37 +362,123 @@ class _AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildProjectSelector() {
+  Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
+    final projects      = provider.projects;
+    final selectedName  = provider.selectedProject?.name ?? 'Select Project';
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
+      elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {},
+        onTap: () => _showProjectPicker(context, provider),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(Icons.architecture, color: primaryBlue, size: 18),
-                  SizedBox(width: 8),
-                  Text('Skyline Residences Phase II',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textDark)),
+                  const Icon(Icons.architecture, color: primaryBlue, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedName,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textDark),
+                  ),
                 ],
               ),
-              Icon(Icons.keyboard_arrow_down, color: textGray),
+              const Icon(Icons.keyboard_arrow_down, color: textGray),
             ],
           ),
         ),
       ),
     );
   }
+
+  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
+    final projects = provider.projects;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const Text('Select Project',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textDark)),
+              const SizedBox(height: 12),
+              ...projects.map((p) {
+                final selected = p.id == provider.selectedProject?.id;
+                return InkWell(
+                  onTap: () {
+                    provider.selectProject(p);
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: selected ? primaryBlue.withValues(alpha: 0.08) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected ? primaryBlue : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                          size: 18,
+                          color: selected ? primaryBlue : textGray,
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            p.name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected ? primaryBlue : textDark,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _costCard(String label, String value, String sub, bool isOver, {bool isInvoice = false}) {
     return Container(
@@ -374,7 +511,7 @@ class _AdminDashboard extends StatelessWidget {
 
   Widget _categoryIcon(BuildContext context, IconData icon, String label, Color color, {required String type}) {
     return InkWell(
-      onTap: () => onEntryTap(context, type),
+      onTap: () => widget.onEntryTap(context, type),
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

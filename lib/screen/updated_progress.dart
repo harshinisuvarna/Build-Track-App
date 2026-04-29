@@ -1,9 +1,11 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:provider/provider.dart';
 
 class UpdateProgressScreen extends StatefulWidget {
   const UpdateProgressScreen({super.key});
@@ -20,9 +22,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   int _stageIndex = 0;
   final _stages = ['Reinforcement', 'Formwork', 'Curing'];
   final TextEditingController _progressCtrl = TextEditingController();
-  
-  double _completionProgress = 0.65;
+
+  late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize slider from the currently selected project's progress
+    final provider = context.read<ProjectProvider>();
+    _completionProgress = provider.selectedProject?.progress ?? 0.65;
+  }
 
   static const _months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -554,7 +564,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
   Widget _buildSaveButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.maybePop(context),
+      onTap: () async {
+        final provider = context.read<ProjectProvider>();
+        final project  = provider.selectedProject;
+        if (project != null) {
+          await provider.updateProjectProgress(
+              project.id, _completionProgress);
+        }
+        if (context.mounted) Navigator.maybePop(context);
+      },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
