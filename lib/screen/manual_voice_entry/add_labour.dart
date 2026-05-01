@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddLabourScreen extends StatefulWidget {
   const AddLabourScreen({super.key});
@@ -14,12 +15,11 @@ class AddLabourScreen extends StatefulWidget {
 }
 
 class _AddLabourScreenState extends State<AddLabourScreen> {
-
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-  static const errorRed    = AppColors.error;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
+  static const errorRed = AppColors.error;
 
   final _hoursController = TextEditingController();
   final _rateController = TextEditingController();
@@ -63,7 +63,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _nameController.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
-        _hoursController.text = rawAmount.replaceAll('+', '').replaceAll('-', '').replaceAll(' hrs', '').replaceAll(' workers', '');
+        _hoursController.text = rawAmount
+            .replaceAll('+', '')
+            .replaceAll('-', '')
+            .replaceAll(' hrs', '')
+            .replaceAll(' workers', '');
       }
     }
   }
@@ -91,11 +95,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ? 'Worker / team name is required'
           : null;
       final hours = double.tryParse(_hoursController.text);
-      _hoursError =
-          (hours == null || hours <= 0) ? 'Enter valid hours > 0' : null;
+      _hoursError = (hours == null || hours <= 0)
+          ? 'Enter valid hours > 0'
+          : null;
       final rate = double.tryParse(_rateController.text);
-      _rateError =
-          (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
+      _rateError = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
       ok = _nameError == null && _hoursError == null && _rateError == null;
     });
     return ok;
@@ -124,7 +128,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const AppSectionHeader(title: 'Labour Details'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -224,25 +227,32 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F9FF),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: const Color(0xFFCCCFE8), width: 1.5),
+                                color: const Color(0xFFCCCFE8),
+                                width: 1.5,
+                              ),
                             ),
                             child: TextField(
                               controller: _notesController,
                               maxLines: 3,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
                                 hintText: 'Add any site notes or remarks…',
-                                hintStyle:
-                                    TextStyle(color: textGray, fontSize: 13.5),
-                                contentPadding:
-                                    EdgeInsets.symmetric(vertical: 10),
+                                hintStyle: GoogleFonts.inter(
+                                  color: textGray,
+                                  fontSize: 13.5,
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                               ),
-                              style: const TextStyle(
+                              style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: textDark,
@@ -265,8 +275,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 'labour_receipt_${DateTime.now().millisecondsSinceEpoch}.pdf',
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Receipt attached')));
+                            const SnackBar(content: Text('Receipt attached')),
+                          );
                         },
                         onRemove: () => setState(() => _receiptFile = null),
                       ),
@@ -306,11 +316,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: const TextStyle(color: textGray),
+                hintStyle: GoogleFonts.inter(color: textGray),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textDark,
+              ),
             ),
           ),
         ],
@@ -337,16 +350,26 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 10,
+                ),
               ),
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textDark,
+              ),
             ),
           ),
-          Text(suffix,
-              style: const TextStyle(
-                  color: textGray, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(
+            suffix,
+            style: GoogleFonts.inter(
+              color: textGray,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -363,9 +386,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       ),
       child: Row(
         children: [
-          Text('$prefix ',
-              style: const TextStyle(
-                  color: textGray, fontSize: 16, fontWeight: FontWeight.w500)),
+          Text(
+            '$prefix ',
+            style: GoogleFonts.inter(
+              color: textGray,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: ctrl,
@@ -374,11 +402,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 10,
+                ),
               ),
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textDark,
+              ),
             ),
           ),
         ],
@@ -399,19 +432,25 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('TOTAL AMOUNT',
-                  style: TextStyle(
-                      color: textGray,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8)),
+              Text(
+                'TOTAL AMOUNT',
+                style: GoogleFonts.inter(
+                  color: textGray,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('₹ ${_computeTotal()}',
-                  style: const TextStyle(
-                      color: primaryBlue,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3)),
+              Text(
+                '₹ ${_computeTotal()}',
+                style: GoogleFonts.inter(
+                  color: primaryBlue,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
             ],
           ),
           Container(
@@ -421,8 +460,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               color: primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.calculate_outlined,
-                color: primaryBlue, size: 20),
+            child: const Icon(
+              Icons.calculate_outlined,
+              color: primaryBlue,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -459,21 +501,21 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 arguments: {
                   'type': 'labour',
                   'name': _nameController.text,
-                  'newEntry': Entry(
-                    id: 'LAB-${DateTime.now().millisecondsSinceEpoch}',
-                    type: EntryType.labour,
-                    projectId: UserSession.projectId,
-                    createdBy: UserSession.userId,
-                  ).toMap()
-                    ..addAll({
-                      'title':      _nameController.text,
-                      'ref':        '#LAB-${DateTime.now().millisecondsSinceEpoch}',
-                      'amount':     '+${_hoursController.text} hrs',
-                      'date':       'Today',
-                      'isPositive': true,
-                      'icon':       Icons.people_outline,
-                      'receipt':    _receiptFile,
-                    }),
+                  'newEntry':
+                      Entry(
+                        id: 'LAB-${DateTime.now().millisecondsSinceEpoch}',
+                        type: EntryType.labour,
+                        projectId: UserSession.projectId,
+                        createdBy: UserSession.userId,
+                      ).toMap()..addAll({
+                        'title': _nameController.text,
+                        'ref': '#LAB-${DateTime.now().millisecondsSinceEpoch}',
+                        'amount': '+${_hoursController.text} hrs',
+                        'date': 'Today',
+                        'isPositive': true,
+                        'icon': Icons.people_outline,
+                        'receipt': _receiptFile,
+                      }),
                 },
               );
               setState(() => _isSaving = false);
@@ -505,17 +547,22 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
                   ),
                 )
-              : const Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Save Entry',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'Save Entry',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     SizedBox(width: 8),
                     Icon(Icons.check_circle, color: Colors.white, size: 20),
                   ],
@@ -526,17 +573,21 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Widget _sectionLabel(String label) => Text(
-        label,
-        style: const TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.5),
-      );
+    label,
+    style: GoogleFonts.inter(
+      color: primaryBlue,
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+      letterSpacing: 0.5,
+    ),
+  );
 
   Widget _errorText(String msg) => Text(
-        msg,
-        style: const TextStyle(
-            color: errorRed, fontSize: 11.5, fontStyle: FontStyle.italic),
-      );
+    msg,
+    style: GoogleFonts.inter(
+      color: errorRed,
+      fontSize: 11.5,
+      fontStyle: FontStyle.italic,
+    ),
+  );
 }

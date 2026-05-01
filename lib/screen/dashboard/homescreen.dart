@@ -358,12 +358,12 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 
         // Recent activity
         _buildRecentActivity(context),
+        const SizedBox(height: 2),
       ],
     );
   }
 
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
-    final projects      = provider.projects;
     final selectedName  = provider.selectedProject?.name ?? 'Select Project';
 
     return Material(

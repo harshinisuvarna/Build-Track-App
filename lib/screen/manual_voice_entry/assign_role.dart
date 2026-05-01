@@ -4,6 +4,7 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AssignRoleScreen extends StatefulWidget {
   const AssignRoleScreen({super.key});
@@ -167,7 +168,6 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             enabled: true,
           ),
 
-          // Email
           AppTextField(
             label: 'Email Address',
             controller: _emailCtrl,
@@ -177,7 +177,6 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             enabled: true,
           ),
 
-          // Password with visibility toggle
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -269,29 +268,27 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   Widget _roleHintRow(String role, String desc) {
     return RichText(
       text: TextSpan(
-        style: const TextStyle(fontSize: 12.5, height: 1.4),
+        style: GoogleFonts.inter(fontSize: 12.5, height: 1.4),
         children: [
-          const TextSpan(
+          TextSpan(
             text: '• ',
-            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
+            style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w800),
           ),
           TextSpan(
             text: '$role: ',
-            style: const TextStyle(
+            style: GoogleFonts.inter(
               color: AppColors.textDark,
               fontWeight: FontWeight.w700,
             ),
           ),
           TextSpan(
             text: desc,
-            style: const TextStyle(color: AppColors.textLight),
+            style: GoogleFonts.inter(color: AppColors.textLight),
           ),
         ],
       ),
     );
   }
-
-  // ── Gradient Assign Role button ───────────────────────────────────────────
 
   Widget _assignButton() {
     return GestureDetector(
@@ -322,14 +319,14 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     strokeWidth: 2.5, color: Colors.white,
                   ),
                 )
-              : const Row(
+              : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.person_add_outlined, color: Colors.white, size: 19),
                     SizedBox(width: 9),
                     Text(
                       'Assign Role',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15.5,

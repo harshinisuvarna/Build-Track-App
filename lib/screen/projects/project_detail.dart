@@ -443,8 +443,15 @@ class _ActionButtons extends StatelessWidget {
     return Column(
       children: [
         AppButton(
+          label: 'View Report',
+          icon: Icons.bar_chart_outlined,
+          onPressed: () => Navigator.pushNamed(context, '/project-report'),
+        ),
+        const SizedBox(height: 10),
+        AppButton(
           label: 'Update Progress',
           icon: Icons.trending_up,
+          variant: AppButtonVariant.outline,
           onPressed: () => Navigator.pushNamed(context, '/update-progress'),
         ),
         const SizedBox(height: 10),
@@ -461,10 +468,10 @@ class _ActionButtons extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: AppButton(
-                label: 'Reports',
-                icon: Icons.bar_chart_outlined,
+                label: 'All Logs',
+                icon: Icons.receipt_long_outlined,
                 variant: AppButtonVariant.outline,
-                onPressed: () => Navigator.pushNamed(context, '/reports'),
+                onPressed: () => Navigator.pushNamed(context, '/logs'),
               ),
             ),
           ],

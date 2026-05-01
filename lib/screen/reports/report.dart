@@ -5,8 +5,10 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
-import 'package:buildtrack_mobile/screen/report_widgets.dart';
+
+import 'package:buildtrack_mobile/screen/reports/report_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -44,6 +46,10 @@ class _ReportsViewState extends State<_ReportsView> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
+
+    // Link to the global ProjectProvider so reports use real data
+    final projectProvider = context.watch<ProjectProvider>();
+    provider.linkProjectProvider(projectProvider);
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -89,7 +95,7 @@ class _ReportsViewState extends State<_ReportsView> {
                 controller: _pageController,
                 itemCount: 3,
                 onPageChanged: provider.selectTab,
-                itemBuilder: (_, __) => RefreshIndicator(
+                itemBuilder: (context, index) => RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: provider.refresh,
                   child: _buildPageContent(context, provider),
@@ -158,7 +164,10 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           // 5. Efficiency banner
-          EfficiencyBanner(note: report.efficiencyNote),
+          EfficiencyBanner(
+            note: report.efficiencyNote,
+            selectedProjectName: provider.selectedProject,
+          ),
           const SizedBox(height: 8),
         ],
       ),

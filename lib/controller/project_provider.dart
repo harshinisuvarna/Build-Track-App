@@ -29,6 +29,7 @@ class ProjectProvider extends ChangeNotifier {
   bool               get isLoading       => _isLoading;
   String             get error           => _error;
   bool               get hasProjects     => _projects.isNotEmpty;
+  int                get projectCount    => _projects.length;
 
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId == projectId).toList();

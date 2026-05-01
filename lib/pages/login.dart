@@ -75,8 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _AppIconBadge(),
-        const SizedBox(height: 20),
         Text(
           'BuildTrack',
           style: AppTheme.heading1.copyWith(fontSize: 30, letterSpacing: -0.8),
@@ -236,38 +234,6 @@ class _LoginScreenState extends State<LoginScreen> {
           style: AppTheme.caption.copyWith(fontWeight: FontWeight.w500),
         ),
       ],
-    );
-  }
-}
-
-// ── Private sub-widget ─────────────────────────────────────────────────────
-
-class _AppIconBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5B3FE0), Color(0xFF9B59FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5B3FE0).withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.domain_outlined,
-        color: Colors.white,
-        size: 34,
-      ),
     );
   }
 }

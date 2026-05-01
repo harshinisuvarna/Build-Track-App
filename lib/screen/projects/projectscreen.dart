@@ -6,7 +6,7 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
-import 'package:buildtrack_mobile/screen/add_project.dart';
+import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';

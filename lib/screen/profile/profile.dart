@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/subscription_card.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
@@ -63,6 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           _buildProfileCard(_user),
+          const SizedBox(height: AppTheme.spacingLg),
+          // Subscription status card — reads SubscriptionProvider via context
+          const SubscriptionCard(),
           const SizedBox(height: AppTheme.spacingLg),
           _buildSettingsCard(),
           const SizedBox(height: AppTheme.spacingLg),

@@ -4,33 +4,37 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
 
   static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const purple = AppColors.primary;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   static const List<Map<String, dynamic>> _entries = [
     {
       'icon': Icons.category,
       'title': 'Material',
-      'subtitle': 'Log concrete, steel, lumber, or site-specific procurement items.',
+      'subtitle':
+          'Log concrete, steel, lumber, or site-specific procurement items.',
       'type': 'material',
     },
     {
       'icon': Icons.people,
       'title': 'Labour',
-      'subtitle': 'Track crew hours, specialized trade performance, and site presence.',
+      'subtitle':
+          'Track crew hours, specialized trade performance, and site presence.',
       'type': 'labour',
     },
     {
       'icon': Icons.precision_manufacturing,
       'title': 'Equipment',
-      'subtitle': 'Record heavy machinery runtime, fuel logs, and maintenance events.',
+      'subtitle':
+          'Record heavy machinery runtime, fuel logs, and maintenance events.',
       'type': 'equipment',
     },
   ];
@@ -60,15 +64,18 @@ class AddEntryScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFDDE0F0),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
               const SizedBox(height: 20),
-              Text('How do you want to add?',
-                  style: AppTheme.heading2.copyWith(color: textDark)),
+              Text(
+                'How do you want to add?',
+                style: AppTheme.heading2.copyWith(color: textDark),
+              ),
               const SizedBox(height: 6),
               Text(
                 'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
@@ -85,7 +92,11 @@ class AddEntryScreen extends StatelessWidget {
                   Navigator.pop(ctx);
                   final route = voiceRoutes[type];
                   if (route != null) {
-                    Navigator.pushNamed(context, route, arguments: {'type': type});
+                    Navigator.pushNamed(
+                      context,
+                      route,
+                      arguments: {'type': type},
+                    );
                   }
                 },
               ),
@@ -100,7 +111,11 @@ class AddEntryScreen extends StatelessWidget {
                   Navigator.pop(ctx);
                   final route = manualRoutes[type];
                   if (route != null) {
-                    Navigator.pushNamed(context, route, arguments: {'type': type});
+                    Navigator.pushNamed(
+                      context,
+                      route,
+                      arguments: {'type': type},
+                    );
                   }
                 },
               ),
@@ -108,11 +123,11 @@ class AddEntryScreen extends StatelessWidget {
               InkWell(
                 onTap: () => Navigator.pop(ctx),
                 borderRadius: BorderRadius.circular(8),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: textGray,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -150,8 +165,12 @@ class AddEntryScreen extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 46, height: 46,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(13)),
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(13),
+                ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
               const SizedBox(width: 14),
@@ -159,11 +178,21 @@ class AddEntryScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w700, color: textDark)),
+                    Text(
+                      title,
+                      style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: textDark,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: AppTheme.caption.copyWith(color: textGray, fontSize: 12.5)),
+                    Text(
+                      subtitle,
+                      style: AppTheme.caption.copyWith(
+                        color: textGray,
+                        fontSize: 12.5,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -190,7 +219,11 @@ class AddEntryScreen extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -219,40 +252,60 @@ class AddEntryScreen extends StatelessWidget {
 
                     // ── Entry Type Cards ──────────────────────────────────
                     const AppSectionHeader(title: 'Entry Type'),
-                    ...List.generate(_entries.length, (i) => _entryCard(context, i)),
+                    ...List.generate(
+                      _entries.length,
+                      (i) => _entryCard(context, i),
+                    ),
 
                     const SizedBox(height: 24),
 
                     // ── Quick Actions ─────────────────────────────────────
                     const AppSectionHeader(title: 'Quick Actions'),
                     AppCard(
-                      onTap: () => Navigator.pushNamed(context, '/update-progress'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/update-progress'),
                       child: Row(
                         children: [
                           Container(
-                            width: 48, height: 48,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
                               color: AppTheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(13),
                             ),
-                            child: const Icon(Icons.assignment_turned_in_outlined,
-                                color: AppTheme.primary, size: 24),
+                            child: const Icon(
+                              Icons.assignment_turned_in_outlined,
+                              color: AppTheme.primary,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Daily Progress Update',
-                                    style: AppTheme.bodyLarge.copyWith(
-                                        fontWeight: FontWeight.w700, color: textDark)),
+                                Text(
+                                  'Daily Progress Update',
+                                  style: AppTheme.bodyLarge.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: textDark,
+                                  ),
+                                ),
                                 const SizedBox(height: 3),
-                                Text('Update work status, %, and photos',
-                                    style: AppTheme.caption.copyWith(color: textGray)),
+                                Text(
+                                  'Update work status, %, and photos',
+                                  style: AppTheme.caption.copyWith(
+                                    color: textGray,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right, color: textGray, size: 20),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: textGray,
+                            size: 20,
+                          ),
                         ],
                       ),
                     ),
@@ -301,12 +354,18 @@ class AddEntryScreen extends StatelessWidget {
               children: [
                 Text(
                   'Team & Access',
-                  style: AppTheme.heading3.copyWith(color: AppColors.textDark, fontSize: 16),
+                  style: AppTheme.heading3.copyWith(
+                    color: AppColors.textDark,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Assign roles and manage team access for your project.',
-                  style: AppTheme.body.copyWith(color: AppColors.textLight, height: 1.45),
+                  style: AppTheme.body.copyWith(
+                    color: AppColors.textLight,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Gradient "Assign Role" button
@@ -323,20 +382,26 @@ class AddEntryScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6C5CE7).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFF6C5CE7,
+                          ).withValues(alpha: 0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.person_add_outlined, color: Colors.white, size: 18),
+                        Icon(
+                          Icons.person_add_outlined,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'Assign Role',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 14.5,
@@ -391,9 +456,11 @@ class AddEntryScreen extends StatelessWidget {
           ),
           // Side bubbles
           Positioned(
-            top: 4, left: 2,
+            top: 4,
+            left: 2,
             child: Container(
-              width: 20, height: 20,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 color: purpleLight.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
@@ -402,9 +469,11 @@ class AddEntryScreen extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 4, right: 2,
+            top: 4,
+            right: 2,
             child: Container(
-              width: 20, height: 20,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 color: purpleLight.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
@@ -413,9 +482,11 @@ class AddEntryScreen extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 2, left: 8,
+            bottom: 2,
+            left: 8,
             child: Container(
-              width: 16, height: 16,
+              width: 16,
+              height: 16,
               decoration: BoxDecoration(
                 color: purpleLight.withValues(alpha: 0.4),
                 shape: BoxShape.circle,
@@ -424,9 +495,11 @@ class AddEntryScreen extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 2, right: 8,
+            bottom: 2,
+            right: 8,
             child: Container(
-              width: 16, height: 16,
+              width: 16,
+              height: 16,
               decoration: BoxDecoration(
                 color: purpleLight.withValues(alpha: 0.4),
                 shape: BoxShape.circle,
@@ -449,7 +522,11 @@ class AddEntryScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.shield_outlined, color: AppColors.primary.withValues(alpha: 0.7), size: 18),
+          Icon(
+            Icons.shield_outlined,
+            color: AppColors.primary.withValues(alpha: 0.7),
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -499,7 +576,8 @@ class AddEntryScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 52, height: 52,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: iconBg,
               borderRadius: BorderRadius.circular(14),
@@ -518,14 +596,21 @@ class AddEntryScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   entry['subtitle'] as String,
-                  style: AppTheme.body.copyWith(color: textGray, fontSize: 13, height: 1.4),
+                  style: AppTheme.body.copyWith(
+                    color: textGray,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Icon(Icons.chevron_right,
-              color: textGray.withValues(alpha: 0.5), size: 20),
+          Icon(
+            Icons.chevron_right,
+            color: textGray.withValues(alpha: 0.5),
+            size: 20,
+          ),
         ],
       ),
     );

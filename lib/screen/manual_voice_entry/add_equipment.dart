@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -14,12 +15,11 @@ class AddEquipmentScreen extends StatefulWidget {
 }
 
 class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
-
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-  static const errorRed    = AppColors.error;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
+  static const errorRed = AppColors.error;
 
   final _hoursController = TextEditingController();
   final _rateController = TextEditingController();
@@ -63,7 +63,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _nameController.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
-        _hoursController.text = rawAmount.replaceAll('+', '').replaceAll('-', '').replaceAll(' hrs', '');
+        _hoursController.text = rawAmount
+            .replaceAll('+', '')
+            .replaceAll('-', '')
+            .replaceAll(' hrs', '');
       }
     }
   }
@@ -91,11 +94,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ? 'Equipment name is required'
           : null;
       final hours = double.tryParse(_hoursController.text);
-      _hoursError =
-          (hours == null || hours <= 0) ? 'Enter valid hours > 0' : null;
+      _hoursError = (hours == null || hours <= 0)
+          ? 'Enter valid hours > 0'
+          : null;
       final rate = double.tryParse(_rateController.text);
-      _rateError =
-          (rate == null || rate <= 0) ? 'Enter valid cost > 0' : null;
+      _rateError = (rate == null || rate <= 0) ? 'Enter valid cost > 0' : null;
       ok = _nameError == null && _hoursError == null && _rateError == null;
     });
     return ok;
@@ -124,7 +127,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const AppSectionHeader(title: 'Equipment Details'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -217,40 +219,55 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 0, vertical: 4),
+                              horizontal: 0,
+                              vertical: 4,
+                            ),
                             decoration: const BoxDecoration(
                               border: Border(
-                                  bottom: BorderSide(
-                                      color: primaryBlue, width: 2)),
+                                bottom: BorderSide(
+                                  color: primaryBlue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.local_gas_station_outlined,
-                                    color: textGray, size: 18),
+                                const Icon(
+                                  Icons.local_gas_station_outlined,
+                                  color: textGray,
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: TextField(
                                     controller: _fuelController,
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       border: InputBorder.none,
                                       hintText: '0',
-                                      hintStyle:
-                                          TextStyle(color: textGray),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          vertical: 10),
+                                      hintStyle: GoogleFonts.inter(
+                                        color: textGray,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
                                     ),
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: textDark),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: textDark,
+                                    ),
                                   ),
                                 ),
-                                const Text('L',
-                                    style: TextStyle(
-                                        color: textGray,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500)),
+                                Text(
+                                  'L',
+                                  style: GoogleFonts.inter(
+                                    color: textGray,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -270,13 +287,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 'equip_log_${DateTime.now().millisecondsSinceEpoch}.pdf',
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Log attached')));
+                            const SnackBar(content: Text('Log attached')),
+                          );
                         },
                         onRemove: () => setState(() => _receiptFile = null),
                       ),
                     ),
-
                     const SizedBox(height: 4),
                     _buildSaveButton(context),
                     const SizedBox(height: 16),
@@ -311,11 +327,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: const TextStyle(color: textGray),
+                hintStyle: GoogleFonts.inter(color: textGray),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textDark,
+              ),
             ),
           ),
         ],
@@ -342,16 +361,26 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 10,
+                ),
               ),
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textDark,
+              ),
             ),
           ),
-          Text(suffix,
-              style: const TextStyle(
-                  color: textGray, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(
+            suffix,
+            style: GoogleFonts.inter(
+              color: textGray,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -368,9 +397,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
       child: Row(
         children: [
-          Text('$prefix ',
-              style: const TextStyle(
-                  color: textGray, fontSize: 16, fontWeight: FontWeight.w500)),
+          Text(
+            '$prefix ',
+            style: GoogleFonts.inter(
+              color: textGray,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: ctrl,
@@ -379,11 +413,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 10,
+                ),
               ),
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: textDark),
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textDark,
+              ),
             ),
           ),
         ],
@@ -404,19 +443,25 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('TOTAL AMOUNT',
-                  style: TextStyle(
-                      color: textGray,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8)),
+              Text(
+                'TOTAL AMOUNT',
+                style: GoogleFonts.inter(
+                  color: textGray,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('₹ ${_computeTotal()}',
-                  style: const TextStyle(
-                      color: primaryBlue,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3)),
+              Text(
+                '₹ ${_computeTotal()}',
+                style: GoogleFonts.inter(
+                  color: primaryBlue,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
             ],
           ),
           Container(
@@ -426,8 +471,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               color: primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.calculate_outlined,
-                color: primaryBlue, size: 20),
+            child: const Icon(
+              Icons.calculate_outlined,
+              color: primaryBlue,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -458,27 +506,26 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               await Future.delayed(const Duration(milliseconds: 600));
               if (!mounted) return;
               Navigator.pushNamed(
-                // ignore: use_build_context_synchronously
                 context,
                 '/logs',
                 arguments: {
                   'type': 'equipment',
                   'name': _nameController.text,
-                  'newEntry': Entry(
-                    id: 'EQP-${DateTime.now().millisecondsSinceEpoch}',
-                    type: EntryType.equipment,
-                    projectId: UserSession.projectId,
-                    createdBy: UserSession.userId,
-                  ).toMap()
-                    ..addAll({
-                      'title':      _nameController.text,
-                      'ref':        '#EQP-${DateTime.now().millisecondsSinceEpoch}',
-                      'amount':     '+${_hoursController.text} hrs',
-                      'date':       'Today',
-                      'isPositive': true,
-                      'icon':       Icons.construction_outlined,
-                      'receipt':    _receiptFile,
-                    }),
+                  'newEntry':
+                      Entry(
+                        id: 'EQP-${DateTime.now().millisecondsSinceEpoch}',
+                        type: EntryType.equipment,
+                        projectId: UserSession.projectId,
+                        createdBy: UserSession.userId,
+                      ).toMap()..addAll({
+                        'title': _nameController.text,
+                        'ref': '#EQP-${DateTime.now().millisecondsSinceEpoch}',
+                        'amount': '+${_hoursController.text} hrs',
+                        'date': 'Today',
+                        'isPositive': true,
+                        'icon': Icons.construction_outlined,
+                        'receipt': _receiptFile,
+                      }),
                 },
               );
               setState(() => _isSaving = false);
@@ -510,17 +557,22 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
                   ),
                 )
-              : const Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Save Entry',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'Save Entry',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     SizedBox(width: 8),
                     Icon(Icons.check_circle, color: Colors.white, size: 20),
                   ],
@@ -531,17 +583,21 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   Widget _sectionLabel(String label) => Text(
-        label,
-        style: const TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.5),
-      );
+    label,
+    style: GoogleFonts.inter(
+      color: primaryBlue,
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+      letterSpacing: 0.5,
+    ),
+  );
 
   Widget _errorText(String msg) => Text(
-        msg,
-        style: const TextStyle(
-            color: errorRed, fontSize: 11.5, fontStyle: FontStyle.italic),
-      );
+    msg,
+    style: GoogleFonts.inter(
+      color: errorRed,
+      fontSize: 11.5,
+      fontStyle: FontStyle.italic,
+    ),
+  );
 }

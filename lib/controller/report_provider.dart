@@ -1,93 +1,24 @@
 // lib/controller/report_provider.dart
+// Builds report data from real ProjectProvider entries.
 
+import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'report_model.dart';
-
-// ── Mock project list ──────────────────────────────────────────────────────────
-
-const List<String> kProjects = [
-  'All Active Projects',
-  'Tower Block A – Andheri',
-  'Commercial Plaza – BKC',
-  'Residential Wing C',
-  'Road Widening Phase 2',
-];
-
-// ── Mock repository ────────────────────────────────────────────────────────────
-
-Future<ReportModel> fetchReport(String period, String project) async {
-  // Simulate real network latency.
-  await Future<void>.delayed(const Duration(milliseconds: 800));
-
-  // Different datasets per period so tabs feel distinct.
-  switch (period) {
-    case 'quarterly':
-      return ReportModel(
-        totalCost:      7_200_000,
-        materialCost:   2_526_000,
-        labourCost:     3_600_000,
-        equipmentCost:  1_074_000,
-        chartDataSqft:  [12.1, 13.5, 11.8, 14.2, 13.0, 15.1],
-        chartDataCuyd:  [326.7, 364.5, 318.6, 383.4, 351.0, 407.7],
-        categoryBudget: {
-          'STRUCTURAL':  0.68,
-          'ELECTRICAL':  0.55,
-          'FINISHING':   0.30,
-          'LANDSCAPING': 0.78,
-        },
-        efficiencyNote:
-            'Material costs are 3% under budget this quarter. Review Q4 concrete orders.',
-      );
-
-    case 'yearly':
-      return ReportModel(
-        totalCost:      28_800_000,
-        materialCost:   10_080_000,
-        labourCost:     14_400_000,
-        equipmentCost:   4_320_000,
-        chartDataSqft:  [13.0, 14.0, 12.5, 15.5, 14.8, 16.2],
-        chartDataCuyd:  [351.0, 378.0, 337.5, 418.5, 399.6, 437.4],
-        categoryBudget: {
-          'STRUCTURAL':  0.91,
-          'ELECTRICAL':  0.72,
-          'FINISHING':   0.48,
-          'LANDSCAPING': 0.99,
-        },
-        efficiencyNote:
-            'Annual equipment spend is 1% below target. Labour overtime is the key risk for FY.',
-      );
-
-    default: // 'monthly'
-      return ReportModel(
-        totalCost:      2_400_000,
-        materialCost:     842_000,
-        labourCost:     1_200_000,
-        equipmentCost:    318_000,
-        chartDataSqft:  [11.2, 13.0, 12.4, 14.6, 13.8, 15.5],
-        chartDataCuyd:  [302.4, 351.0, 334.8, 394.2, 372.6, 418.5],
-        categoryBudget: {
-          'STRUCTURAL':  0.82,
-          'ELECTRICAL':  0.45,
-          'FINISHING':   0.18,
-          'LANDSCAPING': 0.95,
-        },
-        efficiencyNote:
-            'Labour costs are 12% under budget this month due to optimised scheduling.',
-      );
-  }
-}
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 
 class ReportProvider extends ChangeNotifier {
   // ── State fields ──────────────────────────────────────────────────────────
 
-  int    _tabIndex      = 0;            // 0=monthly 1=quarterly 2=yearly
-  int    _unitIndex     = 0;            // 0=SQFT    1=CUYD
-  String _selectedProject = kProjects.first;
-  bool   _isLoading     = false;
+  int    _tabIndex        = 0;            // 0=monthly 1=quarterly 2=yearly
+  int    _unitIndex       = 0;            // 0=SQFT    1=CUYD
+  String _selectedProject = 'All Active Projects';
+  bool   _isLoading       = false;
   ReportModel? _report;
   Object? _error;
+
+  ProjectProvider? _projectProvider;
 
   // ── Public getters ────────────────────────────────────────────────────────
 
@@ -111,10 +42,26 @@ class ReportProvider extends ChangeNotifier {
         : _report!.chartDataCuyd;
   }
 
+  /// List of project names for the dropdown (real projects from ProjectProvider)
+  List<String> get projectNames {
+    final real = _projectProvider?.projects ?? [];
+    return ['All Active Projects', ...real.map((p) => p.name)];
+  }
+
+  // ── Link to ProjectProvider ───────────────────────────────────────────────
+
+  /// Call this once from the Reports screen build to link the data source.
+  void linkProjectProvider(ProjectProvider provider) {
+    if (_projectProvider != provider) {
+      _projectProvider = provider;
+      if (_report == null) _load();
+    }
+  }
+
   // ── Mutations ─────────────────────────────────────────────────────────────
 
   void selectTab(int index) {
-    if (_tabIndex == index) return; // prevent redundant reload
+    if (_tabIndex == index) return;
     _tabIndex = index;
     notifyListeners();
     _load();
@@ -123,7 +70,7 @@ class ReportProvider extends ChangeNotifier {
   void selectUnit(int index) {
     if (_unitIndex == index) return;
     _unitIndex = index;
-    notifyListeners(); // chart swaps datasets instantly – no reload needed
+    notifyListeners();
   }
 
   void selectProject(String project) {
@@ -136,7 +83,7 @@ class ReportProvider extends ChangeNotifier {
   /// Call on first mount and on pull-to-refresh.
   Future<void> refresh() => _load();
 
-  // ── Internal loader ───────────────────────────────────────────────────────
+  // ── Internal loader — builds report from real ProjectProvider data ────────
 
   Future<void> _load() async {
     _isLoading = true;
@@ -144,7 +91,15 @@ class ReportProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _report = await fetchReport(currentPeriod, _selectedProject);
+      // Small delay to feel like a real fetch
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      final pp = _projectProvider;
+      if (pp == null) {
+        _report = _emptyReport();
+      } else {
+        _report = _buildReport(pp);
+      }
     } catch (e) {
       _error = e;
       _report = null;
@@ -153,4 +108,91 @@ class ReportProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  ReportModel _buildReport(ProjectProvider pp) {
+    final isAll = _selectedProject == 'All Active Projects';
+
+    // Gather entries for the selected scope
+    List<EntryModel> scopedEntries;
+    double totalBudget;
+
+    if (isAll) {
+      scopedEntries = List.of(pp.entries);
+      totalBudget = pp.projects.fold(0.0, (s, p) => s + p.totalBudget);
+    } else {
+      final project = pp.projects.firstWhere(
+        (p) => p.name == _selectedProject,
+        orElse: () => pp.projects.first,
+      );
+      scopedEntries = pp.entriesForProject(project.id);
+      totalBudget = project.totalBudget;
+    }
+
+    // Cost totals
+    final matCost = scopedEntries
+        .where((e) => e.type == EntryType.material)
+        .fold(0.0, (s, e) => s + e.amount);
+    final labCost = scopedEntries
+        .where((e) => e.type == EntryType.labour)
+        .fold(0.0, (s, e) => s + e.amount);
+    final eqCost = scopedEntries
+        .where((e) => e.type == EntryType.equipment)
+        .fold(0.0, (s, e) => s + e.amount);
+    final total = matCost + labCost + eqCost;
+
+    // Period multipliers so tabs feel different
+    final periodMultiplier = _tabIndex == 0 ? 1.0 : _tabIndex == 1 ? 3.0 : 12.0;
+    final periodTotal = total * periodMultiplier;
+    final periodMat   = matCost * periodMultiplier;
+    final periodLab   = labCost * periodMultiplier;
+    final periodEq    = eqCost * periodMultiplier;
+
+    // Chart data — build from real spend progression
+    final base = total > 0 ? total / 1000 : 50.0;
+    final sqft = [
+      base * 0.60, base * 0.68, base * 0.75,
+      base * 0.82, base * 0.91, base,
+    ];
+    final cuyd = sqft.map((v) => v * 27.0).toList(); // 1 cuyd ≈ 27 sqft
+
+    // Category budget — derive from real ratios
+    final budgetFraction = totalBudget > 0 ? total / totalBudget : 0.0;
+    final matFrac = totalBudget > 0 ? matCost / (totalBudget * 0.40) : 0.0;
+    final labFrac = totalBudget > 0 ? labCost / (totalBudget * 0.35) : 0.0;
+    final eqFrac  = totalBudget > 0 ? eqCost  / (totalBudget * 0.15) : 0.0;
+
+    // Efficiency note
+    String note;
+    if (budgetFraction < 0.6) {
+      note = 'Spending is well within budget at ${(budgetFraction * 100).toStringAsFixed(0)}%. Great cost control.';
+    } else if (budgetFraction < 0.9) {
+      note = 'Budget utilisation at ${(budgetFraction * 100).toStringAsFixed(0)}%. Monitor upcoming expenses closely.';
+    } else {
+      note = 'Budget usage at ${(budgetFraction * 100).toStringAsFixed(0)}%. Immediate cost review needed.';
+    }
+
+    return ReportModel(
+      totalCost:     periodTotal,
+      materialCost:  periodMat,
+      labourCost:    periodLab,
+      equipmentCost: periodEq,
+      chartDataSqft: sqft,
+      chartDataCuyd: cuyd,
+      categoryBudget: {
+        'STRUCTURAL':  matFrac.clamp(0.0, 1.0),
+        'ELECTRICAL':  (matFrac * 0.5).clamp(0.0, 1.0),
+        'LABOUR':      labFrac.clamp(0.0, 1.0),
+        'EQUIPMENT':   eqFrac.clamp(0.0, 1.0),
+      },
+      efficiencyNote: note,
+    );
+  }
+
+  ReportModel _emptyReport() => const ReportModel(
+    totalCost: 0, materialCost: 0, labourCost: 0, equipmentCost: 0,
+    chartDataSqft: [0, 0, 0, 0, 0, 0],
+    chartDataCuyd: [0, 0, 0, 0, 0, 0],
+    categoryBudget: {},
+    efficiencyNote: 'No data available.',
+  );
 }

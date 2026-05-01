@@ -1,8 +1,6 @@
-// lib/screen/add_project.dart
-// Persists new project via ProjectProvider → SharedPreferences.
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +9,6 @@ import 'package:provider/provider.dart';
 
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
-
   @override
   State<AddProjectScreen> createState() => _AddProjectScreenState();
 }
@@ -494,6 +491,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // ── Feature gate: Free plan = max 2 projects ──────────────────────────
+    final projectProvider = context.read<ProjectProvider>();
+    final subProvider     = context.read<SubscriptionProvider>();
+    if (!subProvider.canAddProject(projectProvider.projectCount)) {
+      _showUpgradeDialog();
+      return;
+    }
     setState(() => _saving = true);
     try {
       final project = ProjectModel(
@@ -533,6 +537,80 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// Shows a paywall prompt when the Free project limit is reached.
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: primaryBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.lock_outline,
+                  color: primaryBlue, size: 30),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Project Limit Reached',
+              style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textDark),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Free plan allows up to 2 projects.\nUpgrade to Pro for unlimited projects.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                  fontSize: 13.5,
+                  color: textGray,
+                  height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushNamed(context, '/subscription');
+                },
+                child: Text(
+                    'Upgrade to Pro',
+                    style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Maybe Later',
+                  style: GoogleFonts.inter(
+                      color: textGray, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
