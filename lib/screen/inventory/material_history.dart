@@ -143,7 +143,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 56,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF5B3FE0),
+                    color: AppColors.primaryPurple,
                     letterSpacing: -2,
                     height: 1,
                   ),

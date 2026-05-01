@@ -258,7 +258,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   style: const TextStyle(
                       fontSize: 50,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF5B3FE0),
+                      color: AppColors.primaryPurple,
                       letterSpacing: -2,
                       height: 1),
                 ),

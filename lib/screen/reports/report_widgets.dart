@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -36,7 +37,7 @@ class MetricCard extends StatelessWidget {
         ? AppColors.textLight
         : isGood
             ? AppColors.success
-            : Colors.pinkAccent;
+            : AppColors.error;
 
     final subIcon = isNeutral
         ? Icons.remove
@@ -631,7 +632,7 @@ class _BudgetBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color color = value >= 0.90
-        ? Colors.redAccent
+        ? AppColors.error
         : value >= 0.70
             ? AppColors.warning
             : AppColors.primary;
@@ -656,11 +657,28 @@ class _BudgetBar extends StatelessWidget {
           const SizedBox(height: 7),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: value,
-              backgroundColor: const Color(0xFFEEF0F8),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              minHeight: 8,
+            child: SizedBox(
+              height: 8,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF0F8),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: value.clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: (value < 0.70) ? AppGradients.progressBar : null,
+                        color: (value >= 0.70) ? color : null,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -688,11 +706,11 @@ class EfficiencyBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        gradient: AppGradients.primaryButton,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
+            color: AppColors.primaryPurple.withValues(alpha: 0.35),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),

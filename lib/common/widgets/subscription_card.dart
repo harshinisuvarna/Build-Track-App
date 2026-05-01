@@ -156,6 +156,7 @@ class SubscriptionCard extends StatelessWidget {
                   children: [
                     // Primary CTA
                     Expanded(
+                      flex: 5,
                       child: PremiumCtaButton(
                         label: isPaid ? 'Manage Plan' : 'Upgrade to Pro',
                         icon: isPaid
@@ -169,11 +170,15 @@ class SubscriptionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     // Restore button
-                    PremiumCtaButton(
-                      label: 'Restore',
-                      icon: Icons.restore_rounded,
-                      onTap: () => _onRestore(context, sub),
-                      variant: CtaVariant.secondary,
+                    Expanded(
+                      flex: 4,
+                      child: PremiumCtaButton(
+                        label: 'Restore',
+                        icon: Icons.restore_rounded,
+                        onTap: () => _onRestore(context, sub),
+                        variant: CtaVariant.secondary,
+                        isFullWidth: true,
+                      ),
                     ),
                   ],
                 ),
@@ -210,7 +215,7 @@ class SubscriptionCard extends StatelessWidget {
     switch (plan) {
       case SubscriptionPlan.pro:
         return const LinearGradient(
-          colors: [Color(0xFF1A56DB), Color(0xFF5B3FE0), Color(0xFF9B59FF)],
+          colors: [AppColors.primaryBlue, AppColors.primaryPurple, Color(0xFF9B59FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -231,7 +236,7 @@ class SubscriptionCard extends StatelessWidget {
 
   Color _shadowColorFor(SubscriptionPlan plan) {
     switch (plan) {
-      case SubscriptionPlan.pro:        return const Color(0xFF5B3FE0).withValues(alpha: 0.4);
+      case SubscriptionPlan.pro:        return AppColors.primaryPurple.withValues(alpha: 0.4);
       case SubscriptionPlan.enterprise: return Colors.black.withValues(alpha: 0.4);
       case SubscriptionPlan.free:       return const Color(0xFF6B7280).withValues(alpha: 0.3);
     }

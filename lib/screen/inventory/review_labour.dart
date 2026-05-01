@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -361,11 +362,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: AppGradients.primaryButton,
             borderRadius: BorderRadius.circular(50),
             boxShadow: [
               BoxShadow(

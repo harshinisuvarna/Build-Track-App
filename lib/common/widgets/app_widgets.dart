@@ -1,3 +1,5 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -33,9 +35,16 @@ class AppCard extends StatelessWidget {
     final card = Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: color,
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: AppTheme.cardShadows,
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB8B0E8).withValues(alpha: 0.10),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -78,6 +87,7 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg, border) = _resolveColors();
+    final isPrimary = variant == AppButtonVariant.primary;
 
     return SizedBox(
       width: double.infinity,
@@ -86,17 +96,20 @@ class AppButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: variant == AppButtonVariant.outline ? Colors.transparent : bg,
+            color: isPrimary ? null : (variant == AppButtonVariant.outline ? Colors.transparent : bg),
+            gradient: (isPrimary && enabled)
+                ? AppGradients.primaryButton
+                : (isPrimary && !enabled ? LinearGradient(colors: [bg, bg]) : null),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
             border: variant == AppButtonVariant.outline
                 ? Border.all(color: border, width: 1.5)
                 : null,
-            boxShadow: (variant == AppButtonVariant.primary && enabled)
+            boxShadow: (isPrimary && enabled)
                 ? [
                     BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.30),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: AppColors.primaryBlue.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
                   ]
                 : null,
@@ -108,14 +121,14 @@ class AppButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               onTap: (enabled && !isLoading) ? onPressed : null,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Center(
                   child: isLoading
                       ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: 2.5,
                             color: fg,
                           ),
                         )
@@ -129,11 +142,10 @@ class AppButton extends StatelessWidget {
                             Text(
                               label,
                               style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
                                 color: fg,
-                                letterSpacing: 0.2,
                               ),
                             ),
                           ],
@@ -317,11 +329,9 @@ class AppStatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontFamily: 'Roboto',
           fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: fg,
-          letterSpacing: 0.4,
         ),
       ),
     );
@@ -330,15 +340,15 @@ class AppStatusBadge extends StatelessWidget {
   (String label, Color bg, Color fg) _resolve() {
     switch (status) {
       case AppStatus.completed:
-        return ('Completed', const Color(0xFFDCFCE7), AppTheme.success);
+        return ('Completed', AppColors.badgeSuccessBg, AppColors.badgeSuccessText);
       case AppStatus.inProgress:
-        return ('In Progress', const Color(0xFFFEF9C3), const Color(0xFFB45309));
+        return ('In Progress', AppColors.badgeWarningBg, AppColors.badgeWarningText);
       case AppStatus.notStarted:
-        return ('Not Started', const Color(0xFFF1F5F9), AppTheme.textMedium);
+        return ('Not Started', AppColors.badgeInfoBg, AppColors.badgeInfoText);
       case AppStatus.delayed:
         return ('Delayed', const Color(0xFFFEE2E2), AppTheme.error);
       case AppStatus.issue:
-        return ('Issue', const Color(0xFFFFF7ED), const Color(0xFFEA580C));
+        return ('Issue', AppColors.badgePendingBg, AppColors.badgePendingText);
     }
   }
 }
@@ -439,13 +449,26 @@ class AppProgressBar extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: percent,
-            minHeight: 7,
-            backgroundColor: AppTheme.divider,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+        SizedBox(
+          height: 6,
+          child: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E0F5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: percent.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.progressBar,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -519,17 +542,17 @@ class StatusBadge extends StatelessWidget {
 
   Color get _color {
     switch (status) {
-      case 'approved': return const Color(0xFF2E7D32);
-      case 'rejected': return const Color(0xFFC62828);
-      default:         return const Color(0xFFE65100); // pending → orange
+      case 'approved': return AppColors.badgeSuccessText;
+      case 'rejected': return AppColors.error;
+      default:         return AppColors.badgeWarningText; // pending
     }
   }
 
   Color get _bg {
     switch (status) {
-      case 'approved': return const Color(0xFFE8F5E9);
+      case 'approved': return AppColors.badgeSuccessBg;
       case 'rejected': return const Color(0xFFFFEBEE);
-      default:         return const Color(0xFFFFF3E0);
+      default:         return AppColors.badgeWarningBg;
     }
   }
 

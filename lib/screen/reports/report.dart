@@ -3,6 +3,7 @@
 // Uses Provider (ReportProvider) for all state. No hardcoded values.
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -212,7 +213,8 @@ class _PeriodTabs extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  color: active ? AppColors.primary : Colors.transparent,
+                  gradient: active ? AppGradients.primaryButton : null,
+                  color: active ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Text(

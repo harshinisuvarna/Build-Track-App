@@ -6,14 +6,12 @@ import 'package:flutter/material.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
-
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
-
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -23,9 +21,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    // Approximate: appBar ~56, safeArea ~48, padding ~40
     final availableHeight = screenHeight - 160;
-
     return AppSubScreenLayout(
       title: 'Reset Password',
       scrollable: true,
@@ -51,7 +47,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
-  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader() {
     return Column(
@@ -147,8 +142,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       return;
     }
-    // TODO: call real password-reset API when backend is ready.
-    // e.g. AuthService.sendPasswordReset(email)
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Reset link sent to $email'),

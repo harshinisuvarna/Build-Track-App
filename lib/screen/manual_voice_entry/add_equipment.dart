@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
@@ -537,11 +538,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 17),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: AppGradients.primaryButton,
             borderRadius: BorderRadius.circular(50),
             boxShadow: [
               BoxShadow(

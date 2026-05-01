@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -374,17 +375,11 @@ class AddEntryScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6C5CE7), Color(0xFF4A6CF7)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
+                      gradient: AppGradients.primaryButton,
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(
-                            0xFF6C5CE7,
-                          ).withValues(alpha: 0.35),
+                          color: AppColors.primaryPurple.withValues(alpha: 0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -425,8 +420,8 @@ class AddEntryScreen extends StatelessWidget {
 
   /// Simple SVG-style team illustration using Flutter widgets.
   Widget _teamIllustration() {
-    const purple = Color(0xFF6C5CE7);
-    const purpleLight = Color(0xFFB8AEFF);
+    const purple = AppColors.primaryPurple;
+    const purpleLight = AppColors.primaryLightBlue;
     return SizedBox(
       width: 68,
       height: 68,
@@ -559,13 +554,13 @@ class AddEntryScreen extends StatelessWidget {
 
     final Map<String, Color> iconColors = {
       'material': primaryBlue,
-      'labour': purple,
-      'equipment': const Color(0xFF7B3FE7),
+      'labour': primaryBlue,
+      'equipment': primaryBlue,
     };
     final Map<String, Color> iconBgColors = {
       'material': primaryBlue.withValues(alpha: 0.1),
-      'labour': purple.withValues(alpha: 0.1),
-      'equipment': const Color(0xFF7B3FE7).withValues(alpha: 0.1),
+      'labour': primaryBlue.withValues(alpha: 0.1),
+      'equipment': primaryBlue.withValues(alpha: 0.1),
     };
     final Color iconColor = iconColors[type] ?? primaryBlue;
     final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);

@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -7,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 Future<void> showVoiceConfirmationSheet(
   BuildContext context, {
+
   /// Optionally pass a pre-detected type ('material'|'labour'|'equipment')
   /// Leave null to simulate AI detection (shows loading state first)
   String? detectedType,
@@ -37,8 +40,7 @@ enum _SheetPhase { loading, detected, editing }
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     with TickerProviderStateMixin {
   // ── Constants ──────────────────────────────────────────────────────────────
-  static const _blue = Color(0xFF2233DD);
-  static const _purple = Color(0xFF6B3FE7);
+  static const _blue = AppColors.primaryBlue;
   static const _bgColor = Color(0xFFF4F6FB);
   static const _textDark = Color(0xFF0F1724);
   static const _textGray = Color(0xFF5A6B82);
@@ -137,7 +139,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.fromLTRB(
-        20, 14, 20,
+        20,
+        14,
+        20,
         20 + MediaQuery.of(context).viewPadding.bottom,
       ),
       child: Column(
@@ -145,7 +149,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         children: [
           // Drag handle
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
               color: const Color(0xFFDDE0F0),
               borderRadius: BorderRadius.circular(10),
@@ -191,7 +196,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                   height: 76 * scale,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _blue.withValues(alpha: 0.07 * (1 - _pulseCtrl.value)),
+                    color: _blue.withValues(
+                      alpha: 0.07 * (1 - _pulseCtrl.value),
+                    ),
                   ),
                 ),
                 // Mid ring
@@ -209,11 +216,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                   height: 52,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [_blue, _purple],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: AppGradients.primaryButton,
                   ),
                   child: const Icon(Icons.mic, color: Colors.white, size: 26),
                 ),
@@ -261,18 +264,15 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: List.generate(9, (i) {
             final phase = _waveCtrl.value + (i / 9);
-            final height = 6 + 18 * math.pow(math.sin(phase * math.pi * 2).abs(), 0.6);
+            final height =
+                6 + 18 * math.pow(math.sin(phase * math.pi * 2).abs(), 0.6);
             return Container(
               width: 4,
               height: height.toDouble(),
               margin: const EdgeInsets.symmetric(horizontal: 2.5),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                gradient: LinearGradient(
-                  colors: [_blue, _purple],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+                gradient: AppGradients.progressBar,
               ),
             );
           }),
@@ -305,7 +305,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(_blue.withValues(alpha: 0.6)),
+                    valueColor: AlwaysStoppedAnimation(
+                      _blue.withValues(alpha: 0.6),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -400,11 +402,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             height: 56,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              gradient: const LinearGradient(
-                colors: [_blue, _purple],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppGradients.primaryButton,
             ),
             child: Icon(t.icon, color: Colors.white, size: 26),
           ),
@@ -449,7 +447,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-
   // ── Selectable type pills ─────────────────────────────────────────────────
   Widget _buildTypePills() {
     return Padding(
@@ -480,10 +477,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: selected ? _blue : Colors.white,
+                      gradient: selected ? AppGradients.primaryButton : null,
+                      color: selected ? null : Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected ? _blue : const Color(0xFFDDE0F0),
+                      border: selected ? null : Border.all(
+                        color: const Color(0xFFDDE0F0),
                         width: 1.5,
                       ),
                       boxShadow: selected
@@ -510,7 +508,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          e.value.label.split(' ').first, // "Material", "Labour" etc.
+                          e.value.label
+                              .split(' ')
+                              .first, // "Material", "Labour" etc.
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
@@ -540,11 +540,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_blue, _purple],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: AppGradients.primaryButton,
             borderRadius: BorderRadius.circular(50),
             boxShadow: [
               BoxShadow(
@@ -557,7 +553,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Text(
                 'Confirm',

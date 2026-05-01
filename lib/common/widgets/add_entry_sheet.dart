@@ -30,7 +30,7 @@ const _entryTypes = [
     title: 'Material',
     subtitle: 'Log concrete, steel, timber or any raw material used on site.',
     icon: Icons.inventory_2_outlined,
-    iconColor: Color(0xFF2233DD),
+    iconColor: AppColors.primaryBlue,
     iconBg: Color(0xFFEEF0FF),
     route: '/add-material',
   ),

@@ -1,6 +1,3 @@
-// lib/screen/project_report_screen.dart
-// Project Activity & Details — distinct from Reports/Analytics screen.
-// Shows real entry data: labour, materials, equipment, activity timeline.
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';

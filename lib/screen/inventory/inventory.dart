@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
@@ -239,14 +240,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
               hintText: 'Search materials, SKU, or site log...',
               hintStyle: TextStyle(color: textGray, fontSize: 14),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
+              filled: false,
             ),
             style: const TextStyle(color: textDark, fontSize: 14),
           ),
         ),
         Material(
-          color: primaryBlue,
+          color: AppColors.primaryBlue,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             onTap: _showFilterOptions,
@@ -289,7 +293,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                    color: active ? primaryBlue : Colors.transparent,
+                    gradient: active ? AppGradients.primaryButton : null,
+                    color: active ? null : Colors.transparent,
                     borderRadius: BorderRadius.circular(26)),
                 child: Text(tabs[i],
                     textAlign: TextAlign.center,
@@ -512,14 +517,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [Color(0xFF2233DD), Color(0xFF7B3FEF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
+        gradient: AppGradients.primaryButton,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFF2233DD).withValues(alpha: 0.45),
+              color: AppColors.primaryBlue.withValues(alpha: 0.45),
               blurRadius: 20,
               offset: const Offset(0, 6))
         ],
@@ -564,7 +566,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                     child: Text('Restock Now',
                         style: TextStyle(
-                            color: Color(0xFF2233DD),
+                            color: AppColors.primaryBlue,
                             fontWeight: FontWeight.w800,
                             fontSize: 14)),
                   ),

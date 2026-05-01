@@ -1,35 +1,82 @@
 import 'package:flutter/material.dart';
 
+/// Nurofin fintech design-system colour tokens.
+///
+/// ALL colours in the app MUST reference this file.
+/// Never hard-code a colour value outside this class.
 class AppColors {
   AppColors._();
 
-  // Page background gradient
-  static const gradientStart  = Color(0xFFE8ECFD);
-  static const gradientMid    = Color(0xFFDDD8F7);
-  static const gradientEnd    = Color(0xFFE8D8F0);
+  // ── Brand ─────────────────────────────────────────────────────────────────
+  static const Color primaryBlue      = Color(0xFF173EEA);
+  static const Color primaryPurple    = Color(0xFFB137FF);
+  static const Color primaryLightBlue = Color(0xFF67C8FF);
 
-  // Brand
-  static const primary        = Color(0xFF6C5CE7);
-  static const primaryLight   = Color(0xFFA78BFA);
-  static const primarySurface = Color(0xFFF0EFFE);
+  // ── Background layers (CustomPainter) ─────────────────────────────────────
+  static const Color bgBase1 = Color(0xFFD8D4F0); // top-left
+  static const Color bgBase2 = Color(0xFFCAC3ED); // upper-center
+  static const Color bgBase3 = Color(0xFFD2CBF0); // lower-center
+  static const Color bgBase4 = Color(0xFFE8E4F8); // bottom-right
+  // Glow centres — opacity applied in painter, stored as full-opacity tokens
+  static const Color bgGlow1 = Color(0xFFFFFFFF); // center-right  (0.55)
+  static const Color bgGlow2 = Color(0xFF9B8FE8); // top-left      (0.45)
+  static const Color bgGlow3 = Color(0xFFCFB8F0); // bottom-right  (0.40)
 
-  // Surfaces
-  static const cardBg         = Color(0xFFFFFFFF);
-  static const sidebarBg      = Color(0xFFFFFFFF);
-  static const sidebarActive  = Color(0xFFF3F0FD);
+  // ── Auth background ───────────────────────────────────────────────────────
+  static const Color authStart = Color(0xFF8B9FE8);
+  static const Color authMid   = Color(0xFFB4A8EF);
+  static const Color authEnd   = Color(0xFFD8D2F4);
 
-  // Text
-  static const textDark       = Color(0xFF1A1A2E);
-  static const textMedium     = Color(0xFF4B5563);
-  static const textLight      = Color(0xFF6B7280);
+  // ── Surface ───────────────────────────────────────────────────────────────
+  static const Color cardBg     = Color(0xFFFFFFFF);
+  static const Color cardBorder = Color(0xFFEEEBF8);
 
-  // Borders
-  static const border         = Color(0xFFE5E7EB);
-  static const divider        = Color(0xFFF3F4F6);
+  // ── Text ──────────────────────────────────────────────────────────────────
+  static const Color textPrimary   = Color(0xFF1A1A2E);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textBlue      = Color(0xFF173EEA); // links / IDs
+  static const Color textAmount    = Color(0xFF1A1A2E); // bold ₹ amounts
 
-  // Status
-  static const success        = Color(0xFF10B981);
-  static const warning        = Color(0xFFF59E0B);
-  static const error          = Color(0xFFEF4444);
-  static const info           = Color(0xFF3B82F6);
+  // ── Badges ────────────────────────────────────────────────────────────────
+  static const Color badgeWarningBg   = Color(0xFFFFF4E0);
+  static const Color badgeWarningText = Color(0xFFB45309);
+  static const Color badgeSuccessBg   = Color(0xFFE6F9F0);
+  static const Color badgeSuccessText = Color(0xFF15803D);
+  static const Color badgePendingBg   = Color(0xFFFFF0D6);
+  static const Color badgePendingText = Color(0xFF92400E);
+  static const Color badgeInfoBg      = Color(0xFFEEF2FF);
+  static const Color badgeInfoText    = Color(0xFF173EEA);
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  static const Color navActiveItemBg = Color(0xFFEAE6F8);
+  static const Color navActiveBorder = Color(0xFFB137FF);
+  static const Color navText         = Color(0xFF374151);
+  static const Color navActiveText   = Color(0xFF173EEA);
+
+  // ── Misc ──────────────────────────────────────────────────────────────────
+  static const Color divider     = Color(0xFFE5E7EB);
+  static const Color inputBorder = Color(0xFFE5E7EB);
+  static const Color iconBg      = Color(0xFFF3F0FF);
+
+  // ── Status (kept for existing screens that reference AppColors.success etc.)
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color error   = Color(0xFFEF4444);
+  static const Color info    = Color(0xFF3B82F6);
+
+  // ── Legacy aliases (used by AppTheme / existing widgets — do not remove) ──
+  // These map old names → new Nurofin tokens so zero screen code breaks.
+  static const Color primary        = primaryBlue;
+  static const Color primaryLight   = primaryLightBlue;
+  static const Color primarySurface = iconBg;
+  static const Color sidebarBg      = cardBg;
+  static const Color sidebarActive  = navActiveItemBg;
+  static const Color textDark       = textPrimary;
+  static const Color textMedium     = Color(0xFF4B5563);
+  static const Color textLight      = textSecondary;
+  static const Color border         = cardBorder;
+  // gradient tokens used by old AppTheme.backgroundGradient
+  static const Color gradientStart  = bgBase1;
+  static const Color gradientMid    = bgBase3;
+  static const Color gradientEnd    = bgBase4;
 }

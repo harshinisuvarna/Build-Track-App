@@ -1,8 +1,10 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
+import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
@@ -10,29 +12,11 @@ import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-
-  @override
-  void initState() {
-    super.initState();
-    // ── Temp test: remove once real auth is wired ──
-    UserSession.set(
-      userId: 'u1',
-      role: UserRole.admin, // change to .admin / .mason to test
-      projectId: 'p1',
-    );
-  }
-
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
       'material': '/review-material',
@@ -44,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'labour': '/add-labour',
       'equipment': '/add-equipment',
     };
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -67,35 +50,47 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
             const Text(
               'How do you want to add?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textDark,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-              style: const TextStyle(color: textGray, fontSize: 14),
+              style: const TextStyle(color: AppColors.textLight, fontSize: 14),
             ),
             const SizedBox(height: 20),
             _bottomSheetOption(
               icon: Icons.mic,
-              iconColor: primaryBlue,
+              iconColor: AppColors.primary,
               iconBg: const Color(0xFFEEF0FF),
               title: 'Use Voice',
               subtitle: 'Speak and let AI capture the details',
               onTap: () {
                 Navigator.pop(ctx);
-                Navigator.pushNamed(context, voiceRoutes[type]!, arguments: {'type': type});
+                Navigator.pushNamed(
+                  context,
+                  voiceRoutes[type]!,
+                  arguments: {'type': type},
+                );
               },
             ),
             const SizedBox(height: 12),
             _bottomSheetOption(
               icon: Icons.edit_outlined,
-              iconColor: purple,
+              iconColor: AppColors.primary,
               iconBg: const Color(0xFFF0EEFF),
               title: 'Enter Manually',
               subtitle: 'Fill the form manually',
               onTap: () {
                 Navigator.pop(ctx);
-                Navigator.pushNamed(context, manualRoutes[type]!, arguments: {'type': type});
+                Navigator.pushNamed(
+                  context,
+                  manualRoutes[type]!,
+                  arguments: {'type': type},
+                );
               },
             ),
             const SizedBox(height: 16),
@@ -104,8 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(8),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                child: Text('Cancel',
-                    style: TextStyle(color: textGray, fontSize: 15, fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -139,7 +140,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 46,
                 height: 46,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(13)),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(13),
+                ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
               const SizedBox(width: 14),
@@ -147,15 +151,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w800, color: textDark)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontSize: 13.5, color: textGray)),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: textGray, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textLight,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -163,11 +182,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgColor,
+    return NurofinScaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -179,7 +196,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -190,9 +211,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (UserSession.isAdmin) _AdminDashboard(onEntryTap: _showEntryOptions),
+                    if (UserSession.isAdmin)
+                      _AdminDashboard(onEntryTap: _showEntryOptions),
                     if (UserSession.isSupervisor) const _SupervisorDashboard(),
-                    if (UserSession.isMason) _MasonDashboard(onEntryTap: _showEntryOptions),
+                    if (UserSession.isMason)
+                      _MasonDashboard(onEntryTap: _showEntryOptions),
                   ],
                 ),
               ),
@@ -212,42 +235,38 @@ class _HomeScreenState extends State<HomeScreen> {
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
-
   @override
   State<_AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<_AdminDashboard> {
   static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-
-  // No local _selectedProject — we drive off ProjectProvider.selectedProject
+  static const purple = AppColors.primary;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-    final project  = provider.selectedProject;
-
+    final project = provider.selectedProject;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Project selector
         _buildProjectSelector(context, provider),
         const SizedBox(height: 14),
-
-        // Overall progress card
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('OVERALL PROGRESS',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: textGray,
-                      letterSpacing: 0.8)),
+              const Text(
+                'OVERALL PROGRESS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: textGray,
+                  letterSpacing: 0.8,
+                ),
+              ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -258,9 +277,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                         ? '${(project.progress * 100).toStringAsFixed(1)}%'
                         : '—',
                     style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        color: textDark),
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: textDark,
+                    ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -268,9 +288,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       Text(
                         project?.name ?? 'No project',
                         style: const TextStyle(
-                            color: primaryBlue,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13),
+                          color: primaryBlue,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                       Text(
                         project != null ? project.city : '',
@@ -281,8 +302,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 ],
               ),
               const SizedBox(height: 12),
-              AppProgressBar(
-                  label: '', percent: project?.progress ?? 0),
+              AppProgressBar(label: '', percent: project?.progress ?? 0),
             ],
           ),
         ),
@@ -313,8 +333,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ],
         ),
         const SizedBox(height: 14),
-
-        // Quick Actions
         const AppSectionHeader(title: 'Quick Actions'),
         Row(
           children: [
@@ -343,10 +361,27 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _categoryIcon(context, Icons.category_outlined, 'Material', primaryBlue, type: 'material'),
-              _categoryIcon(context, Icons.people_outline, 'Labour', purple, type: 'labour'),
-              _categoryIcon(context, Icons.construction_outlined, 'Equipment',
-                  const Color(0xFF7B3FE7), type: 'equipment'),
+              _categoryIcon(
+                context,
+                Icons.category_outlined,
+                'Material',
+                primaryBlue,
+                type: 'material',
+              ),
+              _categoryIcon(
+                context,
+                Icons.people_outline,
+                'Labour',
+                purple,
+                type: 'labour',
+              ),
+              _categoryIcon(
+                context,
+                Icons.construction_outlined,
+                'Equipment',
+                const Color(0xFF7B3FE7),
+                type: 'equipment',
+              ),
             ],
           ),
         ),
@@ -364,7 +399,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
-    final selectedName  = provider.selectedProject?.name ?? 'Select Project';
+    final selectedName = provider.selectedProject?.name ?? 'Select Project';
 
     return Material(
       color: Colors.white,
@@ -377,7 +412,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -388,7 +429,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   const SizedBox(width: 8),
                   Text(
                     selectedName,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textDark),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: textDark,
+                    ),
                   ),
                 ],
               ),
@@ -418,7 +463,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDDE0F0),
@@ -426,8 +472,14 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   ),
                 ),
               ),
-              const Text('Select Project',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textDark)),
+              const Text(
+                'Select Project',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: textDark,
+                ),
+              ),
               const SizedBox(height: 12),
               ...projects.map((p) {
                 final selected = p.id == provider.selectedProject?.id;
@@ -439,10 +491,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   borderRadius: BorderRadius.circular(12),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(
-                      color: selected ? primaryBlue.withValues(alpha: 0.08) : Colors.transparent,
+                      color: selected
+                          ? primaryBlue.withValues(alpha: 0.08)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selected ? primaryBlue : Colors.transparent,
@@ -452,7 +509,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     child: Row(
                       children: [
                         Icon(
-                          selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                          selected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
                           size: 18,
                           color: selected ? primaryBlue : textGray,
                         ),
@@ -462,7 +521,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             p.name,
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               color: selected ? primaryBlue : textDark,
                             ),
                           ),
@@ -479,29 +540,66 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-
-  Widget _costCard(String label, String value, String sub, bool isOver, {bool isInvoice = false}) {
+  Widget _costCard(
+    String label,
+    String value,
+    String sub,
+    bool isOver, {
+    bool isInvoice = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: isOver ? const Color(0xFFE040FB) : purple, width: 3)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
+        border: Border(
+          left: BorderSide(
+            color: isOver ? const Color(0xFFE040FB) : purple,
+            width: 3,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: textGray, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: textGray,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textDark)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: textDark,
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(isInvoice ? Icons.receipt_outlined : Icons.trending_up, size: 13,
-                  color: isOver ? Colors.redAccent : purple),
+              Icon(
+                isInvoice ? Icons.receipt_outlined : Icons.trending_up,
+                size: 13,
+                color: isOver ? Colors.redAccent : purple,
+              ),
               const SizedBox(width: 4),
-              Text(sub, style: TextStyle(fontSize: 12, color: isOver ? Colors.redAccent : purple, fontWeight: FontWeight.w600)),
+              Text(
+                sub,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isOver ? Colors.redAccent : purple,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ],
@@ -509,7 +607,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  Widget _categoryIcon(BuildContext context, IconData icon, String label, Color color, {required String type}) {
+  Widget _categoryIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color, {
+    required String type,
+  }) {
     return InkWell(
       onTap: () => widget.onEntryTap(context, type),
       borderRadius: BorderRadius.circular(14),
@@ -518,12 +622,23 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         child: Column(
           children: [
             Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(height: 6),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textDark)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: textDark,
+              ),
+            ),
           ],
         ),
       ),
@@ -540,13 +655,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         child: Ink(
           width: double.infinity,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2233DD), Color(0xFF5B3FE0)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: AppGradients.primaryButton,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: const Color(0xFF2233DD).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))],
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryBlue.withValues(alpha: 0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: const Padding(
             padding: EdgeInsets.symmetric(vertical: 22),
@@ -557,13 +674,26 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   children: [
                     Icon(Icons.mic, color: Colors.white, size: 24),
                     SizedBox(width: 10),
-                    Text('Speak Update',
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Speak Update',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 6),
-                Text('AI FOREMAN IS LISTENING',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.w600)),
+                Text(
+                  'AI FOREMAN IS LISTENING',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -581,41 +711,86 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           onAction: () => Navigator.pushNamed(context, '/notifications'),
         ),
         const SizedBox(height: 8),
-        _activityItem(context, Icons.local_shipping_outlined, 'Concrete Delivery Confirmed',
-            'Section 4A • 10:45 AM', 'On-Site', const Color(0xFFE8F5E9), const Color(0xFF2E7D32),
-            type: 'material', name: 'Concrete'),
+        _activityItem(
+          context,
+          Icons.local_shipping_outlined,
+          'Concrete Delivery Confirmed',
+          'Section 4A • 10:45 AM',
+          'On-Site',
+          const Color(0xFFE8F5E9),
+          const Color(0xFF2E7D32),
+          type: 'material',
+          name: 'Concrete',
+        ),
         const SizedBox(height: 8),
-        _activityItem(context, Icons.check_circle_outline, 'Safety Audit Passed',
-            'External Inspector • 09:12 AM', 'Cleared', const Color(0xFFF3E8FF), purple,
-            type: 'material', name: 'Safety Audit'),
+        _activityItem(
+          context,
+          Icons.check_circle_outline,
+          'Safety Audit Passed',
+          'External Inspector • 09:12 AM',
+          'Cleared',
+          const Color(0xFFF3E8FF),
+          purple,
+          type: 'material',
+          name: 'Safety Audit',
+        ),
         const SizedBox(height: 8),
-        _activityItem(context, Icons.warning_amber_outlined, 'Weather Alert: High Winds',
-            'Crane operations suspended • 08:30 AM', 'Alert', const Color(0xFFFFF3E0), Colors.orange,
-            type: 'equipment', name: 'Crane'),
+        _activityItem(
+          context,
+          Icons.warning_amber_outlined,
+          'Weather Alert: High Winds',
+          'Crane operations suspended • 08:30 AM',
+          'Alert',
+          const Color(0xFFFFF3E0),
+          Colors.orange,
+          type: 'equipment',
+          name: 'Crane',
+        ),
       ],
     );
   }
 
-  Widget _activityItem(BuildContext context, IconData icon, String title, String subtitle,
-      String badge, Color badgeBg, Color badgeColor,
-      {required String type, required String name}) {
+  Widget _activityItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    String badge,
+    Color badgeBg,
+    Color badgeColor, {
+    required String type,
+    required String name,
+  }) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/logs', arguments: {'type': type, 'name': name}),
+        onTap: () => Navigator.pushNamed(
+          context,
+          '/logs',
+          arguments: {'type': type, 'name': name},
+        ),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+              ),
+            ],
           ),
           child: Row(
             children: [
               Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(color: const Color(0xFFF0F2FF), borderRadius: BorderRadius.circular(12)),
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F2FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(icon, color: primaryBlue, size: 20),
               ),
               const SizedBox(width: 12),
@@ -623,16 +798,39 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: textDark)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        color: textDark,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontSize: 12.5, color: textGray)),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 12.5, color: textGray),
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(20)),
-                child: Text(badge, style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.w700)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  badge,
+                  style: TextStyle(
+                    color: badgeColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -653,9 +851,24 @@ class _SupervisorDashboard extends StatefulWidget {
 
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   static const _pendingItems = [
-    {'mason': 'Rajan Kumar', 'task': 'Column Casting – Level 3', 'time': 'Submitted • 08:30 AM', 'floor': 'Floor 3 • Block A'},
-    {'mason': 'Suresh Babu', 'task': 'Slab Reinforcement – Level 2', 'time': 'Submitted • 09:15 AM', 'floor': 'Floor 2 • Block B'},
-    {'mason': 'Anwar Sheikh', 'task': 'Plinth Beam Work', 'time': 'Submitted • 10:00 AM', 'floor': 'Ground • Parking'},
+    {
+      'mason': 'Rajan Kumar',
+      'task': 'Column Casting – Level 3',
+      'time': 'Submitted • 08:30 AM',
+      'floor': 'Floor 3 • Block A',
+    },
+    {
+      'mason': 'Suresh Babu',
+      'task': 'Slab Reinforcement – Level 2',
+      'time': 'Submitted • 09:15 AM',
+      'floor': 'Floor 2 • Block B',
+    },
+    {
+      'mason': 'Anwar Sheikh',
+      'task': 'Plinth Beam Work',
+      'time': 'Submitted • 10:00 AM',
+      'floor': 'Ground • Parking',
+    },
   ];
 
   // 'pending' | 'approved' | 'rejected'
@@ -709,24 +922,43 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           children: [
             _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
             const SizedBox(width: 10),
-            _summaryChip('${approvedCount + 12}', 'Approved Today', AppTheme.success),
+            _summaryChip(
+              '${approvedCount + 12}',
+              'Approved Today',
+              AppTheme.success,
+            ),
             const SizedBox(width: 10),
             _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
           ],
         ),
         const SizedBox(height: 16),
         const AppSectionHeader(title: 'Pending Approvals'),
-        ...List.generate(_pendingItems.length, (i) => _pendingCard(context, _pendingItems[i], i)),
+        ...List.generate(
+          _pendingItems.length,
+          (i) => _pendingCard(context, _pendingItems[i], i),
+        ),
         const SizedBox(height: 8),
         const AppSectionHeader(title: 'Recent Updates'),
         AppCard(
           child: Column(
             children: [
-              _recentRow('Beam Casting – Level 1', 'Mohan Singh', AppStatus.completed),
+              _recentRow(
+                'Beam Casting – Level 1',
+                'Mohan Singh',
+                AppStatus.completed,
+              ),
               const AppDivider(verticalPadding: 8),
-              _recentRow('Plastering – East Wing', 'Ravi Teja', AppStatus.inProgress),
+              _recentRow(
+                'Plastering – East Wing',
+                'Ravi Teja',
+                AppStatus.inProgress,
+              ),
               const AppDivider(verticalPadding: 8),
-              _recentRow('Curing – Ground Slab', 'Pradeep K', AppStatus.delayed),
+              _recentRow(
+                'Curing – Ground Slab',
+                'Pradeep K',
+                AppStatus.delayed,
+              ),
             ],
           ),
         ),
@@ -745,16 +977,34 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
         ),
         child: Column(
           children: [
-            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _pendingCard(BuildContext context, Map<String, String> item, int index) {
+  Widget _pendingCard(
+    BuildContext context,
+    Map<String, String> item,
+    int index,
+  ) {
     final status = _statuses[index];
     final isPending = status == 'pending';
 
@@ -776,23 +1026,33 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Row(
             children: [
               CircleAvatar(
                 radius: 18,
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
-                child: const Icon(Icons.person_outline, color: AppTheme.primary, size: 18),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item['mason']!, style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      item['mason']!,
+                      style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     Text(
                       item['time']!,
-                      style: AppTheme.caption.copyWith(color: AppTheme.textMedium),
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textMedium,
+                      ),
                     ),
                   ],
                 ),
@@ -802,11 +1062,16 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Text(
                   item['floor']!,
-                  style: AppTheme.caption.copyWith(color: AppTheme.primary, fontWeight: FontWeight.w700),
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -874,7 +1139,10 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(task, style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+              Text(
+                task,
+                style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+              ),
               Text(mason, style: AppTheme.caption),
             ],
           ),
@@ -892,9 +1160,21 @@ class _MasonDashboard extends StatelessWidget {
   final void Function(BuildContext, String) onEntryTap;
 
   static const _tasks = [
-    {'task': 'Column Casting – Level 3', 'phase': 'Superstructure', 'status': 'In Progress'},
-    {'task': 'Slab Reinforcement – Level 3', 'phase': 'Superstructure', 'status': 'Not Started'},
-    {'task': 'Curing – Level 2 Slab', 'phase': 'Superstructure', 'status': 'Completed'},
+    {
+      'task': 'Column Casting – Level 3',
+      'phase': 'Superstructure',
+      'status': 'In Progress',
+    },
+    {
+      'task': 'Slab Reinforcement – Level 3',
+      'phase': 'Superstructure',
+      'status': 'Not Started',
+    },
+    {
+      'task': 'Curing – Level 2 Slab',
+      'phase': 'Superstructure',
+      'status': 'Completed',
+    },
   ];
 
   @override
@@ -909,14 +1189,21 @@ class _MasonDashboard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
-                child: const Icon(Icons.person_outline, color: AppTheme.primary, size: 26),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppTheme.primary,
+                  size: 26,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Good Morning, Mason', style: AppTheme.heading3),
-                  Text('You have ${_tasks.length} tasks today', style: AppTheme.caption),
+                  Text(
+                    'You have ${_tasks.length} tasks today',
+                    style: AppTheme.caption,
+                  ),
                 ],
               ),
             ],
@@ -959,13 +1246,20 @@ class _MasonDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(task['task']!, style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  task['task']!,
+                  style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(task['phase']!, style: AppTheme.caption),
               ],
             ),
           ),
-          AppStatusBadge(status: statusMap[task['status']] ?? AppStatus.notStarted),
+          AppStatusBadge(
+            status: statusMap[task['status']] ?? AppStatus.notStarted,
+          ),
         ],
       ),
     );

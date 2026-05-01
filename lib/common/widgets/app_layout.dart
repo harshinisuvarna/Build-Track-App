@@ -3,16 +3,6 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
 
-/// Standardised page layout shell used by every screen in the app.
-/// No business logic — purely structural / presentational.
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. AppLayout  —  Full Scaffold page wrapper
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Wrap every screen's body with [AppLayout] to get a consistent AppBar,
-/// background, and safe-area padding automatically.
-///
 /// ```dart
 /// return AppLayout(
 ///   title: 'Dashboard',

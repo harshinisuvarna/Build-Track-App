@@ -1,17 +1,6 @@
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 
-/// A reusable, fully dynamic upload box.
-/// Works on both mobile (File) and web (bytes / blob URL).
-///
-/// Usage:
-/// ```dart
-/// UploadBox(
-///   attachment: _attachment,
-///   onPicked: (a) => setState(() => _attachment = a),
-///   onRemove: () => setState(() => _attachment = null),
-/// )
-/// ```
 class UploadBox extends StatelessWidget {
   final PickedAttachment? attachment;
   final ValueChanged<PickedAttachment> onPicked;
@@ -41,8 +30,6 @@ class UploadBox extends StatelessWidget {
           : (attachment!.isImage ? _imagePreview() : _filePreview()),
     );
   }
-
-  // ── Empty / placeholder ───────────────────────────────────────────────────
 
   Widget _emptyState(BuildContext context) {
     return GestureDetector(

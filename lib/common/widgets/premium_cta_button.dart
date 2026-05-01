@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
+
 enum CtaVariant { primary, secondary }
 
 /// A highly polished, premium Call-To-Action (CTA) button designed for 
@@ -91,16 +93,12 @@ class _PremiumCtaButtonState extends State<PremiumCtaButton>
         ),
         child: Container(
           width: widget.isFullWidth ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             // Primary gets a vibrant gradient, secondary gets a translucent glass outline
             gradient: isPrimary
-                ? const LinearGradient(
-                    colors: [Color(0xFF6B4EE6), Color(0xFF9B59FF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
+                ? AppGradients.primaryButton
                 : null,
             color: isPrimary ? null : Colors.white.withValues(alpha: 0.1),
             border: isPrimary
@@ -138,13 +136,18 @@ class _PremiumCtaButtonState extends State<PremiumCtaButton>
                 Icon(widget.icon, color: Colors.white, size: 18),
                 const SizedBox(width: 8),
               ],
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
                 ),
               ),
             ],

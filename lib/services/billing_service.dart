@@ -1,14 +1,3 @@
-// lib/services/billing_service.dart
-//
-// Wraps the `in_app_purchase` plugin.
-// Responsibilities:
-//   - Initialise the IAP connection once and expose a stream of PurchaseDetails.
-//   - Fetch ProductDetails from Google Play.
-//   - Initiate new subscriptions and restore existing ones.
-//   - Complete pending purchases so Google Play marks them as delivered.
-//
-// SubscriptionProvider listens to [purchaseStream] and updates app state.
-
 import 'dart:async';
 import 'dart:developer' as dev;
 

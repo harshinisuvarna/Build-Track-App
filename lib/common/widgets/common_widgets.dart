@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -180,7 +181,7 @@ class AppBottomNav extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: _primaryBlue,
+              gradient: AppGradients.primaryButton,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(

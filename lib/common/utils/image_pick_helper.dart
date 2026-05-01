@@ -4,9 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-// ─── Model ───────────────────────────────────────────────────────────────────
-
-/// Works on both mobile (File path) and web (bytes + blob URL).
 class PickedAttachment {
   /// Native file — available on mobile, null on web.
   final File? nativeFile;
