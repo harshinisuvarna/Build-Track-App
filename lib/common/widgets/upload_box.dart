@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+﻿import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 
 class UploadBox extends StatelessWidget {
@@ -65,7 +65,7 @@ class UploadBox extends StatelessWidget {
                 size: 26,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               emptyLabel,
               style: const TextStyle(
@@ -76,7 +76,7 @@ class UploadBox extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Images · PDF · DOC · XLSX',
+              'Images Â· PDF Â· DOC Â· XLSX',
               style: TextStyle(
                 fontSize: 11,
                 color: Color(0xFF8A90A8),
@@ -90,7 +90,7 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // ── Image preview ─────────────────────────────────────────────────────────
+  // â”€â”€ Image preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _imagePreview() {
     final provider = attachment!.imageProvider;
@@ -148,7 +148,7 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // ── Document / file preview ───────────────────────────────────────────────
+  // â”€â”€ Document / file preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _filePreview() {
     return Container(
@@ -205,7 +205,7 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // ── Fallback when image can't be decoded ─────────────────────────────────
+  // â”€â”€ Fallback when image can't be decoded â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _fileFallback() {
     return Container(
@@ -224,7 +224,7 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // ── Shared remove button ──────────────────────────────────────────────────
+  // â”€â”€ Shared remove button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _removeButton({bool dark = true}) {
     return GestureDetector(

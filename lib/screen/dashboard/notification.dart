@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +36,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -83,7 +83,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           "The site audit for 'South Wing' was successfully logged by inspector Miller.",
                       time: '1d ago',
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _yesterdayCard(
                       icon: Icons.schedule_outlined,
                       iconBg: const Color(0xFFF5F5F5),
@@ -136,7 +136,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(children: [
             Container(
                 width: 8,
@@ -177,7 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           color: Colors.red, fontWeight: FontWeight.w700)),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {},
@@ -232,7 +232,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(children: [
             Container(
                 width: 8,
@@ -288,7 +288,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text('WEEKLY REPORT',
               style: AppTheme.label.copyWith(
                   color: primaryBlue, fontSize: 10, letterSpacing: 0.9)),

@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -154,7 +153,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             const SizedBox(height: 6),
                             Text(
                               'Please select a valid supplier from the database.',
-                              style: GoogleFonts.inter(
+                              style: TextStyle(
                                 color: errorRed,
                                 fontSize: 11.5,
                                 fontStyle: FontStyle.italic,
@@ -182,7 +181,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     _labeledUnderlineField(
                                       'Quantity',
                                       _qtyController,
-                                      'm³',
+                                      'mÂ³',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -201,7 +200,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     _labeledUnderlineFieldPrefix(
                                       'Rate per Unit',
                                       _rateController,
-                                      '₹',
+                                      'â‚¹',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -341,7 +340,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   children: [
                     Text(
                       'Save Entry',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -369,17 +368,17 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       child: Row(
         children: [
           Icon(icon, color: textGray, size: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: ctrl,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: GoogleFonts.inter(color: textGray),
+                hintStyle: TextStyle(color: textGray),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: textDark,
@@ -421,7 +420,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       vertical: 10,
                     ),
                   ),
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: textDark,
@@ -430,7 +429,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
               Text(
                 suffix,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -463,7 +462,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             children: [
               Text(
                 '$prefix ',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -481,7 +480,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       vertical: 10,
                     ),
                   ),
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: textDark,
@@ -510,7 +509,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             children: [
               Text(
                 'TOTAL AMOUNT',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -519,8 +518,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '₹ ${_computeTotal()}',
-                style: GoogleFonts.inter(
+                'â‚¹ ${_computeTotal()}',
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -534,7 +533,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             height: 38,
             decoration: BoxDecoration(
               color: primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.calculate_outlined,
@@ -554,7 +553,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         RichText(
           text: TextSpan(
             text: 'Supplier ',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: primaryBlue,
               fontWeight: FontWeight.w700,
               fontSize: 13,
@@ -563,7 +562,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             children: [
               TextSpan(
                 text: '(Required)',
-                style: GoogleFonts.inter(color: errorRed),
+                style: TextStyle(color: errorRed),
               ),
             ],
           ),
@@ -584,13 +583,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             child: Row(
               children: [
                 const Icon(Icons.business_outlined, color: textGray, size: 18),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _supplierSelected
                         ? 'ABC Suppliers Ltd.'
                         : 'Select supplier',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       color: _supplierSelected ? textDark : textGray,
                       fontSize: 15,
                       fontWeight: _supplierSelected
@@ -640,14 +639,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Select Supplier',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
@@ -687,7 +686,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             const SizedBox(width: 12),
                             Text(
                               s,
-                              style: GoogleFonts.inter(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
                               ),
@@ -780,7 +779,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             const SizedBox(height: 3),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 color: isActive ? primaryBlue : textGray,
@@ -819,7 +818,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           const SizedBox(height: 3),
           Text(
             'ENTRY',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
               color: isActive ? primaryBlue : textGray,
@@ -833,7 +832,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   Widget _sectionLabel(String label) => Text(
     label,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: primaryBlue,
       fontWeight: FontWeight.w700,
       fontSize: 13,
@@ -843,7 +842,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   Widget _errorText(String msg) => Text(
     msg,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: errorRed,
       fontSize: 11.5,
       fontStyle: FontStyle.italic,

@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -197,7 +196,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     const SizedBox(height: 8),
                                     _prefixUnderlineField(
                                       _rateController,
-                                      prefix: '₹',
+                                      prefix: 'â‚¹',
                                       onChanged: (_) => setState(() {}),
                                     ),
                                     if (_rateError != null) ...[
@@ -238,7 +237,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   color: textGray,
                                   size: 18,
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: TextField(
                                     controller: _fuelController,
@@ -246,7 +245,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     decoration: InputDecoration(
                                       border: InputBorder.none,
                                       hintText: '0',
-                                      hintStyle: GoogleFonts.inter(
+                                      hintStyle: TextStyle(
                                         color: textGray,
                                       ),
                                       contentPadding:
@@ -254,7 +253,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                             vertical: 10,
                                           ),
                                     ),
-                                    style: GoogleFonts.inter(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       color: textDark,
@@ -263,7 +262,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 ),
                                 Text(
                                   'L',
-                                  style: GoogleFonts.inter(
+                                  style: TextStyle(
                                     color: textGray,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
@@ -321,17 +320,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       child: Row(
         children: [
           Icon(icon, color: textGray, size: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: ctrl,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: GoogleFonts.inter(color: textGray),
+                hintStyle: TextStyle(color: textGray),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: textDark,
@@ -367,7 +366,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: textDark,
@@ -376,7 +375,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ),
           Text(
             suffix,
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: textGray,
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -400,7 +399,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         children: [
           Text(
             '$prefix ',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: textGray,
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -419,7 +418,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: textDark,
@@ -446,7 +445,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             children: [
               Text(
                 'TOTAL AMOUNT',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -455,8 +454,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '₹ ${_computeTotal()}',
-                style: GoogleFonts.inter(
+                'â‚¹ ${_computeTotal()}',
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -470,7 +469,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             height: 38,
             decoration: BoxDecoration(
               color: primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.calculate_outlined,
@@ -564,7 +563,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   children: [
                     Text(
                       'Save Entry',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -581,7 +580,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Widget _sectionLabel(String label) => Text(
     label,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: primaryBlue,
       fontWeight: FontWeight.w700,
       fontSize: 13,
@@ -591,7 +590,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Widget _errorText(String msg) => Text(
     msg,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: errorRed,
       fontSize: 11.5,
       fontStyle: FontStyle.italic,

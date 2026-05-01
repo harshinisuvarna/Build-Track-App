@@ -1,4 +1,4 @@
-// lib/common/widgets/subscription_card.dart
+﻿// lib/common/widgets/subscription_card.dart
 //
 // A premium gradient card shown on the Profile screen.
 // Displays the user's current plan, renewal date, and CTAs.
@@ -66,7 +66,7 @@ class SubscriptionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header row ─────────────────────────────────────────────
+                // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -128,7 +128,7 @@ class SubscriptionCard extends StatelessWidget {
                   ],
                 ),
 
-                // ── Renewal date ───────────────────────────────────────────
+                // â”€â”€ Renewal date â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (sub.renewalDate != null) ...[
                   const SizedBox(height: 16),
                   Row(
@@ -151,7 +151,7 @@ class SubscriptionCard extends StatelessWidget {
                 const Divider(color: Colors.white24, height: 1),
                 const SizedBox(height: 14),
 
-                // ── CTA buttons ────────────────────────────────────────────
+                // â”€â”€ CTA buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 Row(
                   children: [
                     // Primary CTA
@@ -251,7 +251,7 @@ class SubscriptionCard extends StatelessWidget {
   }
 }
 
-// ── Internal badge ────────────────────────────────────────────────────────────
+// â”€â”€ Internal badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
@@ -277,7 +277,7 @@ class _StatusBadge extends StatelessWidget {
           height: 7,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(width: 4),
         Text(
           label,
           style: TextStyle(

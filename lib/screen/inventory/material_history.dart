@@ -1,7 +1,6 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class CementHistoryScreen extends StatefulWidget {
   const CementHistoryScreen({super.key});
@@ -46,55 +45,55 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                       iconBg: const Color(0xFFEEF0FF),
                       iconColor: primaryBlue,
                       name: 'Portland Type II',
-                      subtitle: 'Stock Replenishment • #INV-9921',
+                      subtitle: 'Stock Replenishment â€¢ #INV-9921',
                       qty: '+450',
                       date: 'OCT 24,\n2023',
                       isPositive: true,
                       accent: primaryBlue,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _movementItem(
                       icon: Icons.home_work_outlined,
                       iconBg: const Color(0xFFF0EEFF),
                       iconColor: purple,
                       name: 'Portland Type II',
-                      subtitle: 'Slab Pouring - Block B • #INV-9884',
+                      subtitle: 'Slab Pouring - Block B â€¢ #INV-9884',
                       qty: '-120',
                       date: 'OCT 22,\n2023',
                       isPositive: false,
                       accent: const Color(0xFFE040FB),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _movementItem(
                       icon: Icons.architecture,
                       iconBg: const Color(0xFFF0EEFF),
                       iconColor: purple,
                       name: 'Quick-Set Specialty',
-                      subtitle: 'Column Reinforcement • #INV-9851',
+                      subtitle: 'Column Reinforcement â€¢ #INV-9851',
                       qty: '-45',
                       date: 'OCT 20,\n2023',
                       isPositive: false,
                       accent: const Color(0xFFE040FB),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _movementItem(
                       icon: Icons.local_shipping_outlined,
                       iconBg: const Color(0xFFEEF0FF),
                       iconColor: primaryBlue,
                       name: 'Portland Type II',
-                      subtitle: 'Stock Replenishment • #INV-9820',
+                      subtitle: 'Stock Replenishment â€¢ #INV-9820',
                       qty: '+200',
                       date: 'OCT 18,\n2023',
                       isPositive: true,
                       accent: primaryBlue,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _movementItem(
                       icon: Icons.construction_outlined,
                       iconBg: const Color(0xFFF0EEFF),
                       iconColor: purple,
                       name: 'Portland Type II',
-                      subtitle: 'Foundation Work • #INV-9799',
+                      subtitle: 'Foundation Work â€¢ #INV-9799',
                       qty: '-85',
                       date: 'OCT 15,\n2023',
                       isPositive: false,
@@ -127,20 +126,20 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         children: [
           Text(
             'TOTAL CURRENT STOCK',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               fontSize: 12,
               color: textGray,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.1,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           RichText(
             text: TextSpan(
               children: [
                 TextSpan(
                   text: '1,248',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primaryPurple,
@@ -150,7 +149,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                 ),
                 TextSpan(
                   text: '  Units',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: textGray,
@@ -180,7 +179,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
         const SizedBox(width: 7),
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: TextStyle(
             color: purple,
             fontWeight: FontWeight.w800,
             fontSize: 12.5,
@@ -201,7 +200,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
           children: [
             Text(
               'Movement Logs',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: textDark,
@@ -210,7 +209,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             const SizedBox(height: 3),
             Text(
               'Tracking historical distribution',
-              style: GoogleFonts.inter(color: textGray, fontSize: 12.5),
+              style: TextStyle(color: textGray, fontSize: 12.5),
             ),
           ],
         ),
@@ -218,20 +217,20 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFDDE0F0)),
           ),
           child: Row(
             children: [
               Text(
                 'Filter',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: primaryBlue,
                   fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               const Icon(Icons.tune, color: primaryBlue, size: 16),
             ],
           ),
@@ -279,7 +278,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
               children: [
                 Text(
                   name,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14.5,
                     color: textDark,
@@ -288,7 +287,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(color: textGray, fontSize: 11.5),
+                  style: TextStyle(color: textGray, fontSize: 11.5),
                 ),
               ],
             ),
@@ -298,7 +297,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
             children: [
               Text(
                 qty,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: isPositive ? primaryBlue : const Color(0xFFE040FB),
                   fontWeight: FontWeight.w800,
                   fontSize: 19,
@@ -308,7 +307,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
               Text(
                 date,
                 textAlign: TextAlign.right,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 10,
                   height: 1.3,

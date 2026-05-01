@@ -1,11 +1,10 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
@@ -69,7 +68,7 @@ class AddEntryScreen extends StatelessWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFDDE0F0),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               const SizedBox(height: 20),
@@ -128,7 +127,7 @@ class AddEntryScreen extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       color: textGray,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -251,7 +250,7 @@ class AddEntryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Entry Type Cards ──────────────────────────────────
+                    // â”€â”€ Entry Type Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     const AppSectionHeader(title: 'Entry Type'),
                     ...List.generate(
                       _entries.length,
@@ -260,7 +259,7 @@ class AddEntryScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // ── Quick Actions ─────────────────────────────────────
+                    // â”€â”€ Quick Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     const AppSectionHeader(title: 'Quick Actions'),
                     AppCard(
                       onTap: () =>
@@ -311,7 +310,7 @@ class AddEntryScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // ── Team & Access (Admin only) ────────────────────
+                    // â”€â”€ Team & Access (Admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     if (RoleManager.canViewTeamAccess) ...[
                       const SizedBox(height: 24),
                       const AppSectionHeader(title: 'Team & Access'),
@@ -342,7 +341,7 @@ class AddEntryScreen extends StatelessWidget {
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.25),
           width: 1.5,
-          // Dart doesn't support native dashed borders — simulate with custom paint
+          // Dart doesn't support native dashed borders â€” simulate with custom paint
         ),
       ),
       child: Row(
@@ -396,7 +395,7 @@ class AddEntryScreen extends StatelessWidget {
                         SizedBox(width: 8),
                         Text(
                           'Assign Role',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 14.5,
@@ -522,7 +521,7 @@ class AddEntryScreen extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.7),
             size: 18,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

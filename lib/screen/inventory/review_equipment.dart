@@ -1,8 +1,7 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ReviewEquipmentEntryScreen extends StatelessWidget {
   const ReviewEquipmentEntryScreen({super.key});
@@ -33,7 +32,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                     child: Center(
                       child: Text(
                         'Review voice entry',
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           color: primaryBlue,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -51,7 +50,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _buildVoiceBanner(),
                     const SizedBox(height: 20),
                     _buildEquipmentCard(context),
@@ -97,7 +96,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
               children: [
                 Text(
                   'Parsed from voice',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: voicePurple,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -106,8 +105,8 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 97.2% • Voice timestamp 11:30 AM',
-                  style: GoogleFonts.inter(
+                  'Confidence: 97.2% â€¢ Voice timestamp 11:30 AM',
+                  style: TextStyle(
                     color: voicePurple.withValues(alpha: 0.75),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -149,7 +148,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Equipment Log',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: textDark,
@@ -158,7 +157,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     'Site: North District Phase 2',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 13,
                       color: textGray,
                       fontWeight: FontWeight.w500,
@@ -209,7 +208,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                   children: [
                     _label('COST / HOUR'),
                     const SizedBox(height: 8),
-                    _box('₹85.00'),
+                    _box('â‚¹85.00'),
                   ],
                 ),
               ),
@@ -233,8 +232,8 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '₹510.00',
-                  style: GoogleFonts.inter(
+                  'â‚¹510.00',
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: primaryBlue,
@@ -250,7 +249,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'AUTO',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: primaryBlue,
@@ -276,7 +275,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'ORIGINAL AUDIO TRANSCRIPT',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: primaryBlue,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -288,7 +287,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           '"Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation."',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 14,
             color: textGray,
             fontStyle: FontStyle.italic,
@@ -322,10 +321,10 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               'Confirm and save',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -339,7 +338,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
 
   Widget _label(String text) => Text(
         text,
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w800,
           color: textGray,
@@ -352,11 +351,11 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
           color: const Color(0xFFF4F6FB),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           value,
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: textDark,

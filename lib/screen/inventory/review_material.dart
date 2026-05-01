@@ -1,8 +1,7 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
@@ -21,7 +20,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
 
   PickedAttachment? _attachment;
 
-  // ✅ FIX: receipt attachment state + confirm loading state
+  // âœ… FIX: receipt attachment state + confirm loading state
   bool _isConfirming = false;
 
   @override
@@ -49,7 +48,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                     const SizedBox(height: 18),
                     _buildMaterialLogCard(),
                     const SizedBox(height: 22),
-                    // ✅ FIX: receipt attachment section
+                    // âœ… FIX: receipt attachment section
                     _buildReceiptSection(),
                     const SizedBox(height: 22),
                     _buildTranscript(),
@@ -93,7 +92,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               children: [
                 Text(
                   'Parsed from voice',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: purple,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -102,8 +101,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 98.4% • Voice timestamp 10:42 AM',
-                  style: GoogleFonts.inter(
+                  'Confidence: 98.4% â€¢ Voice timestamp 10:42 AM',
+                  style: TextStyle(
                     color: const Color(0xFF9B7FD6),
                     fontSize: 12,
                   ),
@@ -141,7 +140,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                 children: [
                   Text(
                     'Material Log',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: textDark,
@@ -150,7 +149,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   const SizedBox(height: 3),
                   Text(
                     'Site: North District Phase 2',
-                    style: GoogleFonts.inter(color: textGray, fontSize: 12.5),
+                    style: TextStyle(color: textGray, fontSize: 12.5),
                   ),
                 ],
               ),
@@ -178,7 +177,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     _fieldLabel('QUANTITY'),
                     const SizedBox(height: 6),
-                    _fieldBox('12.5 m³'),
+                    _fieldBox('12.5 mÂ³'),
                   ],
                 ),
               ),
@@ -189,7 +188,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     _fieldLabel('RATE'),
                     const SizedBox(height: 6),
-                    _fieldBox(r'₹145.00'),
+                    _fieldBox(r'â‚¹145.00'),
                   ],
                 ),
               ),
@@ -208,8 +207,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  r'₹1,812.50',
-                  style: GoogleFonts.inter(
+                  r'â‚¹1,812.50',
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 24,
                     color: primaryBlue,
@@ -227,7 +226,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   ),
                   child: Text(
                     'AUTO',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       color: primaryBlue,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -243,20 +242,20 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     );
   }
 
-  // ✅ FIX: receipt attachment section identical to manual entry screens
+  // âœ… FIX: receipt attachment section identical to manual entry screens
   Widget _buildReceiptSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Attach Receipt (Optional)',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             color: primaryBlue,
             fontWeight: FontWeight.w800,
             fontSize: 14,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         UploadBox(
           attachment: _attachment,
           emptyLabel: 'Tap to attach receipt',
@@ -277,7 +276,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             const SizedBox(width: 7),
             Text(
               'ORIGINAL AUDIO TRANSCRIPT',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: primaryBlue,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -292,7 +291,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           'We just received 12.5 cubic meters of C35 ready-mix concrete. '
           'Rate is fixed at 145 per unit. Confirming receipt for 1,812 '
           'rupees and 50 paise. Log this under structural foundations."',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             color: textDark,
             fontSize: 14,
             fontStyle: FontStyle.italic,
@@ -303,7 +302,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     );
   }
 
-  // ✅ FIX: loading state prevents double-tap
+  // âœ… FIX: loading state prevents double-tap
   Widget _buildConfirmButton(BuildContext context) {
     return GestureDetector(
       onTap: _isConfirming
@@ -350,10 +349,10 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                       color: Colors.white,
                       size: 22,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Text(
                       'Confirm and save',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
@@ -369,7 +368,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   Widget _fieldLabel(String label) {
     return Text(
       label,
-      style: GoogleFonts.inter(
+      style: TextStyle(
         fontSize: 11,
         color: textGray,
         fontWeight: FontWeight.w800,
@@ -388,7 +387,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
       ),
       child: Text(
         value,
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 15.5,
           color: textDark,

@@ -1,28 +1,15 @@
-// lib/controller/project_provider.dart
-// Global ProjectProvider — single source of truth for all project state.
-// Injected at the app root (main.dart) via MultiProvider.
-
 import 'dart:developer' as dev;
-
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 const _kProjectsKey = 'buildtrack_projects_v1';
 const _kEntriesKey  = 'buildtrack_entries_v1';
-
 class ProjectProvider extends ChangeNotifier {
-  // ── State ──────────────────────────────────────────────────────────────────
-
   List<ProjectModel> _projects = [];
   List<EntryModel>   _entries  = [];
   ProjectModel?      _selectedProject;
-
   bool   _isLoading = false;
   String _error     = '';
-
-  // ── Getters ────────────────────────────────────────────────────────────────
-
   List<ProjectModel> get projects        => List.unmodifiable(_projects);
   List<EntryModel>   get entries         => List.unmodifiable(_entries);
   ProjectModel?      get selectedProject => _selectedProject;
@@ -30,32 +17,21 @@ class ProjectProvider extends ChangeNotifier {
   String             get error           => _error;
   bool               get hasProjects     => _projects.isNotEmpty;
   int                get projectCount    => _projects.length;
-
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId == projectId).toList();
-
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (s, e) => s + e.amount);
-
-  // ── Initialization ─────────────────────────────────────────────────────────
-
-  /// Call once from main() before runApp, or from initState on root widget.
   Future<void> load() async {
     _setLoading(true);
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Load projects
       final rawProjects = prefs.getString(_kProjectsKey);
       if (rawProjects != null && rawProjects.isNotEmpty) {
         _projects = ProjectModel.decodeList(rawProjects);
       } else {
-        // Seed with demo data on first launch
         _projects = _seedProjects();
         await _persistProjects();
       }
-
-      // Load entries
       final rawEntries = prefs.getString(_kEntriesKey);
       if (rawEntries != null && rawEntries.isNotEmpty) {
         _entries = EntryModel.decodeList(rawEntries);
@@ -63,8 +39,6 @@ class ProjectProvider extends ChangeNotifier {
         _entries = _seedEntries();
         await _persistEntries();
       }
-
-      // Auto-select first project
       if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
       }
@@ -76,21 +50,16 @@ class ProjectProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
-  // ── Project mutations ──────────────────────────────────────────────────────
-
   Future<void> addProject(ProjectModel project) async {
     _projects.add(project);
     _selectedProject = project;
     await _persistProjects();
     notifyListeners();
   }
-
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     notifyListeners();
   }
-
   Future<void> updateProjectProgress(String id, double progress) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
@@ -99,7 +68,6 @@ class ProjectProvider extends ChangeNotifier {
     await _persistProjects();
     notifyListeners();
   }
-
   Future<void> updateProjectCost(String id, double spentAmount) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
@@ -108,12 +76,8 @@ class ProjectProvider extends ChangeNotifier {
     await _persistProjects();
     notifyListeners();
   }
-
-  // ── Entry mutations ────────────────────────────────────────────────────────
-
   Future<void> addEntry(EntryModel entry) async {
     _entries.add(entry);
-    // Update spentAmount on corresponding project
     final idx = _projects.indexWhere((p) => p.id == entry.projectId);
     if (idx != -1) {
       final newSpent = _projects[idx].spentAmount + entry.amount;
@@ -126,28 +90,18 @@ class ProjectProvider extends ChangeNotifier {
     await _persistEntries();
     notifyListeners();
   }
-
-  // ── Persistence ────────────────────────────────────────────────────────────
-
   Future<void> _persistProjects() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kProjectsKey, ProjectModel.encodeList(_projects));
   }
-
   Future<void> _persistEntries() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEntriesKey, EntryModel.encodeList(_entries));
   }
-
-  // ── Internal helpers ───────────────────────────────────────────────────────
-
   void _setLoading(bool v) {
     _isLoading = v;
     notifyListeners();
   }
-
-  // ── Seed data ──────────────────────────────────────────────────────────────
-
   List<ProjectModel> _seedProjects() => [
         ProjectModel(
           id:          'p1',
@@ -183,7 +137,6 @@ class ProjectProvider extends ChangeNotifier {
           startDate:   DateTime(2023, 6, 10),
         ),
       ];
-
   List<EntryModel> _seedEntries() => [
         EntryModel(
           id:          'e1',

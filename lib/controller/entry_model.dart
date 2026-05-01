@@ -11,28 +11,17 @@ class Entry {
     this.approvedAt,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
-
-  // ── Core fields ───────────────────────────────────────────────────────────
-
   final String id;
   final EntryType type;
   final String projectId;
   final String createdBy;
   final DateTime createdAt;
-
-  // ── Status fields (mutable) ───────────────────────────────────────────────
-
   EntryStatus status;
   String? approvedBy;
   DateTime? approvedAt;
-
-  // ── Convenience getters ───────────────────────────────────────────────────
-
   bool get isPending  => status == EntryStatus.pending;
   bool get isApproved => status == EntryStatus.approved;
   bool get isRejected => status == EntryStatus.rejected;
-
-  /// Human-readable type label (e.g. 'Material').
   String get typeLabel {
     switch (type) {
       case EntryType.material:  return 'Material';
@@ -41,7 +30,6 @@ class Entry {
     }
   }
 
-  /// Human-readable status label (e.g. 'Pending').
   String get statusLabel {
     switch (status) {
       case EntryStatus.pending:  return 'Pending';
@@ -49,10 +37,6 @@ class Entry {
       case EntryStatus.rejected: return 'Rejected';
     }
   }
-
-  // ── Serialisation ─────────────────────────────────────────────────────────
-
-  /// Constructs an [Entry] from a plain [Map] (e.g. from local storage / API).
   factory Entry.fromMap(Map<String, dynamic> map) {
     return Entry(
       id:          map['id'] as String,
@@ -75,8 +59,6 @@ class Entry {
                      : null,
     );
   }
-
-  /// Converts this [Entry] to a plain [Map] (e.g. for local storage / API).
   Map<String, dynamic> toMap() {
     return {
       'id':         id,
@@ -89,8 +71,6 @@ class Entry {
       if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
     };
   }
-
-  /// Returns a copy with updated fields (immutable update pattern).
   Entry copyWith({
     EntryStatus? status,
     String? approvedBy,
@@ -107,7 +87,6 @@ class Entry {
       approvedAt: approvedAt ?? this.approvedAt,
     );
   }
-
   @override
   String toString() =>
       'Entry(id: $id, type: $typeLabel, status: $statusLabel, project: $projectId)';

@@ -1,4 +1,4 @@
-// lib/screen/projectscreen.dart
+﻿// lib/screen/projectscreen.dart
 // Reads projects from ProjectProvider and navigates to /project-detail.
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
@@ -8,7 +8,6 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class ProjectsScreen extends StatelessWidget {
@@ -109,7 +108,7 @@ class ProjectsScreen extends StatelessWidget {
               ),
               child: Text(
                 'LIVE PIPELINE',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -117,14 +116,14 @@ class ProjectsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   'Active Builds',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
                     color: textDark,
@@ -140,7 +139,7 @@ class ProjectsScreen extends StatelessWidget {
                   ),
                   child: Text(
                     '${provider.projects.length} Sites',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       color: primaryBlue,
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
@@ -196,7 +195,7 @@ class ProjectsScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       p.name,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: textDark,
@@ -205,7 +204,7 @@ class ProjectsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 5),
@@ -215,7 +214,7 @@ class ProjectsScreen extends StatelessWidget {
                     ),
                     child: Text(
                       p.stage.label,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: style.fg,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -229,7 +228,7 @@ class ProjectsScreen extends StatelessWidget {
               // Location
               Text(
                 p.location,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -239,7 +238,7 @@ class ProjectsScreen extends StatelessWidget {
               // Budget summary
               Text(
                 '${p.formattedSpent} of ${p.formattedBudget}',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -252,12 +251,12 @@ class ProjectsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Overall Progress',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                           color: textDark,
                           fontWeight: FontWeight.w800,
                           fontSize: 13)),
                   Text('${(p.progress * 100).toStringAsFixed(0)}%',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                           color: primaryBlue,
                           fontWeight: FontWeight.w800,
                           fontSize: 13)),
@@ -265,7 +264,7 @@ class ProjectsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(16),
                 child: LinearProgressIndicator(
                   value: p.progress,
                   backgroundColor: const Color(0xFFE8ECF8),
@@ -295,7 +294,7 @@ class ProjectsScreen extends StatelessWidget {
                       children: [
                         Text(
                           'View Details',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             color: primaryBlue,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,

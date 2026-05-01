@@ -1,10 +1,9 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class AddProjectScreen extends StatefulWidget {
@@ -67,7 +66,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         bottom: false,
         child: Column(
           children: [
-            // ── Back header ─────────────────────────────────────────────────
+            // â”€â”€ Back header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -93,7 +92,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   const SizedBox(width: 16),
                   Text(
                     'New Project',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
                       color: textDark,
@@ -153,7 +152,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       const SizedBox(height: 18),
 
                       // Total Budget (NEW)
-                      _label('Total Budget (₹)'),
+                      _label('Total Budget (â‚¹)'),
                       const SizedBox(height: 8),
                       _field(
                         controller: _budgetCtrl,
@@ -203,7 +202,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               ),
                               child: Text(
                                 s.label,
-                                style: GoogleFonts.inter(
+                                style: TextStyle(
                                   color: sel ? Colors.white : fg,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
@@ -245,7 +244,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 )
                               : Text(
                                   'Add Project',
-                                  style: GoogleFonts.inter(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -264,7 +263,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-  // ── Widget builders ─────────────────────────────────────────────────────────
+  // â”€â”€ Widget builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _chip(String text) => Container(
         padding:
@@ -275,7 +274,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         child: Text(
           text,
-          style: GoogleFonts.inter(
+          style: TextStyle(
             color: primaryBlue,
             fontSize: 11,
             fontWeight: FontWeight.w800,
@@ -286,7 +285,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   Widget _label(String text) => Text(
         text,
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w800,
           color: textGray,
@@ -308,14 +307,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         onChanged: (_) => setState(() {}),
-        style: GoogleFonts.inter(
+        style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: textDark,
         ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(
+          hintStyle: TextStyle(
             color: textGray.withValues(alpha: 0.6),
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -392,10 +391,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           children: [
             const Icon(Icons.calendar_month_outlined,
                 color: primaryBlue, size: 20),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               dateStr,
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
                 color: textDark,
@@ -435,7 +434,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               Expanded(
                 child: Text(
                   name,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: textDark,
@@ -443,7 +442,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 4),
@@ -453,7 +452,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ),
                 child: Text(
                   _selectedStage.label,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: fg,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -463,15 +462,15 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          Text('$city • $sector',
-              style: GoogleFonts.inter(
+          Text('$city â€¢ $sector',
+              style: TextStyle(
                   color: textGray, fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           // Budget preview
           if (_budgetCtrl.text.isNotEmpty)
             Text(
-              'Budget: ₹${_fmt(double.tryParse(_budgetCtrl.text) ?? 0)}',
-              style: GoogleFonts.inter(
+              'Budget: â‚¹${_fmt(double.tryParse(_budgetCtrl.text) ?? 0)}',
+              style: TextStyle(
                   color: primaryBlue,
                   fontSize: 13,
                   fontWeight: FontWeight.w700),
@@ -491,7 +490,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // ── Feature gate: Free plan = max 2 projects ──────────────────────────
+    // â”€â”€ Feature gate: Free plan = max 2 projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     final projectProvider = context.read<ProjectProvider>();
     final subProvider     = context.read<SubscriptionProvider>();
     if (!subProvider.canAddProject(projectProvider.projectCount)) {
@@ -563,7 +562,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             const SizedBox(height: 18),
             Text(
               'Project Limit Reached',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: textDark),
@@ -572,7 +571,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             Text(
               'Free plan allows up to 2 projects.\nUpgrade to Pro for unlimited projects.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
+              style: TextStyle(
                   fontSize: 13.5,
                   color: textGray,
                   height: 1.5),
@@ -594,17 +593,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 },
                 child: Text(
                     'Upgrade to Pro',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                         color: Colors.white)),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text('Maybe Later',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                       color: textGray, fontWeight: FontWeight.w600)),
             ),
           ],
@@ -614,7 +613,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 }
 
-// ── Extension to simplify Border on a Container ────────────────────────────
+// â”€â”€ Extension to simplify Border on a Container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 extension on BorderSide {
   Border? merged(Border? _) => Border.all(

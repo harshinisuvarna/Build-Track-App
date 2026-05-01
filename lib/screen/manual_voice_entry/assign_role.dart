@@ -1,11 +1,10 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AssignRoleScreen extends StatefulWidget {
   const AssignRoleScreen({super.key});
@@ -27,7 +26,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   static const _projects = [
     'North District Phase 2',
     'Main Building Block A',
-    'Road Extension – Zone 4',
+    'Road Extension â€“ Zone 4',
   ];
 
 
@@ -94,7 +93,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Admin badge + subtitle ────────────────────────────
+                    // â”€â”€ Admin badge + subtitle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     _adminBadge(),
                     const SizedBox(height: 6),
                     Text(
@@ -103,12 +102,12 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Form card ─────────────────────────────────────────
+                    // â”€â”€ Form card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     _formCard(isAdmin),
 
                     const SizedBox(height: 12),
 
-                    // ── Assign button ─────────────────────────────────────
+                    // â”€â”€ Assign button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     if (isAdmin) _assignButton(),
 
                     const SizedBox(height: 24),
@@ -123,7 +122,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     );
   }
 
-  // ── Admin Access Only badge ───────────────────────────────────────────────
+  // â”€â”€ Admin Access Only badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _adminBadge() {
     return Container(
@@ -151,7 +150,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     );
   }
 
-  // ── Main form card ────────────────────────────────────────────────────────
+  // â”€â”€ Main form card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _formCard(bool isAdmin) {
     return AppCard(
@@ -253,7 +252,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.gradientStart,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,22 +268,22 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   Widget _roleHintRow(String role, String desc) {
     return RichText(
       text: TextSpan(
-        style: GoogleFonts.inter(fontSize: 12.5, height: 1.4),
+        style: TextStyle(fontSize: 12.5, height: 1.4),
         children: [
           TextSpan(
-            text: '• ',
-            style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w800),
+            text: 'â€¢ ',
+            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
           ),
           TextSpan(
             text: '$role: ',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: AppColors.textDark,
               fontWeight: FontWeight.w700,
             ),
           ),
           TextSpan(
             text: desc,
-            style: GoogleFonts.inter(color: AppColors.textLight),
+            style: TextStyle(color: AppColors.textLight),
           ),
         ],
       ),
@@ -323,7 +322,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     SizedBox(width: 9),
                     Text(
                       'Assign Role',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15.5,

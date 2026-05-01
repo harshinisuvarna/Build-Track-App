@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -61,7 +61,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 height: 4,
                 decoration: BoxDecoration(
                     color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(10))),
+                    borderRadius: BorderRadius.circular(16))),
             const SizedBox(height: 20),
             const Text('How do you want to add?',
                 style: TextStyle(
@@ -231,7 +231,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       child: Row(children: [
         const Icon(Icons.search, color: textGray, size: 20),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: TextField(
             controller: _searchCtrl,
@@ -251,10 +251,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
         Material(
           color: AppColors.primaryBlue,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: _showFilterOptions,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             child: const SizedBox(
                 width: 36,
                 height: 36,
@@ -457,7 +457,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         letterSpacing: 0.5)),
               ),
             ]),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Expanded(
                 child: Column(
@@ -494,10 +494,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Material(
                   color: const Color(0xFFF0F2FF),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                   child: InkWell(
                     onTap: () => _showEntryOptions(context, type),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(16),
                     child: const SizedBox(
                         width: 44,
                         height: 44,
@@ -538,7 +538,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.3)),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         const Text('Glazing Panels\nSection B-12',
             style: TextStyle(
                 color: Colors.white,

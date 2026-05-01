@@ -40,6 +40,14 @@ class AppTheme {
   static const Color divider      = AppColors.divider;
 
   // ── Shadows ───────────────────────────────────────────────────────────────
+  static final List<BoxShadow> premiumShadow = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: .05),
+      blurRadius: 12,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
   static const List<BoxShadow> cardShadows = [
     BoxShadow(
       color: Color(0x0A000000),
@@ -58,15 +66,37 @@ class AppTheme {
   // ── Card decoration ───────────────────────────────────────────────────────
   static final BoxDecoration cardDecoration = BoxDecoration(
     color: AppColors.cardBg,
-    borderRadius: BorderRadius.circular(radiusLg),
+    borderRadius: BorderRadius.circular(16),
     border: Border.all(color: AppColors.cardBorder, width: 0.5),
-    boxShadow: const [
-      BoxShadow(
-        color: Color(0x0F6C5CE7),
-        blurRadius: 12,
-        offset: Offset(0, 4),
-      ),
-    ],
+    boxShadow: premiumShadow,
+  );
+
+  // ── Standardized Button Styles ───────────────────────────────────────────────
+  static final ButtonStyle primaryButton = ElevatedButton.styleFrom(
+    backgroundColor: AppColors.primaryBlue,
+    foregroundColor: Colors.white,
+    minimumSize: const Size.fromHeight(48),
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  static final ButtonStyle outlineButton = OutlinedButton.styleFrom(
+    foregroundColor: AppColors.primaryBlue,
+    minimumSize: const Size.fromHeight(48),
+    side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    ),
   );
 
   // ── Typography (legacy tokens — kept so existing screens compile) ─────────

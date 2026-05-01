@@ -1,4 +1,4 @@
-
+﻿
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -73,16 +73,16 @@ class ProjectReportScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    // ── 1. Project Summary ─────────────────────────────────
+                    // â”€â”€ 1. Project Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     _SummaryCard(project: project),
                     const SizedBox(height: 14),
 
-                    // ── 2. Financial Snapshot ──────────────────────────────
+                    // â”€â”€ 2. Financial Snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     const AppSectionHeader(title: 'Financial Snapshot'),
                     _FinancialSnapshot(project: project),
                     const SizedBox(height: 14),
 
-                    // ── 3. Labour ──────────────────────────────────────────
+                    // â”€â”€ 3. Labour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Labour',
                       actionLabel: labour.isEmpty ? null : 'All',
@@ -95,7 +95,7 @@ class ProjectReportScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── 4. Materials ───────────────────────────────────────
+                    // â”€â”€ 4. Materials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Materials',
                       actionLabel: materials.isEmpty ? null : 'All',
@@ -108,7 +108,7 @@ class ProjectReportScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── 5. Equipment ───────────────────────────────────────
+                    // â”€â”€ 5. Equipment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Equipment',
                       actionLabel: equipment.isEmpty ? null : 'All',
@@ -121,7 +121,7 @@ class ProjectReportScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── 6. Recent Activity Timeline ────────────────────────
+                    // â”€â”€ 6. Recent Activity Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Recent Activity',
                       actionLabel: recent.isEmpty ? null : 'View All',
@@ -130,14 +130,14 @@ class ProjectReportScreen extends StatelessWidget {
                     _ActivityTimeline(entries: recent),
                     const SizedBox(height: 20),
 
-                    // ── 7. Actions ─────────────────────────────────────────
+                    // â”€â”€ 7. Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppButton(
                       label: 'Update Progress',
                       icon: Icons.trending_up,
                       onPressed: () =>
                           Navigator.pushNamed(context, '/update-progress'),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     AppButton(
                       label: 'View Full Logs',
                       icon: Icons.receipt_long_outlined,
@@ -155,9 +155,9 @@ class ProjectReportScreen extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 1. Project Summary Card
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.project});
@@ -251,7 +251,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 9,
@@ -270,9 +270,9 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Financial Snapshot — three simple stat chips, no chart
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 2. Financial Snapshot â€” three simple stat chips, no chart
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FinancialSnapshot extends StatelessWidget {
   const _FinancialSnapshot({required this.project});
@@ -295,14 +295,14 @@ class _FinancialSnapshot extends StatelessWidget {
           icon: Icons.account_balance_outlined,
           color: AppColors.textDark,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _StatChip(
           label: 'Spent',
           value: project.formattedSpent,
           icon: Icons.payments_outlined,
           color: AppColors.primary,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _StatChip(
           label: 'Remaining',
           value: project.formattedRemaining,
@@ -345,7 +345,7 @@ class _StatChip extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, color: color, size: 15),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(value,
                 style: TextStyle(
                     fontSize: 14,
@@ -362,9 +362,9 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 3-5. Entry Section (Labour / Material / Equipment)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EntrySection extends StatelessWidget {
   const _EntrySection({
@@ -386,7 +386,7 @@ class _EntrySection extends StatelessWidget {
           child: Row(children: [
             Icon(_typeIcon(type),
                 color: AppColors.textLight, size: 18),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(emptyMsg,
                 style:
                     AppTheme.body.copyWith(color: AppColors.textLight)),
@@ -410,10 +410,10 @@ class _EntrySection extends StatelessWidget {
               width: 36, height: 36,
               decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(16)),
               child: Icon(_typeIcon(type), color: color, size: 18),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '${entries.length} ${_typeLabel(type)} entr${entries.length == 1 ? 'y' : 'ies'}',
@@ -478,15 +478,15 @@ class _EntrySection extends StatelessWidget {
   }
 
   String _fmtAmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 1e6) return 'â‚¹${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return 'â‚¹${(v / 1e3).toStringAsFixed(0)}k';
+    return 'â‚¹${v.toStringAsFixed(0)}';
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. Activity Timeline — chronological entry feed
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 6. Activity Timeline â€” chronological entry feed
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ActivityTimeline extends StatelessWidget {
   const _ActivityTimeline({required this.entries});
@@ -612,8 +612,8 @@ class _ActivityTimeline extends StatelessWidget {
   }
 
   String _fmtAmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
+    if (v >= 1e6) return 'â‚¹${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return 'â‚¹${(v / 1e3).toStringAsFixed(0)}k';
+    return 'â‚¹${v.toStringAsFixed(0)}';
   }
 }

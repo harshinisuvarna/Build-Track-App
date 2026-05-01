@@ -1,9 +1,8 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:provider/provider.dart';
@@ -90,7 +89,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ],
         ),
       ),
-      // ← fixed: bottom nav was missing
+      // â† fixed: bottom nav was missing
       bottomNavigationBar: const AppBottomNav(),
     );
   }
@@ -99,7 +98,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,                          // ← explicit white bg
+        color: Colors.white,                          // â† explicit white bg
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -121,7 +120,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
             child: Text(
               'CURRENT ACTIVE STAGE',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: primaryBlue,
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -129,7 +128,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Stage name row + icon
           Row(
@@ -138,7 +137,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               Expanded(
                 child: Text(
                   'Reinforcement Work',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: textDark,
@@ -152,7 +151,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 height: 38,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F4F8),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.architecture, color: textGray, size: 20),
               ),
@@ -166,8 +165,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               const Icon(Icons.location_on_outlined, color: textGray, size: 14),
               const SizedBox(width: 4),
               Text(
-                'Sector B-12 • Level 04',
-                style: GoogleFonts.inter(
+                'Sector B-12 â€¢ Level 04',
+                style: TextStyle(
                   color: textGray,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -188,7 +187,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       children: [
                         Text(
                           'COMPLETION',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             color: textGray,
@@ -197,7 +196,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                         ),
                         Text(
                           '${(_completionProgress * 100).toInt()}%',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             color: primaryBlue,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
@@ -256,7 +255,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             backgroundColor: const Color(0xFFEEF0FF),
             child: Text(
               '+4',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
                 color: primaryBlue,
@@ -274,7 +273,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       children: [
         Text(
           'Select Stage',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
             color: textDark,
@@ -297,7 +296,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   decoration: BoxDecoration(
                     color: sel ? primaryBlue : Colors.white,
                     borderRadius: BorderRadius.circular(30),
-                    // ← fixed: unselected chips now have a visible border
+                    // â† fixed: unselected chips now have a visible border
                     border: Border.all(
                       color: sel ? primaryBlue : const Color(0xFFDDE0F0),
                       width: 1.5,
@@ -311,7 +310,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   ),
                   child: Text(
                     e.value,
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       color: sel ? Colors.white : textGray,
                       fontWeight: FontWeight.w800,
                       fontSize: 14,
@@ -331,13 +330,13 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       children: [
         Text(
           'Work progress details',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
             color: textDark,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -355,11 +354,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             maxLines: 5,
             decoration: InputDecoration(
               hintText: 'Describe the tasks completed today...',
-              hintStyle: GoogleFonts.inter(color: textGray, fontSize: 14),
+              hintStyle: TextStyle(color: textGray, fontSize: 14),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(14),
             ),
-            style: GoogleFonts.inter(
+            style: TextStyle(
               fontSize: 14,
               color: textDark,
               height: 1.5,
@@ -377,13 +376,13 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       children: [
         Text(
           'Update Date',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
             color: textDark,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         GestureDetector(
           onTap: () async {
             final picked = await showDatePicker(
@@ -428,10 +427,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   color: primaryBlue,
                   size: 19,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Text(
                   dateStr,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                     color: textDark,
@@ -451,13 +450,13 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       children: [
         Text(
           'Documentation',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
             color: textDark,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         UploadBox(
           attachment: _attachment,
           emptyLabel: 'Tap to add site photo',
@@ -489,7 +488,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             children: [
               Text(
                 'MATERIAL CONSUMPTION',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: textGray,
@@ -504,7 +503,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 ),
                 child: Text(
                   'ADD MATERIAL',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: primaryBlue,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
@@ -514,10 +513,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _materialTag('Rebar 12mm', '120 kg'),
           const SizedBox(height: 8),
-          _materialTag('Concrete M30', '12 m³'),
+          _materialTag('Concrete M30', '12 mÂ³'),
         ],
       ),
     );
@@ -534,10 +533,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 14.5,
             color: textDark,
@@ -552,7 +551,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
           child: Text(
             qty,
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: primaryBlue,
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -596,10 +595,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               color: Colors.white,
               size: 22,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               'Save progress update',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,

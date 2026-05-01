@@ -1,12 +1,11 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Entry point — call this from anywhere to show the sheet
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Entry point â€” call this from anywhere to show the sheet
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Future<void> showVoiceConfirmationSheet(
   BuildContext context, {
 
@@ -23,9 +22,9 @@ Future<void> showVoiceConfirmationSheet(
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Sheet Widget
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class VoiceConfirmationSheet extends StatefulWidget {
   final String? initialType;
   const VoiceConfirmationSheet({super.key, this.initialType});
@@ -39,7 +38,7 @@ enum _SheetPhase { loading, detected, editing }
 
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     with TickerProviderStateMixin {
-  // ── Constants ──────────────────────────────────────────────────────────────
+  // â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static const _blue = AppColors.primaryBlue;
   static const _bgColor = Color(0xFFF4F6FB);
   static const _textDark = Color(0xFF0F1724);
@@ -63,11 +62,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     ),
   };
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   _SheetPhase _phase = _SheetPhase.loading;
   String _selectedType = 'labour'; // will be replaced after "AI detection"
 
-  // ── Animations ─────────────────────────────────────────────────────────────
+  // â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   late final AnimationController _pulseCtrl;
   late final AnimationController _waveCtrl;
   late final AnimationController _fadeCtrl;
@@ -105,7 +104,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       Future.delayed(const Duration(milliseconds: 1600), () {
         if (!mounted) return;
         setState(() {
-          _selectedType = 'labour'; // ← replace with real AI result
+          _selectedType = 'labour'; // â† replace with real AI result
           _phase = _SheetPhase.detected;
         });
         _fadeCtrl.forward();
@@ -121,16 +120,16 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     super.dispose();
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _confirmAndNavigate() {
     final route = _types[_selectedType]!.route;
     Navigator.pop(context);
     Navigator.pushNamed(context, route, arguments: {'type': _selectedType});
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // BUILD
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -153,16 +152,16 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             height: 4,
             decoration: BoxDecoration(
               color: const Color(0xFFDDE0F0),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
           const SizedBox(height: 24),
 
-          // ── Mic + waveform header
+          // â”€â”€ Mic + waveform header
           _buildMicHeader(),
           const SizedBox(height: 20),
 
-          // ── Phase content
+          // â”€â”€ Phase content
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 260),
             switchInCurve: Curves.easeOut,
@@ -176,9 +175,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Mic header (always visible)
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildMicHeader() {
     return Column(
       children: [
@@ -234,7 +233,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _phase == _SheetPhase.loading
               ? 'Analysing Voice...'
               : 'Voice Entry Detected',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w900,
             color: _textDark,
@@ -245,7 +244,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _phase == _SheetPhase.loading
               ? 'Please wait while AI processes your input'
               : 'We analysed your voice input',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 13.5,
             color: _textGray,
             fontWeight: FontWeight.w500,
@@ -281,9 +280,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Loading state
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildLoadingState() {
     return Padding(
       key: const ValueKey('loading'),
@@ -313,7 +312,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 const SizedBox(width: 12),
                 Text(
                   'Processing voice data...',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: _textGray,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -328,9 +327,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Detected + Editing content
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildDetectedContent() {
     return FadeTransition(
       key: const ValueKey('detected'),
@@ -353,7 +352,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
 
           // Confirm button
           _buildConfirmButton(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Change type / Back button
           if (_phase == _SheetPhase.detected)
@@ -375,7 +374,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Detected type card ───────────────────────────────────────────────────
+  // â”€â”€ Detected type card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildTypeCard() {
     final t = _types[_selectedType]!;
     return AnimatedContainer(
@@ -413,7 +412,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               children: [
                 Text(
                   'Detected Type',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: _textGray,
@@ -423,7 +422,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 const SizedBox(height: 4),
                 Text(
                   t.label,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: _textDark,
@@ -447,7 +446,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Selectable type pills ─────────────────────────────────────────────────
+  // â”€â”€ Selectable type pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildTypePills() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -458,7 +457,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'SELECT ENTRY TYPE',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: _textGray,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -511,7 +510,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                           e.value.label
                               .split(' ')
                               .first, // "Material", "Labour" etc.
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
                             color: selected ? Colors.white : _textGray,
@@ -529,7 +528,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Confirm (gradient) button ─────────────────────────────────────────────
+  // â”€â”€ Confirm (gradient) button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildConfirmButton() {
     return Material(
       color: Colors.transparent,
@@ -558,10 +557,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 color: Colors.white,
                 size: 20,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Text(
                 'Confirm',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
@@ -574,7 +573,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Outlined secondary button ─────────────────────────────────────────────
+  // â”€â”€ Outlined secondary button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildOutlinedButton({
     required String label,
     required IconData icon,
@@ -600,7 +599,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: _blue,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,

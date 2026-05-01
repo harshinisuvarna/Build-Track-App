@@ -1,8 +1,7 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-// ─── Entry-type data ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Entry-type data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EntryType {
   final String id;
@@ -54,7 +53,7 @@ const _entryTypes = [
   ),
 ];
 
-// ─── Public helper ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Public helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Call this from any screen to show the Add Entry bottom-sheet popup.
 ///
@@ -73,7 +72,7 @@ void showAddEntryPopup(BuildContext context) {
   );
 }
 
-// ─── Widget ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _AddEntrySheet extends StatefulWidget {
   final BuildContext parentContext;
@@ -104,23 +103,23 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Drag indicator ──────────────────────────────────────────
+              // â”€â”€ Drag indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
                     color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // ── Header ──────────────────────────────────────────────────
+              // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Text(
                 'What are you adding?',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: textDark,
@@ -130,7 +129,7 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
               const SizedBox(height: 4),
               Text(
                 'Select the entry type to log for the current shift.',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 13.5,
                   color: textGray,
                   fontWeight: FontWeight.w500,
@@ -138,7 +137,7 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
               ),
               const SizedBox(height: 24),
 
-              // ── Cards ───────────────────────────────────────────────────
+              // â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               ..._entryTypes.map((type) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _EntryCard(
@@ -166,7 +165,7 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
   }
 }
 
-// ─── Entry card ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Entry card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EntryCard extends StatelessWidget {
   final _EntryType type;
@@ -238,7 +237,7 @@ class _EntryCard extends StatelessWidget {
                     children: [
                       Text(
                         type.title,
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: textDark,
@@ -247,7 +246,7 @@ class _EntryCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         type.subtitle,
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           fontSize: 12.5,
                           color: textGray,
                           height: 1.45,

@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AddLabourScreen extends StatefulWidget {
   const AddLabourScreen({super.key});
@@ -198,7 +197,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     const SizedBox(height: 8),
                                     _prefixUnderlineField(
                                       _rateController,
-                                      prefix: '₹',
+                                      prefix: 'â‚¹',
                                       onChanged: (_) => setState(() {}),
                                     ),
                                     if (_rateError != null) ...[
@@ -233,7 +232,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F9FF),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: const Color(0xFFCCCFE8),
                                 width: 1.5,
@@ -244,8 +243,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               maxLines: 3,
                               decoration: InputDecoration(
                                 border: InputBorder.none,
-                                hintText: 'Add any site notes or remarks…',
-                                hintStyle: GoogleFonts.inter(
+                                hintText: 'Add any site notes or remarksâ€¦',
+                                hintStyle: TextStyle(
                                   color: textGray,
                                   fontSize: 13.5,
                                 ),
@@ -253,7 +252,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                   vertical: 10,
                                 ),
                               ),
-                              style: GoogleFonts.inter(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: textDark,
@@ -310,17 +309,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       child: Row(
         children: [
           Icon(icon, color: textGray, size: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: ctrl,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: GoogleFonts.inter(color: textGray),
+                hintStyle: TextStyle(color: textGray),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: textDark,
@@ -356,7 +355,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: textDark,
@@ -365,7 +364,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ),
           Text(
             suffix,
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: textGray,
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -389,7 +388,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         children: [
           Text(
             '$prefix ',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: textGray,
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -408,7 +407,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                   vertical: 10,
                 ),
               ),
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: textDark,
@@ -435,7 +434,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             children: [
               Text(
                 'TOTAL AMOUNT',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: textGray,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -444,8 +443,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '₹ ${_computeTotal()}',
-                style: GoogleFonts.inter(
+                'â‚¹ ${_computeTotal()}',
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -459,7 +458,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             height: 38,
             decoration: BoxDecoration(
               color: primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.calculate_outlined,
@@ -554,7 +553,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                   children: [
                     Text(
                       'Save Entry',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -571,7 +570,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   Widget _sectionLabel(String label) => Text(
     label,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: primaryBlue,
       fontWeight: FontWeight.w700,
       fontSize: 13,
@@ -581,7 +580,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   Widget _errorText(String msg) => Text(
     msg,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       color: errorRed,
       fontSize: 11.5,
       fontStyle: FontStyle.italic,

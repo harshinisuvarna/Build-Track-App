@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
@@ -20,7 +20,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
 
-  // ── Mutable approval state ─────────────────────────────────────────────────
+  // â”€â”€ Mutable approval state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   EntryStatus _status     = EntryStatus.pending;
   String?     _approvedBy;
   DateTime?   _approvedAt;
@@ -43,7 +43,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     _approvedAt = approvedAtStr != null ? DateTime.tryParse(approvedAtStr) : null;
   }
 
-  // ── Approve / Reject ───────────────────────────────────────────────────────
+  // â”€â”€ Approve / Reject â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _approve() {
     if (_status != EntryStatus.pending) return;
@@ -78,7 +78,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
-  // ── Static helpers ─────────────────────────────────────────────────────────
+  // â”€â”€ Static helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Color _typeColor(String type) {
     switch (type) {
@@ -120,7 +120,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +337,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── Approve / Reject — only for Admin & Supervisor ───────
+                    // â”€â”€ Approve / Reject â€” only for Admin & Supervisor â”€â”€â”€â”€â”€â”€â”€
                     if (canApprove)
                       Row(
                         children: [
@@ -375,7 +375,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
-  // ── Unchanged widgets ──────────────────────────────────────────────────────
+  // â”€â”€ Unchanged widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildTopBar(BuildContext context, String type, Map args, bool canEdit) {
     return Padding(
@@ -389,7 +389,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               height: 36,
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F2FF),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(16),
               ),
               child:
                   const Icon(Icons.arrow_back, color: textDark, size: 20),
@@ -402,7 +402,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               style: AppTheme.heading3.copyWith(color: textDark),
             ),
           ),
-          // Edit button — shown only if user has permission
+          // Edit button â€” shown only if user has permission
           if (canEdit)
             TextButton(
               onPressed: () => Navigator.pushNamed(
@@ -415,7 +415,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 backgroundColor: const Color(0xFFEEF0FF),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: const Text(

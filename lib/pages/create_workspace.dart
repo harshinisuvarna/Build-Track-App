@@ -1,30 +1,24 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
-
 class CreateWorkspaceScreen extends StatefulWidget {
   const CreateWorkspaceScreen({super.key});
-
   @override
   State<CreateWorkspaceScreen> createState() => _CreateWorkspaceScreenState();
 }
-
 class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   static const _roles = ['Admin', 'Supervisor', 'Mason'];
-
   final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
-
   String _selectedRole = 'Admin';
   bool _obscurePass = true;
   bool _obscureConfirm = true;
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -34,7 +28,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     _confirmCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return AppScrollLayout(
@@ -59,9 +52,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ),
     );
   }
-
-  // ── Header ────────────────────────────────────────────────────────────────
-
   Widget _buildHeader() {
     return Column(
       children: [
@@ -70,9 +60,9 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
             colors: [Color(0xFF4A3FDE), Color(0xFF7B52FF)],
           ).createShader(bounds),
           child: RichText(
-            text: const TextSpan(
+            text: TextSpan(
               children: [
-                TextSpan(
+                const TextSpan(
                   text: 'Build',
                   style: TextStyle(
                     fontSize: 28,
@@ -86,7 +76,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF7BCFFF),
+                    color: const Color(0xFF7BCFFF),
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -111,9 +101,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
-  // ── Form ──────────────────────────────────────────────────────────────────
-
   Widget _buildForm() {
     return Column(
       children: [
@@ -148,7 +135,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         AppTextField(
           label: 'Password',
           controller: _passCtrl,
-          hint: '••••••••',
+          hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
           prefixIcon: Icons.lock_outline,
           obscureText: _obscurePass,
           suffixIcon: IconButton(
@@ -165,7 +152,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         AppTextField(
           label: 'Confirm Password',
           controller: _confirmCtrl,
-          hint: '••••••••',
+          hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
           prefixIcon: Icons.lock_outline,
           obscureText: _obscureConfirm,
           suffixIcon: IconButton(
@@ -183,9 +170,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
-  // ── Actions ───────────────────────────────────────────────────────────────
-
   Widget _buildActions() {
     return Column(
       children: [
@@ -217,16 +201,12 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
   void _onCreatePressed() {
     // Basic validation
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     final confirm = _confirmCtrl.text;
-
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
@@ -251,22 +231,16 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       );
       return;
     }
-
-    // Map selected role string → UserRole enum
     final roleMap = {
       'Admin': UserRole.admin,
       'Supervisor': UserRole.supervisor,
       'Mason': UserRole.mason,
     };
-
-    // Set session (swap for real API registration call when backend is ready)
     UserSession.set(
       userId: email,
       role: roleMap[_selectedRole] ?? UserRole.admin,
       projectId: '',
     );
-
-    // Navigate to home, clearing the back stack
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/home',

@@ -1,8 +1,7 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 
@@ -38,7 +37,7 @@ class AppTopBar extends StatelessWidget {
         height: 44,
         child: Row(
           children: [
-            // ── Left side ────────────────────────────────────────────────
+            // â”€â”€ Left side â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             leftIcon != null
                 ? Material(
                     color: Colors.transparent,
@@ -53,13 +52,13 @@ class AppTopBar extends StatelessWidget {
                   )
                 : const SizedBox(width: 44),
 
-            // ── Centre: title fills remaining space, text centred ─────────
+            // â”€â”€ Centre: title fills remaining space, text centred â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Expanded(
               child: Text(
                 title,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   color: isSubScreen ? _textDark : _primaryBlue,
                   fontSize: isSubScreen ? 17 : 20,
                   fontWeight: FontWeight.w800,
@@ -68,7 +67,7 @@ class AppTopBar extends StatelessWidget {
               ),
             ),
 
-            // ── Right side ───────────────────────────────────────────────
+            // â”€â”€ Right side â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             IntrinsicWidth(
               child: rightWidget ?? const SizedBox(width: 32),
             ),
@@ -79,11 +78,11 @@ class AppTopBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // AppBottomNav
 // Single source of truth for bottom navigation across all main screens.
 // Reads and writes NavController via Provider.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
 

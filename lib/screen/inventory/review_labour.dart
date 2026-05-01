@@ -1,8 +1,7 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 
@@ -22,7 +21,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
 
   PickedAttachment? _attachment;
 
-  // ✅ FIX: receipt attachment state + confirm loading state
+  // âœ… FIX: receipt attachment state + confirm loading state
   bool _isConfirming = false;
 
   @override
@@ -49,7 +48,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                     child: Center(
                       child: Text(
                         'Review voice entry',
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           color: primaryBlue,
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -67,12 +66,12 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     _buildVoiceBanner(),
                     const SizedBox(height: 20),
                     _buildLabourCard(context),
                     const SizedBox(height: 20),
-                    // ✅ FIX: receipt section
+                    // âœ… FIX: receipt section
                     _buildReceiptSection(),
                     const SizedBox(height: 20),
                     _buildTranscript(),
@@ -116,7 +115,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               children: [
                 Text(
                   'Parsed from voice',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     color: voicePurple,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -125,8 +124,8 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 96.7% • Voice timestamp 09:15 AM',
-                  style: GoogleFonts.inter(
+                  'Confidence: 96.7% â€¢ Voice timestamp 09:15 AM',
+                  style: TextStyle(
                     color: voicePurple.withValues(alpha: 0.75),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -168,7 +167,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                 children: [
                   Text(
                     'Labour Log',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: textDark,
@@ -177,7 +176,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   const SizedBox(height: 3),
                   Text(
                     'Site: North District Phase 2',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 13,
                       color: textGray,
                       fontWeight: FontWeight.w500,
@@ -228,7 +227,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   children: [
                     _label('RATE'),
                     const SizedBox(height: 8),
-                    _box('₹18.00'),
+                    _box('â‚¹18.00'),
                   ],
                 ),
               ),
@@ -248,8 +247,8 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '₹144.00',
-                  style: GoogleFonts.inter(
+                  'â‚¹144.00',
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: primaryBlue,
@@ -270,7 +269,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   ),
                   child: Text(
                     'AUTO',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: primaryBlue,
@@ -286,20 +285,20 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     );
   }
 
-  // ✅ FIX: receipt attachment section
+  // âœ… FIX: receipt attachment section
   Widget _buildReceiptSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Attach Receipt (Optional)',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             color: primaryBlue,
             fontWeight: FontWeight.w800,
             fontSize: 14,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         UploadBox(
           attachment: _attachment,
           emptyLabel: 'Tap to attach receipt',
@@ -320,7 +319,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
             const SizedBox(width: 8),
             Text(
               'ORIGINAL AUDIO TRANSCRIPT',
-              style: GoogleFonts.inter(
+              style: TextStyle(
                 color: primaryBlue,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -332,7 +331,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         const SizedBox(height: 12),
         Text(
           '"Hey SiteTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 rupees per hour. Total comes to 144 rupees. Log this under structural block work."',
-          style: GoogleFonts.inter(
+          style: TextStyle(
             fontSize: 14,
             color: textGray,
             fontStyle: FontStyle.italic,
@@ -344,7 +343,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     );
   }
 
-  // ✅ FIX: loading state prevents double-tap
+  // âœ… FIX: loading state prevents double-tap
   Widget _buildConfirmButton(BuildContext context) {
     return GestureDetector(
       onTap: _isConfirming
@@ -391,10 +390,10 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                       color: Colors.white,
                       size: 20,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Text(
                       'Confirm and save',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
@@ -409,7 +408,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
 
   Widget _label(String text) => Text(
     text,
-    style: GoogleFonts.inter(
+    style: TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w800,
       color: textGray,
@@ -422,11 +421,11 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
     decoration: BoxDecoration(
       color: const Color(0xFFF4F6FB),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(16),
     ),
     child: Text(
       value,
-      style: GoogleFonts.inter(
+      style: TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w700,
         color: textDark,

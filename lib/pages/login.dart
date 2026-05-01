@@ -1,36 +1,28 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
-
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-
   bool _obscurePass = true;
   bool _rememberMe = false;
-
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
     return Scaffold(
       backgroundColor: _bgColor,
       resizeToAvoidBottomInset: false,
@@ -68,9 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  // ── Header: app icon + title + subtitle ───────────────────────────────────
-
   Widget _buildHeader() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -88,9 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
-  // ── Form: email + password + remember me ──────────────────────────────────
-
   Widget _buildForm() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -103,11 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
           prefixIcon: Icons.mail_outline,
           keyboardType: TextInputType.emailAddress,
         ),
-
         AppTextField(
           label: 'Password',
           controller: _passCtrl,
-          hint: '••••••••',
+          hint: 'Enter your password',
           prefixIcon: Icons.lock_outline,
           obscureText: _obscurePass,
           suffixIcon: IconButton(
@@ -121,8 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () => setState(() => _obscurePass = !_obscurePass),
           ),
         ),
-
-        // "Forgot Password?" — right-aligned, below the password input field
         Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
@@ -137,8 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         const SizedBox(height: AppTheme.spacingMd),
-
-        // Remember me
         Row(
           children: [
             SizedBox(
@@ -158,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 activeColor: AppColors.primary,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
                 'Remember me for 30 days',
@@ -170,9 +151,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
-  // ── Actions: sign in button + signup link ─────────────────────────────────
-
   Widget _buildActions() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -183,8 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
               Navigator.pushReplacementNamed(context, '/home'),
         ),
         const SizedBox(height: 20),
-
-        // Use Wrap to prevent overflow when text wraps on narrow screens
         Wrap(
           alignment: WrapAlignment.center,
           children: [
@@ -208,9 +184,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
-  // ── Footer: privacy + terms ───────────────────────────────────────────────
-
   Widget _buildFooter() {
     return Wrap(
       alignment: WrapAlignment.center,

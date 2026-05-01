@@ -1,16 +1,6 @@
-// lib/models/project_model.dart
-// Pure data model – no Flutter, no ChangeNotifier.
-
 import 'dart:convert';
-
 enum ProjectStage { foundation, structure, finishing, handover }
-
 enum EntryType { material, labour, equipment }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper extensions
-// ─────────────────────────────────────────────────────────────────────────────
-
 extension ProjectStageX on ProjectStage {
   String get label {
     switch (this) {
@@ -21,7 +11,6 @@ extension ProjectStageX on ProjectStage {
     }
   }
 }
-
 extension EntryTypeX on EntryType {
   String get label {
     switch (this) {
@@ -31,11 +20,6 @@ extension EntryTypeX on EntryType {
     }
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ProjectModel
-// ─────────────────────────────────────────────────────────────────────────────
-
 class ProjectModel {
   ProjectModel({
     required this.id,
@@ -58,26 +42,18 @@ class ProjectModel {
   double             totalBudget; // in rupees
   double             spentAmount; // in rupees
   final DateTime     startDate;
-
-  // ── Convenience ───────────────────────────────────────────────────────────
-
   double get remainingBudget   => totalBudget - spentAmount;
   double get budgetUtilization => totalBudget > 0 ? spentAmount / totalBudget : 0.0;
   String get location          => '$city • $sector';
-
   String _fmt(double v) {
     if (v >= 1e7) return '₹${(v / 1e7).toStringAsFixed(2)}Cr';
     if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
     if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
     return '₹${v.toStringAsFixed(0)}';
   }
-
   String get formattedBudget    => _fmt(totalBudget);
   String get formattedSpent     => _fmt(spentAmount);
   String get formattedRemaining => _fmt(remainingBudget);
-
-  // ── Immutable update ──────────────────────────────────────────────────────
-
   ProjectModel copyWith({
     String?       name,
     String?       city,
@@ -98,9 +74,6 @@ class ProjectModel {
         spentAmount: spentAmount ?? this.spentAmount,
         startDate:   startDate,
       );
-
-  // ── JSON ──────────────────────────────────────────────────────────────────
-
   Map<String, dynamic> toJson() => {
         'id':          id,
         'name':        name,
@@ -112,7 +85,6 @@ class ProjectModel {
         'spentAmount': spentAmount,
         'startDate':   startDate.toIso8601String(),
       };
-
   factory ProjectModel.fromJson(Map<String, dynamic> j) => ProjectModel(
         id:          j['id'] as String,
         name:        j['name'] as String,
@@ -138,11 +110,6 @@ class ProjectModel {
         .toList();
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EntryModel
-// ─────────────────────────────────────────────────────────────────────────────
-
 class EntryModel {
   EntryModel({
     required this.id,

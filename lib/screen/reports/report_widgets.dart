@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -10,9 +10,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 1. MetricCard
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
@@ -71,7 +71,7 @@ class MetricCard extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: AppColors.primary, size: 19),
           ),
@@ -89,7 +89,7 @@ class MetricCard extends StatelessWidget {
               color: AppColors.textDark,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Row(
             children: [
               Icon(subIcon, size: 13, color: subColor),
@@ -113,9 +113,9 @@ class MetricCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. MetricGrid — 2×2 responsive grid of MetricCards
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 2. MetricGrid â€” 2Ã—2 responsive grid of MetricCards
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
@@ -162,9 +162,9 @@ class _M {
   final double   change;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. ChartSection — premium fintech-style fl_chart LineChart
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 3. ChartSection â€” premium fintech-style fl_chart LineChart
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.provider});
@@ -231,7 +231,7 @@ class ChartSection extends StatelessWidget {
                       maxY: maxY,
                       clipData: const FlClipData.all(),
 
-                      // ── No vertical stick on touch ─────────────────────
+                      // â”€â”€ No vertical stick on touch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       lineTouchData: LineTouchData(
                         handleBuiltInTouches: true,
                         getTouchedSpotIndicator: (barData, spotIndexes) =>
@@ -257,8 +257,8 @@ class ChartSection extends StatelessWidget {
                             final isActual = s.barIndex == 0;
                             if (!isActual) return null;
                             final val = s.y >= 1000
-                                ? '₹${(s.y * 1000).toStringAsFixed(0)}'
-                                : '₹${s.y.toStringAsFixed(0)}';
+                                ? 'â‚¹${(s.y * 1000).toStringAsFixed(0)}'
+                                : 'â‚¹${s.y.toStringAsFixed(0)}';
                             return LineTooltipItem(
                               '$val/$unit',
                               const TextStyle(
@@ -272,7 +272,7 @@ class ChartSection extends StatelessWidget {
                         ),
                       ),
 
-                      // ── Clean grid — horizontal only ───────────────────
+                      // â”€â”€ Clean grid â€” horizontal only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -284,7 +284,7 @@ class ChartSection extends StatelessWidget {
                       ),
                       borderData: FlBorderData(show: false),
 
-                      // ── Axis labels ───────────────────────────────────
+                      // â”€â”€ Axis labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       titlesData: FlTitlesData(
                         topTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false)),
@@ -307,7 +307,7 @@ class ChartSection extends StatelessWidget {
                       ),
 
                       lineBarsData: [
-                        // ── Actual line — gradient + gradient fill ───────
+                        // â”€â”€ Actual line â€” gradient + gradient fill â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: actualSpots,
                           isCurved: true,
@@ -333,7 +333,7 @@ class ChartSection extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // ── Target line — dashed grey ────────────────────
+                        // â”€â”€ Target line â€” dashed grey â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: targetSpots,
                           isCurved: true,
@@ -366,10 +366,10 @@ class ChartSection extends StatelessWidget {
           Row(
             children: [
               _legendDot(AppColors.primary),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Actual: ₹${_shortNum(actualVal)}/$unit',
+                  'Actual: â‚¹${_shortNum(actualVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(
                       color: AppColors.textDark, fontWeight: FontWeight.w700),
@@ -377,10 +377,10 @@ class ChartSection extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               _legendDot(const Color(0xFFBBC0D0)),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Target: ₹${_shortNum(targetVal)}/$unit',
+                  'Target: â‚¹${_shortNum(targetVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(color: AppColors.textLight),
                 ),
@@ -404,7 +404,7 @@ class ChartSection extends StatelessWidget {
 
 
 
-// ── Unit toggle chip (SQFT / CUYD) ────────────────────────────────────────────
+// â”€â”€ Unit toggle chip (SQFT / CUYD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _UnitToggle extends StatelessWidget {
   const _UnitToggle({required this.unitIndex, required this.onChanged});
@@ -448,9 +448,9 @@ class _UnitToggle extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. ProjectSelector — tappable filter card → bottom sheet picker
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 4. ProjectSelector â€” tappable filter card â†’ bottom sheet picker
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
@@ -594,9 +594,9 @@ class _ProjectPickerSheet extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 5. CategoryBudgetSection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
@@ -627,7 +627,7 @@ class _BudgetBar extends StatelessWidget {
   const _BudgetBar({required this.label, required this.value});
 
   final String label;
-  final double value; // 0.0–1.0
+  final double value; // 0.0â€“1.0
 
   @override
   Widget build(BuildContext context) {
@@ -656,7 +656,7 @@ class _BudgetBar extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             child: SizedBox(
               height: 8,
               child: Stack(
@@ -664,7 +664,7 @@ class _BudgetBar extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFFEEF0F8),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   FractionallySizedBox(
@@ -673,7 +673,7 @@ class _BudgetBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: (value < 0.70) ? AppGradients.progressBar : null,
                         color: (value >= 0.70) ? color : null,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
@@ -687,9 +687,9 @@ class _BudgetBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 6. EfficiencyBanner
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
@@ -726,7 +726,7 @@ class EfficiencyBanner extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.20),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.bar_chart, color: Colors.white, size: 20),
               ),
@@ -735,7 +735,7 @@ class EfficiencyBanner extends StatelessWidget {
                   style: AppTheme.heading3.copyWith(color: Colors.white)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(note,
               style: AppTheme.body.copyWith(color: Colors.white70, height: 1.4)),
           const SizedBox(height: 12),
@@ -754,7 +754,7 @@ class EfficiencyBanner extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
-                'View Details  →',
+                'View Details  â†’',
                 style: AppTheme.body.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,

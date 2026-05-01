@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -249,7 +249,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           Text('TOTAL ${_itemType.toUpperCase()} STOCK',
               style: AppTheme.label.copyWith(
                   color: textGray, fontSize: 11, letterSpacing: 1.1)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           RichText(
             text: TextSpan(
               children: [
@@ -297,7 +297,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(icon, color: color, size: 15),
-        const SizedBox(width: 5),
+        const SizedBox(width: 4),
         Flexible(
           child: Text(
             label,
@@ -459,7 +459,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '$_itemName • ${log['ref'] ?? ''}',
+                      '$_itemName â€¢ ${log['ref'] ?? ''}',
                       style: AppTheme.caption.copyWith(color: textGray),
                     ),
                   ],
