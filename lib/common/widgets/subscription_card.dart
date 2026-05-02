@@ -1,8 +1,6 @@
 ﻿// lib/common/widgets/subscription_card.dart
-//
 // A premium gradient card shown on the Profile screen.
 // Displays the user's current plan, renewal date, and CTAs.
-//
 // Usage:
 //   const SubscriptionCard()   (reads SubscriptionProvider via context)
 
@@ -287,5 +285,3 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
-
-

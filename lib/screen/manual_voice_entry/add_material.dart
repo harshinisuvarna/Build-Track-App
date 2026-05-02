@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -27,7 +27,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   bool _supplierError = false;
   bool _supplierSelected = false;
-  int _selectedNavIndex = 2;
+
   bool _isEditing = false;
   bool _isSaving = false;
 
@@ -111,9 +111,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: bgColor,
       body: SafeArea(
         bottom: false,
@@ -123,7 +123,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomInset),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -137,7 +137,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           _sectionLabel('Material Name'),
                           const SizedBox(height: 8),
                           _underlineField(
-                            Icons.inventory_2_outlined,
                             _nameController,
                             hint: 'Enter material name',
                           ),
@@ -145,7 +144,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             const SizedBox(height: 4),
                             _errorText(_nameError!),
                           ],
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
 
                           // Supplier
                           _supplierField(),
@@ -181,7 +180,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     _labeledUnderlineField(
                                       'Quantity',
                                       _qtyController,
-                                      'mÂ³',
+                                      'm³',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -200,7 +199,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     _labeledUnderlineFieldPrefix(
                                       'Rate per Unit',
                                       _rateController,
-                                      'â‚¹',
+                                      '₹',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -237,7 +236,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -356,7 +354,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   }
 
   Widget _underlineField(
-    IconData icon,
     TextEditingController ctrl, {
     String hint = '',
   }) {
@@ -365,27 +362,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: textGray, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: ctrl,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: hint,
-                hintStyle: TextStyle(color: textGray),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: textDark,
-              ),
-            ),
-          ),
-        ],
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          hintText: hint,
+          hintStyle: TextStyle(color: textGray),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
       ),
     );
   }
@@ -402,40 +393,44 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       children: [
         _sectionLabel(label),
         const SizedBox(height: 8),
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: ctrl,
-                  keyboardType: keyboardType,
-                  onChanged: onChanged,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 10,
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: ctrl,
+                    keyboardType: keyboardType,
+                    onChanged: onChanged,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: textDark,
                     ),
                   ),
+                ),
+                Text(
+                  suffix,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: textDark,
+                    color: textGray,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              Text(
-                suffix,
-                style: TextStyle(
-                  color: textGray,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -475,6 +470,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   onChanged: onChanged,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 0,
                       vertical: 10,
@@ -518,7 +515,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'â‚¹ ${_computeTotal()}',
+                '₹ ${_computeTotal()}',
                 style: TextStyle(
                   color: primaryBlue,
                   fontSize: 24,
@@ -582,8 +579,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.business_outlined, color: textGray, size: 18),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _supplierSelected
@@ -701,131 +696,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _navItem(context, 0, Icons.home_rounded, 'HOME', route: '/home'),
-              _navItem(
-                context,
-                1,
-                Icons.architecture_outlined,
-                'PROJECTS',
-                route: '/projects',
-              ),
-              _navEntryButton(context),
-              _navItem(
-                context,
-                3,
-                Icons.inventory_2_outlined,
-                'INVENTORY',
-                route: '/inventory',
-              ),
-              _navItem(
-                context,
-                4,
-                Icons.bar_chart_outlined,
-                'REPORTS',
-                route: '/reports',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(
-    BuildContext context,
-    int index,
-    IconData icon,
-    String label, {
-    String? route,
-  }) {
-    final isActive = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedNavIndex = index);
-        if (route != null) Navigator.pushNamed(context, route);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: isActive ? primaryBlue : textGray),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: isActive ? primaryBlue : textGray,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navEntryButton(BuildContext context) {
-    final isActive = _selectedNavIndex == 2;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = 2),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: primaryBlue,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: primaryBlue.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'ENTRY',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: isActive ? primaryBlue : textGray,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
       ),
     );
   }

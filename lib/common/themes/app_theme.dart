@@ -2,28 +2,20 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-/// Global ThemeData + design-system constants for the Nurofin UI.
-///
-/// All existing screens reference [AppTheme.heading1], [AppTheme.primary], etc.
-/// Those constants are kept intact below so zero screens break.
 class AppTheme {
   AppTheme._();
 
-  // ── Spacing ───────────────────────────────────────────────────────────────
   static const double spacingXs = 4;
   static const double spacingSm = 8;
   static const double spacingMd = 16;
   static const double spacingLg = 24;
   static const double spacingXl = 32;
 
-  // ── Radius ────────────────────────────────────────────────────────────────
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 16;
   static const double radiusXl = 24;
 
-  // ── Color shorthands (all delegate to AppColors) ──────────────────────────
   static const Color primary      = AppColors.primaryBlue;
   static const Color primaryLight = AppColors.primaryLightBlue;
   static const Color secondary    = AppColors.primaryPurple;
@@ -39,7 +31,6 @@ class AppTheme {
   static const Color border       = AppColors.cardBorder;
   static const Color divider      = AppColors.divider;
 
-  // ── Shadows ───────────────────────────────────────────────────────────────
   static final List<BoxShadow> premiumShadow = [
     BoxShadow(
       color: Colors.black.withValues(alpha: .05),
@@ -56,14 +47,12 @@ class AppTheme {
     ),
   ];
 
-  // ── Background gradient (kept for legacy; prefer NurofinBackground) ───────
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [AppColors.bgBase1, AppColors.bgBase3, AppColors.bgBase4],
   );
 
-  // ── Card decoration ───────────────────────────────────────────────────────
   static final BoxDecoration cardDecoration = BoxDecoration(
     color: AppColors.cardBg,
     borderRadius: BorderRadius.circular(16),
@@ -71,7 +60,6 @@ class AppTheme {
     boxShadow: premiumShadow,
   );
 
-  // ── Standardized Button Styles ───────────────────────────────────────────────
   static final ButtonStyle primaryButton = ElevatedButton.styleFrom(
     backgroundColor: AppColors.primaryBlue,
     foregroundColor: Colors.white,
@@ -80,7 +68,7 @@ class AppTheme {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     ),
-    textStyle: const TextStyle(
+    textStyle: GoogleFonts.inter(
       fontSize: 16,
       fontWeight: FontWeight.w600,
     ),
@@ -93,14 +81,13 @@ class AppTheme {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     ),
-    textStyle: const TextStyle(
+    textStyle: GoogleFonts.inter(
       fontSize: 16,
       fontWeight: FontWeight.w600,
     ),
   );
 
-  // ── Typography (legacy tokens — kept so existing screens compile) ─────────
-  static const TextStyle heading1 = TextStyle(
+  static final TextStyle heading1 = GoogleFonts.inter(
     fontSize: 32,
     fontWeight: FontWeight.w900,
     color: AppColors.textPrimary,
@@ -108,45 +95,50 @@ class AppTheme {
     height: 1.1,
   );
 
-  static const TextStyle heading2 = TextStyle(
+  static final TextStyle heading2 = GoogleFonts.inter(
     fontSize: 22,
     fontWeight: FontWeight.w800,
     color: AppColors.textPrimary,
     letterSpacing: -0.3,
+    height: 1.2,
   );
 
-  static const TextStyle heading3 = TextStyle(
+  static final TextStyle heading3 = GoogleFonts.inter(
     fontSize: 17,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
+    letterSpacing: -0.2,
+    height: 1.2,
   );
 
-  static const TextStyle bodyLarge = TextStyle(
+  static final TextStyle bodyLarge = GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textMedium,
+    height: 1.45,
   );
 
-  static const TextStyle body = TextStyle(
+  static final TextStyle body = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.textMedium,
+    height: 1.5,
+    letterSpacing: 0.1,
   );
 
-  static const TextStyle caption = TextStyle(
+  static final TextStyle caption = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
   );
 
-  static const TextStyle label = TextStyle(
+  static final TextStyle label = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: AppColors.textSecondary,
     letterSpacing: 0.3,
   );
 
-  // ── ThemeData ─────────────────────────────────────────────────────────────
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
@@ -193,7 +185,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(radiusMd),
         borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
       ),
-      hintStyle: const TextStyle(
+      hintStyle: GoogleFonts.inter(
         color: AppColors.textSecondary,
         fontSize: 14,
         fontWeight: FontWeight.w400,

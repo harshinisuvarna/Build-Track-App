@@ -2,27 +2,11 @@ import 'dart:ui' as ui;
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-
-/// The layered Nurofin background — a soft lavender wash with three radial
-/// glows painted via [CustomPainter].
-///
-/// ⚠️  NEVER replace this with a plain [LinearGradient] Container.
-///  A flat diagonal sweep does NOT match the Nurofin look.
-///
-/// Usage:
-/// ```dart
-/// CustomPaint(
-///   painter: NurofinBackgroundPainter(),
-///   child: …,
-/// )
-/// ```
-/// Or wrap with [NurofinBackground] convenience widget (below).
 class NurofinBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
 
-    // ── Layer 1 — Base linear gradient (topLeft → bottomRight) ──────────────
     final baseGradient = ui.Gradient.linear(
       rect.topLeft,
       rect.bottomRight,
@@ -36,7 +20,6 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = baseGradient);
 
-    // ── Layer 2 — Radial glow, center-right ─────────────────────────────────
     // Alignment(0.55, -0.3) → pixel center
     final center2 = Offset(
       size.width * (0.55 + 1) / 2,
@@ -55,7 +38,6 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow2);
 
-    // ── Layer 3 — Radial glow, top-left corner ──────────────────────────────
     // Alignment(-0.9, -0.85)
     final center3 = Offset(
       size.width * (-0.9 + 1) / 2,
@@ -74,7 +56,6 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow3);
 
-    // ── Layer 4 — Radial glow, bottom-right ─────────────────────────────────
     // Alignment(0.85, 0.9)
     final center4 = Offset(
       size.width * (0.85 + 1) / 2,
@@ -93,14 +74,9 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow4);
   }
-
-  /// Static background — no animation, never needs repaint.
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
-/// Convenience widget that sizes the [NurofinBackgroundPainter] to fill
-/// the entire available space behind [child].
 class NurofinBackground extends StatelessWidget {
   const NurofinBackground({super.key, required this.child});
 

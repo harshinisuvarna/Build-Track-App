@@ -3,15 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 
 enum CtaVariant { primary, secondary }
-
-/// A highly polished, premium Call-To-Action (CTA) button designed for 
-/// paywalls, subscriptions, and high-conversion actions.
-///
-/// Features:
-/// - Smooth scale-down animation on tap (SaaS/iOS style interaction)
-/// - Vibrant gradients with dynamic shadow elevation for primary actions
-/// - Glassmorphic / outline style for secondary actions
-/// - Accessible contrast and hit areas
 class PremiumCtaButton extends StatefulWidget {
   final String label;
   final IconData? icon;
@@ -84,7 +75,7 @@ class _PremiumCtaButtonState extends State<PremiumCtaButton>
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
       // Provide an opaque behavior so the entire area is tappable
-      behavior: HitTestBehavior.opaque, 
+      behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) => Transform.scale(

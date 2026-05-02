@@ -1,5 +1,4 @@
 // lib/screen/subscription_screen.dart
-//
 // Premium SaaS-style paywall.
 // Features clean typography, soft shadows, and high-converting CTAs.
 
@@ -12,7 +11,6 @@ import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ── Plan metadata ─────────────────────────────────────────────────────────────
 
 class _PlanInfo {
   const _PlanInfo({
@@ -89,7 +87,6 @@ const _plans = [
   ),
 ];
 
-// ── Screen ────────────────────────────────────────────────────────────────────
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -109,17 +106,14 @@ class SubscriptionScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
                 child: Column(
                   children: [
-                    // ── Hero header ─────────────────────────────────────────
                     _buildHero(),
                     const SizedBox(height: 32),
 
-                    // ── Error banner ────────────────────────────────────────
                     if (sub.error.isNotEmpty) ...[
                       _ErrorBanner(message: sub.error),
                       const SizedBox(height: 20),
                     ],
 
-                    // ── Plan cards ──────────────────────────────────────────
                     ...List.generate(_plans.length, (i) {
                       final plan = _plans[i];
                       return Padding(
@@ -135,7 +129,6 @@ class SubscriptionScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // ── Restore purchases ───────────────────────────────────
                     GestureDetector(
                       onTap: () => _onRestore(context, sub),
                       behavior: HitTestBehavior.opaque,
@@ -174,7 +167,6 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  // ── Widgets ───────────────────────────────────────────────────────────────
 
   Widget _buildTopBar(BuildContext context) {
     return Padding(
@@ -207,7 +199,7 @@ class SubscriptionScreen extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.auto_awesome_rounded, 
+              Icon(Icons.auto_awesome_rounded,
                   color: AppColors.primary, size: 14),
               SizedBox(width: 6),
               Text(
@@ -247,7 +239,6 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
 
   Future<void> _onUpgrade(
     BuildContext context,
@@ -338,7 +329,6 @@ class SubscriptionScreen extends StatelessWidget {
   }
 }
 
-// ── Plan Card ─────────────────────────────────────────────────────────────────
 
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
@@ -395,7 +385,6 @@ class _PlanCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header: Title & Tagline ───────────────────────────────────
                 Text(
                   info.title,
                   style: TextStyle(
@@ -416,7 +405,6 @@ class _PlanCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Price ─────────────────────────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -445,19 +433,16 @@ class _PlanCard extends StatelessWidget {
                 const Divider(color: Color(0xFFEAECF0), height: 1),
                 const SizedBox(height: 24),
 
-                // ── Features ──────────────────────────────────────────────────
                 ...info.features.map((f) => _FeatureItem(text: f, isHighlighted: isPro)),
-                
+
                 const SizedBox(height: 8),
 
-                // ── CTA Button ────────────────────────────────────────────────
                 _buildCta(),
               ],
             ),
           ),
         ),
 
-        // ── "Most Popular" Badge ──────────────────────────────────────────────
         if (isPro)
           Positioned(
             top: -14,
@@ -563,11 +548,10 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ── Feature Item ──────────────────────────────────────────────────────────────
 
 class _FeatureItem extends StatelessWidget {
   const _FeatureItem({required this.text, required this.isHighlighted});
-  
+
   final String text;
   final bool isHighlighted;
 
@@ -581,7 +565,7 @@ class _FeatureItem extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(top: 1),
             decoration: BoxDecoration(
-              color: isHighlighted 
+              color: isHighlighted
                   ? AppColors.primary.withValues(alpha: 0.1)
                   : const Color(0xFFF2F4F7),
               shape: BoxShape.circle,
@@ -611,7 +595,6 @@ class _FeatureItem extends StatelessWidget {
   }
 }
 
-// ── Error Banner ──────────────────────────────────────────────────────────────
 
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});

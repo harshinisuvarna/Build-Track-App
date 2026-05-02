@@ -1,4 +1,4 @@
-﻿
+
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -156,7 +156,6 @@ class ProjectReportScreen extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 1. Project Summary Card
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SummaryCard extends StatelessWidget {
@@ -271,7 +270,6 @@ class _SummaryCard extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 2. Financial Snapshot â€” three simple stat chips, no chart
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FinancialSnapshot extends StatelessWidget {
@@ -478,14 +476,13 @@ class _EntrySection extends StatelessWidget {
   }
 
   String _fmtAmt(double v) {
-    if (v >= 1e6) return 'â‚¹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return 'â‚¹${(v / 1e3).toStringAsFixed(0)}k';
-    return 'â‚¹${v.toStringAsFixed(0)}';
+    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
+    return '₹${v.toStringAsFixed(0)}';
   }
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 6. Activity Timeline â€” chronological entry feed
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ActivityTimeline extends StatelessWidget {
@@ -612,8 +609,8 @@ class _ActivityTimeline extends StatelessWidget {
   }
 
   String _fmtAmt(double v) {
-    if (v >= 1e6) return 'â‚¹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return 'â‚¹${(v / 1e3).toStringAsFixed(0)}k';
-    return 'â‚¹${v.toStringAsFixed(0)}';
+    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
+    return '₹${v.toStringAsFixed(0)}';
   }
 }

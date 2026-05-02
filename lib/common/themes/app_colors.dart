@@ -1,43 +1,31 @@
 import 'package:flutter/material.dart';
-
-/// Nurofin fintech design-system colour tokens.
-///
-/// ALL colours in the app MUST reference this file.
-/// Never hard-code a colour value outside this class.
 class AppColors {
   AppColors._();
 
-  // ── Brand ─────────────────────────────────────────────────────────────────
   static const Color primaryBlue      = Color(0xFF173EEA);
   static const Color primaryPurple    = Color(0xFFB137FF);
   static const Color primaryLightBlue = Color(0xFF67C8FF);
 
-  // ── Background layers (CustomPainter) ─────────────────────────────────────
   static const Color bgBase1 = Color(0xFFD8D4F0); // top-left
   static const Color bgBase2 = Color(0xFFCAC3ED); // upper-center
   static const Color bgBase3 = Color(0xFFD2CBF0); // lower-center
   static const Color bgBase4 = Color(0xFFE8E4F8); // bottom-right
-  // Glow centres — opacity applied in painter, stored as full-opacity tokens
   static const Color bgGlow1 = Color(0xFFFFFFFF); // center-right  (0.55)
-  static const Color bgGlow2 = Color(0xFF9B8FE8); // top-left      (0.45)
+  static const Color bgGlow2 = Color(0xFF9B8FE8); //top-left      (0.45)
   static const Color bgGlow3 = Color(0xFFCFB8F0); // bottom-right  (0.40)
 
-  // ── Auth background ───────────────────────────────────────────────────────
   static const Color authStart = Color(0xFF8B9FE8);
   static const Color authMid   = Color(0xFFB4A8EF);
   static const Color authEnd   = Color(0xFFD8D2F4);
 
-  // ── Surface ───────────────────────────────────────────────────────────────
   static const Color cardBg     = Color(0xFFFFFFFF);
   static const Color cardBorder = Color(0xFFEEEBF8);
 
-  // ── Text ──────────────────────────────────────────────────────────────────
   static const Color textPrimary   = Color(0xFF1A1A2E);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textBlue      = Color(0xFF173EEA); // links / IDs
   static const Color textAmount    = Color(0xFF1A1A2E); // bold ₹ amounts
 
-  // ── Badges ────────────────────────────────────────────────────────────────
   static const Color badgeWarningBg   = Color(0xFFFFF4E0);
   static const Color badgeWarningText = Color(0xFFB45309);
   static const Color badgeSuccessBg   = Color(0xFFE6F9F0);
@@ -47,13 +35,11 @@ class AppColors {
   static const Color badgeInfoBg      = Color(0xFFEEF2FF);
   static const Color badgeInfoText    = Color(0xFF173EEA);
 
-  // ── Navigation ────────────────────────────────────────────────────────────
   static const Color navActiveItemBg = Color(0xFFEAE6F8);
   static const Color navActiveBorder = Color(0xFFB137FF);
   static const Color navText         = Color(0xFF374151);
   static const Color navActiveText   = Color(0xFF173EEA);
 
-  // ── Misc ──────────────────────────────────────────────────────────────────
   static const Color divider     = Color(0xFFE5E7EB);
   static const Color inputBorder = Color(0xFFE5E7EB);
   static const Color iconBg      = Color(0xFFF3F0FF);

@@ -54,7 +54,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           const SizedBox(height: AppTheme.spacingLg),
 
-          // ── Avatar preview ───────────────────────────────────────────
           Center(
             child: Stack(
               children: [
@@ -99,7 +98,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           const SizedBox(height: AppTheme.spacingXl),
 
-          // ── Form fields ──────────────────────────────────────────────
           AppTextField(
             label: 'Full Name',
             controller: _nameCtrl,
@@ -117,7 +115,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           const SizedBox(height: AppTheme.spacingXl),
 
-          // ── Save button ──────────────────────────────────────────────
           AppButton(
             label: 'Save Changes',
             icon: Icons.check_outlined,

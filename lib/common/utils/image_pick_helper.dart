@@ -5,14 +5,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 class PickedAttachment {
-  /// Native file — available on mobile, null on web.
   final File? nativeFile;
-
-  /// Raw bytes — available on web, null on mobile.
   final Uint8List? bytes;
-
-  /// On web images picked via image_picker, this is a blob URL usable
-  /// in Image.network().  On mobile it's null.
   final String? webPath;
 
   final String name;
@@ -51,8 +45,6 @@ class PickedAttachment {
     if (isDoc) return const Color(0xFFE3F2FD);
     return const Color(0xFFECEFF1);
   }
-
-  /// Returns an [ImageProvider] suitable for both web and mobile.
   ImageProvider? get imageProvider {
     if (!isImage) return null;
     if (kIsWeb && webPath != null) return NetworkImage(webPath!);
@@ -62,7 +54,6 @@ class PickedAttachment {
   }
 }
 
-// ─── Main entry: one tap opens system picker ─────────────────────────────────
 
 Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
   if (kIsWeb) {
@@ -72,7 +63,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
   }
 }
 
-// ─── Mobile picker ───────────────────────────────────────────────────────────
 
 Future<PickedAttachment?> _pickOnMobile(BuildContext context) async {
   try {
@@ -106,7 +96,6 @@ Future<PickedAttachment?> _pickOnMobile(BuildContext context) async {
   }
 }
 
-// ─── Web picker ──────────────────────────────────────────────────────────────
 
 Future<PickedAttachment?> _pickOnWeb(BuildContext context) async {
   try {
@@ -141,7 +130,6 @@ Future<PickedAttachment?> _pickOnWeb(BuildContext context) async {
   }
 }
 
-// ─── Legacy compat ───────────────────────────────────────────────────────────
 
 Future<File?> pickImageFromGallery(BuildContext context) async {
   final result = await pickAttachmentDirect(context);

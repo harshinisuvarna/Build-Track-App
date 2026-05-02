@@ -1,6 +1,6 @@
 import 'package:buildtrack_mobile/controller/user_session.dart';
 class RoleManager {
-  RoleManager._(); 
+  RoleManager._();
   static bool get isAdmin => UserSession.isAdmin;
   static bool get isSupervisor => UserSession.isSupervisor;
   static bool get isMason => UserSession.isMason;
@@ -20,7 +20,7 @@ class RoleManager {
   static bool _canAssignRole() => canAssignRole;
   static bool canNavigate(String route) {
     final check = _restrictedRoutes[route];
-    if (check == null) return true; 
+    if (check == null) return true;
     return check();
   }
 }

@@ -1,12 +1,15 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
   final _formKey = GlobalKey<FormState>();
@@ -20,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passCtrl.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -60,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
   Widget _buildHeader() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -77,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+
   Widget _buildForm() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -127,15 +133,11 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 22,
               child: Checkbox(
                 value: _rememberMe,
-                onChanged: (v) =>
-                    setState(() => _rememberMe = v ?? false),
+                onChanged: (v) => setState(() => _rememberMe = v ?? false),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5),
                 ),
-                side: const BorderSide(
-                  color: Color(0xFFCBCFE8),
-                  width: 1.5,
-                ),
+                side: const BorderSide(color: Color(0xFFCBCFE8), width: 1.5),
                 activeColor: AppColors.primary,
               ),
             ),
@@ -151,14 +153,24 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+
   Widget _buildActions() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         AppButton(
           label: 'Sign In',
-          onPressed: () =>
-              Navigator.pushReplacementNamed(context, '/home'),
+          onPressed: () {
+            final email = _emailCtrl.text.toLowerCase();
+            if (email.contains('supervisor')) {
+              UserSession.simulateSupervisor();
+            } else if (email.contains('mason')) {
+              UserSession.simulateMason();
+            } else {
+              UserSession.simulateAdmin();
+            }
+            Navigator.pushReplacementNamed(context, '/home');
+          },
         ),
         const SizedBox(height: 20),
         Wrap(
@@ -169,8 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: AppTheme.body.copyWith(color: AppColors.textLight),
             ),
             GestureDetector(
-              onTap: () =>
-                  Navigator.pushNamed(context, '/create-workspace'),
+              onTap: () => Navigator.pushNamed(context, '/create-workspace'),
               child: Text(
                 'Create account',
                 style: AppTheme.body.copyWith(
@@ -184,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+
   Widget _buildFooter() {
     return Wrap(
       alignment: WrapAlignment.center,

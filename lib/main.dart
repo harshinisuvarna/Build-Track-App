@@ -67,7 +67,6 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
 
       routes: {
-        // ── Auth flow ─────────────────────────────────────────────────────────
         '/':                 (_) => const LoginScreen(),
         '/login':            (_) => const LoginScreen(),
         '/forgot-password':  (_) => const ForgotPasswordScreen(),
@@ -76,7 +75,6 @@ class MyApp extends StatelessWidget {
         '/edit-profile':     (_) => const EditProfileScreen(),
         '/subscription':     (_) => const SubscriptionScreen(),
 
-        // ── Main tabs ─────────────────────────────────────────────────────────
         '/home':        (_) => const HomeScreen(),
         '/projects':    (_) => const ProjectsScreen(),
         '/add-entry':   (_) => const AddEntryScreen(),
@@ -84,10 +82,8 @@ class MyApp extends StatelessWidget {
         '/reports':     (_) => const ReportsScreen(),
         '/assign-role': (_) => const AssignRoleScreen(),
 
-        // ── Project detail (NEW) ──────────────────────────────────────────────
         '/project-detail': (_) => const ProjectDetailScreen(),
 
-        // ── Sub-screens ───────────────────────────────────────────────────────
         '/notifications':   (_) => const NotificationsScreen(),
         '/logs':            (_) => const TransactionLogsScreen(),
         '/entry-detail':    (_) => const EntryDetailScreen(),
@@ -97,18 +93,15 @@ class MyApp extends StatelessWidget {
         '/cement-history':  (_) => const CementHistoryScreen(),
         '/receipt-viewer':  (_) => const ReceiptViewerScreen(),
 
-        // ── Voice review screens ──────────────────────────────────────────────
         '/review-material':  (_) => const ReviewVoiceEntryScreen(),
         '/review-labour':    (_) => const ReviewLabourEntryScreen(),
         '/review-equipment': (_) => const ReviewEquipmentEntryScreen(),
 
-        // ── Manual entry forms ────────────────────────────────────────────────
         '/add-material':  (_) => const AddMaterialScreen(),
         '/add-labour':    (_) => const AddLabourScreen(),
         '/add-equipment': (_) => const AddEquipmentScreen(),
       },
 
-      // ── Route guard ────────────────────────────────────────────────────────
       onGenerateRoute: (settings) {
         final name = settings.name ?? '';
         if (!RoleManager.canNavigate(name)) {

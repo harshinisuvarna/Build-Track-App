@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -151,8 +151,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Total Budget (NEW)
-                      _label('Total Budget (â‚¹)'),
+                      // Total Budget
+                      _label('Total Budget (₹)'),
                       const SizedBox(height: 8),
                       _field(
                         controller: _budgetCtrl,
@@ -171,7 +171,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Start Date (NEW)
+                      // Start Date
                       _label('Start Date'),
                       const SizedBox(height: 8),
                       _datePicker(),
@@ -462,14 +462,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          Text('$city â€¢ $sector',
+          Text('$city • $sector',
               style: TextStyle(
                   color: textGray, fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           // Budget preview
           if (_budgetCtrl.text.isNotEmpty)
             Text(
-              'Budget: â‚¹${_fmt(double.tryParse(_budgetCtrl.text) ?? 0)}',
+              'Budget: ₹${_fmt(double.tryParse(_budgetCtrl.text) ?? 0)}',
               style: TextStyle(
                   color: primaryBlue,
                   fontSize: 13,
@@ -537,8 +537,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       if (mounted) setState(() => _saving = false);
     }
   }
-
-  /// Shows a paywall prompt when the Free project limit is reached.
   void _showUpgradeDialog() {
     showDialog(
       context: context,

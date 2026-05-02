@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -9,11 +9,13 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<HomeScreen> {
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
@@ -46,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-             Text(
+            Text(
               'How do you want to add?',
               style: TextStyle(
                 fontSize: 18,
@@ -57,10 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 6),
             Text(
               'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: AppColors.textLight, fontSize: 14),
             ),
             const SizedBox(height: 20),
             _bottomSheetOption(
@@ -99,7 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => Navigator.pop(ctx),
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
                 child: Text(
                   'Cancel',
                   style: TextStyle(
@@ -231,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ADMIN DASHBOARD
 
-// (project list is now driven by ProjectProvider â€” see _AdminDashboardState)
+// (project list is now driven by ProjectProvider — see _AdminDashboardState)
 
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
@@ -245,8 +247,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   static const purple = AppColors.primary;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-  
-
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +261,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Text(
+              Text(
                 'OVERALL PROGRESS',
                 style: TextStyle(
                   fontSize: 12,
@@ -278,7 +278,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   Text(
                     project != null
                         ? '${(project.progress * 100).toStringAsFixed(1)}%'
-                        : 'â€”',
+                        : '—',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
@@ -316,10 +316,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             Expanded(
               child: _costCard(
                 'TOTAL COST',
-                project?.formattedSpent ?? 'â‚¹â€”',
+                project?.formattedSpent ?? '₹—',
                 project != null
                     ? '${(project.budgetUtilization * 100).toStringAsFixed(0)}% Used'
-                    : 'â€”',
+                    : '—',
                 project != null && project.budgetUtilization > 0.9,
               ),
             ),
@@ -327,8 +327,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             Expanded(
               child: _costCard(
                 'BUDGET',
-                project?.formattedBudget ?? 'â‚¹â€”',
-                'Remaining: ${project?.formattedRemaining ?? 'â€”'}',
+                project?.formattedBudget ?? '₹—',
+                'Remaining: ${project?.formattedRemaining ?? '—'}',
                 false,
                 isInvoice: true,
               ),
@@ -396,7 +396,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 
         // Recent activity
         _buildRecentActivity(context),
-        const SizedBox(height: 2),
       ],
     );
   }
@@ -668,8 +667,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               ),
             ],
           ),
-          child:Padding(
-            padding: EdgeInsets.symmetric(vertical: 22),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               children: [
                 Row(
@@ -718,7 +717,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           context,
           Icons.local_shipping_outlined,
           'Concrete Delivery Confirmed',
-          'Section 4A â€¢ 10:45 AM',
+          'Section 4A • 10:45 AM',
           'On-Site',
           const Color(0xFFE8F5E9),
           const Color(0xFF2E7D32),
@@ -730,7 +729,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           context,
           Icons.check_circle_outline,
           'Safety Audit Passed',
-          'External Inspector â€¢ 09:12 AM',
+          'External Inspector • 09:12 AM',
           'Cleared',
           const Color(0xFFF3E8FF),
           purple,
@@ -742,7 +741,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           context,
           Icons.warning_amber_outlined,
           'Weather Alert: High Winds',
-          'Crane operations suspended â€¢ 08:30 AM',
+          'Crane operations suspended • 08:30 AM',
           'Alert',
           const Color(0xFFFFF3E0),
           Colors.orange,
@@ -857,20 +856,20 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     {
       'mason': 'Rajan Kumar',
       'task': 'Column Casting â€“ Level 3',
-      'time': 'Submitted â€¢ 08:30 AM',
-      'floor': 'Floor 3 â€¢ Block A',
+      'time': 'Submitted • 08:30 AM',
+      'floor': 'Floor 3 • Block A',
     },
     {
       'mason': 'Suresh Babu',
       'task': 'Slab Reinforcement â€“ Level 2',
-      'time': 'Submitted â€¢ 09:15 AM',
-      'floor': 'Floor 2 â€¢ Block B',
+      'time': 'Submitted • 09:15 AM',
+      'floor': 'Floor 2 • Block B',
     },
     {
       'mason': 'Anwar Sheikh',
       'task': 'Plinth Beam Work',
-      'time': 'Submitted â€¢ 10:00 AM',
-      'floor': 'Ground â€¢ Parking',
+      'time': 'Submitted • 10:00 AM',
+      'floor': 'Ground • Parking',
     },
   ];
 

@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 1. MetricCard
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class MetricCard extends StatelessWidget {
@@ -114,7 +113,6 @@ class MetricCard extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 2. MetricGrid â€” 2Ã—2 responsive grid of MetricCards
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class MetricGrid extends StatelessWidget {
@@ -163,7 +161,6 @@ class _M {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 3. ChartSection â€” premium fintech-style fl_chart LineChart
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class ChartSection extends StatelessWidget {
@@ -257,8 +254,8 @@ class ChartSection extends StatelessWidget {
                             final isActual = s.barIndex == 0;
                             if (!isActual) return null;
                             final val = s.y >= 1000
-                                ? 'â‚¹${(s.y * 1000).toStringAsFixed(0)}'
-                                : 'â‚¹${s.y.toStringAsFixed(0)}';
+                                ? '₹${(s.y * 1000).toStringAsFixed(0)}'
+                                : '₹${s.y.toStringAsFixed(0)}';
                             return LineTooltipItem(
                               '$val/$unit',
                               const TextStyle(
@@ -272,7 +269,7 @@ class ChartSection extends StatelessWidget {
                         ),
                       ),
 
-                      // â”€â”€ Clean grid â€” horizontal only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      // â”€â”€ Clean grid — horizontal only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -307,7 +304,7 @@ class ChartSection extends StatelessWidget {
                       ),
 
                       lineBarsData: [
-                        // â”€â”€ Actual line â€” gradient + gradient fill â”€â”€â”€â”€â”€â”€â”€
+                        // â”€â”€ Actual line — gradient + gradient fill â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: actualSpots,
                           isCurved: true,
@@ -333,7 +330,7 @@ class ChartSection extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // â”€â”€ Target line â€” dashed grey â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                        // â”€â”€ Target line — dashed grey â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: targetSpots,
                           isCurved: true,
@@ -369,7 +366,7 @@ class ChartSection extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Actual: â‚¹${_shortNum(actualVal)}/$unit',
+                  'Actual: ₹${_shortNum(actualVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(
                       color: AppColors.textDark, fontWeight: FontWeight.w700),
@@ -380,7 +377,7 @@ class ChartSection extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Target: â‚¹${_shortNum(targetVal)}/$unit',
+                  'Target: ₹${_shortNum(targetVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(color: AppColors.textLight),
                 ),
@@ -401,7 +398,6 @@ class ChartSection extends StatelessWidget {
     return v.toStringAsFixed(1);
   }
 }
-
 
 
 // â”€â”€ Unit toggle chip (SQFT / CUYD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -449,7 +445,6 @@ class _UnitToggle extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 4. ProjectSelector â€” tappable filter card â†’ bottom sheet picker
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class ProjectSelector extends StatelessWidget {
@@ -595,7 +590,6 @@ class _ProjectPickerSheet extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 5. CategoryBudgetSection
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class CategoryBudgetSection extends StatelessWidget {
@@ -688,7 +682,6 @@ class _BudgetBar extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 6. EfficiencyBanner
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class EfficiencyBanner extends StatelessWidget {
@@ -753,14 +746,21 @@ class EfficiencyBanner extends StatelessWidget {
             splashColor: Colors.white24,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text(
-                'View Details  â†’',
-                style: AppTheme.body.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View Details',
+                    style: AppTheme.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward, size: 16, color: Colors.white),
+                ],
               ),
             ),
           ),
@@ -769,4 +769,3 @@ class EfficiencyBanner extends StatelessWidget {
     );
   }
 }
-

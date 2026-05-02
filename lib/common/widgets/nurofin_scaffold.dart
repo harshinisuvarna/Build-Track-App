@@ -1,17 +1,5 @@
 import 'package:buildtrack_mobile/common/widgets/nurofin_background.dart';
 import 'package:flutter/material.dart';
-
-/// Drop-in replacement for [Scaffold] that automatically paints the
-/// Nurofin 4-layer background behind the content.
-///
-/// Usage:
-/// ```dart
-/// NurofinScaffold(
-///   appBar: AppBar(title: const Text('Dashboard')),
-///   body: …,
-///   bottomNavigationBar: const AppBottomNav(),
-/// )
-/// ```
 class NurofinScaffold extends StatelessWidget {
   const NurofinScaffold({
     super.key,

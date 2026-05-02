@@ -9,12 +9,7 @@ class AppTopBar extends StatelessWidget {
   final String title;
   final IconData? leftIcon;
   final VoidCallback? onLeftTap;
-
-  /// Arbitrary widget placed on the right (buttons, avatars, etc.)
   final Widget? rightWidget;
-
-  /// When true: smaller font + dark color (sub-screens / back-button screens)
-  /// When false: larger font + primaryBlue (main tab screens)
   final bool isSubScreen;
 
   const AppTopBar({
@@ -133,7 +128,6 @@ class AppBottomNav extends StatelessWidget {
     String label,
   ) {
     final isActive = nav.index == index;
-    // FIX 1: InkWell for ripple on bottom nav items
     return InkWell(
       onTap: () => nav.setIndex(index, context),
       borderRadius: BorderRadius.circular(12),
@@ -169,7 +163,6 @@ class AppBottomNav extends StatelessWidget {
 
   Widget _entryButton(BuildContext context, NavController nav) {
     final isActive = nav.index == 2;
-    // FIX 1: InkWell for ripple on the + entry button
     return InkWell(
       onTap: () => nav.setIndex(2, context),
       borderRadius: BorderRadius.circular(22),

@@ -2,13 +2,6 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
-
-/// ```dart
-/// return AppLayout(
-///   title: 'Dashboard',
-///   child: ListView(...),
-/// );
-/// ```
 class AppLayout extends StatelessWidget {
   const AppLayout({
     super.key,
@@ -61,13 +54,6 @@ class AppLayout extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. AppScrollLayout  —  Scrollable full-page layout
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Same as [AppLayout] but wraps [child] in a [SingleChildScrollView].
-/// Use this for form screens where the content may exceed the viewport.
 class AppScrollLayout extends StatelessWidget {
   const AppScrollLayout({
     super.key,
@@ -119,13 +105,6 @@ class AppScrollLayout extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. AppSubScreenLayout  —  Sub-screen with back button
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Layout for screens that are pushed on top of a main tab screen.
-/// Includes a back-arrow and optional right-side widget.
 class AppSubScreenLayout extends StatelessWidget {
   const AppSubScreenLayout({
     super.key,
@@ -197,13 +176,6 @@ class AppSubScreenLayout extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. AppTabLayout  —  Layout with persistent bottom navigation
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// For the main home / tab shell. Provides a consistent bottom navigation bar
-/// and hands control of the selected tab index to the caller.
 class AppTabLayout extends StatelessWidget {
   const AppTabLayout({
     super.key,
@@ -254,8 +226,6 @@ class AppTabLayout extends StatelessWidget {
     );
   }
 }
-
-/// Data model for a single bottom-nav tab.
 class AppTabItem {
   const AppTabItem({
     required this.icon,
@@ -318,7 +288,6 @@ class _AppBottomNav extends StatelessWidget {
                         Text(
                           tab.label,
                           style: TextStyle(
-                            fontFamily: 'Roboto',
                             fontSize: 10,
                             fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                             color: selected ? AppTheme.primary : AppTheme.textLight,
@@ -336,12 +305,6 @@ class _AppBottomNav extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. AppLoadingOverlay  —  Full-screen loading indicator
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Wrap [child] to show a blurred loading overlay when [isLoading] is true.
 class AppLoadingOverlay extends StatelessWidget {
   const AppLoadingOverlay({
     super.key,

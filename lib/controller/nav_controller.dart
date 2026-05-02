@@ -19,7 +19,7 @@ class NavController extends ChangeNotifier {
     Navigator.pushNamedAndRemoveUntil(
       context,
       route,
-      (r) => false, // remove all previous routes
+      (r) => false,
     );
   }
 }

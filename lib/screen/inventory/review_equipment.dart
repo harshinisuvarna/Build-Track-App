@@ -1,6 +1,6 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
-import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+
 import 'package:flutter/material.dart';
 
 class ReviewEquipmentEntryScreen extends StatelessWidget {
@@ -66,7 +66,6 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -105,7 +104,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 97.2% â€¢ Voice timestamp 11:30 AM',
+                  'Confidence: 97.2% • Voice timestamp 11:30 AM',
                   style: TextStyle(
                     color: voicePurple.withValues(alpha: 0.75),
                     fontSize: 12,
@@ -208,7 +207,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
                   children: [
                     _label('COST / HOUR'),
                     const SizedBox(height: 8),
-                    _box('â‚¹85.00'),
+                    _box('₹85.00'),
                   ],
                 ),
               ),
@@ -232,7 +231,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'â‚¹510.00',
+                  '₹510.00',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -346,20 +345,26 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
         ),
       );
 
-  Widget _box(String value) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4F6FB),
-          borderRadius: BorderRadius.circular(16),
+  Widget _box(String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
+      ),
+      child: TextFormField(
+        initialValue: value,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
         ),
-        child: Text(
-          value,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: textDark,
-          ),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textDark,
         ),
-      );
+      ),
+    );
+  }
 }

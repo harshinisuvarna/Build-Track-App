@@ -1,5 +1,5 @@
-﻿// lib/screen/project_detail.dart
-// Full project detail screen â€” reads the currently selected project
+// lib/screen/project_detail.dart
+// Full project detail screen — reads the currently selected project
 // from ProjectProvider and shows info, financials, and action buttons.
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
@@ -414,9 +414,9 @@ class _EntryTile extends StatelessWidget {
   }
 
   String _fmt(double v) {
-    if (v >= 1e6) return 'â‚¹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return 'â‚¹${(v / 1e3).toStringAsFixed(0)}k';
-    return 'â‚¹${v.toStringAsFixed(0)}';
+    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
+    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
+    return '₹${v.toStringAsFixed(0)}';
   }
 
   String _formatDate(DateTime d) =>

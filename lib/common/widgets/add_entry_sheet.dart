@@ -54,12 +54,6 @@ const _entryTypes = [
 ];
 
 // â”€â”€â”€ Public helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-/// Call this from any screen to show the Add Entry bottom-sheet popup.
-///
-/// ```dart
-/// showAddEntryPopup(context);
-/// ```
 void showAddEntryPopup(BuildContext context) {
   showModalBottomSheet(
     context: context,

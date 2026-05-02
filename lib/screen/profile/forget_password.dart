@@ -85,7 +85,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // ── Form ──────────────────────────────────────────────────────────────────
 
   Widget _buildForm() {
     return AppTextField(
@@ -97,7 +96,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
 
   Widget _buildActions() {
     return Column(
@@ -132,7 +130,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   void _onResetPressed() {
     final email = _emailCtrl.text.trim();

@@ -135,7 +135,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         AppTextField(
           label: 'Password',
           controller: _passCtrl,
-          hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
+          hint: '••••••••',
           prefixIcon: Icons.lock_outline,
           obscureText: _obscurePass,
           suffixIcon: IconButton(
@@ -152,7 +152,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         AppTextField(
           label: 'Confirm Password',
           controller: _confirmCtrl,
-          hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
+          hint: '••••••••',
           prefixIcon: Icons.lock_outline,
           obscureText: _obscureConfirm,
           suffixIcon: IconButton(

@@ -1,16 +1,13 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Entry point â€” call this from anywhere to show the sheet
+// Entry point — call this from anywhere to show the sheet
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Future<void> showVoiceConfirmationSheet(
   BuildContext context, {
-
-  /// Optionally pass a pre-detected type ('material'|'labour'|'equipment')
-  /// Leave null to simulate AI detection (shows loading state first)
   String? detectedType,
 }) {
   return showModalBottomSheet(
@@ -32,13 +29,10 @@ class VoiceConfirmationSheet extends StatefulWidget {
   @override
   State<VoiceConfirmationSheet> createState() => _VoiceConfirmationSheetState();
 }
-
-/// Sheet has 3 phases
 enum _SheetPhase { loading, detected, editing }
 
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     with TickerProviderStateMixin {
-  // â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static const _blue = AppColors.primaryBlue;
   static const _bgColor = Color(0xFFF4F6FB);
   static const _textDark = Color(0xFF0F1724);
@@ -61,12 +55,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       route: '/review-equipment',
     ),
   };
-
-  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   _SheetPhase _phase = _SheetPhase.loading;
   String _selectedType = 'labour'; // will be replaced after "AI detection"
-
-  // â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   late final AnimationController _pulseCtrl;
   late final AnimationController _waveCtrl;
   late final AnimationController _fadeCtrl;
@@ -111,7 +101,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       });
     }
   }
-
   @override
   void dispose() {
     _pulseCtrl.dispose();
@@ -119,17 +108,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     _fadeCtrl.dispose();
     super.dispose();
   }
-
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _confirmAndNavigate() {
     final route = _types[_selectedType]!.route;
     Navigator.pop(context);
     Navigator.pushNamed(context, route, arguments: {'type': _selectedType});
   }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // BUILD
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   @override
   Widget build(BuildContext context) {
     return Container(

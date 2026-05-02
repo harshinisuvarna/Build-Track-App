@@ -8,13 +8,6 @@ import 'package:buildtrack_mobile/common/widgets/subscription_card.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-
-/// Shape of the user data this screen expects.
-/// Navigate to '/profile' with:
-///   Navigator.pushNamed(context, '/profile',
-///       arguments: ProfileUserData(name: ..., email: ..., role: ...));
-///
-/// Replace field reads with your actual AuthController / UserModel.
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
@@ -25,8 +18,6 @@ class ProfileUserData {
   final String name;
   final String email;
   final String role;
-
-  /// Fallback built from UserSession when no arguments are passed to the route.
   static ProfileUserData get sessionFallback => ProfileUserData(
     name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
     email: '${UserSession.userId}@buildtrack.app',
@@ -50,8 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final file = await pickImageFromGallery(context);
     if (file != null && mounted) setState(() => _selectedImage = file);
   }
-
-  /// Reads user data from route arguments, falling back to UserSession.
   ProfileUserData get _user {
     final args = ModalRoute.of(context)?.settings.arguments;
     return args is ProfileUserData ? args : ProfileUserData.sessionFallback;
@@ -84,7 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Gradient profile header card ──────────────────────────────────────────
 
   Widget _buildProfileCard(ProfileUserData user) {
     // Container is necessary here: AppCard doesn't support gradients.
@@ -198,7 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Account Settings card ─────────────────────────────────────────────────
 
   Widget _buildSettingsCard() {
     return AppCard(
@@ -317,7 +304,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
 
   Widget _buildActions() {
     return AppButton(
@@ -328,7 +314,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   void _onLogoutPressed() {
     UserSession.clear();                           // clear session data

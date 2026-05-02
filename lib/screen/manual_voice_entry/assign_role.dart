@@ -271,7 +271,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         style: TextStyle(fontSize: 12.5, height: 1.4),
         children: [
           TextSpan(
-            text: 'â€¢ ',
+            text: '• ',
             style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800),
           ),
           TextSpan(

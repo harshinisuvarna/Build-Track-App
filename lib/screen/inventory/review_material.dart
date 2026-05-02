@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
@@ -62,7 +62,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -101,7 +100,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 98.4% â€¢ Voice timestamp 10:42 AM',
+                  'Confidence: 98.4% • Voice timestamp 10:42 AM',
                   style: TextStyle(
                     color: const Color(0xFF9B7FD6),
                     fontSize: 12,
@@ -177,7 +176,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     _fieldLabel('QUANTITY'),
                     const SizedBox(height: 6),
-                    _fieldBox('12.5 mÂ³'),
+                    _fieldBox('12.5 m³'),
                   ],
                 ),
               ),
@@ -188,7 +187,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     _fieldLabel('RATE'),
                     const SizedBox(height: 6),
-                    _fieldBox(r'â‚¹145.00'),
+                    _fieldBox(r'₹145.00'),
                   ],
                 ),
               ),
@@ -207,7 +206,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  r'â‚¹1,812.50',
+                  r'₹1,812.50',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 24,
@@ -379,17 +378,21 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
 
   Widget _fieldBox(String value) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
-        borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
       ),
-      child: Text(
-        value,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 15.5,
+      child: TextFormField(
+        initialValue: value,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
           color: textDark,
         ),
       ),

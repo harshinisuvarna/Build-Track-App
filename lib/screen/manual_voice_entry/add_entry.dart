@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -234,7 +234,7 @@ class AddEntryScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     Text(
                       'What are you\nadding?',
                       style: AppTheme.heading1.copyWith(
@@ -328,8 +328,6 @@ class AddEntryScreen extends StatelessWidget {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
-  /// Dashed-border card with team illustration + Assign Role gradient button.
   Widget _teamAccessCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -341,7 +339,7 @@ class AddEntryScreen extends StatelessWidget {
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.25),
           width: 1.5,
-          // Dart doesn't support native dashed borders â€” simulate with custom paint
+          // Dart doesn't support native dashed borders — simulate with custom paint
         ),
       ),
       child: Row(
@@ -416,8 +414,6 @@ class AddEntryScreen extends StatelessWidget {
       ),
     );
   }
-
-  /// Simple SVG-style team illustration using Flutter widgets.
   Widget _teamIllustration() {
     const purple = AppColors.primaryPurple;
     const purpleLight = AppColors.primaryLightBlue;

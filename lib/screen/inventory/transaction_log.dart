@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -193,7 +193,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: const Icon(Icons.search, color: textDark, size: 22),
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFEEF0F8)),
             Expanded(
@@ -459,7 +458,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '$_itemName â€¢ ${log['ref'] ?? ''}',
+                      '$_itemName • ${log['ref'] ?? ''}',
                       style: AppTheme.caption.copyWith(color: textGray),
                     ),
                   ],

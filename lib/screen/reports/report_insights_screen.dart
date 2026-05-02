@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -141,11 +141,9 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Project Summary Card
                     _ProjectSummaryCard(project: project),
                     const SizedBox(height: 14),
 
-                    // 2. Cost Trend Chart
                     const AppSectionHeader(title: 'Cost Trend'),
                     _CostTrendChartCard(
                       project: project,
@@ -155,7 +153,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // 3. Category Breakdown
                     const AppSectionHeader(title: 'Category Breakdown'),
                     _CategoryBreakdownCard(
                       project: project,
@@ -191,8 +188,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-/// Compact currency formatter: 1200000 â†’ '1.2M', 842000 â†’ '842k'
 String _fmt(double v) {
   if (v >= 1_000_000) return '${(v / 1_000_000).toStringAsFixed(1)}M';
   if (v >= 1_000)     return '${(v / 1_000).toStringAsFixed(0)}k';
@@ -200,7 +195,6 @@ String _fmt(double v) {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 1. Project Summary Card
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ProjectSummaryCard extends StatelessWidget {
@@ -247,7 +241,6 @@ class _ProjectSummaryCard extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 2. Cost Trend Chart â€” premium fintech-style
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CostTrendChartCard extends StatelessWidget {
@@ -344,8 +337,8 @@ class _CostTrendChartCard extends StatelessWidget {
                     getTooltipItems: (spots) => spots.map((s) {
                       if (s.barIndex != 0) return null;
                       final v = s.y >= 1000
-                          ? 'â‚¹${(s.y).toStringAsFixed(0)}k/$unitLabel'
-                          : 'â‚¹${s.y.toStringAsFixed(0)}/$unitLabel';
+                          ? '₹${(s.y).toStringAsFixed(0)}k/$unitLabel'
+                          : '₹${s.y.toStringAsFixed(0)}/$unitLabel';
                       return LineTooltipItem(
                         v,
                         const TextStyle(
@@ -389,7 +382,7 @@ class _CostTrendChartCard extends StatelessWidget {
                   ),
                 ),
                 lineBarsData: [
-                  // Actual â€” gradient line + fill
+                  // Actual — gradient line + fill
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
@@ -413,7 +406,7 @@ class _CostTrendChartCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Target â€” dashed grey
+                  // Target — dashed grey
                   LineChartBarData(
                     spots: targetSpots,
                     isCurved: true,
@@ -448,7 +441,7 @@ class _CostTrendChartCard extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                'Actual: â‚¹${_shortNum(currentVal)}/$unitLabel',
+                'Actual: ₹${_shortNum(currentVal)}/$unitLabel',
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.caption.copyWith(
                     color: AppColors.textDark, fontWeight: FontWeight.w700),
@@ -459,7 +452,7 @@ class _CostTrendChartCard extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                'Target: â‚¹${_shortNum(targetVal)}/$unitLabel',
+                'Target: ₹${_shortNum(targetVal)}/$unitLabel',
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.caption.copyWith(color: AppColors.textLight),
               ),
@@ -523,7 +516,6 @@ class _InsightUnitToggle extends StatelessWidget {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 3. Category Breakdown â€” shows â‚¹ spent / â‚¹ budget + percentage
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CategoryBreakdownCard extends StatelessWidget {
@@ -571,16 +563,16 @@ class _CategoryBreakdownCard extends StatelessWidget {
                                 color: AppColors.textDark,
                                 fontWeight: FontWeight.w600)),
                       ),
-                      // â‚¹ spent
+                      // ₹ spent
                       Text(
-                        'â‚¹${_fmt(cost)}',
+                        '₹${_fmt(cost)}',
                         style: TextStyle(
                             color: color,
                             fontWeight: FontWeight.w800,
                             fontSize: 13),
                       ),
                       Text(
-                        ' / â‚¹${_fmt(budget)}',
+                        ' / ₹${_fmt(budget)}',
                         style: AppTheme.caption.copyWith(
                             color: AppColors.textLight, fontSize: 11),
                       ),

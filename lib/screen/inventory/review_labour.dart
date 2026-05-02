@@ -1,6 +1,5 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
-import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
@@ -85,7 +84,6 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
@@ -124,7 +122,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Confidence: 96.7% â€¢ Voice timestamp 09:15 AM',
+                  'Confidence: 96.7% • Voice timestamp 09:15 AM',
                   style: TextStyle(
                     color: voicePurple.withValues(alpha: 0.75),
                     fontSize: 12,
@@ -227,7 +225,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   children: [
                     _label('RATE'),
                     const SizedBox(height: 8),
-                    _box('â‚¹18.00'),
+                    _box('₹18.00'),
                   ],
                 ),
               ),
@@ -247,7 +245,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'â‚¹144.00',
+                  '₹144.00',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -416,20 +414,26 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     ),
   );
 
-  Widget _box(String value) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF4F6FB),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Text(
-      value,
-      style: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: textDark,
+  Widget _box(String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
       ),
-    ),
-  );
+      child: TextFormField(
+        initialValue: value,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
+      ),
+    );
+  }
 }

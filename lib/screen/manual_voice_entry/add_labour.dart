@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -107,9 +107,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: bgColor,
       body: SafeArea(
         bottom: false,
@@ -124,7 +124,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottomInset),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -138,7 +138,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           _sectionLabel('Worker / Team Name'),
                           const SizedBox(height: 8),
                           _underlineField(
-                            Icons.person_outline,
                             _nameController,
                             hint: 'Enter worker or team name',
                           ),
@@ -152,7 +151,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           _sectionLabel('Work Type'),
                           const SizedBox(height: 8),
                           _underlineField(
-                            Icons.work_outline,
                             _workTypeController,
                             hint: 'e.g. Masonry, Plumbing',
                           ),
@@ -197,7 +195,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     const SizedBox(height: 8),
                                     _prefixUnderlineField(
                                       _rateController,
-                                      prefix: 'â‚¹',
+                                      prefix: '₹',
                                       onChanged: (_) => setState(() {}),
                                     ),
                                     if (_rateError != null) ...[
@@ -243,6 +241,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               maxLines: 3,
                               decoration: InputDecoration(
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
                                 hintText: 'Add any site notes or remarksâ€¦',
                                 hintStyle: TextStyle(
                                   color: textGray,
@@ -292,12 +292,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(),
     );
   }
 
   Widget _underlineField(
-    IconData icon,
     TextEditingController ctrl, {
     String hint = '',
   }) {
@@ -306,27 +304,21 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: textGray, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: ctrl,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: hint,
-                hintStyle: TextStyle(color: textGray),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: textDark,
-              ),
-            ),
-          ),
-        ],
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          hintText: hint,
+          hintStyle: TextStyle(color: textGray),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
       ),
     );
   }
@@ -349,6 +341,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               onChanged: onChanged,
               decoration: const InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 hintText: '0',
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 0,
@@ -401,6 +395,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               onChanged: onChanged,
               decoration: const InputDecoration(
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 hintText: '0',
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 0,
@@ -443,7 +439,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'â‚¹ ${_computeTotal()}',
+                '₹ ${_computeTotal()}',
                 style: TextStyle(
                   color: primaryBlue,
                   fontSize: 24,

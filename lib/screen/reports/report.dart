@@ -26,7 +26,6 @@ class ReportsScreen extends StatelessWidget {
   }
 }
 
-// ── Internal view ─────────────────────────────────────────────────────────────
 
 class _ReportsView extends StatefulWidget {
   const _ReportsView();
@@ -45,12 +44,16 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Link ReportProvider to ProjectProvider safely outside build().
+    final projectProvider = context.read<ProjectProvider>();
+    context.read<ReportProvider>().linkProjectProvider(projectProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-
-    // Link to the global ProjectProvider so reports use real data
-    final projectProvider = context.watch<ProjectProvider>();
-    provider.linkProjectProvider(projectProvider);
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -58,20 +61,22 @@ class _ReportsViewState extends State<_ReportsView> {
         bottom: false,
         child: Column(
           children: [
-            // ── Top bar ──────────────────────────────────────────────────
             AppTopBar(
-              title: 'Dashboard',
+              title: 'Reports',
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
 
-            // ── Period tabs ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: _PeriodTabs(
@@ -90,7 +95,6 @@ class _ReportsViewState extends State<_ReportsView> {
               ),
             ),
 
-            // ── Body (PageView) ───────────────────────────────────────────
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -111,14 +115,12 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 
   Widget _buildPageContent(BuildContext context, ReportProvider provider) {
-    // ── Loading state ─────────────────────────────────────────────────────
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    // ── Error state ───────────────────────────────────────────────────────
     if (provider.error != null) {
       return AppEmptyState(
         icon: Icons.cloud_off_outlined,
@@ -128,7 +130,6 @@ class _ReportsViewState extends State<_ReportsView> {
       );
     }
 
-    // ── Empty state ───────────────────────────────────────────────────────
     if (!provider.hasData) {
       return const AppEmptyState(
         icon: Icons.bar_chart_outlined,
@@ -138,33 +139,27 @@ class _ReportsViewState extends State<_ReportsView> {
 
     final report = provider.report!;
 
-    // ── Main content ──────────────────────────────────────────────────────
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Project filter
           ProjectSelector(provider: provider),
           const SizedBox(height: 14),
 
-          // 2. Cost summary metric cards
           const AppSectionHeader(title: 'Cost Summary'),
           MetricGrid(report: report, period: provider.currentPeriod),
           const SizedBox(height: 14),
 
-          // 3. Cost-per-unit chart
           const AppSectionHeader(title: 'Cost per Unit'),
           ChartSection(provider: provider),
           const SizedBox(height: 14),
 
-          // 4. Category budget progress
           const AppSectionHeader(title: 'Category Budget'),
           CategoryBudgetSection(categoryBudget: report.categoryBudget),
           const SizedBox(height: 14),
 
-          // 5. Efficiency banner
           EfficiencyBanner(
             note: report.efficiencyNote,
             selectedProjectName: provider.selectedProject,
@@ -176,15 +171,13 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Period tabs (Monthly / Quarterly / Yearly)
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({required this.tabIndex, required this.onTabChanged});
 
-  final int                   tabIndex;
-  final ValueChanged<int>     onTabChanged;
+  final int tabIndex;
+  final ValueChanged<int> onTabChanged;
 
   static const _tabs = ['Monthly', 'Quarterly', 'Yearly'];
 
@@ -196,10 +189,7 @@ class _PeriodTabs extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Row(

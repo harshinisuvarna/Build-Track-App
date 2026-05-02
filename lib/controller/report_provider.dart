@@ -3,8 +3,8 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'report_model.dart';
 class ReportProvider extends ChangeNotifier {
-  int    _tabIndex        = 0;           
-  int    _unitIndex       = 0;            
+  int    _tabIndex        = 0;
+  int    _unitIndex       = 0;
   String _selectedProject = 'All Active Projects';
   bool   _isLoading       = false;
   ReportModel? _report;
@@ -35,7 +35,7 @@ class ReportProvider extends ChangeNotifier {
   void linkProjectProvider(ProjectProvider provider) {
     if (_projectProvider != provider) {
       _projectProvider = provider;
-      if (_report == null) _load();
+      if (_report == null) Future.microtask(_load);
     }
   }
   void selectTab(int index) {

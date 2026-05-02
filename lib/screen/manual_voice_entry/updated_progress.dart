@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -165,7 +165,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               const Icon(Icons.location_on_outlined, color: textGray, size: 14),
               const SizedBox(width: 4),
               Text(
-                'Sector B-12 â€¢ Level 04',
+                'Sector B-12 • Level 04',
                 style: TextStyle(
                   color: textGray,
                   fontSize: 13,
@@ -516,7 +516,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           const SizedBox(height: 12),
           _materialTag('Rebar 12mm', '120 kg'),
           const SizedBox(height: 8),
-          _materialTag('Concrete M30', '12 mÂ³'),
+          _materialTag('Concrete M30', '12 m³'),
         ],
       ),
     );
