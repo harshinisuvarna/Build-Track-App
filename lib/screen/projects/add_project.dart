@@ -23,6 +23,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final _cityCtrl  = TextEditingController();
   final _sectorCtrl= TextEditingController();
   final _budgetCtrl= TextEditingController();
+  // ── STEP 4A: New controllers ───────────────────────────────────────────────
+  final _clientCtrl    = TextEditingController();
+  final _typeCtrl      = TextEditingController();
+  final _floorInputCtrl= TextEditingController();
+  DateTime? _expectedEndDate;
+  final List<String> _floors = [];
+  // ─────────────────────────────────────────────────────────────────
 
   ProjectStage _selectedStage = ProjectStage.foundation;
   DateTime     _startDate     = DateTime.now();
@@ -55,6 +62,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _cityCtrl.dispose();
     _sectorCtrl.dispose();
     _budgetCtrl.dispose();
+    // ── STEP 4A: Dispose new controllers ────────────────────────────
+    _clientCtrl.dispose();
+    _typeCtrl.dispose();
+    _floorInputCtrl.dispose();
+    // ─────────────────────────────────────────────────────────────────
     super.dispose();
   }
 
@@ -175,6 +187,119 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _label('Start Date'),
                       const SizedBox(height: 8),
                       _datePicker(),
+                      const SizedBox(height: 24),
+
+                      // ── STEP 4B: Client Name ───────────────────────────────────
+                      _label('Client Name (Optional)'),
+                      const SizedBox(height: 8),
+                      _field(
+                        controller: _clientCtrl,
+                        hint: 'e.g. Rajan Builders Pvt. Ltd.',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // ── STEP 4B: Project Type ─────────────────────────────────
+                      _label('Project Type (Optional)'),
+                      const SizedBox(height: 8),
+                      _field(
+                        controller: _typeCtrl,
+                        hint: 'e.g. Residential, Commercial',
+                        icon: Icons.category_outlined,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // ── STEP 4C: Expected End Date ─────────────────────────────
+                      _label('Expected End Date (Optional)'),
+                      const SizedBox(height: 8),
+                      _endDatePicker(),
+                      const SizedBox(height: 24),
+
+                      // ── STEP 4D & 4E: Floor Management ──────────────────────────
+                      _label('Floors / Zones (Optional)'),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _field(
+                              controller: _floorInputCtrl,
+                              hint: 'e.g. Ground Floor',
+                              icon: Icons.layers_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
+                              final val = _floorInputCtrl.text.trim();
+                              if (val.isNotEmpty) {
+                                setState(() {
+                                  _floors.add(val);
+                                  _floorInputCtrl.clear();
+                                });
+                              }
+                            },
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: primaryBlue,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.add_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_floors.isNotEmpty) ...([
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _floors.map((floor) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: primaryBlue.withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    floor,
+                                    style: TextStyle(
+                                      color: primaryBlue,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _floors.remove(floor)),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 14,
+                                      color: primaryBlue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ]),
+                      // ─────────────────────────────────────────────────────────────────
                       const SizedBox(height: 24),
 
                       // Stage chips
@@ -406,6 +531,78 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
+  // ── STEP 4C: Expected End Date picker (same style as _datePicker) ────────
+  Widget _endDatePicker() {
+    final hasDate = _expectedEndDate != null;
+    final dateStr = hasDate
+        ? '${_expectedEndDate!.day} ${_months[_expectedEndDate!.month - 1]} ${_expectedEndDate!.year}'
+        : 'Select target completion date';
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _expectedEndDate ??
+              DateTime.now().add(const Duration(days: 30)),
+          firstDate: DateTime.now(),
+          lastDate: DateTime(2100),
+          builder: (ctx, child) => Theme(
+            data: Theme.of(ctx).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: primaryBlue,
+                onPrimary: Colors.white,
+                onSurface: textDark,
+              ),
+            ),
+            child: child!,
+          ),
+        );
+        if (picked != null) setState(() => _expectedEndDate = picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5)
+              .merged(null),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.event_outlined,
+              color: hasDate ? primaryBlue : textGray,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              dateStr,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: hasDate ? textDark : textGray.withValues(alpha: 0.6),
+              ),
+            ),
+            if (hasDate) ...[
+              const Spacer(),
+              GestureDetector(
+                onTap: () => setState(() => _expectedEndDate = null),
+                child: Icon(Icons.close_rounded,
+                    size: 16, color: textGray),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   Widget _previewCard() {
     final name   = _nameCtrl.text.isEmpty ? 'Project Name' : _nameCtrl.text;
     final city   = _cityCtrl.text.isEmpty ? 'City' : _cityCtrl.text;
@@ -509,6 +706,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         totalBudget: double.parse(_budgetCtrl.text),
         spentAmount: 0.0,
         startDate:   _startDate,
+        // ── STEP 4F: Pass new optional fields ─────────────────────────────
+        clientName:      _clientCtrl.text.trim().isEmpty
+                             ? null
+                             : _clientCtrl.text.trim(),
+        projectType:     _typeCtrl.text.trim().isEmpty
+                             ? null
+                             : _typeCtrl.text.trim(),
+        expectedEndDate: _expectedEndDate,
+        // STEP 4G: Auto-assign Ground Floor if user left list empty
+        floors: _floors.isEmpty ? ['Ground Floor'] : _floors,
+        // ─────────────────────────────────────────────────────────────────
       );
 
       if (!mounted) return;

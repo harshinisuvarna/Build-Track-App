@@ -2,11 +2,16 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart' hide EntryType;
+// Alias for entry_model's EntryType used only by Entry() constructor
+import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:provider/provider.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -24,6 +29,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _nameController = TextEditingController();
   final _qtyController = TextEditingController();
   final _rateController = TextEditingController();
+  // ── STEP 5A: New state for dependent dropdowns + brand ───────────────────
+  String?       _selectedProjectId;
+  String?       _selectedFloor;
+  ProjectStage? _selectedPhase;
+  final _brandCtrl = TextEditingController();
+  // ─────────────────────────────────────────────────────────────────
 
   bool _supplierError = false;
   bool _supplierSelected = false;
@@ -74,6 +85,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _nameController.dispose();
     _qtyController.dispose();
     _rateController.dispose();
+    _brandCtrl.dispose(); // STEP 5A
     super.dispose();
   }
 
@@ -128,6 +140,85 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const AppSectionHeader(title: 'Basic Details'),
+                    // ── STEP 5B/5C/5D: Dependent dropdowns ────────────────────────
+                    Builder(builder: (context) {
+                      final provider = context.watch<ProjectProvider>();
+                      final projects = provider.projects;
+                      // Find selected project safely
+                      final selProject = _selectedProjectId == null
+                          ? null
+                          : projects.cast<ProjectModel?>().firstWhere(
+                              (p) => p?.id == _selectedProjectId,
+                              orElse: () => null,
+                            );
+                      final floors = selProject?.floors ?? ['Ground Floor'];
+
+                      return AppCard(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // STEP 5B — Project dropdown
+                            _sectionLabel('Project'),
+                            const SizedBox(height: 8),
+                            _dropdownField<String>(
+                              value: _selectedProjectId,
+                              hint: 'Select project',
+                              items: projects.map((p) =>
+                                DropdownMenuItem(value: p.id, child: Text(p.name))
+                              ).toList(),
+                              onChanged: (val) => setState(() {
+                                _selectedProjectId = val;
+                                _selectedFloor = null;  // reset children
+                                _selectedPhase = null;
+                              }),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // STEP 5C — Floor dropdown (enabled only when project selected)
+                            _sectionLabel('Floor / Zone'),
+                            const SizedBox(height: 8),
+                            _dropdownField<String>(
+                              value: _selectedFloor,
+                              hint: _selectedProjectId == null
+                                  ? 'Select project first'
+                                  : 'Select floor',
+                              enabled: _selectedProjectId != null,
+                              items: floors.map((f) =>
+                                DropdownMenuItem(value: f, child: Text(f))
+                              ).toList(),
+                              onChanged: _selectedProjectId == null
+                                  ? null
+                                  : (val) => setState(() {
+                                      _selectedFloor = val;
+                                      _selectedPhase = null; // reset phase
+                                    }),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // STEP 5D — Phase dropdown (enabled only when floor selected)
+                            _sectionLabel('Phase (Optional)'),
+                            const SizedBox(height: 8),
+                            _dropdownField<ProjectStage>(
+                              value: _selectedPhase,
+                              hint: _selectedFloor == null
+                                  ? 'Select floor first'
+                                  : 'Select phase',
+                              enabled: _selectedFloor != null,
+                              items: ProjectStage.values.map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s.label))
+                              ).toList(),
+                              onChanged: _selectedFloor == null
+                                  ? null
+                                  : (val) => setState(() => _selectedPhase = val),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    // ─────────────────────────────────────────────────────────────────
+
+                    const AppSectionHeader(title: 'Basic Details'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
                       child: Column(
@@ -144,6 +235,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             const SizedBox(height: 4),
                             _errorText(_nameError!),
                           ],
+                          const SizedBox(height: 16),
+
+                          // STEP 5E — Brand field
+                          _sectionLabel('Brand (Optional)'),
+                          const SizedBox(height: 8),
+                          _underlineField(
+                            _brandCtrl,
+                            hint: 'e.g. UltraTech, Tata Steel',
+                          ),
                           const SizedBox(height: 16),
 
                           // Supplier
@@ -275,10 +375,47 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       onTap: _isSaving
           ? null
           : () async {
+              // ── STEP 5G: Validate project + floor ─────────────────────────
+              if (_selectedProjectId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please select a project'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              if (_selectedFloor == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please select a floor / zone'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              // ──────────────────────────────────────────────────────────────
               if (!_validate()) return;
               setState(() => _isSaving = true);
               await Future.delayed(const Duration(milliseconds: 600));
               if (!mounted) return;
+              // ── STEP 5F: Persist to ProjectProvider ────────────────────────
+              final entryId = 'MAT-${DateTime.now().millisecondsSinceEpoch}';
+              context.read<ProjectProvider>().addEntry(
+                EntryModel(
+                  id:          entryId,
+                  projectId:   _selectedProjectId!,
+                  type:        EntryType.material,
+                  amount:      double.tryParse(_qtyController.text) ?? 0.0,
+                  date:        DateTime.now(),
+                  description: _nameController.text,
+                  brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+                  ratePerUnit: double.tryParse(_rateController.text),
+                  floor:       _selectedFloor,
+                  phase:       _selectedPhase,
+                ),
+              );
+              // ──────────────────────────────────────────────────────────────
               Navigator.pushNamed(
                 // ignore: use_build_context_synchronously
                 context,
@@ -288,13 +425,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   'name': _nameController.text,
                   'newEntry':
                       Entry(
-                        id: 'MAT-${DateTime.now().millisecondsSinceEpoch}',
-                        type: EntryType.material,
-                        projectId: UserSession.projectId,
+                        id: entryId,
+                        type: em.EntryType.material,
+                        projectId: _selectedProjectId ?? UserSession.projectId,
                         createdBy: UserSession.userId,
                       ).toMap()..addAll({
                         'title': _nameController.text,
-                        'ref': '#MAT-${DateTime.now().millisecondsSinceEpoch}',
+                        'ref': '#$entryId',
                         'amount': '+${_qtyController.text}',
                         'date': 'Today',
                         'isPositive': true,
@@ -718,4 +855,54 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       fontStyle: FontStyle.italic,
     ),
   );
+
+  // ── STEP 5B/5C/5D: Reusable dropdown helper (matches underline design) ──────
+  Widget _dropdownField<T>({
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    bool enabled = true,
+  }) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: enabled ? primaryBlue : textGray,
+              width: 2,
+            ),
+          ),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<T>(
+            value: value,
+            isExpanded: true,
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: enabled ? primaryBlue : textGray,
+            ),
+            hint: Text(
+              hint,
+              style: TextStyle(
+                color: textGray,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: textDark,
+            ),
+            items: enabled ? items : [],
+            onChanged: enabled ? onChanged : null,
+          ),
+        ),
+      ),
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────
 }

@@ -17,6 +17,24 @@ class ProjectProvider extends ChangeNotifier {
   String             get error           => _error;
   bool               get hasProjects     => _projects.isNotEmpty;
   int                get projectCount    => _projects.length;
+
+  // ── STEP 3D: Inventory — material stock grouped by brand ──────────
+  Map<String, double> get materialStock {
+    if (_selectedProject == null) return {};
+    final Map<String, double> stockMap = {};
+    final materialEntries = _entries.where((e) =>
+      e.projectId == _selectedProject!.id &&
+      e.type == EntryType.material,
+    );
+    for (final entry in materialEntries) {
+      final brand = (entry.brand == null || entry.brand!.isEmpty)
+          ? 'Unknown'
+          : entry.brand!;
+      stockMap[brand] = (stockMap[brand] ?? 0.0) + entry.amount;
+    }
+    return stockMap;
+  }
+  // ─────────────────────────────────────────────────────────────────
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId == projectId).toList();
   double totalSpentForProject(String projectId) =>
@@ -27,7 +45,15 @@ class ProjectProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final rawProjects = prefs.getString(_kProjectsKey);
       if (rawProjects != null && rawProjects.isNotEmpty) {
-        _projects = ProjectModel.decodeList(rawProjects);
+        final decoded = ProjectModel.decodeList(rawProjects);
+        // ── STEP 3A: Safe migration — fill missing floors on legacy data ──
+        _projects = decoded.map((p) {
+          if (p.floors == null || p.floors!.isEmpty) {
+            return p.copyWith(floors: ['Ground Floor']);
+          }
+          return p;
+        }).toList();
+        // ─────────────────────────────────────────────────────────────────
       } else {
         _projects = _seedProjects();
         await _persistProjects();
@@ -50,12 +76,29 @@ class ProjectProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-  Future<void> addProject(ProjectModel project) async {
-    _projects.add(project);
-    _selectedProject = project;
+  // ── STEP 3B: Extended addProject — new optional params added ────────
+  // Existing callers (addProject(project)) still work — no breaking change.
+  Future<void> addProject(
+    ProjectModel project, {
+    String?       clientName,
+    String?       projectType,
+    DateTime?     expectedEndDate,
+    List<String>? floors,
+  }) async {
+    final finalFloors =
+        (floors == null || floors.isEmpty) ? ['Ground Floor'] : floors;
+    final updatedProject = project.copyWith(
+      clientName:      clientName,
+      projectType:     projectType,
+      expectedEndDate: expectedEndDate,
+      floors:          finalFloors,
+    );
+    _projects.add(updatedProject);
+    _selectedProject = updatedProject;
     await _persistProjects();
     notifyListeners();
   }
+  // ─────────────────────────────────────────────────────────────────
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     notifyListeners();
@@ -76,20 +119,43 @@ class ProjectProvider extends ChangeNotifier {
     await _persistProjects();
     notifyListeners();
   }
-  Future<void> addEntry(EntryModel entry) async {
-    _entries.add(entry);
-    final idx = _projects.indexWhere((p) => p.id == entry.projectId);
+  // ── STEP 3C: Extended addEntry — new optional params added ──────────
+  // Existing callers (addEntry(entry)) still work — no breaking change.
+  Future<void> addEntry(
+    EntryModel entry, {
+    String?       brand,
+    double?       ratePerUnit,
+    String?       floor,
+    ProjectStage? phase,
+  }) async {
+    // Merge optional fields with safe defaults
+    final updatedEntry = EntryModel(
+      id:          entry.id,
+      projectId:   entry.projectId,
+      type:        entry.type,
+      amount:      entry.amount,
+      date:        entry.date,
+      description: entry.description,
+      brand:       brand       ?? entry.brand,
+      ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
+      floor:       floor       ?? entry.floor,
+      phase:       phase       ?? entry.phase,
+    );
+    _entries.add(updatedEntry);
+    // Existing budget update logic — NOT touched
+    final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
-      final newSpent = _projects[idx].spentAmount + entry.amount;
+      final newSpent = _projects[idx].spentAmount + updatedEntry.amount;
       _projects[idx] = _projects[idx].copyWith(spentAmount: newSpent);
-      if (_selectedProject?.id == entry.projectId) {
+      if (_selectedProject?.id == updatedEntry.projectId) {
         _selectedProject = _projects[idx];
       }
       await _persistProjects();
     }
     await _persistEntries();
-    notifyListeners();
+    notifyListeners(); // Step 3E: called once, after all updates
   }
+  // ─────────────────────────────────────────────────────────────────
   Future<void> _persistProjects() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kProjectsKey, ProjectModel.encodeList(_projects));

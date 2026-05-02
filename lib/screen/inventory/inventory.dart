@@ -2,7 +2,9 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -312,6 +314,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildMaterialsTab(BuildContext context) {
+    // ── STEP 6A: Access live stock from provider ─────────────────────────────
+    final stock = context.watch<ProjectProvider>().materialStock;
+    // STEP 6B + 6E: Convert to sorted list (highest usage first)
+    final stockList = stock.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    // ─────────────────────────────────────────────────────────────────
+
     var items = [
       {'name': 'Steel Rebar 12mm', 'widget': _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 2},
       {'name': 'Primer White X-2', 'widget': _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'), 'level': 0, 'time': 1},
@@ -319,8 +328,136 @@ class _InventoryScreenState extends State<InventoryScreen> {
       {'name': 'urgent material', 'widget': _urgentCard(context), 'level': 0, 'time': 0},
       {'name': 'HVAC Copper Pipes', 'widget': _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 24},
     ];
-    return _buildTab(items);
+    return _buildTab(items, stockSummary: _buildStockSummary(stockList));
   }
+
+  // ── STEP 6C & 6D: Stock summary widget ────────────────────────────────────
+  Widget _buildStockSummary(List<MapEntry<String, double>> stockList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header — matches existing style
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: primaryBlue,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'LIVE STOCK SUMMARY',
+                style: TextStyle(
+                  color: textGray,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // STEP 6D: Empty state
+        if (stockList.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFEEF0F5), width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.inventory_2_outlined, color: textGray, size: 18),
+                const SizedBox(width: 10),
+                Text(
+                  'No material entries yet — add one above',
+                  style: AppTheme.caption.copyWith(color: textGray),
+                ),
+              ],
+            ),
+          )
+
+        // STEP 6C: Render stock rows
+        else
+          ...stockList.map((entry) {
+            final brand = entry.key; // 'Unknown' already handled by provider
+            final qty   = entry.value;
+            // Visual bar: proportion relative to max
+            final maxQty = stockList.first.value;
+            final ratio  = maxQty > 0 ? (qty / maxQty).clamp(0.0, 1.0) : 0.0;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        brand,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: textDark,
+                        ),
+                      ),
+                      Text(
+                        '${qty.toStringAsFixed(1)} units',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Mini progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: ratio,
+                      minHeight: 5,
+                      backgroundColor: const Color(0xFFEEF0F5),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        ratio > 0.6
+                            ? primaryBlue
+                            : ratio > 0.3
+                                ? Colors.orange
+                                : Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────
 
   Widget _buildLabourTab(BuildContext context) {
     var items = [
@@ -340,7 +477,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return _buildTab(items);
   }
 
-  Widget _buildTab(List<Map<String, dynamic>> items) {
+  Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
     var filtered = items.where((i) => _matchSearch(i['name'] as String)).toList();
     
     if (_activeFilter == 'Sort by Name (A-Z)') {
@@ -354,10 +491,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       child: Column(
-        children: filtered.map((i) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: i['widget'] as Widget,
-        )).toList(),
+        children: [
+          // STEP 6C: Inject stock summary at top of Materials tab only
+          if (stockSummary != null) ...[stockSummary],
+          ...filtered.map((i) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: i['widget'] as Widget,
+          )),
+        ],
       ),
     );
   }
