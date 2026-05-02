@@ -24,25 +24,18 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   static const textGray    = AppColors.textLight;
 
   PickedAttachment? _attachment;
-
-  // âœ… FIX: receipt attachment state + confirm loading state
   bool _isConfirming = false;
-
-  // ── STEP 6A: Voice Parse State ───────────────────────────────────────────
   late TextEditingController _nameCtrl;
   late TextEditingController _qtyCtrl;
   late TextEditingController _rateCtrl;
   late TextEditingController _brandCtrl;
-  
   String? _selectedProjectId;
   String? _selectedFloor;
   dynamic _selectedPhase;
-
   final String transcript = 
       "Hey SiteTrack, record a material entry for North District. "
       "We just received 12.5 cubic meters of C35 ready-mix concrete from UltraTech. "
       "Rate is fixed at 145 per unit. Log this under structural foundations on 1st Floor.";
-
   @override
   void initState() {
     super.initState();
@@ -51,35 +44,22 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
 
   void _parseVoiceInput() {
     String t = transcript.toLowerCase();
-
-    // 1. Amount fallback 0
     final numMatch = RegExp(r'(\d+\.\d+)').firstMatch(t);
     double amount = numMatch != null ? (double.tryParse(numMatch.group(0) ?? '') ?? 0.0) : 0.0;
-
-    // 2. Rate fallback 0
     double rate = 145.0; // Hardcoded mock parsing for demo
-
-    // 3. Brand fallback null
     String? brand;
     if (t.contains("ultratech")) {
       brand = "UltraTech";
     } else if (t.contains("tata")) {
       brand = "Tata";
     }
-
-    // 4. Floor fallback "General"
     String floor = "General";
     if (t.contains("1st floor")) {
       floor = "1st Floor";
     } else if (t.contains("ground floor")) {
       floor = "Ground Floor";
     }
-
-    // 5. Phase optional match
     dynamic phase;
-    // Note: dynamic phases should ideally be matched by name, but for this mock we'll leave it null
-    // or just let the user select it from the dropdown manually.
-
     _nameCtrl = TextEditingController(text: "Premium Ready-Mix Concrete (C35)");
     _qtyCtrl = TextEditingController(text: amount > 0 ? amount.toString() : "");
     _rateCtrl = TextEditingController(text: rate.toString());
@@ -98,8 +78,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     _brandCtrl.dispose();
     super.dispose();
   }
-  // ───────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -532,7 +510,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   }),
                 },
               );
-              // ──────────────────────────────────────────────────────────────
             },
       child: AnimatedOpacity(
         opacity: _isConfirming ? 0.7 : 1.0,
@@ -620,8 +597,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
       ),
     );
   }
-
-  // ── Reusable dropdown helper (matches underline design) ──────
   Widget _dropdownField<T>({
     required T? value,
     required String hint,
@@ -629,10 +604,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     required ValueChanged<T?>? onChanged,
     bool enabled = true,
   }) {
-    // âœ… FIX: Prevent Flutter DropdownButton crash if value is not in items
     final bool hasValue = items.any((item) => item.value == value);
     final T? safeValue = hasValue ? value : null;
-
     return Opacity(
       opacity: enabled ? 1.0 : 0.45,
       child: Container(

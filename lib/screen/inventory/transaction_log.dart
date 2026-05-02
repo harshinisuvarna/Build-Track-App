@@ -7,11 +7,9 @@ import 'package:flutter/material.dart';
 
 class TransactionLogsScreen extends StatefulWidget {
   const TransactionLogsScreen({super.key});
-
   @override
   State<TransactionLogsScreen> createState() => _TransactionLogsScreenState();
 }
-
 class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
   static const primaryBlue = AppColors.primary;
@@ -19,12 +17,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
-
   int _filterIndex = 0;
   String _itemName = 'Item';
   String _itemType = 'material';
   bool _argsLoaded = false;
-
   final List<Map<String, dynamic>> _allLogs = [
     {
       'title': 'Stock Replenishment',

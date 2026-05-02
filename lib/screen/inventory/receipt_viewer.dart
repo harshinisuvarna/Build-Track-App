@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 
 class ReceiptViewerScreen extends StatelessWidget {
   const ReceiptViewerScreen({super.key});
-
   static const primaryBlue = AppColors.primary;
   static const purple      = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
-
   @override
   Widget build(BuildContext context) {
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};

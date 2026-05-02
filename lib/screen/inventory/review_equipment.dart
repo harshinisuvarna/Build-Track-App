@@ -9,13 +9,10 @@ import 'package:provider/provider.dart';
 
 class ReviewEquipmentEntryScreen extends StatefulWidget {
   const ReviewEquipmentEntryScreen({super.key});
-
   @override
   State<ReviewEquipmentEntryScreen> createState() => _ReviewEquipmentEntryScreenState();
 }
-
 class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen> {
-
   static const primaryBlue = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
@@ -35,7 +32,6 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
 
   final String transcript = 
       "Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation.";
-
   @override
   void initState() {
     super.initState();
@@ -58,7 +54,6 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
     
     _selectedPhase = null;
   }
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -67,7 +62,6 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
     _fuelCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

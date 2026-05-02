@@ -7,14 +7,12 @@ class CementHistoryScreen extends StatefulWidget {
   @override
   State<CementHistoryScreen> createState() => _CementHistoryScreenState();
 }
-
 class _CementHistoryScreenState extends State<CementHistoryScreen> {
   static const primaryBlue = AppColors.primary;
   static const purple      = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,7 +106,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
-
   Widget _buildStockCard() {
     return Container(
       width: double.infinity,
@@ -171,7 +168,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
-
   Widget _stockBadge(IconData icon, String label) {
     return Row(
       children: [
@@ -189,8 +185,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-
-  Widget _buildMovementHeader() {
+Widget _buildMovementHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -238,7 +233,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-
   Widget _movementItem({
     required IconData icon,
     required Color iconBg,

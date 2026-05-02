@@ -5,16 +5,13 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
-
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
-
   static const primaryBlue = AppColors.primary;
   static const purple = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   static const List<Map<String, dynamic>> _entries = [
     {
       'icon': Icons.category,
@@ -50,7 +47,6 @@ class AddEntryScreen extends StatelessWidget {
       'labour': '/add-labour',
       'equipment': '/add-equipment',
     };
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,

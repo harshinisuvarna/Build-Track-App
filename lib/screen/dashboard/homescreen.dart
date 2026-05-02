@@ -232,9 +232,6 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ADMIN DASHBOARD
-
-// (project list is now driven by ProjectProvider — see _AdminDashboardState)
-
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
@@ -843,14 +840,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 }
 
 // SUPERVISOR DASHBOARD
-
 class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard();
-
   @override
   State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
 }
-
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   static const _pendingItems = [
     {
@@ -872,8 +866,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       'floor': 'Ground • Parking',
     },
   ];
-
-  // 'pending' | 'approved' | 'rejected'
   late List<String> _statuses;
 
   @override
@@ -881,7 +873,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     super.initState();
     _statuses = List.filled(_pendingItems.length, 'pending');
   }
-
   void _approve(int i) {
     setState(() => _statuses[i] = 'approved');
     ScaffoldMessenger.of(context).showSnackBar(
@@ -895,7 +886,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-
   void _reject(int i) {
     setState(() => _statuses[i] = 'rejected');
     ScaffoldMessenger.of(context).showSnackBar(
@@ -909,17 +899,14 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final pendingCount = _statuses.where((s) => s == 'pending').length;
     final approvedCount = _statuses.where((s) => s == 'approved').length;
     final rejectedCount = _statuses.where((s) => s == 'rejected').length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Summary chips
         Row(
           children: [
             _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
@@ -967,7 +954,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ],
     );
   }
-
   Widget _summaryChip(String count, String label, Color color) {
     return Expanded(
       child: Container(
@@ -1001,7 +987,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-
   Widget _pendingCard(
     BuildContext context,
     Map<String, String> item,
@@ -1009,8 +994,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   ) {
     final status = _statuses[index];
     final isPending = status == 'pending';
-
-    // Status badge color
     Color badgeColor;
     String badgeLabel;
     if (status == 'approved') {
@@ -1023,7 +1006,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       badgeColor = AppTheme.warning;
       badgeLabel = 'Pending';
     }
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1078,9 +1060,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1104,9 +1084,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               Expanded(
@@ -1133,7 +1111,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-
   Widget _recentRow(String task, String mason, AppStatus status) {
     return Row(
       children: [
@@ -1154,9 +1131,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     );
   }
 }
-
 // MASON DASHBOARD
-
 class _MasonDashboard extends StatelessWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
@@ -1233,14 +1208,12 @@ class _MasonDashboard extends StatelessWidget {
       ],
     );
   }
-
   Widget _taskCard(Map<String, String> task) {
     final statusMap = {
       'Completed': AppStatus.completed,
       'In Progress': AppStatus.inProgress,
       'Not Started': AppStatus.notStarted,
     };
-
     return AppCard(
       child: Row(
         children: [

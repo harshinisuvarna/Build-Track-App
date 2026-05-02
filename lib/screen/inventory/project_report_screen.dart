@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 
 class ProjectReportScreen extends StatelessWidget {
   const ProjectReportScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
@@ -22,7 +21,6 @@ class ProjectReportScreen extends StatelessWidget {
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
-
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -46,13 +44,11 @@ class ProjectReportScreen extends StatelessWidget {
         ),
       );
     }
-
     final all       = provider.entriesForProject(project.id);
     final labour    = all.where((e) => e.type == EntryType.labour).toList();
     final materials = all.where((e) => e.type == EntryType.material).toList();
     final equipment = all.where((e) => e.type == EntryType.equipment).toList();
     final recent    = ([...all]..sort((a, b) => b.date.compareTo(a.date))).take(8).toList();
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -72,17 +68,11 @@ class ProjectReportScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // â”€â”€ 1. Project Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     _SummaryCard(project: project),
                     const SizedBox(height: 14),
-
-                    // â”€â”€ 2. Financial Snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     const AppSectionHeader(title: 'Financial Snapshot'),
                     _FinancialSnapshot(project: project),
                     const SizedBox(height: 14),
-
-                    // â”€â”€ 3. Labour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Labour',
                       actionLabel: labour.isEmpty ? null : 'All',
@@ -94,8 +84,6 @@ class ProjectReportScreen extends StatelessWidget {
                       emptyMsg: 'No labour entries logged yet.',
                     ),
                     const SizedBox(height: 14),
-
-                    // â”€â”€ 4. Materials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Materials',
                       actionLabel: materials.isEmpty ? null : 'All',
@@ -107,8 +95,6 @@ class ProjectReportScreen extends StatelessWidget {
                       emptyMsg: 'No material entries logged yet.',
                     ),
                     const SizedBox(height: 14),
-
-                    // â”€â”€ 5. Equipment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Equipment',
                       actionLabel: equipment.isEmpty ? null : 'All',
@@ -120,8 +106,6 @@ class ProjectReportScreen extends StatelessWidget {
                       emptyMsg: 'No equipment entries logged yet.',
                     ),
                     const SizedBox(height: 14),
-
-                    // â”€â”€ 6. Recent Activity Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppSectionHeader(
                       title: 'Recent Activity',
                       actionLabel: recent.isEmpty ? null : 'View All',
@@ -129,8 +113,6 @@ class ProjectReportScreen extends StatelessWidget {
                     ),
                     _ActivityTimeline(entries: recent),
                     const SizedBox(height: 20),
-
-                    // â”€â”€ 7. Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     AppButton(
                       label: 'Update Progress',
                       icon: Icons.trending_up,
@@ -154,14 +136,9 @@ class ProjectReportScreen extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.project});
   final ProjectModel project;
-
   static const _stageMeta = <ProjectStage, (Color, Color)>{
     ProjectStage.preConstruction: (Color(0xFFE8EAF6), Color(0xFF3949AB)),
     ProjectStage.sitePreparation: (Color(0xFFFCE4EC), Color(0xFFC62828)),
@@ -220,8 +197,6 @@ class _SummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-
-          // Location
           Row(children: [
             const Icon(Icons.location_on_outlined,
                 size: 13, color: AppColors.textLight),
@@ -230,8 +205,6 @@ class _SummaryCard extends StatelessWidget {
                 style: AppTheme.caption.copyWith(fontSize: 12)),
           ]),
           const SizedBox(height: 4),
-
-          // Start date
           Row(children: [
             const Icon(Icons.calendar_today_outlined,
                 size: 13, color: AppColors.textLight),
@@ -240,8 +213,6 @@ class _SummaryCard extends StatelessWidget {
                 style: AppTheme.caption.copyWith(fontSize: 12)),
           ]),
           const SizedBox(height: 16),
-
-          // Progress bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -269,16 +240,11 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
-
   String _fmtDate(DateTime d) {
     const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _FinancialSnapshot extends StatelessWidget {
   const _FinancialSnapshot({required this.project});
   final ProjectModel project;
@@ -318,7 +284,6 @@ class _FinancialSnapshot extends StatelessWidget {
     );
   }
 }
-
 class _StatChip extends StatelessWidget {
   const _StatChip({
     required this.label,
@@ -329,7 +294,6 @@ class _StatChip extends StatelessWidget {
   final String label, value;
   final IconData icon;
   final Color color;
-
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -366,11 +330,6 @@ class _StatChip extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 3-5. Entry Section (Labour / Material / Equipment)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _EntrySection extends StatelessWidget {
   const _EntrySection({
     required this.entries,
@@ -380,7 +339,6 @@ class _EntrySection extends StatelessWidget {
   final List<EntryModel> entries;
   final EntryType        type;
   final String           emptyMsg;
-
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) {
@@ -399,11 +357,9 @@ class _EntrySection extends StatelessWidget {
         ),
       );
     }
-
     final displayed = entries.take(3).toList();
     final total     = entries.fold(0.0, (s, e) => s + e.amount);
     final color     = _typeColor(type);
-
     return AppCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(16),
@@ -438,7 +394,6 @@ class _EntrySection extends StatelessWidget {
       ),
     );
   }
-
   Widget _entryRow(EntryModel e, Color c) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -457,7 +412,6 @@ class _EntrySection extends StatelessWidget {
       ]),
     );
   }
-
   IconData _typeIcon(EntryType t) {
     switch (t) {
       case EntryType.material:  return Icons.category_outlined;
@@ -465,7 +419,6 @@ class _EntrySection extends StatelessWidget {
       case EntryType.equipment: return Icons.construction_outlined;
     }
   }
-
   Color _typeColor(EntryType t) {
     switch (t) {
       case EntryType.material:  return AppColors.primary;
@@ -473,7 +426,6 @@ class _EntrySection extends StatelessWidget {
       case EntryType.equipment: return const Color(0xFF7B3FE7);
     }
   }
-
   String _typeLabel(EntryType t) {
     switch (t) {
       case EntryType.material:  return 'Material';
@@ -481,21 +433,15 @@ class _EntrySection extends StatelessWidget {
       case EntryType.equipment: return 'Equipment';
     }
   }
-
   String _fmtAmt(double v) {
     if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
     if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
     return '₹${v.toStringAsFixed(0)}';
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _ActivityTimeline extends StatelessWidget {
   const _ActivityTimeline({required this.entries});
   final List<EntryModel> entries;
-
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) {
@@ -507,7 +453,6 @@ class _ActivityTimeline extends StatelessWidget {
         ),
       );
     }
-
     return AppCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -516,7 +461,6 @@ class _ActivityTimeline extends StatelessWidget {
           final e             = entries[idx];
           final (color, icon) = _typeStyle(e.type);
           final isLast        = idx == entries.length - 1;
-
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,8 +490,6 @@ class _ActivityTimeline extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Content
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
@@ -589,7 +531,6 @@ class _ActivityTimeline extends StatelessWidget {
       ),
     );
   }
-
   String _entryTitle(EntryModel e) {
     if (e.description.isNotEmpty) return e.description;
     switch (e.type) {
@@ -598,7 +539,6 @@ class _ActivityTimeline extends StatelessWidget {
       case EntryType.equipment: return 'Equipment Used';
     }
   }
-
   (Color, IconData) _typeStyle(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -609,12 +549,10 @@ class _ActivityTimeline extends StatelessWidget {
         return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
-
   String _fmtDate(DateTime d) {
     const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
-
   String _fmtAmt(double v) {
     if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
     if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';

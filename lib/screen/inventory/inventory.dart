@@ -314,13 +314,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildMaterialsTab(BuildContext context) {
-    // ── STEP 6A: Access live stock from provider ─────────────────────────────
     final stock = context.watch<ProjectProvider>().materialStock;
-    // STEP 6B + 6E: Convert to sorted list (highest usage first)
     final stockList = stock.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    // ─────────────────────────────────────────────────────────────────
-
     var items = [
       {'name': 'Steel Rebar 12mm', 'widget': _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 2},
       {'name': 'Primer White X-2', 'widget': _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'), 'level': 0, 'time': 1},
@@ -330,13 +326,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ];
     return _buildTab(items, stockSummary: _buildStockSummary(stockList));
   }
-
-  // ── STEP 6C & 6D: Stock summary widget ────────────────────────────────────
   Widget _buildStockSummary(List<MapEntry<String, double>> stockList) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header — matches existing style
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
@@ -362,8 +355,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ],
           ),
         ),
-
-        // STEP 6D: Empty state
         if (stockList.isEmpty)
           Container(
             width: double.infinity,
@@ -385,8 +376,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ],
             ),
           )
-
-        // STEP 6C: Render stock rows
         else
           ...stockList.map((entry) {
             final brand = entry.key; // 'Unknown' already handled by provider
@@ -394,7 +383,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             // Visual bar: proportion relative to max
             final maxQty = stockList.first.value;
             final ratio  = maxQty > 0 ? (qty / maxQty).clamp(0.0, 1.0) : 0.0;
-
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -457,8 +445,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ],
     );
   }
-  // ─────────────────────────────────────────────────────────────────
-
   Widget _buildLabourTab(BuildContext context) {
     var items = [
       {'name': 'Concrete Form Workers', 'widget': _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'), 'level': 2, 'time': 1},
@@ -467,7 +453,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ];
     return _buildTab(items);
   }
-
   Widget _buildEquipmentTab(BuildContext context) {
     var items = [
       {'name': 'Tower Crane TC-7', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'), 'level': 2, 'time': 0.5},
@@ -476,7 +461,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ];
     return _buildTab(items);
   }
-
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
     var filtered = items.where((i) => _matchSearch(i['name'] as String)).toList();
     
@@ -487,12 +471,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
     } else if (_activeFilter == 'Recently Updated') {
       filtered.sort((a, b) => (a['time'] as num).compareTo(b['time'] as num));
     }
-
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       child: Column(
         children: [
-          // STEP 6C: Inject stock summary at top of Materials tab only
           if (stockSummary != null) ...[stockSummary],
           ...filtered.map((i) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -502,7 +484,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   void _showFilterOptions() {
     showModalBottomSheet(
       context: context,
@@ -524,7 +505,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   Widget _filterTile(BuildContext ctx, String label, IconData icon) {
     final isActive = _activeFilter == label;
     return ListTile(
@@ -540,7 +520,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       },
     );
   }
-
   Widget _inventoryCard({
     required BuildContext context,
     required IconData icon,
@@ -650,7 +629,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   Widget _urgentCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),

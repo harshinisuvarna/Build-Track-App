@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
@@ -9,7 +9,6 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
   final _formKey = GlobalKey<FormState>();
@@ -23,7 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _passCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
