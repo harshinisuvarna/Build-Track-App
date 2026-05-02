@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
+import '../models/phase_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 const _kProjectsKey = 'buildtrack_projects_v1';
@@ -7,11 +8,13 @@ const _kEntriesKey  = 'buildtrack_entries_v1';
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
   List<EntryModel>   _entries  = [];
+  List<PhaseModel>   _phases   = [];
   ProjectModel?      _selectedProject;
   bool   _isLoading = false;
   String _error     = '';
   List<ProjectModel> get projects        => List.unmodifiable(_projects);
   List<EntryModel>   get entries         => List.unmodifiable(_entries);
+  List<PhaseModel>   get phases          => List.unmodifiable(_phases);
   ProjectModel?      get selectedProject => _selectedProject;
   bool               get isLoading       => _isLoading;
   String             get error           => _error;
@@ -43,6 +46,32 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      final phaseRaw = prefs.getString('phases');
+
+      if (phaseRaw != null && phaseRaw.isNotEmpty) {
+        try {
+          _phases = PhaseModel.decodeList(phaseRaw);
+        } catch (e) {
+          _phases = [];
+        }
+      }
+
+      if (_phases.isEmpty) {
+        _phases = ProjectStage.values.asMap().entries.map((entry) {
+          final index = entry.key;
+          final stage = entry.value;
+
+          return PhaseModel(
+            id: stage.name,
+            name: stage.label,
+            order: index,
+          );
+        }).toList();
+        
+        _savePhases();
+      }
+
       final rawProjects = prefs.getString(_kProjectsKey);
       if (rawProjects != null && rawProjects.isNotEmpty) {
         final decoded = ProjectModel.decodeList(rawProjects);
@@ -164,6 +193,40 @@ class ProjectProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEntriesKey, EntryModel.encodeList(_entries));
   }
+
+  void _savePhases() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'phases',
+      PhaseModel.encodeList(_phases),
+    );
+  }
+
+  void addPhase(String name) {
+    _phases.add(
+      PhaseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        order: _phases.length,
+      ),
+    );
+    _savePhases();
+    notifyListeners();
+  }
+
+  void renamePhase(String id, String newName) {
+    final index = _phases.indexWhere((p) => p.id == id);
+    if (index != -1) {
+      _phases[index] = PhaseModel(
+        id: _phases[index].id,
+        name: newName,
+        order: _phases[index].order,
+      );
+      _savePhases();
+      notifyListeners();
+    }
+  }
+
   void _setLoading(bool v) {
     _isLoading = v;
     notifyListeners();
