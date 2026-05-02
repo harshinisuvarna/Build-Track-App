@@ -2,11 +2,14 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
-import 'package:buildtrack_mobile/controller/entry_model.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:provider/provider.dart';
 
 class AddLabourScreen extends StatefulWidget {
   const AddLabourScreen({super.key});
@@ -37,6 +40,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   String? _nameError;
   String? _hoursError;
   String? _rateError;
+
+  String? _selectedProjectId;
+  String? _selectedFloor;
+  ProjectStage? _selectedPhase;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedProjectId = UserSession.projectId;
+  }
 
   @override
   void didChangeDependencies() {
@@ -128,6 +141,71 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const AppSectionHeader(title: 'Basic Details'),
+                    Builder(builder: (context) {
+                      final provider = context.watch<ProjectProvider>();
+                      final projects = provider.projects;
+                      final selProject = _selectedProjectId == null
+                          ? null
+                          : projects.cast<ProjectModel?>().firstWhere(
+                              (p) => p?.id == _selectedProjectId,
+                              orElse: () => null,
+                            );
+                      final List<String> floors = List.from(selProject?.floors ?? ['Ground Floor']);
+                      if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
+                        floors.add(_selectedFloor!);
+                      }
+
+                      return AppCard(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _sectionLabel('Project'),
+                            const SizedBox(height: 8),
+                            _dropdownField<String>(
+                              value: _selectedProjectId,
+                              hint: 'Select project',
+                              items: projects.map((p) =>
+                                DropdownMenuItem(value: p.id, child: Text(p.name))
+                              ).toList(),
+                              onChanged: (val) => setState(() {
+                                _selectedProjectId = val;
+                                _selectedFloor = null;
+                                _selectedPhase = null;
+                              }),
+                            ),
+                            const SizedBox(height: 20),
+                            _sectionLabel('Floor / Zone'),
+                            const SizedBox(height: 8),
+                            _dropdownField<String>(
+                              value: _selectedFloor,
+                              hint: _selectedProjectId == null ? 'Select project first' : 'Select floor',
+                              enabled: _selectedProjectId != null,
+                              items: floors.map((f) =>
+                                DropdownMenuItem(value: f, child: Text(f))
+                              ).toList(),
+                              onChanged: _selectedProjectId == null ? null : (val) => setState(() {
+                                _selectedFloor = val;
+                                _selectedPhase = null;
+                              }),
+                            ),
+                            const SizedBox(height: 20),
+                            _sectionLabel('Phase (Optional)'),
+                            const SizedBox(height: 8),
+                            _dropdownField<ProjectStage>(
+                              value: _selectedPhase,
+                              hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
+                              enabled: _selectedFloor != null,
+                              items: ProjectStage.values.map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s.label))
+                              ).toList(),
+                              onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     const AppSectionHeader(title: 'Labour Details'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -243,7 +321,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                hintText: 'Add any site notes or remarksâ€¦',
+                                hintText: 'Add any site notes or remarks…',
                                 hintStyle: TextStyle(
                                   color: textGray,
                                   fontSize: 13.5,
@@ -486,10 +564,40 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       onTap: _isSaving
           ? null
           : () async {
+              if (_selectedProjectId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please select a project')),
+                );
+                return;
+              }
+              if (_selectedFloor == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please select a floor')),
+                );
+                return;
+              }
+
               if (!_validate()) return;
               setState(() => _isSaving = true);
               await Future.delayed(const Duration(milliseconds: 600));
               if (!mounted) return;
+
+              final entryId = 'LAB-${DateTime.now().millisecondsSinceEpoch}';
+
+              context.read<ProjectProvider>().addEntry(
+                EntryModel(
+                  id:          entryId,
+                  projectId:   _selectedProjectId!,
+                  type:        EntryType.labour,
+                  amount:      double.tryParse(_hoursController.text) ?? 0.0,
+                  date:        DateTime.now(),
+                  description: _nameController.text,
+                  ratePerUnit: double.tryParse(_rateController.text) ?? 0.0,
+                  floor:       _selectedFloor!,
+                  phase:       _selectedPhase,
+                ),
+              );
+
               Navigator.pushNamed(
                 // ignore: use_build_context_synchronously
                 context,
@@ -498,14 +606,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                   'type': 'labour',
                   'name': _nameController.text,
                   'newEntry':
-                      Entry(
-                        id: 'LAB-${DateTime.now().millisecondsSinceEpoch}',
-                        type: EntryType.labour,
-                        projectId: UserSession.projectId,
+                      em.Entry(
+                        id: entryId,
+                        type: em.EntryType.labour,
+                        projectId: _selectedProjectId!,
                         createdBy: UserSession.userId,
                       ).toMap()..addAll({
                         'title': _nameController.text,
-                        'ref': '#LAB-${DateTime.now().millisecondsSinceEpoch}',
+                        'ref': '#$entryId',
                         'amount': '+${_hoursController.text} hrs',
                         'date': 'Today',
                         'isPositive': true,
@@ -582,4 +690,55 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       fontStyle: FontStyle.italic,
     ),
   );
+
+  Widget _dropdownField<T>({
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    bool enabled = true,
+  }) {
+    final bool hasValue = items.any((item) => item.value == value);
+    final T? safeValue = hasValue ? value : null;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: enabled ? primaryBlue : textGray,
+              width: 2,
+            ),
+          ),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<T>(
+            value: safeValue,
+            isExpanded: true,
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: enabled ? primaryBlue : textGray,
+            ),
+            hint: Text(
+              hint,
+              style: TextStyle(
+                color: textGray,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textDark,
+            ),
+            items: enabled ? items : [],
+            onChanged: enabled ? onChanged : null,
+          ),
+        ),
+      ),
+    );
+  }
 }
