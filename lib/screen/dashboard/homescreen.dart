@@ -380,7 +380,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               ),
               _categoryIcon(
                 context,
-                Icons.construction_outlined,
+                Icons.precision_manufacturing_outlined,
                 'Equipment',
                 const Color(0xFF7B3FE7),
                 type: 'equipment',

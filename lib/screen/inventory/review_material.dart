@@ -36,7 +36,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   
   String? _selectedProjectId;
   String? _selectedFloor;
-  ProjectStage? _selectedPhase;
+  dynamic _selectedPhase;
 
   final String transcript = 
       "Hey SiteTrack, record a material entry for North District. "
@@ -76,12 +76,9 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     }
 
     // 5. Phase optional match
-    ProjectStage? phase;
-    if (t.contains("foundation")) {
-      phase = ProjectStage.foundation;
-    } else if (t.contains("structure")) {
-      phase = ProjectStage.structure;
-    }
+    dynamic phase;
+    // Note: dynamic phases should ideally be matched by name, but for this mock we'll leave it null
+    // or just let the user select it from the dropdown manually.
 
     _nameCtrl = TextEditingController(text: "Premium Ready-Mix Concrete (C35)");
     _qtyCtrl = TextEditingController(text: amount > 0 ? amount.toString() : "");
@@ -205,9 +202,12 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,
             );
-      final List<String> floors = List.from(selProject?.floors ?? ['Ground Floor']);
+      final List<String> floors = (selProject?.floors != null && selProject!.floors!.length > 1)
+          ? List.from(selProject.floors!)
+          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
       if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
-        floors.add(_selectedFloor!);
+        // Floor from voice parse is not in the list — add it so the dropdown shows it
+        floors.insert(0, _selectedFloor!);
       }
 
       return Container(
@@ -296,11 +296,21 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
               items: projects.map((p) =>
                 DropdownMenuItem(value: p.id, child: Text(p.name))
               ).toList(),
-              onChanged: (val) => setState(() {
-                _selectedProjectId = val;
-                _selectedFloor = null;
-                _selectedPhase = null;
-              }),
+              onChanged: (val) {
+                final newProject = projects.cast<ProjectModel?>().firstWhere(
+                  (p) => p?.id == val, orElse: () => null);
+                final newFloors = (newProject?.floors != null && newProject!.floors!.length > 1)
+                    ? List<String>.from(newProject.floors!)
+                    : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+                setState(() {
+                  _selectedProjectId = val;
+                  // Only reset floor if it's not valid in new project
+                  if (_selectedFloor != null && !newFloors.contains(_selectedFloor)) {
+                    _selectedFloor = null;
+                  }
+                  _selectedPhase = null;
+                });
+              },
             ),
             const SizedBox(height: 16),
             Row(
@@ -334,12 +344,12 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                     children: [
                       _fieldLabel('PHASE (OPTIONAL)'),
                       const SizedBox(height: 6),
-                      _dropdownField<ProjectStage>(
+                      _dropdownField<dynamic>(
                         value: _selectedPhase,
                         hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
                         enabled: _selectedFloor != null,
-                        items: ProjectStage.values.map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s.label))
+                        items: provider.phases.map((s) =>
+                          DropdownMenuItem(value: s, child: Text(s.name))
                         ).toList(),
                         onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
                       ),
@@ -496,7 +506,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
                   ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
                   floor:       _selectedFloor!,
-                  phase:       _selectedPhase,
+                  phaseId:     _selectedPhase?.id,
                 ),
               );
 

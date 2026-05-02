@@ -22,7 +22,34 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-    final project = provider.selectedProject;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final passedProjectName = args?['projectName'];
+    final isAll = passedProjectName == 'All Active Projects';
+
+    ProjectModel? project;
+    if (isAll) {
+      final totalBudget = provider.projects.fold(0.0, (s, p) => s + p.totalBudget);
+      final spentAmount = provider.projects.fold(0.0, (s, p) => s + p.spentAmount);
+      final avgProgress = provider.projects.isEmpty 
+          ? 0.0 
+          : provider.projects.fold(0.0, (s, p) => s + p.progress) / provider.projects.length;
+
+      project = ProjectModel(
+        id: 'all',
+        name: 'All Active Projects',
+        city: 'Multiple',
+        sector: 'Locations',
+        stage: ProjectStage.preConstruction,
+        progress: avgProgress,
+        totalBudget: totalBudget,
+        spentAmount: spentAmount,
+        startDate: DateTime.now(),
+      );
+    } else {
+      project = passedProjectName != null 
+          ? provider.projects.firstWhere((p) => p.name == passedProjectName, orElse: () => provider.selectedProject!)
+          : provider.selectedProject;
+    }
 
     if (provider.isLoading) {
       return const Scaffold(
@@ -55,72 +82,24 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       );
     }
 
-    final entries = provider.entriesForProject(project.id);
+    final entries = isAll ? provider.entries : provider.entriesForProject(project.id);
 
     // Real cost totals from actual entries
     final matCost = entries.where((e) => e.type == EntryType.material).fold(0.0, (s, e) => s + e.amount);
     final labCost = entries.where((e) => e.type == EntryType.labour).fold(0.0, (s, e) => s + e.amount);
     final eqCost  = entries.where((e) => e.type == EntryType.equipment).fold(0.0, (s, e) => s + e.amount);
 
-    // Stage-aware category names so each project feels unique
-    final Map<String, double> categoryCosts;
-    final Map<String, double> categoryBudgets;
-
-    switch (project.stage) {
-      case ProjectStage.foundation:
-        categoryCosts = {
-          'Excavation':   matCost * 0.40,
-          'Concrete':     matCost * 0.35,
-          'Labour':       labCost,
-          'Equipment':    eqCost,
-        };
-        categoryBudgets = {
-          'Excavation':   project.totalBudget * 0.20,
-          'Concrete':     project.totalBudget * 0.25,
-          'Labour':       project.totalBudget * 0.35,
-          'Equipment':    project.totalBudget * 0.20,
-        };
-        break;
-      case ProjectStage.structure:
-        categoryCosts = {
-          'Structural':   matCost * 0.55,
-          'Electrical':   matCost * 0.20,
-          'Labour':       labCost,
-          'Machinery':    eqCost,
-        };
-        categoryBudgets = {
-          'Structural':   project.totalBudget * 0.40,
-          'Electrical':   project.totalBudget * 0.15,
-          'Labour':       project.totalBudget * 0.30,
-          'Machinery':    project.totalBudget * 0.15,
-        };
-        break;
-      case ProjectStage.finishing:
-        categoryCosts = {
-          'Interiors':    matCost * 0.50,
-          'Plumbing':     matCost * 0.20,
-          'Finishing':    labCost * 0.60,
-          'Landscaping':  labCost * 0.40 + eqCost,
-        };
-        categoryBudgets = {
-          'Interiors':    project.totalBudget * 0.35,
-          'Plumbing':     project.totalBudget * 0.15,
-          'Finishing':    project.totalBudget * 0.30,
-          'Landscaping':  project.totalBudget * 0.20,
-        };
-        break;
-      default:
-        categoryCosts = {
-          'Materials':    matCost,
-          'Labour':       labCost,
-          'Equipment':    eqCost,
-        };
-        categoryBudgets = {
-          'Materials':    project.totalBudget * 0.40,
-          'Labour':       project.totalBudget * 0.35,
-          'Equipment':    project.totalBudget * 0.25,
-        };
-    }
+    final categoryCosts = {
+      'Material':     matCost,
+      'Labour':       labCost,
+      'Equipment':    eqCost,
+    };
+    
+    final categoryBudgets = {
+      'Material':     project.totalBudget * 0.40,
+      'Labour':       project.totalBudget * 0.35,
+      'Equipment':    project.totalBudget * 0.25,
+    };
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -220,7 +199,10 @@ class _ProjectSummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Stage: ${project.stage.name.toUpperCase()}', style: AppTheme.label.copyWith(color: AppColors.primary)),
+              if (project.id != 'all')
+                Text('Stage: ${project.stage.name.toUpperCase()}', style: AppTheme.label.copyWith(color: AppColors.primary))
+              else
+                Text('Aggregate Portfolio View', style: AppTheme.label.copyWith(color: AppColors.primary)),
               Text('${(project.progress * 100).toStringAsFixed(1)}% Complete', style: AppTheme.label.copyWith(color: AppColors.textDark)),
             ],
           ),

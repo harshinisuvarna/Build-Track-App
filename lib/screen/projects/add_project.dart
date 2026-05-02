@@ -38,17 +38,31 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   static const _stages = ProjectStage.values;
 
   static const _stageBg = <ProjectStage, Color>{
-    ProjectStage.foundation: Color(0xFFEEEFFF),
-    ProjectStage.structure:  Color(0xFFF3E8FF),
-    ProjectStage.finishing:  Color(0xFFE8F5E9),
-    ProjectStage.handover:   Color(0xFFFFF8E1),
+    ProjectStage.preConstruction: Color(0xFFE8EAF6),
+    ProjectStage.sitePreparation: Color(0xFFFCE4EC),
+    ProjectStage.foundation:      Color(0xFFEEEFFF),
+    ProjectStage.plinth:          Color(0xFFE3F2FD),
+    ProjectStage.superstructure:  Color(0xFFF3E8FF),
+    ProjectStage.masonry:         Color(0xFFFFF3E0),
+    ProjectStage.mep:             Color(0xFFE0F7FA),
+    ProjectStage.plastering:      Color(0xFFF9FBE7),
+    ProjectStage.finishing:       Color(0xFFE8F5E9),
+    ProjectStage.fixtures:        Color(0xFFFFF8E1),
+    ProjectStage.handover:        Color(0xFFFFF8E1),
   };
 
   static const _stageFg = <ProjectStage, Color>{
-    ProjectStage.foundation: Color(0xFF4455CC),
-    ProjectStage.structure:  Color(0xFF9B59B6),
-    ProjectStage.finishing:  Color(0xFF2E7D32),
-    ProjectStage.handover:   Color(0xFFF57F17),
+    ProjectStage.preConstruction: Color(0xFF3949AB),
+    ProjectStage.sitePreparation: Color(0xFFC62828),
+    ProjectStage.foundation:      Color(0xFF4455CC),
+    ProjectStage.plinth:          Color(0xFF1565C0),
+    ProjectStage.superstructure:  Color(0xFF9B59B6),
+    ProjectStage.masonry:         Color(0xFFE65100),
+    ProjectStage.mep:             Color(0xFF00838F),
+    ProjectStage.plastering:      Color(0xFF827717),
+    ProjectStage.finishing:       Color(0xFF2E7D32),
+    ProjectStage.fixtures:        Color(0xFFF9A825),
+    ProjectStage.handover:        Color(0xFFF57F17),
   };
 
   static const _months = [

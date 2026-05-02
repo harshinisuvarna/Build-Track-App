@@ -1,13 +1,34 @@
 import 'dart:convert';
-enum ProjectStage { foundation, structure, finishing, handover }
+enum ProjectStage {
+  preConstruction,
+  sitePreparation,
+  foundation,
+  plinth,
+  superstructure,
+  masonry,
+  mep,
+  plastering,
+  finishing,
+  fixtures,
+  handover
+}
+
 enum EntryType { material, labour, equipment }
+
 extension ProjectStageX on ProjectStage {
   String get label {
     switch (this) {
-      case ProjectStage.foundation: return 'FOUNDATION';
-      case ProjectStage.structure:  return 'STRUCTURE';
-      case ProjectStage.finishing:  return 'FINISHING';
-      case ProjectStage.handover:   return 'HANDOVER';
+      case ProjectStage.preConstruction: return 'PRE-CONSTRUCTION';
+      case ProjectStage.sitePreparation: return 'SITE PREPARATION';
+      case ProjectStage.foundation:      return 'FOUNDATION';
+      case ProjectStage.plinth:          return 'PLINTH';
+      case ProjectStage.superstructure:  return 'SUPERSTRUCTURE';
+      case ProjectStage.masonry:         return 'MASONRY';
+      case ProjectStage.mep:             return 'MEP';
+      case ProjectStage.plastering:      return 'PLASTERING';
+      case ProjectStage.finishing:       return 'FINISHING';
+      case ProjectStage.fixtures:        return 'FIXTURES';
+      case ProjectStage.handover:        return 'HANDOVER';
     }
   }
 }
@@ -171,6 +192,7 @@ class EntryModel {
     this.ratePerUnit,
     this.floor,
     this.phase,
+    this.phaseId,
     // ──────────────────────────────────────────────────────────────
   });
 
@@ -189,6 +211,7 @@ class EntryModel {
   final double?       ratePerUnit;
   final String?       floor;
   final ProjectStage? phase;
+  final String?       phaseId;
   // ─────────────────────────────────────────────────────────────────
 
   // ── STEP 2D: toJson — new fields added safely ────────────────────
@@ -204,6 +227,7 @@ class EntryModel {
         if (ratePerUnit != null) 'ratePerUnit': ratePerUnit,
         if (floor != null)       'floor':       floor,
         if (phase != null)       'phase':       phase!.name,
+        if (phaseId != null)     'phaseId':     phaseId,
       };
 
   // ── STEP 2E/2F: fromJson — NEVER crashes on old data ─────────────
@@ -228,6 +252,7 @@ class EntryModel {
                            orElse: () => ProjectStage.foundation,
                          )
                        : null,
+        phaseId:     j['phaseId'] as String?,
       );
 
   static String encodeList(List<EntryModel> list) =>

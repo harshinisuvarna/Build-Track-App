@@ -57,15 +57,26 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      if (_phases.isEmpty) {
-        _phases = ProjectStage.values.asMap().entries.map((entry) {
-          final index = entry.key;
-          final stage = entry.value;
-
+      if (_phases.isEmpty || _phases.length < 11) {
+        final phaseNames = [
+          'Pre-Construction',
+          'Site Preparation',
+          'Foundation',
+          'Plinth',
+          'Superstructure',
+          'Masonry',
+          'MEP',
+          'Plastering',
+          'Finishing',
+          'Fixtures',
+          'Handover'
+        ];
+        
+        _phases = phaseNames.asMap().entries.map((entry) {
           return PhaseModel(
-            id: stage.name,
-            name: stage.label,
-            order: index,
+            id: entry.value.toLowerCase().replaceAll(' ', '_'),
+            name: entry.value,
+            order: entry.key,
           );
         }).toList();
         
@@ -237,7 +248,7 @@ class ProjectProvider extends ChangeNotifier {
           name:        'Skyline Residences Phase II',
           city:        'Mumbai',
           sector:      'Andheri West',
-          stage:       ProjectStage.structure,
+          stage:       ProjectStage.superstructure,
           progress:    0.68,
           totalBudget: 45_000_000,
           spentAmount: 24_000_000,

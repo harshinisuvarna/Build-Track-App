@@ -171,7 +171,7 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 }
 
-// Period tabs (Monthly / Quarterly / Yearly)
+// Period tabs (Daily / Monthly / Yearly)
 
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({required this.tabIndex, required this.onTabChanged});
@@ -179,7 +179,7 @@ class _PeriodTabs extends StatelessWidget {
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
 
-  static const _tabs = ['Monthly', 'Quarterly', 'Yearly'];
+  static const _tabs = ['Daily', 'Monthly', 'Yearly'];
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,4 @@
-﻿// lib/screen/projectscreen.dart
+// lib/screen/projectscreen.dart
 // Reads projects from ProjectProvider and navigates to /project-detail.
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
@@ -19,10 +19,17 @@ class ProjectsScreen extends StatelessWidget {
   static const textGray    = AppColors.textLight;
 
   static const _stageMeta = <ProjectStage, _StageStyle>{
-    ProjectStage.foundation: _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC)),
-    ProjectStage.structure:  _StageStyle(Color(0xFFF3E8FF), Color(0xFF9B59B6)),
-    ProjectStage.finishing:  _StageStyle(Color(0xFFE8F5E9), Color(0xFF2E7D32)),
-    ProjectStage.handover:   _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
+    ProjectStage.preConstruction: _StageStyle(Color(0xFFE8EAF6), Color(0xFF3949AB)),
+    ProjectStage.sitePreparation: _StageStyle(Color(0xFFFCE4EC), Color(0xFFC62828)),
+    ProjectStage.foundation:      _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC)),
+    ProjectStage.plinth:          _StageStyle(Color(0xFFE3F2FD), Color(0xFF1565C0)),
+    ProjectStage.superstructure:  _StageStyle(Color(0xFFF3E8FF), Color(0xFF9B59B6)),
+    ProjectStage.masonry:         _StageStyle(Color(0xFFFFF3E0), Color(0xFFE65100)),
+    ProjectStage.mep:             _StageStyle(Color(0xFFE0F7FA), Color(0xFF00838F)),
+    ProjectStage.plastering:      _StageStyle(Color(0xFFF9FBE7), Color(0xFF827717)),
+    ProjectStage.finishing:       _StageStyle(Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+    ProjectStage.fixtures:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF9A825)),
+    ProjectStage.handover:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
   };
 
   @override

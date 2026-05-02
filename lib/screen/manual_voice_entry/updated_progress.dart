@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 
 class UpdateProgressScreen extends StatefulWidget {
   const UpdateProgressScreen({super.key});
@@ -19,8 +21,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
 
-  int _stageIndex = 0;
-  final _stages = ['Reinforcement', 'Formwork', 'Curing'];
+  String? _selectedProjectId;
+  String? _selectedFloor;
+  dynamic _selectedPhase;
   final TextEditingController _progressCtrl = TextEditingController();
 
   late double _completionProgress;
@@ -29,9 +32,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize slider from the currently selected project's progress
+    _selectedProjectId = UserSession.projectId;
     final provider = context.read<ProjectProvider>();
-    _completionProgress = provider.selectedProject?.progress ?? 0.65;
+    _completionProgress = provider.selectedProject?.progress ?? 0.0;
   }
 
   static const _months = [
@@ -69,9 +72,21 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildCurrentStageCard(),
-                    const SizedBox(height: 22),
-                    _buildSelectStage(),
+                    Consumer<ProjectProvider>(
+                      builder: (context, provider, _) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSelectionUI(provider),
+                          const SizedBox(height: 22),
+                          if (_selectedPhase != null && _selectedFloor != null) ...[
+                            _buildCurrentStageCard(),
+                            const SizedBox(height: 22),
+                            _buildPreview(provider),
+                            const SizedBox(height: 22),
+                          ],
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 22),
                     _buildProgressDetailsField(),
                     const SizedBox(height: 20),
@@ -79,7 +94,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     const SizedBox(height: 20),
                     _buildDocumentation(),
                     const SizedBox(height: 20),
-                    _buildMaterialConsumption(context),
+                    Consumer<ProjectProvider>(
+                      builder: (context, provider, _) => _buildMaterialConsumption(context, provider),
+                    ),
                     const SizedBox(height: 30),
                     _buildSaveButton(context),
                   ],
@@ -136,8 +153,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Reinforcement Work',
-                  style: TextStyle(
+                  _selectedPhase?.name ?? 'Select Phase',
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: textDark,
@@ -165,8 +182,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               const Icon(Icons.location_on_outlined, color: textGray, size: 14),
               const SizedBox(width: 4),
               Text(
-                'Sector B-12 • Level 04',
-                style: TextStyle(
+                _selectedFloor ?? 'Select Floor',
+                style: const TextStyle(
                   color: textGray,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -267,60 +284,192 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  Widget _buildSelectStage() {
+  Widget _buildSelectionUI(ProjectProvider provider) {
+    final projects = provider.projects;
+    final selProject = _selectedProjectId == null
+        ? null
+        : projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null,
+          );
+    final List<String> floors = (selProject?.floors != null && selProject!.floors!.isNotEmpty)
+        ? List.from(selProject.floors!)
+        : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+    if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
+      floors.add(_selectedFloor!);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Select Stage',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: textDark,
-          ),
+        const Text('Project', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        _dropdownField<String>(
+          value: _selectedProjectId,
+          hint: 'Select project',
+          items: projects.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+          onChanged: (val) => setState(() {
+            _selectedProjectId = val;
+            _selectedFloor = null;
+            _selectedPhase = null;
+          }),
         ),
+        const SizedBox(height: 16),
+        const Text('Floor / Zone', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        _dropdownField<String>(
+          value: _selectedFloor,
+          hint: _selectedProjectId == null ? 'Select project first' : 'Select floor',
+          enabled: _selectedProjectId != null,
+          items: floors.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+          onChanged: _selectedProjectId == null ? null : (val) => setState(() {
+            _selectedFloor = val;
+            _selectedPhase = null;
+          }),
+        ),
+        const SizedBox(height: 22),
+        const Text('Select Stage', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textDark)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _stages.asMap().entries.map((e) {
-            final sel = e.key == _stageIndex;
+          children: provider.phases.map((stage) {
+            final sel = _selectedPhase?.id == stage.id;
             return GestureDetector(
-                onTap: () => setState(() => _stageIndex = e.key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: sel ? primaryBlue : Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    // â† fixed: unselected chips now have a visible border
-                    border: Border.all(
-                      color: sel ? primaryBlue : const Color(0xFFDDE0F0),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    e.value,
-                    style: TextStyle(
-                      color: sel ? Colors.white : textGray,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                    ),
-                  ),
+              onTap: _selectedFloor == null ? null : () => setState(() => _selectedPhase = stage),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: sel ? primaryBlue : Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: sel ? primaryBlue : const Color(0xFFDDE0F0), width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
                 ),
+                child: Text(
+                  stage.name,
+                  style: TextStyle(color: sel ? Colors.white : textGray, fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+              ),
             );
           }).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreview(ProjectProvider provider) {
+    if (_selectedProjectId == null || _selectedFloor == null || _selectedPhase == null) {
+      return const SizedBox.shrink();
+    }
+
+    final filteredEntries = provider.entries.where((e) {
+      return e.projectId == _selectedProjectId &&
+             e.floor == _selectedFloor &&
+             e.phaseId == _selectedPhase?.id;
+    }).toList();
+
+    filteredEntries.sort((a, b) => b.date.compareTo(a.date));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Preview', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textDark)),
+        const SizedBox(height: 12),
+        if (filteredEntries.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
+            ),
+            child: const Center(
+              child: Text(
+                'No entries for selected phase and floor',
+                style: TextStyle(color: textGray, fontStyle: FontStyle.italic),
+              ),
+            ),
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFDDE0F0), width: 1.5),
+            ),
+            child: Column(
+              children: filteredEntries.map((e) {
+                String typeStr = '';
+                String qtyStr = '';
+                if (e.type == EntryType.material) {
+                  typeStr = 'Material';
+                  qtyStr = '${e.amount}';
+                } else if (e.type == EntryType.labour) {
+                  typeStr = 'Labour';
+                  qtyStr = '${e.amount} workers';
+                } else if (e.type == EntryType.equipment) {
+                  typeStr = 'Equipment';
+                  qtyStr = '${e.amount} hrs';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '[$typeStr] ${e.description} – $qtyStr',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textDark),
+                        ),
+                      ),
+                      Text(
+                        '${e.date.day}/${e.date.month}/${e.date.year}',
+                        style: const TextStyle(color: textGray, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _dropdownField<T>({
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    bool enabled = true,
+  }) {
+    final bool hasValue = items.any((item) => item.value == value);
+    final T? safeValue = hasValue ? value : null;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: enabled ? primaryBlue : textGray, width: 2)),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<T>(
+            value: safeValue,
+            isExpanded: true,
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: enabled ? primaryBlue : textGray),
+            hint: Text(hint, style: TextStyle(color: textGray, fontSize: 15, fontWeight: FontWeight.w400)),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textDark),
+            items: enabled ? items : [],
+            onChanged: enabled ? onChanged : null,
+          ),
+        ),
+      ),
     );
   }
 
@@ -467,7 +616,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  Widget _buildMaterialConsumption(BuildContext context) {
+  Widget _buildMaterialConsumption(BuildContext context, ProjectProvider provider) {
+    List<EntryModel> materials = [];
+    if (_selectedProjectId != null && _selectedFloor != null && _selectedPhase != null) {
+      materials = provider.entries.where((e) =>
+          e.type == EntryType.material &&
+          e.projectId == _selectedProjectId &&
+          e.floor == _selectedFloor &&
+          e.phaseId == _selectedPhase?.id).toList();
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -514,9 +671,19 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _materialTag('Rebar 12mm', '120 kg'),
-          const SizedBox(height: 8),
-          _materialTag('Concrete M30', '12 m³'),
+          if (materials.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No materials added for this phase yet',
+                style: TextStyle(color: textGray, fontStyle: FontStyle.italic),
+              ),
+            )
+          else
+            ...materials.map((m) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _materialTag(m.description, m.amount.toString()),
+            )),
         ],
       ),
     );

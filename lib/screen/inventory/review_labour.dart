@@ -34,7 +34,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
 
   String? _selectedProjectId;
   String? _selectedFloor;
-  ProjectStage? _selectedPhase;
+  dynamic _selectedPhase;
 
   final String transcript = 
       "Hey SiteTrack, log a labour entry for North District Phase 2. "
@@ -57,11 +57,11 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     
     _selectedProjectId = UserSession.projectId;
     
-    String floor = "General";
+    String floor = "Ground Floor";
     if (t.contains("1st floor")) floor = "1st Floor";
     _selectedFloor = floor;
     
-    _selectedPhase = ProjectStage.structure;
+    _selectedPhase = null;
   }
 
   @override
@@ -197,9 +197,11 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,
             );
-      final List<String> floors = List.from(selProject?.floors ?? ['Ground Floor']);
+      final List<String> floors = (selProject?.floors != null && selProject!.floors!.length > 1)
+          ? List.from(selProject.floors!)
+          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
       if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
-        floors.add(_selectedFloor!);
+        floors.insert(0, _selectedFloor!);
       }
 
       return Container(
@@ -273,11 +275,20 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
             items: projects.map((p) =>
               DropdownMenuItem(value: p.id, child: Text(p.name))
             ).toList(),
-            onChanged: (val) => setState(() {
-              _selectedProjectId = val;
-              _selectedFloor = null;
-              _selectedPhase = null;
-            }),
+            onChanged: (val) {
+              final newProject = projects.cast<ProjectModel?>().firstWhere(
+                (p) => p?.id == val, orElse: () => null);
+              final newFloors = (newProject?.floors != null && newProject!.floors!.length > 1)
+                  ? List<String>.from(newProject.floors!)
+                  : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+              setState(() {
+                _selectedProjectId = val;
+                if (_selectedFloor != null && !newFloors.contains(_selectedFloor)) {
+                  _selectedFloor = null;
+                }
+                _selectedPhase = null;
+              });
+            },
           ),
           const SizedBox(height: 16),
           Row(
@@ -311,15 +322,15 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   children: [
                     _label('PHASE (OPTIONAL)'),
                     const SizedBox(height: 6),
-                    _dropdownField<ProjectStage>(
-                      value: _selectedPhase,
-                      hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
-                      enabled: _selectedFloor != null,
-                      items: ProjectStage.values.map((s) =>
-                        DropdownMenuItem(value: s, child: Text(s.label))
-                      ).toList(),
-                      onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
-                    ),
+                      _dropdownField<dynamic>(
+                        value: _selectedPhase,
+                        hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
+                        enabled: _selectedFloor != null,
+                        items: provider.phases.map((s) =>
+                          DropdownMenuItem(value: s, child: Text(s.name))
+                        ).toList(),
+                        onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
+                      ),
                   ],
                 ),
               ),
@@ -501,7 +512,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                   description: _nameCtrl.text,
                   ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
                   floor:       _selectedFloor!,
-                  phase:       _selectedPhase,
+                  phaseId:     _selectedPhase?.id,
                 ),
               );
 

@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -43,7 +43,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   String? _selectedProjectId;
   String? _selectedFloor;
-  ProjectStage? _selectedPhase;
+  dynamic _selectedPhase;
 
   @override
   void initState() {
@@ -151,7 +151,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                               (p) => p?.id == _selectedProjectId,
                               orElse: () => null,
                             );
-                      final List<String> floors = List.from(selProject?.floors ?? ['Ground Floor']);
+                      final List<String> floors = (selProject?.floors != null && selProject!.floors!.isNotEmpty)
+                          ? List.from(selProject.floors!)
+                          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
                       if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
                         floors.add(_selectedFloor!);
                       }
@@ -196,14 +198,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             const SizedBox(height: 16),
 
                             // Phase dropdown
-                            _sectionLabel('Phase (Optional)'),
+                            _sectionLabel('Phase'),
                             const SizedBox(height: 8),
-                            _dropdownField<ProjectStage>(
+                            _dropdownField<dynamic>(
                               value: _selectedPhase,
                               hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
                               enabled: _selectedFloor != null,
-                              items: ProjectStage.values.map((s) =>
-                                DropdownMenuItem(value: s, child: Text(s.label))
+                              items: provider.phases.map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s.name))
                               ).toList(),
                               onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
                             ),
@@ -211,6 +213,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ),
                       );
                     }),
+                    Consumer<ProjectProvider>(
+                      builder: (context, provider, _) => _buildPreview(provider),
+                    ),
                     const AppSectionHeader(title: 'Equipment Details'),
                     AppCard(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -587,6 +592,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 );
                 return;
               }
+              if (_selectedPhase == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please select a phase')),
+                );
+                return;
+              }
 
               if (!_validate()) return;
               setState(() => _isSaving = true);
@@ -605,7 +616,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   description: _nameController.text,
                   ratePerUnit: double.tryParse(_rateController.text) ?? 0.0,
                   floor:       _selectedFloor!,
-                  phase:       _selectedPhase,
+                  phaseId:     _selectedPhase?.id,
                 ),
               );
 
@@ -751,4 +762,81 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
     );
   }
+
+  Widget _buildPreview(ProjectProvider provider) {
+    if (_selectedProjectId == null || _selectedFloor == null || _selectedPhase == null) {
+      return const SizedBox.shrink();
+    }
+
+    final filteredEntries = provider.entries.where((e) {
+      return e.projectId == _selectedProjectId &&
+             e.floor == _selectedFloor &&
+             e.phaseId == _selectedPhase?.id;
+    }).toList();
+
+    filteredEntries.sort((a, b) => b.date.compareTo(a.date));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AppSectionHeader(title: 'Preview'),
+        if (filteredEntries.isEmpty)
+          AppCard(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No entries for selected phase and floor',
+                  style: TextStyle(color: textGray, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ),
+          )
+        else
+          AppCard(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              children: filteredEntries.map((e) {
+                String typeStr = '';
+                String qtyStr = '';
+                // ignore: unrelated_type_equality_checks
+                if (e.type == em.EntryType.material) {
+                  typeStr = 'Material';
+                  qtyStr = '${e.amount}';
+                // ignore: unrelated_type_equality_checks
+                } else if (e.type == em.EntryType.labour) {
+                  typeStr = 'Labour';
+                  qtyStr = '${e.amount} workers';
+                // ignore: unrelated_type_equality_checks
+                } else if (e.type == em.EntryType.equipment) {
+                  typeStr = 'Equipment';
+                  qtyStr = '${e.amount} hrs';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '[$typeStr] ${e.description} – $qtyStr',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textDark),
+                        ),
+                      ),
+                      Text(
+                        '${e.date.day}/${e.date.month}/${e.date.year}',
+                        style: const TextStyle(color: textGray, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
 }
+

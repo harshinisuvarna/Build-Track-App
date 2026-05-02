@@ -31,7 +31,7 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
 
   String? _selectedProjectId;
   String? _selectedFloor;
-  ProjectStage? _selectedPhase;
+  dynamic _selectedPhase;
 
   final String transcript = 
       "Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation.";
@@ -56,7 +56,7 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
     if (t.contains("1st floor")) floor = "1st Floor";
     _selectedFloor = floor;
     
-    _selectedPhase = ProjectStage.foundation;
+    _selectedPhase = null;
   }
 
   @override
@@ -186,9 +186,11 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,
             );
-      final List<String> floors = List.from(selProject?.floors ?? ['Ground Floor']);
+      final List<String> floors = (selProject?.floors != null && selProject!.floors!.length > 1)
+          ? List.from(selProject.floors!)
+          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
       if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
-        floors.add(_selectedFloor!);
+        floors.insert(0, _selectedFloor!);
       }
 
       return Container(
@@ -262,11 +264,20 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
             items: projects.map((p) =>
               DropdownMenuItem(value: p.id, child: Text(p.name))
             ).toList(),
-            onChanged: (val) => setState(() {
-              _selectedProjectId = val;
-              _selectedFloor = null;
-              _selectedPhase = null;
-            }),
+            onChanged: (val) {
+              final newProject = projects.cast<ProjectModel?>().firstWhere(
+                (p) => p?.id == val, orElse: () => null);
+              final newFloors = (newProject?.floors != null && newProject!.floors!.length > 1)
+                  ? List<String>.from(newProject.floors!)
+                  : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+              setState(() {
+                _selectedProjectId = val;
+                if (_selectedFloor != null && !newFloors.contains(_selectedFloor)) {
+                  _selectedFloor = null;
+                }
+                _selectedPhase = null;
+              });
+            },
           ),
           const SizedBox(height: 16),
           Row(
@@ -300,15 +311,15 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
                   children: [
                     _label('PHASE (OPTIONAL)'),
                     const SizedBox(height: 6),
-                    _dropdownField<ProjectStage>(
-                      value: _selectedPhase,
-                      hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
-                      enabled: _selectedFloor != null,
-                      items: ProjectStage.values.map((s) =>
-                        DropdownMenuItem(value: s, child: Text(s.label))
-                      ).toList(),
-                      onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
-                    ),
+                      _dropdownField<dynamic>(
+                        value: _selectedPhase,
+                        hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
+                        enabled: _selectedFloor != null,
+                        items: provider.phases.map((s) =>
+                          DropdownMenuItem(value: s, child: Text(s.name))
+                        ).toList(),
+                        onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
+                      ),
                   ],
                 ),
               ),
@@ -464,7 +475,7 @@ class _ReviewEquipmentEntryScreenState extends State<ReviewEquipmentEntryScreen>
                   description: _nameCtrl.text,
                   ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
                   floor:       _selectedFloor!,
-                  phase:       _selectedPhase,
+                  phaseId:     _selectedPhase?.id,
                 ),
               );
 

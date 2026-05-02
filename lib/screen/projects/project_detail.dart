@@ -16,10 +16,17 @@ class ProjectDetailScreen extends StatelessWidget {
 
   // Stage appearance map
   static const _stageMeta = <ProjectStage, _StageStyle>{
-    ProjectStage.foundation: _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC)),
-    ProjectStage.structure:  _StageStyle(Color(0xFFF3E8FF), Color(0xFF9B59B6)),
-    ProjectStage.finishing:  _StageStyle(Color(0xFFE8F5E9), Color(0xFF2E7D32)),
-    ProjectStage.handover:   _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
+    ProjectStage.preConstruction: _StageStyle(Color(0xFFE8EAF6), Color(0xFF3949AB)),
+    ProjectStage.sitePreparation: _StageStyle(Color(0xFFFCE4EC), Color(0xFFC62828)),
+    ProjectStage.foundation:      _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC)),
+    ProjectStage.plinth:          _StageStyle(Color(0xFFE3F2FD), Color(0xFF1565C0)),
+    ProjectStage.superstructure:  _StageStyle(Color(0xFFF3E8FF), Color(0xFF9B59B6)),
+    ProjectStage.masonry:         _StageStyle(Color(0xFFFFF3E0), Color(0xFFE65100)),
+    ProjectStage.mep:             _StageStyle(Color(0xFFE0F7FA), Color(0xFF00838F)),
+    ProjectStage.plastering:      _StageStyle(Color(0xFFF9FBE7), Color(0xFF827717)),
+    ProjectStage.finishing:       _StageStyle(Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+    ProjectStage.fixtures:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF9A825)),
+    ProjectStage.handover:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
   };
 
   @override
@@ -190,6 +197,79 @@ class _HeaderCard extends StatelessWidget {
               ),
             ],
           ),
+          if (project.expectedEndDate != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.event_available_outlined,
+                    color: AppColors.textLight, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Expected End: ${_formatDate(project.expectedEndDate!)}',
+                  style: AppTheme.caption.copyWith(fontSize: 13),
+                ),
+              ],
+            ),
+          ],
+          if (project.clientName != null && project.clientName!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.person_outline,
+                    color: AppColors.textLight, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  project.clientName!,
+                  style: AppTheme.caption.copyWith(fontSize: 13),
+                ),
+              ],
+            ),
+          ],
+          if (project.projectType != null && project.projectType!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.domain_outlined,
+                    color: AppColors.textLight, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  project.projectType!,
+                  style: AppTheme.caption.copyWith(fontSize: 13),
+                ),
+              ],
+            ),
+          ],
+          if (project.floors != null && project.floors!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Divider(color: Color(0xFFEEF0F5), height: 1),
+            const SizedBox(height: 10),
+            Text(
+              'Floors / Zones',
+              style: AppTheme.label.copyWith(
+                  color: AppColors.textLight, fontSize: 11, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: project.floors!.map((f) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: Text(f,
+                    style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700)),
+              )).toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -366,40 +446,95 @@ class _EntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _typeStyle(entry.type);
+    final hasDetails = (entry.floor != null && entry.floor!.isNotEmpty) ||
+        (entry.phaseId != null && entry.phaseId!.isNotEmpty) ||
+        (entry.brand != null && entry.brand!.isNotEmpty) ||
+        entry.ratePerUnit != null;
+
     return AppCard(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(entry.description.isEmpty
-                    ? entry.type.label.toUpperCase()
-                    : entry.description,
-                    style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
-                Text(
-                  _formatDate(entry.date),
-                  style: AppTheme.caption,
+          Row(
+            children: [
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(entry.description.isEmpty
+                        ? entry.type.label.toUpperCase()
+                        : entry.description,
+                        style: AppTheme.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark)),
+                    Text(
+                      _formatDate(entry.date),
+                      style: AppTheme.caption,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _fmt(entry.amount),
+                style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w800, color: AppColors.primary),
+              ),
+            ],
+          ),
+          if (hasDetails) ...[  
+            const SizedBox(height: 10),
+            const Divider(color: Color(0xFFEEF0F5), height: 1),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (entry.floor != null && entry.floor!.isNotEmpty)
+                  _chip(Icons.layers_outlined, entry.floor!, AppColors.info),
+                if (entry.phaseId != null && entry.phaseId!.isNotEmpty)
+                  _chip(Icons.flag_outlined,
+                      entry.phaseId!.replaceAll('_', ' ').split(' ')
+                          .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+                          .join(' '),
+                      const Color(0xFF7B3FE7)),
+                if (entry.brand != null && entry.brand!.isNotEmpty)
+                  _chip(Icons.branding_watermark_outlined, entry.brand!, AppColors.warning),
+                if (entry.ratePerUnit != null)
+                  _chip(Icons.currency_rupee, '₹${_fmtRate(entry.ratePerUnit!)}/unit',
+                      AppColors.success),
               ],
             ),
-          ),
-          Text(
-            _fmt(entry.amount),
-            style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w800, color: AppColors.primary),
-          ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 11, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -417,6 +552,11 @@ class _EntryTile extends StatelessWidget {
     if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
     if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
     return '₹${v.toStringAsFixed(0)}';
+  }
+
+  String _fmtRate(double v) {
+    if (v >= 1e3) return '${(v / 1e3).toStringAsFixed(1)}k';
+    return v.toStringAsFixed(0);
   }
 
   String _formatDate(DateTime d) =>

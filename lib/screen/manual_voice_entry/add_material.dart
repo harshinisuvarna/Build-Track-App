@@ -32,7 +32,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── STEP 5A: New state for dependent dropdowns + brand ───────────────────
   String?       _selectedProjectId;
   String?       _selectedFloor;
-  ProjectStage? _selectedPhase;
+  dynamic       _selectedPhase;
   final _brandCtrl = TextEditingController();
   // ─────────────────────────────────────────────────────────────────
 
@@ -151,7 +151,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                               (p) => p?.id == _selectedProjectId,
                               orElse: () => null,
                             );
-                      final floors = selProject?.floors ?? ['Ground Floor'];
+                      final floors = (selProject?.floors != null && selProject!.floors!.isNotEmpty)
+                          ? selProject.floors!
+                          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
 
                       return AppCard(
                         margin: const EdgeInsets.only(bottom: 16),
@@ -197,26 +199,31 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             const SizedBox(height: 16),
 
                             // STEP 5D — Phase dropdown (enabled only when floor selected)
-                            _sectionLabel('Phase (Optional)'),
+                            _sectionLabel('Phase'),
                             const SizedBox(height: 8),
-                            _dropdownField<ProjectStage>(
+                            _dropdownField<dynamic>(
                               value: _selectedPhase,
                               hint: _selectedFloor == null
                                   ? 'Select floor first'
                                   : 'Select phase',
                               enabled: _selectedFloor != null,
-                              items: ProjectStage.values.map((s) =>
-                                DropdownMenuItem(value: s, child: Text(s.label))
+                              items: provider.phases.map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s.name))
                               ).toList(),
                               onChanged: _selectedFloor == null
                                   ? null
-                                  : (val) => setState(() => _selectedPhase = val),
+                                  : (val) => setState(() {
+                                        _selectedPhase = val;
+                                      }),
                             ),
                           ],
                         ),
                       );
                     }),
                     // ─────────────────────────────────────────────────────────────────
+                    Consumer<ProjectProvider>(
+                      builder: (context, provider, _) => _buildPreview(provider),
+                    ),
 
                     const AppSectionHeader(title: 'Basic Details'),
                     AppCard(
@@ -394,6 +401,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 );
                 return;
               }
+              if (_selectedPhase == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please select a phase'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
               // ──────────────────────────────────────────────────────────────
               if (!_validate()) return;
               setState(() => _isSaving = true);
@@ -412,7 +428,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                   brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
                   ratePerUnit: double.tryParse(_rateController.text),
                   floor:       _selectedFloor,
-                  phase:       _selectedPhase,
+                  phaseId:     _selectedPhase?.id,
                 ),
               );
               // ──────────────────────────────────────────────────────────────
@@ -893,7 +909,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
             ),
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
               color: textDark,
             ),
@@ -902,6 +918,82 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPreview(ProjectProvider provider) {
+    if (_selectedProjectId == null || _selectedFloor == null || _selectedPhase == null) {
+      return const SizedBox.shrink();
+    }
+
+    final filteredEntries = provider.entries.where((e) {
+      return e.projectId == _selectedProjectId &&
+             e.floor == _selectedFloor &&
+             e.phaseId == _selectedPhase?.id;
+    }).toList();
+
+    filteredEntries.sort((a, b) => b.date.compareTo(a.date));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AppSectionHeader(title: 'Preview'),
+        if (filteredEntries.isEmpty)
+          AppCard(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No entries for selected phase and floor',
+                  style: TextStyle(color: textGray, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ),
+          )
+        else
+          AppCard(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              children: filteredEntries.map((e) {
+                String typeStr = '';
+                String qtyStr = '';
+                // ignore: unrelated_type_equality_checks
+                if (e.type == em.EntryType.material) {
+                  typeStr = 'Material';
+                  qtyStr = '${e.amount}';
+                // ignore: unrelated_type_equality_checks
+                } else if (e.type == em.EntryType.labour) {
+                  typeStr = 'Labour';
+                  qtyStr = '${e.amount} workers';
+                // ignore: unrelated_type_equality_checks
+                } else if (e.type == em.EntryType.equipment) {
+                  typeStr = 'Equipment';
+                  qtyStr = '${e.amount} hrs';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '[$typeStr] ${e.description} – $qtyStr',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textDark),
+                        ),
+                      ),
+                      Text(
+                        '${e.date.day}/${e.date.month}/${e.date.year}',
+                        style: const TextStyle(color: textGray, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
     );
   }
   // ─────────────────────────────────────────────────────────────────

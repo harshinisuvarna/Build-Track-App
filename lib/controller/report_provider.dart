@@ -19,7 +19,7 @@ class ReportProvider extends ChangeNotifier {
   bool         get hasData         => _report != null && !_isLoading;
 
   String get currentPeriod {
-    const periods = ['monthly', 'quarterly', 'yearly'];
+    const periods = ['daily', 'monthly', 'yearly'];
     return periods[_tabIndex];
   }
   List<double> get activeChartData {
@@ -102,7 +102,7 @@ class ReportProvider extends ChangeNotifier {
         .where((e) => e.type == EntryType.equipment)
         .fold(0.0, (s, e) => s + e.amount);
     final total = matCost + labCost + eqCost;
-    final periodMultiplier = _tabIndex == 0 ? 1.0 : _tabIndex == 1 ? 3.0 : 12.0;
+    final periodMultiplier = _tabIndex == 0 ? (1.0 / 30.0) : _tabIndex == 1 ? 1.0 : 12.0;
     final periodTotal = total * periodMultiplier;
     final periodMat   = matCost * periodMultiplier;
     final periodLab   = labCost * periodMultiplier;
@@ -133,8 +133,7 @@ class ReportProvider extends ChangeNotifier {
       chartDataSqft: sqft,
       chartDataCuyd: cuyd,
       categoryBudget: {
-        'STRUCTURAL':  matFrac.clamp(0.0, 1.0),
-        'ELECTRICAL':  (matFrac * 0.5).clamp(0.0, 1.0),
+        'MATERIAL':    matFrac.clamp(0.0, 1.0),
         'LABOUR':      labFrac.clamp(0.0, 1.0),
         'EQUIPMENT':   eqFrac.clamp(0.0, 1.0),
       },

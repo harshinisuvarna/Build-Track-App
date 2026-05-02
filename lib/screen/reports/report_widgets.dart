@@ -130,7 +130,7 @@ class MetricGrid extends StatelessWidget {
           ReportModel.mockChange('material',  period)),
       _M(Icons.people_outline,         'LABOUR',     report.formattedLabour,
           ReportModel.mockChange('labour',    period)),
-      _M(Icons.construction_outlined,  'EQUIPMENT',  report.formattedEquipment,
+      _M(Icons.precision_manufacturing_outlined,  'EQUIPMENT',  report.formattedEquipment,
           ReportModel.mockChange('equipment', period)),
     ];
 

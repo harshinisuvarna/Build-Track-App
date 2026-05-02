@@ -471,7 +471,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildEquipmentTab(BuildContext context) {
     var items = [
       {'name': 'Tower Crane TC-7', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'), 'level': 2, 'time': 0.5},
-      {'name': 'Concrete Mixer CM-3', 'widget': _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'), 'level': 1, 'time': 2},
+      {'name': 'Concrete Mixer CM-3', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'), 'level': 1, 'time': 2},
       {'name': 'Excavator EX-200', 'widget': _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'), 'level': 0, 'time': 24},
     ];
     return _buildTab(items);
