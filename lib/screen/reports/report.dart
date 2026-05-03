@@ -1,21 +1,14 @@
-// lib/screen/report.dart
-// Production-quality ReportsScreen.
-// Uses Provider (ReportProvider) for all state. No hardcoded values.
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
-
 import 'package:buildtrack_mobile/screen/reports/report_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -26,23 +19,18 @@ class ReportsScreen extends StatelessWidget {
   }
 }
 
-
 class _ReportsView extends StatefulWidget {
   const _ReportsView();
-
   @override
   State<_ReportsView> createState() => _ReportsViewState();
 }
-
 class _ReportsViewState extends State<_ReportsView> {
   final _pageController = PageController();
-
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -50,11 +38,9 @@ class _ReportsViewState extends State<_ReportsView> {
     final projectProvider = context.read<ProjectProvider>();
     context.read<ReportProvider>().linkProjectProvider(projectProvider);
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -76,14 +62,12 @@ class _ReportsViewState extends State<_ReportsView> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: _PeriodTabs(
                 tabIndex: provider.tabIndex,
                 onTabChanged: (i) {
                   provider.selectTab(i);
-                  // Guard against same-tab tap causing redundant animation.
                   if (_pageController.page?.round() != i) {
                     _pageController.animateToPage(
                       i,
@@ -94,7 +78,6 @@ class _ReportsViewState extends State<_ReportsView> {
                 },
               ),
             ),
-
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -120,7 +103,6 @@ class _ReportsViewState extends State<_ReportsView> {
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-
     if (provider.error != null) {
       return AppEmptyState(
         icon: Icons.cloud_off_outlined,
@@ -129,16 +111,13 @@ class _ReportsViewState extends State<_ReportsView> {
         onAction: provider.refresh,
       );
     }
-
     if (!provider.hasData) {
       return const AppEmptyState(
         icon: Icons.bar_chart_outlined,
         message: 'No report data available.',
       );
     }
-
     final report = provider.report!;
-
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
@@ -147,19 +126,15 @@ class _ReportsViewState extends State<_ReportsView> {
         children: [
           ProjectSelector(provider: provider),
           const SizedBox(height: 14),
-
           const AppSectionHeader(title: 'Cost Summary'),
           MetricGrid(report: report, period: provider.currentPeriod),
           const SizedBox(height: 14),
-
           const AppSectionHeader(title: 'Cost per Unit'),
           ChartSection(provider: provider),
           const SizedBox(height: 14),
-
           const AppSectionHeader(title: 'Category Budget'),
           CategoryBudgetSection(categoryBudget: report.categoryBudget),
           const SizedBox(height: 14),
-
           EfficiencyBanner(
             note: report.efficiencyNote,
             selectedProjectName: provider.selectedProject,
@@ -170,17 +145,11 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 }
-
-// Period tabs (Daily / Monthly / Yearly)
-
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({required this.tabIndex, required this.onTabChanged});
-
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
-
   static const _tabs = ['Daily', 'Monthly', 'Yearly'];
-
   @override
   Widget build(BuildContext context) {
     return Container(

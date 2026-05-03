@@ -3,7 +3,6 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -11,21 +10,17 @@ import 'package:provider/provider.dart';
 
 class ReportInsightsScreen extends StatefulWidget {
   const ReportInsightsScreen({super.key});
-
   @override
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
-
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   int _unitIndex = 0; // 0 = SQFT, 1 = CUYD
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final passedProjectName = args?['projectName'];
     final isAll = passedProjectName == 'All Active Projects';
-
     ProjectModel? project;
     if (isAll) {
       final totalBudget = provider.projects.fold(0.0, (s, p) => s + p.totalBudget);
@@ -33,7 +28,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       final avgProgress = provider.projects.isEmpty 
           ? 0.0 
           : provider.projects.fold(0.0, (s, p) => s + p.progress) / provider.projects.length;
-
       project = ProjectModel(
         id: 'all',
         name: 'All Active Projects',
@@ -50,14 +44,12 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
           ? provider.projects.firstWhere((p) => p.name == passedProjectName, orElse: () => provider.selectedProject!)
           : provider.selectedProject;
     }
-
     if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
-
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -81,14 +73,10 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         ),
       );
     }
-
     final entries = isAll ? provider.entries : provider.entriesForProject(project.id);
-
-    // Real cost totals from actual entries
     final matCost = entries.where((e) => e.type == EntryType.material).fold(0.0, (s, e) => s + e.amount);
     final labCost = entries.where((e) => e.type == EntryType.labour).fold(0.0, (s, e) => s + e.amount);
     final eqCost  = entries.where((e) => e.type == EntryType.equipment).fold(0.0, (s, e) => s + e.amount);
-
     final categoryCosts = {
       'Material':     matCost,
       'Labour':       labCost,
@@ -100,7 +88,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       'Labour':       project.totalBudget * 0.35,
       'Equipment':    project.totalBudget * 0.25,
     };
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -122,7 +109,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                   children: [
                     _ProjectSummaryCard(project: project),
                     const SizedBox(height: 14),
-
                     const AppSectionHeader(title: 'Cost Trend'),
                     _CostTrendChartCard(
                       project: project,
@@ -131,7 +117,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                       onUnitChanged: (i) => setState(() => _unitIndex = i),
                     ),
                     const SizedBox(height: 14),
-
                     const AppSectionHeader(title: 'Category Breakdown'),
                     _CategoryBreakdownCard(
                       project: project,
@@ -139,8 +124,7 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                       categoryBudgets: categoryBudgets,
                     ),
                     const SizedBox(height: 20),
-
-                    // Action buttons
+                  
                     AppButton(
                       label: 'Update Progress',
                       icon: Icons.trending_up,
@@ -163,23 +147,14 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Helpers
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 String _fmt(double v) {
   if (v >= 1_000_000) return '${(v / 1_000_000).toStringAsFixed(1)}M';
   if (v >= 1_000)     return '${(v / 1_000).toStringAsFixed(0)}k';
   return v.toStringAsFixed(0);
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
   const _ProjectSummaryCard({required this.project});
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -221,50 +196,39 @@ class _ProjectSummaryCard extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _CostTrendChartCard extends StatelessWidget {
   final ProjectModel project;
   final List<EntryModel> entries;
   final int unitIndex;
   final ValueChanged<int> onUnitChanged;
-
   const _CostTrendChartCard({
     required this.project,
     required this.entries,
     required this.unitIndex,
     required this.onUnitChanged,
   });
-
   @override
   Widget build(BuildContext context) {
     final isSqft     = unitIndex == 0;
     final unitLabel  = isSqft ? 'SQFT' : 'CUYD';
     final multiplier = isSqft ? 1.0 : 1.5;
     final baseCost   = (project.spentAmount > 0 ? project.spentAmount / 1000 : 50.0) * multiplier;
-
     final data = [
       baseCost * 0.60, baseCost * 0.70, baseCost * 0.75,
       baseCost * 0.85, baseCost * 0.92, baseCost,
     ];
     final target = data.map((v) => v * 0.93).toList();
-
     final spots       = [for (int i = 0; i < data.length;   i++) FlSpot(i.toDouble(), data[i])];
     final targetSpots = [for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])];
-
     final minY = data.reduce((a, b) => a < b ? a : b) * 0.92;
     final maxY = data.reduce((a, b) => a > b ? a : b) * 1.05;
     final currentVal = data.last;
     final targetVal  = target.last;
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header + unit toggle
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,8 +248,6 @@ class _CostTrendChartCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-
-          // Premium chart
           SizedBox(
             height: 140,
             child: LineChart(
@@ -405,8 +367,6 @@ class _CostTrendChartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-
-          // Week labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['WK 12', 'WK 13', 'WK 14', 'WK 15', 'WK 16', 'WK 17']
@@ -416,8 +376,6 @@ class _CostTrendChartCard extends StatelessWidget {
                 .toList(),
           ),
           const SizedBox(height: 14),
-
-          // Legend
           Row(children: [
             _dot(AppColors.primary),
             const SizedBox(width: 4),
@@ -444,26 +402,18 @@ class _CostTrendChartCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _dot(Color c) => Container(
       width: 10, height: 10,
       decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-
   String _shortNum(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
     return v.toStringAsFixed(1);
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Unit toggle for insight screen
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _InsightUnitToggle extends StatelessWidget {
   const _InsightUnitToggle({required this.unitIndex, required this.onChanged});
   final int unitIndex;
   final void Function(int) onChanged;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -496,21 +446,15 @@ class _InsightUnitToggle extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _CategoryBreakdownCard extends StatelessWidget {
   final ProjectModel project;
   final Map<String, double> categoryCosts;
   final Map<String, double> categoryBudgets;
-
   const _CategoryBreakdownCard({
     required this.project,
     required this.categoryCosts,
     required this.categoryBudgets,
   });
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -521,13 +465,11 @@ class _CategoryBreakdownCard extends StatelessWidget {
           final cost   = e.value;
           final budget = categoryBudgets[cat] ?? 1.0;
           final pct    = budget > 0 ? (cost / budget).clamp(0.0, 1.0) : 0.0;
-
           final color = pct >= 0.9
               ? Colors.redAccent
               : pct >= 0.6
                   ? AppColors.warning
                   : AppColors.primary;
-
           return InkWell(
             onTap: () => Navigator.pushNamed(context, '/logs',
                 arguments: {'projectId': project.id, 'category': cat}),

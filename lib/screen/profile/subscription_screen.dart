@@ -238,8 +238,6 @@ class SubscriptionScreen extends StatelessWidget {
       ],
     );
   }
-
-
   Future<void> _onUpgrade(
     BuildContext context,
     SubscriptionProvider sub,
@@ -253,7 +251,6 @@ class SubscriptionScreen extends StatelessWidget {
       _showSuccessDialog(context, plan);
     }
   }
-
   Future<void> _onRestore(
       BuildContext context, SubscriptionProvider sub) async {
     await sub.restore();
@@ -275,7 +272,6 @@ class SubscriptionScreen extends StatelessWidget {
       ),
     );
   }
-
   void _showSuccessDialog(BuildContext context, _PlanInfo plan) {
     showDialog(
       context: context,
@@ -328,8 +324,6 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 }
-
-
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.info,
@@ -337,12 +331,10 @@ class _PlanCard extends StatelessWidget {
     required this.isPurchasing,
     required this.onUpgrade,
   });
-
   final _PlanInfo info;
   final bool isCurrentPlan;
   final bool isPurchasing;
   final VoidCallback onUpgrade;
-
   @override
   Widget build(BuildContext context) {
     final bool isPro = info.isHighlighted;
@@ -432,17 +424,13 @@ class _PlanCard extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Divider(color: Color(0xFFEAECF0), height: 1),
                 const SizedBox(height: 24),
-
                 ...info.features.map((f) => _FeatureItem(text: f, isHighlighted: isPro)),
-
                 const SizedBox(height: 8),
-
                 _buildCta(),
               ],
             ),
           ),
         ),
-
         if (isPro)
           Positioned(
             top: -14,
@@ -476,7 +464,6 @@ class _PlanCard extends StatelessWidget {
   }
 
   Widget _buildCta() {
-    // If it's the current plan, show a disabled/flat state
     if (isCurrentPlan) {
       return Container(
         width: double.infinity,
@@ -498,7 +485,6 @@ class _PlanCard extends StatelessWidget {
         ),
       );
     }
-
     if (!info.isHighlighted) {
       return GestureDetector(
         onTap: isPurchasing ? null : onUpgrade,
@@ -536,8 +522,6 @@ class _PlanCard extends StatelessWidget {
         ),
       );
     }
-
-    // Pro gets the massive glowing premium button
     return PremiumCtaButton(
       label: info.isCta,
       isFullWidth: true,
@@ -547,14 +531,10 @@ class _PlanCard extends StatelessWidget {
     );
   }
 }
-
-
 class _FeatureItem extends StatelessWidget {
   const _FeatureItem({required this.text, required this.isHighlighted});
-
   final String text;
   final bool isHighlighted;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -594,12 +574,9 @@ class _FeatureItem extends StatelessWidget {
     );
   }
 }
-
-
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
   final String message;
-
   @override
   Widget build(BuildContext context) {
     return Container(

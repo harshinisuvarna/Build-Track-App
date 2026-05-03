@@ -11,32 +11,25 @@ class AddProjectScreen extends StatefulWidget {
   @override
   State<AddProjectScreen> createState() => _AddProjectScreenState();
 }
-
 class _AddProjectScreenState extends State<AddProjectScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
-
   final _formKey   = GlobalKey<FormState>();
   final _nameCtrl  = TextEditingController();
   final _cityCtrl  = TextEditingController();
   final _sectorCtrl= TextEditingController();
   final _budgetCtrl= TextEditingController();
-  // ── STEP 4A: New controllers ───────────────────────────────────────────────
   final _clientCtrl    = TextEditingController();
   final _typeCtrl      = TextEditingController();
   final _floorInputCtrl= TextEditingController();
   DateTime? _expectedEndDate;
   final List<String> _floors = [];
-  // ─────────────────────────────────────────────────────────────────
-
   ProjectStage _selectedStage = ProjectStage.foundation;
   DateTime     _startDate     = DateTime.now();
   bool         _saving        = false;
-
   static const _stages = ProjectStage.values;
-
   static const _stageBg = <ProjectStage, Color>{
     ProjectStage.preConstruction: Color(0xFFE8EAF6),
     ProjectStage.sitePreparation: Color(0xFFFCE4EC),
@@ -50,7 +43,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     ProjectStage.fixtures:        Color(0xFFFFF8E1),
     ProjectStage.handover:        Color(0xFFFFF8E1),
   };
-
   static const _stageFg = <ProjectStage, Color>{
     ProjectStage.preConstruction: Color(0xFF3949AB),
     ProjectStage.sitePreparation: Color(0xFFC62828),
@@ -64,26 +56,21 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     ProjectStage.fixtures:        Color(0xFFF9A825),
     ProjectStage.handover:        Color(0xFFF57F17),
   };
-
   static const _months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-
   @override
   void dispose() {
     _nameCtrl.dispose();
     _cityCtrl.dispose();
     _sectorCtrl.dispose();
     _budgetCtrl.dispose();
-    // ── STEP 4A: Dispose new controllers ────────────────────────────
     _clientCtrl.dispose();
     _typeCtrl.dispose();
     _floorInputCtrl.dispose();
-    // ─────────────────────────────────────────────────────────────────
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,7 +79,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         bottom: false,
         child: Column(
           children: [
-            // â”€â”€ Back header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -128,7 +114,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -140,8 +125,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                     children: [
                       _chip('PROJECT DETAILS'),
                       const SizedBox(height: 20),
-
-                      // Project Name
                       _label('Project Name'),
                       const SizedBox(height: 8),
                       _field(
@@ -152,8 +135,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             v == null || v.isEmpty ? 'Enter project name' : null,
                       ),
                       const SizedBox(height: 18),
-
-                      // City
                       _label('City'),
                       const SizedBox(height: 8),
                       _field(
@@ -164,8 +145,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             v == null || v.isEmpty ? 'Enter city' : null,
                       ),
                       const SizedBox(height: 18),
-
-                      // Sector
                       _label('Sector / Unit'),
                       const SizedBox(height: 8),
                       _field(
@@ -176,8 +155,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             v == null || v.isEmpty ? 'Enter sector' : null,
                       ),
                       const SizedBox(height: 18),
-
-                      // Total Budget
                       _label('Total Budget (₹)'),
                       const SizedBox(height: 8),
                       _field(
@@ -196,14 +173,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         },
                       ),
                       const SizedBox(height: 18),
-
-                      // Start Date
                       _label('Start Date'),
                       const SizedBox(height: 8),
                       _datePicker(),
                       const SizedBox(height: 24),
-
-                      // ── STEP 4B: Client Name ───────────────────────────────────
                       _label('Client Name (Optional)'),
                       const SizedBox(height: 8),
                       _field(
@@ -212,8 +185,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         icon: Icons.person_outline_rounded,
                       ),
                       const SizedBox(height: 18),
-
-                      // ── STEP 4B: Project Type ─────────────────────────────────
                       _label('Project Type (Optional)'),
                       const SizedBox(height: 8),
                       _field(
@@ -222,14 +193,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         icon: Icons.category_outlined,
                       ),
                       const SizedBox(height: 18),
-
-                      // ── STEP 4C: Expected End Date ─────────────────────────────
                       _label('Expected End Date (Optional)'),
                       const SizedBox(height: 8),
                       _endDatePicker(),
                       const SizedBox(height: 24),
-
-                      // ── STEP 4D & 4E: Floor Management ──────────────────────────
                       _label('Floors / Zones (Optional)'),
                       const SizedBox(height: 8),
                       Row(
@@ -313,10 +280,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                           }).toList(),
                         ),
                       ]),
-                      // ─────────────────────────────────────────────────────────────────
                       const SizedBox(height: 24),
-
-                      // Stage chips
                       _label('Build Stage'),
                       const SizedBox(height: 12),
                       Wrap(
@@ -353,14 +317,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         }).toList(),
                       ),
                       const SizedBox(height: 32),
-
-                      // Preview card
                       _label('Preview'),
                       const SizedBox(height: 12),
                       _previewCard(),
                       const SizedBox(height: 32),
-
-                      // Submit
                       SizedBox(
                         width: double.infinity,
                         height: 54,
@@ -401,9 +361,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
-  // â”€â”€ Widget builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _chip(String text) => Container(
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -421,7 +378,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ),
         ),
       );
-
   Widget _label(String text) => Text(
         text,
         style: TextStyle(
@@ -431,7 +387,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           letterSpacing: 0.3,
         ),
       );
-
   Widget _field({
     required TextEditingController controller,
     required String hint,
@@ -488,7 +443,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ),
         ),
       );
-
   Widget _datePicker() {
     final dateStr =
         '${_startDate.day} ${_months[_startDate.month - 1]} ${_startDate.year}';
@@ -544,8 +498,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
-  // ── STEP 4C: Expected End Date picker (same style as _datePicker) ────────
   Widget _endDatePicker() {
     final hasDate = _expectedEndDate != null;
     final dateStr = hasDate
@@ -615,15 +567,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-  // ─────────────────────────────────────────────────────────────────
-
   Widget _previewCard() {
     final name   = _nameCtrl.text.isEmpty ? 'Project Name' : _nameCtrl.text;
     final city   = _cityCtrl.text.isEmpty ? 'City' : _cityCtrl.text;
     final sector = _sectorCtrl.text.isEmpty ? 'Sector' : _sectorCtrl.text;
     final bg     = _stageBg[_selectedStage]!;
     final fg     = _stageFg[_selectedStage]!;
-
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -690,18 +639,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   String _fmt(double v) {
     if (v >= 1e7) return '${(v / 1e7).toStringAsFixed(2)} Cr';
     if (v >= 1e6) return '${(v / 1e6).toStringAsFixed(1)} M';
     if (v >= 1e3) return '${(v / 1e3).toStringAsFixed(0)} k';
     return v.toStringAsFixed(0);
   }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // â”€â”€ Feature gate: Free plan = max 2 projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     final projectProvider = context.read<ProjectProvider>();
     final subProvider     = context.read<SubscriptionProvider>();
     if (!subProvider.canAddProject(projectProvider.projectCount)) {
@@ -720,7 +665,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         totalBudget: double.parse(_budgetCtrl.text),
         spentAmount: 0.0,
         startDate:   _startDate,
-        // ── STEP 4F: Pass new optional fields ─────────────────────────────
         clientName:      _clientCtrl.text.trim().isEmpty
                              ? null
                              : _clientCtrl.text.trim(),
@@ -730,14 +674,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         expectedEndDate: _expectedEndDate,
         // STEP 4G: Auto-assign Ground Floor if user left list empty
         floors: _floors.isEmpty ? ['Ground Floor'] : _floors,
-        // ─────────────────────────────────────────────────────────────────
       );
-
       if (!mounted) return;
       await context.read<ProjectProvider>().addProject(project);
-
       if (!mounted) return;
-      // Navigate directly to project detail for the newly created project
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/project-detail',
@@ -832,9 +772,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 }
-
-// â”€â”€ Extension to simplify Border on a Container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 extension on BorderSide {
   Border? merged(Border? _) => Border.all(
         color: color,

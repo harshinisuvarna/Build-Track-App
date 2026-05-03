@@ -9,10 +9,6 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -21,35 +17,29 @@ class MetricCard extends StatelessWidget {
     required this.value,
     required this.change, // positive = over-budget (bad), negative = saving
   });
-
   final IconData icon;
   final String   label;
   final String   value;
   final double   change;
-
   @override
   Widget build(BuildContext context) {
     final isNeutral = change == 0.0;
     final isGood    = change < 0.0;
-
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
             ? AppColors.success
             : AppColors.error;
-
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
             ? Icons.trending_down
             : Icons.trending_up;
-
     final subText = isNeutral
         ? 'On Track'
         : isGood
             ? '${change.abs().toStringAsFixed(0)}% Saving'
             : '+${change.toStringAsFixed(0)}% Over';
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -111,16 +101,10 @@ class MetricCard extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
-
   final ReportModel report;
   final String      period;
-
   @override
   Widget build(BuildContext context) {
     final metrics = [
@@ -133,7 +117,6 @@ class MetricGrid extends StatelessWidget {
       _M(Icons.precision_manufacturing_outlined,  'EQUIPMENT',  report.formattedEquipment,
           ReportModel.mockChange('equipment', period)),
     ];
-
     return Column(
       children: [
         Row(children: [
@@ -151,7 +134,6 @@ class MetricGrid extends StatelessWidget {
     );
   }
 }
-
 class _M {
   const _M(this.icon, this.label, this.value, this.change);
   final IconData icon;
@@ -159,15 +141,9 @@ class _M {
   final String   value;
   final double   change;
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.provider});
-
   final ReportProvider provider;
-
   @override
   Widget build(BuildContext context) {
     final data      = provider.activeChartData;
@@ -176,15 +152,12 @@ class ChartSection extends StatelessWidget {
     final unit      = unitIndex == 0 ? 'SQFT' : 'CUYD';
     final actualVal = data.isNotEmpty ? data.last : 0.0;
     final targetVal = target.isNotEmpty ? target.last : 0.0;
-
     final actualSpots = [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])];
     final targetSpots = [for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])];
-
     final minY = data.isEmpty ? 0.0
         : (data.reduce((a, b) => a < b ? a : b) * 0.92);
     final maxY = data.isEmpty ? 30.0
         : (data.reduce((a, b) => a > b ? a : b) * 1.05);
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -213,8 +186,6 @@ class ChartSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-
-          // Premium chart
           SizedBox(
             height: 140,
             child: data.isEmpty
@@ -227,8 +198,6 @@ class ChartSection extends StatelessWidget {
                       minY: minY,
                       maxY: maxY,
                       clipData: const FlClipData.all(),
-
-                      // â”€â”€ No vertical stick on touch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       lineTouchData: LineTouchData(
                         handleBuiltInTouches: true,
                         getTouchedSpotIndicator: (barData, spotIndexes) =>
@@ -268,8 +237,6 @@ class ChartSection extends StatelessWidget {
                           }).toList(),
                         ),
                       ),
-
-                      // â”€â”€ Clean grid — horizontal only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -280,8 +247,6 @@ class ChartSection extends StatelessWidget {
                         ),
                       ),
                       borderData: FlBorderData(show: false),
-
-                      // â”€â”€ Axis labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       titlesData: FlTitlesData(
                         topTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false)),
@@ -304,7 +269,6 @@ class ChartSection extends StatelessWidget {
                       ),
 
                       lineBarsData: [
-                        // â”€â”€ Actual line — gradient + gradient fill â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: actualSpots,
                           isCurved: true,
@@ -330,7 +294,6 @@ class ChartSection extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // â”€â”€ Target line — dashed grey â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         LineChartBarData(
                           spots: targetSpots,
                           isCurved: true,
@@ -347,8 +310,6 @@ class ChartSection extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 12),
-
-          // Week labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['WK 12', 'WK 13', 'WK 14', 'WK 15', 'WK 16', 'WK 17']
@@ -358,8 +319,6 @@ class ChartSection extends StatelessWidget {
                 .toList(),
           ),
           const SizedBox(height: 14),
-
-          // Legend
           Row(
             children: [
               _legendDot(AppColors.primary),
@@ -388,26 +347,18 @@ class ChartSection extends StatelessWidget {
       ),
     );
   }
-
   Widget _legendDot(Color c) => Container(
         width: 10, height: 10,
         decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-
   String _shortNum(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
     return v.toStringAsFixed(1);
   }
 }
-
-
-// â”€â”€ Unit toggle chip (SQFT / CUYD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _UnitToggle extends StatelessWidget {
   const _UnitToggle({required this.unitIndex, required this.onChanged});
-
   final int unitIndex;
   final void Function(int) onChanged;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -443,15 +394,9 @@ class _UnitToggle extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
-
   final ReportProvider provider;
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -476,12 +421,9 @@ class ProjectSelector extends StatelessWidget {
       ),
     );
   }
-
   void _showSheet(BuildContext context) {
-    // Get real projects from ProjectProvider
     final projectProvider = context.read<ProjectProvider>();
     final realProjects = projectProvider.projects;
-
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -499,16 +441,12 @@ class ProjectSelector extends StatelessWidget {
 
 class _ProjectPickerSheet extends StatelessWidget {
   const _ProjectPickerSheet({required this.provider, required this.projects});
-
   final ReportProvider provider;
   final List<ProjectModel> projects;
-
   @override
   Widget build(BuildContext context) {
-    // Build display list: 'All Active Projects' + real project names
     final allOption = 'All Active Projects';
     final items = [allOption, ...projects.map((p) => p.name)];
-
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -535,7 +473,6 @@ class _ProjectPickerSheet extends StatelessWidget {
               return InkWell(
                 onTap: () {
                   provider.selectProject(p);
-                  // Also sync ProjectProvider so Report Insights shows the right project
                   if (p != allOption) {
                     final match = projects.firstWhere(
                       (proj) => proj.name == p,
@@ -588,15 +525,9 @@ class _ProjectPickerSheet extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
-
   final Map<String, double> categoryBudget;
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -616,13 +547,10 @@ class CategoryBudgetSection extends StatelessWidget {
     );
   }
 }
-
 class _BudgetBar extends StatelessWidget {
   const _BudgetBar({required this.label, required this.value});
-
   final String label;
   final double value; // 0.0â€“1.0
-
   @override
   Widget build(BuildContext context) {
     final Color color = value >= 0.90
@@ -632,7 +560,6 @@ class _BudgetBar extends StatelessWidget {
             : AppColors.primary;
 
     final String pct = '${(value * 100).round()}%';
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -680,10 +607,6 @@ class _BudgetBar extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
@@ -693,7 +616,6 @@ class EfficiencyBanner extends StatelessWidget {
 
   final String note;
   final String selectedProjectName;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -734,8 +656,6 @@ class EfficiencyBanner extends StatelessWidget {
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
-              // Pass the currently selected project name so ReportInsightsScreen
-              // can look up the correct ProjectModel by name.
               Navigator.pushNamed(
                 context,
                 '/report-insights',

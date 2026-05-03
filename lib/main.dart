@@ -32,40 +32,30 @@ import 'package:buildtrack_mobile/screen/inventory/transaction_log.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/updated_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Pre-load project data before the UI renders
   final projectProvider = ProjectProvider();
   await projectProvider.load();
-
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => NavController()),
-        // Re-use the already-loaded provider instance
         ChangeNotifierProvider.value(value: projectProvider),
-        // Subscription state — initialised here so billing stream is alive
-        // for the entire app session.
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BuildTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-
       initialRoute: '/',
-
       routes: {
         '/':                 (_) => const LoginScreen(),
         '/login':            (_) => const LoginScreen(),

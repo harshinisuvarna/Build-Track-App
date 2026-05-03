@@ -1,4 +1,4 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
@@ -119,8 +119,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       default:          return '/add-material';
     }
   }
-
-
   @override
   Widget build(BuildContext context) {
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};

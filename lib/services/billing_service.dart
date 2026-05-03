@@ -1,24 +1,15 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-
 import 'package:in_app_purchase/in_app_purchase.dart';
-
-// Replace these with the exact SKUs configured in your Google Play Console
-// (Subscriptions → Create subscription → Product ID).
 const kProMonthlyId     = 'com.buildtrack.pro.monthly';
 const kEnterpriseMonthlyId = 'com.buildtrack.enterprise.monthly';
-
 const Set<String> kProductIds = {kProMonthlyId, kEnterpriseMonthlyId};
-
 class BillingService {
   BillingService._();
   static final instance = BillingService._();
-
   final _iap = InAppPurchase.instance;
   List<ProductDetails> products = [];
   bool isAvailable = false;
-
-  // Internal stream subscription – kept alive for the app lifecycle.
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   Future<void> init(
       void Function(List<PurchaseDetails>) onPurchaseUpdate) async {
@@ -27,17 +18,12 @@ class BillingService {
       dev.log('BillingService: Play Store not available');
       return;
     }
-
-    // Listen to purchase updates for the entire app session.
     _subscription = _iap.purchaseStream.listen(
       onPurchaseUpdate,
       onError: (Object e) => dev.log('BillingService stream error: $e'),
     );
-
     await _loadProducts();
   }
-
-
   Future<void> _loadProducts() async {
     try {
       final response = await _iap.queryProductDetails(kProductIds);
@@ -65,8 +51,6 @@ class BillingService {
     }
     final param = PurchaseParam(productDetails: product);
     try {
-      // buyNonConsumable is correct for subscriptions on Android
-      // (subscriptions are non-consumable recurring purchases).
       return await _iap.buyNonConsumable(purchaseParam: param);
     } catch (e) {
       dev.log('BillingService.purchase error: $e');
@@ -81,8 +65,6 @@ class BillingService {
       await _iap.completePurchase(details);
     }
   }
-
-
   void dispose() {
     _subscription?.cancel();
   }

@@ -178,8 +178,6 @@ class EntryModel {
   double          amount;
   final DateTime  date;
   final String    description;
-  // ── NEW nullable fields (Step 2B) ────────────────────────────────
-  // TODO(Phase2): These become required once backend is live.
   final String?       brand;
   final double?       ratePerUnit;
   final String?       floor;

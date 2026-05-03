@@ -1,6 +1,3 @@
-// lib/screen/projectscreen.dart
-// Reads projects from ProjectProvider and navigates to /project-detail.
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -9,15 +6,12 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
-
   static const primaryBlue = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
-
   static const _stageMeta = <ProjectStage, _StageStyle>{
     ProjectStage.preConstruction: _StageStyle(Color(0xFFE8EAF6), Color(0xFF3949AB)),
     ProjectStage.sitePreparation: _StageStyle(Color(0xFFFCE4EC), Color(0xFFC62828)),
@@ -31,11 +25,9 @@ class ProjectsScreen extends StatelessWidget {
     ProjectStage.fixtures:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF9A825)),
     ProjectStage.handover:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
   };
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-
     return Scaffold(
       backgroundColor: bgColor,
       floatingActionButton: FloatingActionButton(
@@ -72,14 +64,12 @@ class ProjectsScreen extends StatelessWidget {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
   Widget _buildBody(BuildContext context, ProjectProvider provider) {
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-
     if (provider.error.isNotEmpty) {
       return AppEmptyState(
         icon: Icons.cloud_off_outlined,
@@ -88,14 +78,12 @@ class ProjectsScreen extends StatelessWidget {
         onAction: provider.load,
       );
     }
-
     if (!provider.hasProjects) {
       return const AppEmptyState(
         icon: Icons.folder_open_outlined,
         message: 'No projects yet.\nTap + to create your first project.',
       );
     }
-
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: provider.load,
@@ -165,12 +153,10 @@ class ProjectsScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _projectCard(
       BuildContext context, ProjectModel p, ProjectProvider provider) {
     final style = _stageMeta[p.stage] ??
         const _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC));
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -322,7 +308,6 @@ class ProjectsScreen extends StatelessWidget {
     );
   }
 }
-
 class _StageStyle {
   const _StageStyle(this.bg, this.fg);
   final Color bg;

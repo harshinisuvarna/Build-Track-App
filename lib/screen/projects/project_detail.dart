@@ -1,7 +1,3 @@
-// lib/screen/project_detail.dart
-// Full project detail screen — reads the currently selected project
-// from ProjectProvider and shows info, financials, and action buttons.
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -13,8 +9,6 @@ import 'package:provider/provider.dart';
 
 class ProjectDetailScreen extends StatelessWidget {
   const ProjectDetailScreen({super.key});
-
-  // Stage appearance map
   static const _stageMeta = <ProjectStage, _StageStyle>{
     ProjectStage.preConstruction: _StageStyle(Color(0xFFE8EAF6), Color(0xFF3949AB)),
     ProjectStage.sitePreparation: _StageStyle(Color(0xFFFCE4EC), Color(0xFFC62828)),
@@ -28,12 +22,10 @@ class ProjectDetailScreen extends StatelessWidget {
     ProjectStage.fixtures:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF9A825)),
     ProjectStage.handover:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
   };
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final project  = provider.selectedProject;
-
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -57,10 +49,8 @@ class ProjectDetailScreen extends StatelessWidget {
         ),
       );
     }
-
     final style = _stageMeta[project.stage]!;
     final entries = provider.entriesForProject(project.id);
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -86,21 +76,14 @@ class ProjectDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // â”€â”€ Project header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       _HeaderCard(project: project, style: style),
                       const SizedBox(height: 14),
-
-                      // â”€â”€ Progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       const AppSectionHeader(title: 'Overall Progress'),
                       _ProgressCard(project: project),
                       const SizedBox(height: 14),
-
-                      // â”€â”€ Financial breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       const AppSectionHeader(title: 'Financial Breakdown'),
                       _FinancialCard(project: project),
                       const SizedBox(height: 14),
-
-                      // â”€â”€ Recent Entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       AppSectionHeader(
                         title: 'Recent Entries',
                         actionLabel: entries.isEmpty ? null : 'View All',
@@ -114,8 +97,6 @@ class ProjectDetailScreen extends StatelessWidget {
                       else
                         ...entries.take(3).map((e) => _EntryTile(entry: e)),
                       const SizedBox(height: 20),
-
-                      // â”€â”€ Action buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       const AppSectionHeader(title: 'Actions'),
                       _ActionButtons(project: project),
                     ],
@@ -129,17 +110,10 @@ class ProjectDetailScreen extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Header card
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _HeaderCard extends StatelessWidget {
   const _HeaderCard({required this.project, required this.style});
-
   final ProjectModel project;
   final _StageStyle  style;
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -274,7 +248,6 @@ class _HeaderCard extends StatelessWidget {
       ),
     );
   }
-
   String _formatDate(DateTime d) =>
       '${d.day} ${_months[d.month - 1]} ${d.year}';
 
@@ -283,16 +256,9 @@ class _HeaderCard extends StatelessWidget {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Progress card
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({required this.project});
-
   final ProjectModel project;
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -329,21 +295,13 @@ class _ProgressCard extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Financial card
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _FinancialCard extends StatelessWidget {
   const _FinancialCard({required this.project});
-
   final ProjectModel project;
-
   @override
   Widget build(BuildContext context) {
     final utilization = project.budgetUtilization;
     final isOverBudget = project.spentAmount > project.totalBudget;
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -409,7 +367,6 @@ class _FinancialCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _finRow(String label, String value, Color color, IconData icon) {
     return Row(
       children: [
@@ -433,16 +390,9 @@ class _FinancialCard extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Entry tile
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry});
-
   final EntryModel entry;
-
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _typeStyle(entry.type);
@@ -450,7 +400,6 @@ class _EntryTile extends StatelessWidget {
         (entry.phaseId != null && entry.phaseId!.isNotEmpty) ||
         (entry.brand != null && entry.brand!.isNotEmpty) ||
         entry.ratePerUnit != null;
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,7 +467,6 @@ class _EntryTile extends StatelessWidget {
       ),
     );
   }
-
   Widget _chip(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -539,7 +487,6 @@ class _EntryTile extends StatelessWidget {
       ),
     );
   }
-
   (Color, IconData) _typeStyle(EntryType t) {
     switch (t) {
       case EntryType.material:  return (AppColors.primary,  Icons.category_outlined);
@@ -547,18 +494,15 @@ class _EntryTile extends StatelessWidget {
       case EntryType.equipment: return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
-
   String _fmt(double v) {
     if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
     if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
     return '₹${v.toStringAsFixed(0)}';
   }
-
   String _fmtRate(double v) {
     if (v >= 1e3) return '${(v / 1e3).toStringAsFixed(1)}k';
     return v.toStringAsFixed(0);
   }
-
   String _formatDate(DateTime d) =>
       '${d.day} ${_months[d.month - 1]} ${d.year}';
 
@@ -567,16 +511,9 @@ class _EntryTile extends StatelessWidget {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Action buttons
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
-
   final ProjectModel project;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -619,11 +556,6 @@ class _ActionButtons extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Internal style record
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _StageStyle {
   const _StageStyle(this.bg, this.fg);
   final Color bg;
