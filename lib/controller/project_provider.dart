@@ -143,6 +143,30 @@ class ProjectProvider extends ChangeNotifier {
     await _persistProjects();
     notifyListeners();
   }
+
+  Future<void> toggleActivityCompletion(
+      String projectId, String activityKey, int totalActivities) async {
+    final idx = _projects.indexWhere((p) => p.id == projectId);
+    if (idx == -1) return;
+    final project   = _projects[idx];
+    final completed = List<String>.from(project.completedActivityKeys ?? []);
+    if (completed.contains(activityKey)) {
+      completed.remove(activityKey);
+    } else {
+      completed.add(activityKey);
+    }
+    final newProgress = totalActivities > 0
+        ? (completed.length / totalActivities).clamp(0.0, 1.0)
+        : 0.0;
+    _projects[idx] = project.copyWith(
+      completedActivityKeys: completed,
+      progress: newProgress,
+    );
+    if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
+    await _persistProjects();
+    notifyListeners();
+  }
+
   Future<void> updateProjectCost(String id, double spentAmount) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;

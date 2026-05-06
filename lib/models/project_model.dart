@@ -56,6 +56,8 @@ class ProjectModel {
     this.projectType,
     this.expectedEndDate,
     this.floors,
+    this.selectedPhaseNames,
+    this.completedActivityKeys,
   });
 
   final String       id;
@@ -71,6 +73,8 @@ class ProjectModel {
   final String?       projectType;
   final DateTime?     expectedEndDate;
   final List<String>? floors;
+  final List<String>? selectedPhaseNames;
+  final List<String>? completedActivityKeys;
   double get remainingBudget   => totalBudget - spentAmount;
   double get budgetUtilization => totalBudget > 0 ? spentAmount / totalBudget : 0.0;
   String get location          => '$city • $sector';
@@ -95,21 +99,25 @@ class ProjectModel {
     String?       projectType,
     DateTime?     expectedEndDate,
     List<String>? floors,
+    List<String>? selectedPhaseNames,
+    List<String>? completedActivityKeys,
   }) =>
       ProjectModel(
-        id:              id,
-        name:            name            ?? this.name,
-        city:            city            ?? this.city,
-        sector:          sector          ?? this.sector,
-        stage:           stage           ?? this.stage,
-        progress:        progress        ?? this.progress,
-        totalBudget:     totalBudget     ?? this.totalBudget,
-        spentAmount:     spentAmount     ?? this.spentAmount,
-        startDate:       startDate,
-        clientName:      clientName      ?? this.clientName,
-        projectType:     projectType     ?? this.projectType,
-        expectedEndDate: expectedEndDate ?? this.expectedEndDate,
-        floors:          floors          ?? this.floors,
+        id:                   id,
+        name:                 name                ?? this.name,
+        city:                 city                ?? this.city,
+        sector:               sector              ?? this.sector,
+        stage:                stage               ?? this.stage,
+        progress:             progress            ?? this.progress,
+        totalBudget:          totalBudget         ?? this.totalBudget,
+        spentAmount:          spentAmount         ?? this.spentAmount,
+        startDate:            startDate,
+        clientName:           clientName          ?? this.clientName,
+        projectType:          projectType         ?? this.projectType,
+        expectedEndDate:      expectedEndDate     ?? this.expectedEndDate,
+        floors:               floors              ?? this.floors,
+        selectedPhaseNames:   selectedPhaseNames  ?? this.selectedPhaseNames,
+        completedActivityKeys: completedActivityKeys ?? this.completedActivityKeys,
       );
   Map<String, dynamic> toJson() => {
         'id':          id,
@@ -121,10 +129,12 @@ class ProjectModel {
         'totalBudget': totalBudget,
         'spentAmount': spentAmount,
         'startDate':   startDate.toIso8601String(),
-        if (clientName != null)      'clientName':      clientName,
-        if (projectType != null)     'projectType':     projectType,
-        if (expectedEndDate != null) 'expectedEndDate': expectedEndDate!.toIso8601String(),
-        if (floors != null)          'floors':          floors,
+        if (clientName != null)           'clientName':           clientName,
+        if (projectType != null)          'projectType':          projectType,
+        if (expectedEndDate != null)      'expectedEndDate':      expectedEndDate!.toIso8601String(),
+        if (floors != null)               'floors':               floors,
+        if (selectedPhaseNames != null)   'selectedPhaseNames':   selectedPhaseNames,
+        if (completedActivityKeys != null)'completedActivityKeys': completedActivityKeys,
       };
   factory ProjectModel.fromJson(Map<String, dynamic> j) => ProjectModel(
         id:          j['id'] as String,
@@ -144,9 +154,15 @@ class ProjectModel {
         expectedEndDate: j['expectedEndDate'] != null
                            ? DateTime.tryParse(j['expectedEndDate'] as String)
                            : null,
-        floors:          j['floors'] != null
-                           ? List<String>.from(j['floors'] as List)
-                           : null,
+        floors:                j['floors'] != null
+                                 ? List<String>.from(j['floors'] as List)
+                                 : null,
+        selectedPhaseNames:    j['selectedPhaseNames'] != null
+                                 ? List<String>.from(j['selectedPhaseNames'] as List)
+                                 : null,
+        completedActivityKeys: j['completedActivityKeys'] != null
+                                 ? List<String>.from(j['completedActivityKeys'] as List)
+                                 : null,
       );
   static String encodeList(List<ProjectModel> list) =>
       jsonEncode(list.map((p) => p.toJson()).toList());
@@ -174,7 +190,7 @@ class EntryModel {
   });
   final String    id;
   final String    projectId;
-  final EntryType type;       // EntryType enum kept as-is
+  final EntryType type;       
   double          amount;
   final DateTime  date;
   final String    description;
@@ -208,7 +224,6 @@ class EntryModel {
         amount:      (j['amount'] as num).toDouble(),
         date:        DateTime.parse(j['date'] as String),
         description: (j['description'] as String?) ?? '',
-        // Step 2E: new fields — safe defaults for legacy entries
         brand:       j['brand'] as String?,
         ratePerUnit: (j['ratePerUnit'] as num?)?.toDouble(),
         floor:       j['floor'] as String?,
@@ -220,7 +235,6 @@ class EntryModel {
                        : null,
         phaseId:     j['phaseId'] as String?,
       );
-
   static String encodeList(List<EntryModel> list) =>
       jsonEncode(list.map((e) => e.toJson()).toList());
 

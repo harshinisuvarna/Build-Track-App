@@ -333,65 +333,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ],
         ),
         const SizedBox(height: 14),
-        const AppSectionHeader(title: 'Quick Actions'),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: 'Add Project',
-                icon: Icons.add_circle_outline,
-                onPressed: () => Navigator.pushNamed(context, '/projects'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AppButton(
-                label: 'Reports',
-                icon: Icons.bar_chart_outlined,
-                variant: AppButtonVariant.outline,
-                onPressed: () => Navigator.pushNamed(context, '/reports'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-
-        // Category shortcuts
-        AppCard(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _categoryIcon(
-                context,
-                Icons.category_outlined,
-                'Material',
-                primaryBlue,
-                type: 'material',
-              ),
-              _categoryIcon(
-                context,
-                Icons.people_outline,
-                'Labour',
-                purple,
-                type: 'labour',
-              ),
-              _categoryIcon(
-                context,
-                Icons.precision_manufacturing_outlined,
-                'Equipment',
-                const Color(0xFF7B3FE7),
-                type: 'equipment',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Speak update
         _buildSpeakUpdate(context),
         const SizedBox(height: 14),
-
-        // Recent activity
         _buildRecentActivity(context),
       ],
     );
@@ -606,43 +549,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  Widget _categoryIcon(
-    BuildContext context,
-    IconData icon,
-    String label,
-    Color color, {
-    required String type,
-  }) {
-    return InkWell(
-      onTap: () => widget.onEntryTap(context, type),
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildSpeakUpdate(BuildContext context) {
     return Material(
