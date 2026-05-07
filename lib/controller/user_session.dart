@@ -1,5 +1,7 @@
 library;
+
 enum UserRole { admin, supervisor, mason }
+
 class UserSession {
   UserSession._();
   static String _userId = '';
@@ -14,24 +16,30 @@ class UserSession {
     _role = role;
     _projectId = projectId;
   }
+
   static void clear() {
     _userId = '';
     _role = UserRole.admin;
     _projectId = '';
   }
+
   static String get userId => _userId;
   static UserRole get role => _role;
   static String get projectId => _projectId;
   static String get roleLabel {
     switch (_role) {
-      case UserRole.admin:      return 'Admin';
-      case UserRole.supervisor: return 'Supervisor';
-      case UserRole.mason:      return 'Mason';
+      case UserRole.admin:
+        return 'Admin';
+      case UserRole.supervisor:
+        return 'Supervisor';
+      case UserRole.mason:
+        return 'Mason';
     }
   }
-  static bool get isAdmin      => _role == UserRole.admin;
+
+  static bool get isAdmin => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
-  static bool get isMason      => _role == UserRole.mason;
+  static bool get isMason => _role == UserRole.mason;
   static void simulateAdmin() =>
       set(userId: 'sim_admin', role: UserRole.admin, projectId: 'proj_001');
   static void simulateSupervisor() =>

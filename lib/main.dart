@@ -7,7 +7,7 @@ import 'package:buildtrack_mobile/screen/manual_voice_entry/add_entry.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_labour.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_material.dart';
-import 'package:buildtrack_mobile/screen/manual_voice_entry/assign_role.dart';
+import 'package:buildtrack_mobile/screen/profile/assign_role.dart';
 import 'package:buildtrack_mobile/pages/create_workspace.dart';
 import 'package:buildtrack_mobile/screen/profile/edit_profile.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/entry_details.dart';

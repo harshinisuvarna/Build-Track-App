@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
   static const primaryBlue = AppColors.primary;

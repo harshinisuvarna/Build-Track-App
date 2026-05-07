@@ -1,8 +1,6 @@
 ﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 
-// â”€â”€â”€ Entry-type data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _EntryType {
   final String id;
   final String title;
@@ -66,8 +64,6 @@ void showAddEntryPopup(BuildContext context) {
   );
 }
 
-// â”€â”€â”€ Widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _AddEntrySheet extends StatefulWidget {
   final BuildContext parentContext;
   const _AddEntrySheet({required this.parentContext});
@@ -109,8 +105,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Text(
                 'What are you adding?',
                 style: TextStyle(
@@ -130,8 +124,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               ..._entryTypes.map((type) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _EntryCard(
@@ -142,8 +134,8 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
                         setState(() => _selectedId = type.id);
                         Future.delayed(const Duration(milliseconds: 150), () {
                           if (!mounted) return;
-                          Navigator.pop(context);                 // close sheet
-                          Navigator.pushNamed(                    // open form
+                          Navigator.pop(context);                
+                          Navigator.pushNamed(                    
                             widget.parentContext,
                             type.route,
                           );
@@ -158,8 +150,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
     );
   }
 }
-
-// â”€â”€â”€ Entry card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EntryCard extends StatelessWidget {
   final _EntryType type;
@@ -182,7 +172,7 @@ class _EntryCard extends StatelessWidget {
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: isSelected
-            ? const Color(0xFFF0F2FF)      // soft blue tint when selected
+            ? const Color(0xFFF0F2FF)      
             : const Color(0xFFF8F9FF),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
@@ -250,8 +240,6 @@ class _EntryCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Right indicator: checkmark (selected) or chevron
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: isSelected
