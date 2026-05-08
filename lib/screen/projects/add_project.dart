@@ -1036,6 +1036,22 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ),
           const SizedBox(height: 20),
           ..._phases.map((p) => _buildPhaseAccordion(p)),
+          const SizedBox(height: 4),
+          // ── Custom Phase CTA ──────────────────────────────────
+          _buildAddCustomChip(
+            label: 'Add Custom Phase',
+            onAdd: (val) {
+              setState(() {
+                if (!_phases.any((p) => p.name == val)) {
+                  _phases.add(ConstructionPhase(
+                    name: val,
+                    isCustom: true,
+                    isExpanded: true,
+                  ));
+                }
+              });
+            },
+          ),
         ],
       ),
     );
@@ -1124,6 +1140,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                           ],
                         ),
                       )),
+                  const SizedBox(height: 8),
+                  // ── Custom Activity CTA ────────────────────────
+                  _buildAddCustomChip(
+                    label: 'Add Custom Activity',
+                    onAdd: (val) {
+                      setState(() {
+                        final key = '${phase.name}::Custom::$val';
+                        if (!phase.allActivities.any((a) => a.name == val)) {
+                          phase.activities.add(ConstructionActivity(
+                            key: key,
+                            name: val,
+                            isCustom: true,
+                            isSelected: true,
+                          ));
+                        }
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1170,6 +1204,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ),
               ),
             ),
+            if (activity.isCustom)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Custom',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: primaryBlue,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -1,9 +1,15 @@
 class ConstructionActivity {
   final String key;  // Format: "PhaseName::GroupName::ActivityName"
   final String name;
+  final bool isCustom;
   bool isSelected; // used in add_project for scope selection
 
-  ConstructionActivity({required this.key, required this.name, this.isSelected = false});
+  ConstructionActivity({
+    required this.key,
+    required this.name,
+    this.isCustom = false,
+    this.isSelected = false,
+  });
 }
 
 class ConstructionActivityGroup {
@@ -14,16 +20,19 @@ class ConstructionActivityGroup {
 
 class ConstructionPhase {
   final String name;
+  final bool isCustom;
   final List<ConstructionActivity> activities;
   final List<ConstructionActivityGroup> groups;
   bool isExpanded;
 
   ConstructionPhase({
     required this.name,
-    this.activities = const [],
-    this.groups = const [],
+    this.isCustom = false,
+    List<ConstructionActivity>? activities,
+    List<ConstructionActivityGroup>? groups,
     this.isExpanded = false,
-  });
+  })  : activities = activities ?? [],
+        groups = groups ?? [];
 
   List<ConstructionActivity> get allActivities => [
         ...activities,

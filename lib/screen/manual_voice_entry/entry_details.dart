@@ -1,9 +1,9 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 
 class EntryDetailScreen extends StatefulWidget {
@@ -15,16 +15,16 @@ class EntryDetailScreen extends StatefulWidget {
 
 class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
   static const bgColor     = AppColors.gradientStart;
   static const textDark    = AppColors.textDark;
   static const textGray    = AppColors.textLight;
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Mutable approval state Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-  EntryStatus _status     = EntryStatus.pending;
-  String?     _approvedBy;
-  DateTime?   _approvedAt;
-  bool        _argsLoaded = false;
+  // ── State loaded from route args ─────────────────────────────────────────
+  bool         _argsLoaded   = false;
+  EntryStatus  _entryStatus  = EntryStatus.pending;
+  PaymentStatus _payStatus   = PaymentStatus.pending;
+  double       _billAmount   = 0;
+  double       _paidAmount   = 0;
 
   @override
   void didChangeDependencies() {
@@ -34,51 +34,16 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     final statusStr = args['status'] as String? ?? 'pending';
-    _status     = EntryStatus.values.firstWhere(
+    _entryStatus = EntryStatus.values.firstWhere(
       (e) => e.name == statusStr,
       orElse: () => EntryStatus.pending,
     );
-    _approvedBy = args['approvedBy'] as String?;
-    final approvedAtStr = args['approvedAt'] as String?;
-    _approvedAt = approvedAtStr != null ? DateTime.tryParse(approvedAtStr) : null;
+    _payStatus   = args['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
+    _billAmount  = (args['billAmount']  as num?)?.toDouble() ?? 0;
+    _paidAmount  = (args['paidAmount']  as num?)?.toDouble() ?? 0;
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Approve / Reject Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
-  void _approve() {
-    if (_status != EntryStatus.pending) return;
-    setState(() {
-      _status     = EntryStatus.approved;
-      _approvedBy = UserSession.userId;
-      _approvedAt = DateTime.now();
-    });
-    _showFeedback('Entry approved successfully', Colors.green);
-  }
-
-  void _reject() {
-    if (_status != EntryStatus.pending) return;
-    setState(() {
-      _status     = EntryStatus.rejected;
-      _approvedBy = UserSession.userId;
-      _approvedAt = DateTime.now();
-    });
-    _showFeedback('Entry rejected', Colors.red);
-  }
-
-  void _showFeedback(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Static helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Static type helpers ──────────────────────────────────────────────────
 
   static Color _typeColor(String type) {
     switch (type) {
@@ -119,33 +84,47 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       default:          return '/add-material';
     }
   }
+
+  // ── Formatters ────────────────────────────────────────────────────────────
+  String _fmt(double v) {
+    if (v >= 1e7) return '₹${(v / 1e7).toStringAsFixed(2)}Cr';
+    if (v >= 1e5) return '₹${(v / 1e5).toStringAsFixed(1)}L';
+    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}K';
+    return '₹${v.toStringAsFixed(0)}';
+  }
+
+  Widget _fieldLabel(String t) =>
+      Text(t, style: AppTheme.label.copyWith(color: textGray));
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final String title     = args['title']      as String? ?? 'Stock Entry';
-    final String ref       = args['ref']        as String? ?? '#INV-0000';
-    final String amount    = args['amount']     as String? ?? '+0';
-    final String date      = args['date']       as String? ?? 'Unknown date';
-    final String type      = args['type']       as String? ?? 'material';
-    final String name      = args['name']       as String? ?? 'Item';
-    final bool   isPositive = args['isPositive'] as bool?  ?? true;
-    final String? receipt  = args['receipt']    as String?;
+    final args        = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    final String title       = args['title']        as String? ?? 'Stock Entry';
+    final String ref         = args['ref']          as String? ?? '#INV-0000';
+    final String amount      = args['amount']       as String? ?? '+0';
+    final String date        = args['date']         as String? ?? 'Unknown date';
+    final String type        = args['type']         as String? ?? 'material';
+    final String name        = args['name']         as String? ?? 'Item';
+    final bool   isPositive  = args['isPositive']   as bool?   ?? true;
+    final String? receipt    = args['receipt']      as String?;
+    final String createdBy   = args['createdBy']    as String? ?? '';
+    final String projectId   = args['projectId']    as String? ?? '';
+    final String supplier    = args['supplier']     as String? ?? '';
+    final String method      = args['paymentMethod'] as String? ?? '';
+    final String lastUpdated = args['lastUpdated']  as String? ?? date;
 
-    // Permissions from centralised helper
-    final String createdBy = args['createdBy'] as String? ?? '';
-    final String projectId = args['projectId'] as String? ?? '';
-
-    final bool canEdit = EntryPermissions.canEdit(
-      status: _status.name,
-      createdBy: createdBy,
-      projectId: projectId,
-    );
-    final bool canApprove = EntryPermissions.canApprove();
+    final bool canEdit   = EntryPermissions.canEdit(
+        status: _entryStatus.name, createdBy: createdBy, projectId: projectId);
     final bool canDelete = EntryPermissions.canDelete(
-      status: _status.name,
-      createdBy: createdBy,
-      projectId: projectId,
-    );
+        status: _entryStatus.name, createdBy: createdBy, projectId: projectId);
+
+    final double due = (_billAmount - _paidAmount).clamp(0.0, double.infinity);
+    final bool canSettle = _payStatus == PaymentStatus.pending  ||
+                           _payStatus == PaymentStatus.partial  ||
+                           _payStatus == PaymentStatus.overdue;
+    final bool isSettled = _payStatus == PaymentStatus.paid;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -153,25 +132,27 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(context, type, args, canEdit),
+            _buildTopBar(context, type, args, canEdit, canDelete),
             const Divider(height: 1, thickness: 1, color: Color(0xFFEEF0F8)),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
+                    // ── TYPE BADGE + PAYMENT STATUS ─────────────────────────
                     Row(
                       children: [
                         _buildTypeBadge(type),
                         const SizedBox(width: 8),
-                        StatusBadge(status: _status.name),
+                        PaymentStatusChip(status: _payStatus),
                       ],
                     ),
                     const SizedBox(height: 16),
 
+                    // ── ITEM HEADER ─────────────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -182,21 +163,32 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           Text(
                             name,
                             style: AppTheme.heading2.copyWith(
-                              fontSize: 20,
-                              color: textDark,
-                              height: 1.3,
-                            ),
+                              fontSize: 20, color: textDark, height: 1.3),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            title,
-                            style: AppTheme.body.copyWith(color: textGray),
-                          ),
+                          Text(title,
+                              style: AppTheme.body.copyWith(color: textGray)),
+                          if (supplier.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.storefront_outlined,
+                                    color: textGray, size: 13),
+                                const SizedBox(width: 5),
+                                Text(
+                                  supplier,
+                                  style: AppTheme.caption
+                                      .copyWith(color: textGray, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
 
+                    // ── OPERATIONAL SUMMARY ─────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -208,7 +200,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _fieldLabel('QUANTITY'),
+                                    _fieldLabel('QUANTITY / VALUE'),
                                     const SizedBox(height: 6),
                                     Text(
                                       amount,
@@ -241,127 +233,71 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                               ),
                             ],
                           ),
-
                           const AppDivider(verticalPadding: 12),
-
                           _fieldLabel('DATE'),
                           const SizedBox(height: 6),
                           Row(
                             children: [
                               Icon(Icons.calendar_today_outlined,
-                                  color: _typeColor(type), size: 15),
+                                  color: _typeColor(type), size: 14),
                               const SizedBox(width: 6),
                               Text(
                                 date,
                                 style: AppTheme.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: textDark,
-                                ),
+                                  fontWeight: FontWeight.w600, color: textDark),
                               ),
                             ],
-                          ),
-
-                          // Show approvedBy / approvedAt when resolved
-                          if (_approvedBy != null) ...[
-                            const AppDivider(verticalPadding: 12),
-                            _fieldLabel('REVIEWED BY'),
-                            const SizedBox(height: 6),
-                            Text(
-                              _approvedBy!,
-                              style: AppTheme.bodyLarge.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: textDark,
-                              ),
-                            ),
-                            if (_approvedAt != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_approvedAt!.day}/${_approvedAt!.month}/${_approvedAt!.year} '
-                                '${_approvedAt!.hour.toString().padLeft(2, '0')}:'
-                                '${_approvedAt!.minute.toString().padLeft(2, '0')}',
-                                style: AppTheme.caption.copyWith(color: textGray),
-                              ),
-                            ],
-                          ],
-
-                          const SizedBox(height: 14),
-
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F2FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline,
-                                    color: purple, size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: RichText(
-                                    text: const TextSpan(
-                                      style: TextStyle(
-                                          color: textDark, fontSize: 13),
-                                      children: [
-                                        TextSpan(text: 'This entry affects: '),
-                                        TextSpan(
-                                          text: 'Inventory, Reports',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
 
+                    // ── SETTLEMENT SUMMARY ──────────────────────────────────
+                    if (_billAmount > 0) ...[
+                      _buildSettlementCard(
+                        due: due,
+                        method: method,
+                        lastUpdated: lastUpdated,
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // ── RECEIPT / BILL ──────────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _fieldLabel('ATTACHED RECEIPT'),
+                          _fieldLabel('PAYMENT RECEIPT'),
                           const SizedBox(height: 12),
                           _buildReceiptSection(context, receipt),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 20),
 
-                    // Ã¢â€â‚¬Ã¢â€â‚¬ Approve / Reject — only for Admin & Supervisor Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                    if (canApprove)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton(
-                              label: 'Approve',
-                              icon: Icons.check_circle_outline,
-                              onPressed: _approve,
-                              enabled: _status == EntryStatus.pending,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: AppButton(
-                              label: 'Reject',
-                              icon: Icons.cancel_outlined,
-                              variant: AppButtonVariant.danger,
-                              onPressed: _reject,
-                              enabled: _status == EntryStatus.pending,
-                            ),
-                          ),
-                        ],
+                    // ── RECORD PAYMENT CTA ──────────────────────────────────
+                    if (canSettle)
+                      _buildRecordPaymentCTA(
+                        context,
+                        title: title,
+                        ref: ref,
+                        supplier: supplier,
+                        type: type,
                       ),
-                    if (canApprove) const SizedBox(height: 14),
 
-                    if (canDelete) _buildDeleteButton(context),
-                    const SizedBox(height: 24),
+                    // ── SETTLED CONFIRMATION ────────────────────────────────
+                    if (isSettled)
+                      _buildSettledBadge(),
+
+                    // ── DELETE ENTRY — secondary destructive action ──────────
+                    if (canDelete) ...[  
+                      const SizedBox(height: 16),
+                      _buildDeleteAction(context),
+                    ],
+
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -372,56 +308,46 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Unchanged widgets Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-
-  Widget _buildTopBar(BuildContext context, String type, Map args, bool canEdit) {
+  // ── TOP BAR ───────────────────────────────────────────────────────────────
+  Widget _buildTopBar(BuildContext context, String type, Map args,
+      bool canEdit, bool canDelete) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 36, height: 36,
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F2FF),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child:
-                  const Icon(Icons.arrow_back, color: textDark, size: 20),
+              child: const Icon(Icons.arrow_back, color: textDark, size: 20),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Entry Detail',
-              style: AppTheme.heading3.copyWith(color: textDark),
-            ),
+            child: Text('Entry Detail',
+                style: AppTheme.heading3.copyWith(color: textDark)),
           ),
-          // Edit button — shown only if user has permission
           if (canEdit)
             TextButton(
               onPressed: () => Navigator.pushNamed(
                 context,
                 _editRoute(type),
-                arguments: {...args, 'isEditing': true, 'status': _status.name},
+                arguments: {...args, 'isEditing': true, 'status': _entryStatus.name},
               ),
               style: TextButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 backgroundColor: const Color(0xFFEEF0FF),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                    borderRadius: BorderRadius.circular(16)),
               ),
               child: const Text(
                 'Edit',
                 style: TextStyle(
-                  color: primaryBlue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
+                    color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14),
               ),
             ),
         ],
@@ -429,13 +355,12 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
+  // ── TYPE BADGE ────────────────────────────────────────────────────────────
   Widget _buildTypeBadge(String type) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _typeBg(type),
-        borderRadius: BorderRadius.circular(20),
-      ),
+        color: _typeBg(type), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -455,19 +380,114 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
+  // ── SETTLEMENT SUMMARY CARD ───────────────────────────────────────────────
+  Widget _buildSettlementCard({
+    required double due,
+    required String method,
+    required String lastUpdated,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEF0F8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10, offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'SETTLEMENT SUMMARY',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: textGray,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _settlementRow('Bill Amount',  _fmt(_billAmount),
+              color: textDark),
+          const SizedBox(height: 10),
+          _settlementRow('Paid Amount',  _fmt(_paidAmount),
+              color: const Color(0xFF15803D)),
+          const SizedBox(height: 10),
+          _settlementRow('Due Amount',   _fmt(due),
+              color: due > 0 ? const Color(0xFFD97706) : const Color(0xFF15803D),
+              bold: true),
+          if (method.isNotEmpty || lastUpdated.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: Color(0xFFF0F0F8)),
+            ),
+            if (method.isNotEmpty)
+              _settlementRow('Payment Method', method, color: textDark),
+            if (lastUpdated.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _settlementRow('Last Updated', lastUpdated, color: textGray),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _settlementRow(String label, String value,
+      {Color color = textDark, bool bold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w600, color: textGray),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── RECEIPT SECTION ───────────────────────────────────────────────────────
   Widget _buildReceiptSection(BuildContext context, String? receipt) {
     final hasReceipt = receipt != null && receipt.isNotEmpty;
-    final isPdf = hasReceipt ? receipt.toLowerCase().endsWith('.pdf') : false;
+    final isPdf = hasReceipt && receipt.toLowerCase().endsWith('.pdf');
     final iconColor = isPdf ? const Color(0xFFEF5350) : primaryBlue;
-    final iconBg = isPdf ? const Color(0xFFFFEBEE) : const Color(0xFFEEF0FF);
+    final iconBg    = isPdf ? const Color(0xFFFFEBEE) : const Color(0xFFEEF0FF);
+
+    // Contextual label per payment state
+    String emptyLabel;
+    String emptySubLabel;
+    if (_payStatus == PaymentStatus.paid) {
+      emptyLabel    = 'Payment receipt expected';
+      emptySubLabel = 'Payment settled — receipt can be uploaded';
+    } else if (_payStatus == PaymentStatus.partial) {
+      emptyLabel    = 'Partial settlement receipt';
+      emptySubLabel = 'Upload partial payment confirmation';
+    } else if (_payStatus == PaymentStatus.overdue) {
+      emptyLabel    = 'Awaiting overdue payment receipt';
+      emptySubLabel = 'Payment is overdue — upload when settled';
+    } else {
+      emptyLabel    = 'Awaiting payment receipt';
+      emptySubLabel = 'Upload receipt after payment is made';
+    }
 
     return GestureDetector(
       onTap: hasReceipt
-          ? () => Navigator.pushNamed(
-                context,
-                '/receipt-viewer',
-                arguments: {'receipt': receipt},
-              )
+          ? () => Navigator.pushNamed(context, '/receipt-viewer',
+              arguments: {'receipt': receipt})
           : null,
       child: Container(
         width: double.infinity,
@@ -476,150 +496,194 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           color: hasReceipt ? const Color(0xFFEEF8EE) : AppTheme.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: hasReceipt ? Colors.green.shade300 : AppTheme.divider,
-          ),
+            color: hasReceipt ? Colors.green.shade300 : AppTheme.divider),
         ),
-        child: hasReceipt
-            ? Row(
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: hasReceipt ? iconBg : const Color(0xFFF0F2FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                hasReceipt
+                    ? (isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined)
+                    : Icons.upload_file_outlined,
+                color: hasReceipt ? iconColor : textGray,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: iconBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      isPdf
-                          ? Icons.picture_as_pdf_outlined
-                          : Icons.image_outlined,
-                      color: iconColor,
-                      size: 22,
-                    ),
+                  Text(
+                    hasReceipt ? receipt : emptyLabel,
+                    style: AppTheme.bodyLarge.copyWith(
+                      color: textDark, fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          receipt,
-                          style: AppTheme.bodyLarge.copyWith(
-                            color: textDark,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 3),
-                        const Text(
-                          'Tap to view receipt',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 3),
+                  Text(
+                    hasReceipt ? 'Tap to view receipt' : emptySubLabel,
+                    style: TextStyle(
+                      color: hasReceipt ? Colors.green : textGray,
+                      fontSize: 12, fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.green, size: 20),
-                ],
-              )
-            : Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F2FF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.upload_file_outlined,
-                        color: textGray, size: 22),
-                  ),
-                  const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'No receipt attached',
-                        style: AppTheme.bodyLarge.copyWith(
-                            color: textDark, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'No file was attached to this entry',
-                        style: AppTheme.caption.copyWith(color: textGray),
-                      ),
-                    ],
                   ),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildDeleteButton(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: () => _showDeleteDialog(context),
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFFFE0E0)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 6),
-            ],
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.delete_outline, color: Colors.red, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Delete Entry',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
+            ),
+            if (hasReceipt)
+              const Icon(Icons.chevron_right, color: Colors.green, size: 20),
+          ],
         ),
       ),
     );
   }
 
+  // ── RECORD PAYMENT CTA ────────────────────────────────────────────────────
+  Widget _buildRecordPaymentCTA(
+    BuildContext context, {
+    required String title,
+    required String ref,
+    required String supplier,
+    required String type,
+  }) {
+    final label = _payStatus == PaymentStatus.partial
+        ? 'Settle Remaining Payment'
+        : 'Record Payment';
+
+    return GestureDetector(
+      onTap: () {
+        showPaymentSheet(
+          context,
+          entryTitle:  title,
+          entryRef:    ref,
+          totalAmount: _billAmount,
+          alreadyPaid: _paidAmount,
+          vendorName:  supplier,
+          category:    type,
+        ).then((result) {
+          if (result != null && mounted) {
+            final paid      = result['amount'] as double? ?? 0;
+            final newStatus = result['status'] as PaymentStatus?;
+            setState(() {
+              _paidAmount += paid;
+              _payStatus  = newStatus ??
+                  (_paidAmount >= _billAmount
+                      ? PaymentStatus.paid
+                      : PaymentStatus.partial);
+            });
+          }
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3B5CF6), Color(0xFF7C3AED)],
+          ),
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: primaryBlue.withValues(alpha: 0.35),
+              blurRadius: 14, offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.payments_outlined, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── SETTLED BADGE ─────────────────────────────────────────────────────────
+  Widget _buildSettledBadge() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: const Color(0xFF6EE7B7), width: 1.5),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 20),
+          SizedBox(width: 8),
+          Text(
+            'Payment Settled',
+            style: TextStyle(
+              color: Color(0xFF15803D),
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── DELETE ACTION — low-emphasis secondary ────────────────────────────────
+  Widget _buildDeleteAction(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showDeleteDialog(context),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.red.withValues(alpha: 0.65),
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Delete Entry',
+              style: TextStyle(
+                color: Colors.red.withValues(alpha: 0.65),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── DELETE DIALOG ─────────────────────────────────────────────────────────
   void _showDeleteDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Delete Entry?',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Entry?',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: const Text(
-          'This action cannot be undone. The entry will be permanently removed.',
-        ),
+            'This action cannot be undone. The entry will be permanently removed.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style:
-                  TextStyle(color: textGray, fontWeight: FontWeight.w600),
-            ),
+            child: const Text('Cancel',
+                style: TextStyle(color: textGray, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -629,24 +693,15 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 10),
+                  borderRadius: BorderRadius.circular(12)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w700),
-            ),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
   }
-
-  Widget _fieldLabel(String label) => Text(
-        label,
-        style: AppTheme.label.copyWith(color: textGray),
-      );
 }
