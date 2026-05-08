@@ -1,678 +1,380 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
-import 'package:flutter/material.dart';
-import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
+import 'package:buildtrack_mobile/common/widgets/voice_review_widgets.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/models/phase_model.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ReviewLabourEntryScreen extends StatefulWidget {
   const ReviewLabourEntryScreen({super.key});
   @override
-  State<ReviewLabourEntryScreen> createState() =>
-      _ReviewLabourEntryScreenState();
+  State<ReviewLabourEntryScreen> createState() => _ReviewLabourEntryScreenState();
 }
 
 class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
-  static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-  static const voicePurple = AppColors.primary;
+  String _transcript =
+      'Hey SiteTrack, log a labour entry for North District Phase 2. '
+      'Rajesh Kumar and his masonry team worked 8 hours today. '
+      'Rate is 18 rupees per hour. Total comes to 144 rupees. '
+      'Log this under structural block work.';
 
-  PickedAttachment? _attachment;
-
-  // âœ… FIX: receipt attachment state + confirm loading state
-  bool _isConfirming = false;
-
-  late TextEditingController _nameCtrl;
-  late TextEditingController _hoursCtrl;
-  late TextEditingController _rateCtrl;
+  late final VoiceRecordingController _voiceCtrl;
+  VoiceEntryState _voiceState = VoiceEntryState.processing;
+  bool _animateReveal = false;
 
   String? _selectedProjectId;
   String? _selectedFloor;
   dynamic _selectedPhase;
+  String? _selectedActivity;
+  late TextEditingController _nameCtrl;
+  late TextEditingController _workTypeCtrl;
+  late TextEditingController _categoryCtrl;
+  late TextEditingController _hoursCtrl;
+  late TextEditingController _rateCtrl;
+  late TextEditingController _overtimeCtrl;
+  late TextEditingController _notesCtrl;
 
-  final String transcript = 
-      "Hey SiteTrack, log a labour entry for North District Phase 2. "
-      "Rajesh Kumar and his masonry team worked 8 hours today. "
-      "Rate is 18 rupees per hour. Total comes to 144 rupees. "
-      "Log this under structural block work.";
+  bool _isConfirming = false;
+  PickedAttachment? _attachment;
+
+  static const _extractionStages = [
+    'Identifying worker / team…',
+    'Detecting work type…',
+    'Extracting hours & rate…',
+    'Matching project context…',
+    'Resolving phase & activity…',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _nameCtrl     = TextEditingController();
+    _workTypeCtrl = TextEditingController();
+    _categoryCtrl = TextEditingController();
+    _hoursCtrl    = TextEditingController();
+    _rateCtrl     = TextEditingController();
+    _overtimeCtrl = TextEditingController();
+    _notesCtrl    = TextEditingController();
+
     _parseVoiceInput();
+
+    _voiceCtrl = VoiceRecordingController();
+    _voiceCtrl.addListener(_onVoiceChanged);
+
+    Future.delayed(const Duration(milliseconds: 2200), () {
+      if (!mounted) return;
+      setState(() {
+        _voiceState    = VoiceEntryState.parsed;
+        _animateReveal = true;
+      });
+    });
+  }
+
+  void _onVoiceChanged() {
+    if (!mounted) return;
+    final s = _voiceCtrl.engineState;
+    if (s == VoiceEntryState.parsed && _voiceCtrl.finalTranscript.isNotEmpty) {
+      _transcript = _voiceCtrl.finalTranscript;
+      _parseVoiceInput();
+      _animateReveal = true;
+    }
+    setState(() => _voiceState = s);
   }
 
   void _parseVoiceInput() {
-    String t = transcript.toLowerCase();
-    
-    _nameCtrl = TextEditingController(text: "Rajesh Kumar & Team (Masonry)");
-    _hoursCtrl = TextEditingController(text: "8");
-    _rateCtrl = TextEditingController(text: "18.00");
-    
+    final t = _transcript.toLowerCase();
+
+    String floor = 'Ground Floor';
+    if (t.contains('1st floor'))  floor = '1st Floor';
+    if (t.contains('2nd floor'))  floor = '2nd Floor';
+    if (t.contains('basement'))   floor = 'Basement';
+
+    _nameCtrl.text     = 'Rajesh Kumar & Team (Masonry)';
+    _workTypeCtrl.text = 'Masonry';
+    _categoryCtrl.text = 'Skilled Labour';
+    _hoursCtrl.text    = '8';
+    _rateCtrl.text     = '18.00';
+
     _selectedProjectId = UserSession.projectId;
-    
-    String floor = "Ground Floor";
-    if (t.contains("1st floor")) floor = "1st Floor";
-    _selectedFloor = floor;
-    
-    _selectedPhase = null;
+    _selectedFloor     = floor;
+    _selectedActivity  = 'Brick Laying';
   }
 
   @override
   void dispose() {
+    _voiceCtrl.removeListener(_onVoiceChanged);
+    _voiceCtrl.dispose();
     _nameCtrl.dispose();
+    _workTypeCtrl.dispose();
+    _categoryCtrl.dispose();
     _hoursCtrl.dispose();
     _rateCtrl.dispose();
+    _overtimeCtrl.dispose();
+    _notesCtrl.dispose();
     super.dispose();
+  }
+
+  double get _computedTotal {
+    final hours    = double.tryParse(_hoursCtrl.text)    ?? 0;
+    final rate     = double.tryParse(_rateCtrl.text)     ?? 0;
+    final overtime = double.tryParse(_overtimeCtrl.text) ?? 0;
+    return (hours * rate) + overtime;
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _handleMicTap() async {
+    if (_voiceState == VoiceEntryState.error) {
+      _voiceCtrl.reset();
+      setState(() => _voiceState = VoiceEntryState.idle);
+      return;
+    }
+    _animateReveal = false;
+    await _voiceCtrl.startListening();
+  }
+
+  Future<void> _handleStopRecording() async => await _voiceCtrl.stopListening();
+  Future<void> _handleCancelRecording() async => await _voiceCtrl.cancelListening();
+
+  List<ExtractedField> get _extractedFields => [
+    ExtractedField(
+      icon: Icons.people_outlined, label: 'Worker / Team',
+      value: _nameCtrl.text, isHighlight: true, confidence: 0.96,
+    ),
+    ExtractedField(
+      icon: Icons.construction_outlined, label: 'Work Type',
+      value: _workTypeCtrl.text, isEmpty: _workTypeCtrl.text.isEmpty, confidence: 0.90,
+    ),
+    ExtractedField(
+      icon: Icons.schedule_outlined, label: 'Hours Worked',
+      value: '${_hoursCtrl.text} hrs', confidence: 0.94,
+    ),
+    ExtractedField(
+      icon: Icons.attach_money_outlined, label: 'Rate / Hour',
+      value: '₹ ${_rateCtrl.text}', confidence: 0.92,
+    ),
+    ExtractedField(
+      icon: Icons.layers_outlined, label: 'Floor / Zone',
+      value: _selectedFloor ?? '', isEmpty: _selectedFloor == null, confidence: 0.70,
+    ),
+    ExtractedField(
+      icon: Icons.task_alt_outlined, label: 'Activity',
+      value: _selectedActivity ?? '', isEmpty: _selectedActivity == null, confidence: 0.65,
+    ),
+  ];
+
+  Future<void> _confirm(BuildContext ctx) async {
+    if (_selectedProjectId == null) { _snack('Please select a project'); return; }
+    if (_selectedFloor == null)     { _snack('Please select a floor / zone'); return; }
+    if (_selectedPhase == null)     { _snack('Please select a phase'); return; }
+    if (_selectedActivity == null)  { _snack('Please select an activity'); return; }
+
+    setState(() => _isConfirming = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    final entryId = 'VOICE-LAB-${DateTime.now().millisecondsSinceEpoch}';
+    ctx.read<ProjectProvider>().addEntry(
+      EntryModel(
+        id: entryId, projectId: _selectedProjectId!,
+        type: EntryType.labour, amount: double.tryParse(_hoursCtrl.text) ?? 0.0,
+        date: DateTime.now(), description: _nameCtrl.text,
+        ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
+        floor: _selectedFloor!, phaseId: (_selectedPhase as PhaseModel?)?.id,
+      ),
+    );
+
+    Navigator.pushNamed(
+      // ignore: use_build_context_synchronously
+      ctx, '/logs',
+      arguments: {
+        'type': 'labour', 'name': _nameCtrl.text,
+        'newEntry': em.Entry(
+          id: entryId, type: em.EntryType.labour,
+          projectId: _selectedProjectId!, createdBy: UserSession.userId,
+        ).toMap()..addAll({
+          'title': _nameCtrl.text, 'ref': '#$entryId',
+          'amount': '+${_hoursCtrl.text} hrs', 'date': 'Today',
+          'isPositive': true, 'icon': Icons.people_outline,
+        }),
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isProcessing = _voiceState == VoiceEntryState.processing;
+    final isParsed     = _voiceState == VoiceEntryState.parsed;
+
     return Scaffold(
-      backgroundColor: bgColor,
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.gradientStart,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.maybePop(context),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: textDark,
-                      size: 22,
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Review voice entry',
-                        style: TextStyle(
-                          color: primaryBlue,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 22),
-                ],
-              ),
+            AppTopBar(
+              title: 'Review Voice Entry', isSubScreen: true,
+              leftIcon: Icons.arrow_back, onLeftTap: () => Navigator.maybePop(context),
             ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 child: Column(
                   children: [
-                    const SizedBox(height: 12),
-                    _buildVoiceBanner(),
-                    const SizedBox(height: 20),
-                    _buildLabourCard(context),
-                    const SizedBox(height: 20),
-                    // âœ… FIX: receipt section
-                    _buildReceiptSection(),
-                    const SizedBox(height: 20),
-                    _buildTranscript(),
-                    const SizedBox(height: 32),
-                    _buildConfirmButton(context),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVoiceBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEDE8FA),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: voicePurple,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.verified, color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Parsed from voice',
-                  style: TextStyle(
-                    color: voicePurple,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Confidence: 96.7% • Voice timestamp 09:15 AM',
-                  style: TextStyle(
-                    color: voicePurple.withValues(alpha: 0.75),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabourCard(BuildContext context) {
-    return Builder(builder: (context) {
-      final provider = context.watch<ProjectProvider>();
-      final projects = provider.projects;
-      final selProject = _selectedProjectId == null
-          ? null
-          : projects.cast<ProjectModel?>().firstWhere(
-              (p) => p?.id == _selectedProjectId,
-              orElse: () => null,
-            );
-      final List<String> floors = (selProject?.floors != null && selProject!.floors!.length > 1)
-          ? List.from(selProject.floors!)
-          : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
-      if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
-        floors.insert(0, _selectedFloor!);
-      }
-
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Labour Log',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: textDark,
+                    VoiceStatusHeader(
+                      state: _voiceState, entryTypeLabel: 'Labour',
+                      confidence: 96.7, onMicTap: _handleMicTap,
+                      partialTranscript: _voiceCtrl.partialTranscript,
+                      elapsedDisplay: _voiceCtrl.elapsedDisplay,
+                      onStop: _handleStopRecording, onCancel: _handleCancelRecording,
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Site: North District Phase 2',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textGray,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Voice input active'),
-                    duration: Duration(seconds: 1),
-                  ),
-                ),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF0FF),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.mic, color: primaryBlue, size: 24),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          _label('PROJECT'),
-          const SizedBox(height: 6),
-          _dropdownField<String>(
-            value: _selectedProjectId,
-            hint: 'Select project',
-            items: projects.map((p) =>
-              DropdownMenuItem(value: p.id, child: Text(p.name))
-            ).toList(),
-            onChanged: (val) {
-              final newProject = projects.cast<ProjectModel?>().firstWhere(
-                (p) => p?.id == val, orElse: () => null);
-              final newFloors = (newProject?.floors != null && newProject!.floors!.length > 1)
-                  ? List<String>.from(newProject.floors!)
-                  : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
-              setState(() {
-                _selectedProjectId = val;
-                if (_selectedFloor != null && !newFloors.contains(_selectedFloor)) {
-                  _selectedFloor = null;
-                }
-                _selectedPhase = null;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label('FLOOR / ZONE'),
-                    const SizedBox(height: 6),
-                    _dropdownField<String>(
-                      value: _selectedFloor,
-                      hint: _selectedProjectId == null ? 'Select project first' : 'Select floor',
-                      enabled: _selectedProjectId != null,
-                      items: floors.map((f) =>
-                        DropdownMenuItem(value: f, child: Text(f))
-                      ).toList(),
-                      onChanged: _selectedProjectId == null ? null : (val) => setState(() {
-                        _selectedFloor = val;
-                        _selectedPhase = null;
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label('PHASE (OPTIONAL)'),
-                    const SizedBox(height: 6),
-                      _dropdownField<dynamic>(
-                        value: _selectedPhase,
-                        hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
-                        enabled: _selectedFloor != null,
-                        items: provider.phases.map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s.name))
-                        ).toList(),
-                        onChanged: _selectedFloor == null ? null : (val) => setState(() => _selectedPhase = val),
+                    if (isProcessing)
+                      const ExtractionProcessingCard(stages: _extractionStages),
+                    if (isParsed)
+                      ExtractedDataSummaryCard(
+                        fields: _extractedFields,
+                        subtitle: 'Detected from your voice recording',
+                        animateReveal: _animateReveal,
                       ),
+                    if (isParsed)
+                      ExpandableTranscript(transcript: _transcript),
+                    if (isParsed) ...[
+                      ExecutionContextCard(
+                        selectedProjectId: _selectedProjectId,
+                        selectedFloor: _selectedFloor,
+                        selectedPhase: _selectedPhase,
+                        selectedActivity: _selectedActivity,
+                        onProjectChanged: (v) => setState(() {
+                          _selectedProjectId = v; _selectedFloor = null;
+                          _selectedPhase = null; _selectedActivity = null;
+                        }),
+                        onFloorChanged: (v) => setState(() {
+                          _selectedFloor = v; _selectedPhase = null; _selectedActivity = null;
+                        }),
+                        onPhaseChanged: (v) => setState(() {
+                          _selectedPhase = v; _selectedActivity = null;
+                        }),
+                        onActivityChanged: (v) => setState(() => _selectedActivity = v),
+                      ),
+                      EntrySectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const EntryCardHeader(
+                              icon: Icons.people_outlined,
+                              title: 'Labour Details',
+                              subtitle: 'AI extracted — review and edit if needed',
+                            ),
+                            const SizedBox(height: 20),
+                            const Divider(color: Color(0xFFF0EEF8)),
+                            const SizedBox(height: 16),
+                            const EntryFieldLabel('Worker / Team Name', required: true),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(controller: _nameCtrl, hint: 'Worker or team name'),
+                            const SizedBox(height: 18),
+                            const EntryFieldLabel('Work Type'),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(controller: _workTypeCtrl, hint: 'e.g. Masonry, Plumbing'),
+                            const SizedBox(height: 18),
+                            const EntryFieldLabel('Labour Category'),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(controller: _categoryCtrl, hint: 'e.g. Skilled, Unskilled'),
+                            const SizedBox(height: 18),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const EntryFieldLabel('Hours Worked', required: true),
+                                    const SizedBox(height: 8),
+                                    EntryUnderlineField(
+                                      controller: _hoursCtrl, hint: '0', suffix: 'hrs',
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  ],
+                                )),
+                                const SizedBox(width: 20),
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const EntryFieldLabel('Rate / Hour', required: true),
+                                    const SizedBox(height: 8),
+                                    EntryUnderlineField(
+                                      controller: _rateCtrl, hint: '0', prefix: '₹',
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  ],
+                                )),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            const EntryFieldLabel('Overtime (Optional)'),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(
+                              controller: _overtimeCtrl, hint: '0', prefix: '₹',
+                              keyboardType: TextInputType.number,
+                              onChanged: (_) => setState(() {}),
+                            ),
+                            const SizedBox(height: 18),
+                            const EntryFieldLabel('Notes (Optional)'),
+                            const SizedBox(height: 8),
+                            EntryNotesField(controller: _notesCtrl),
+                          ],
+                        ),
+                      ),
+                      CostSummaryCard(
+                        totalAmount: _computedTotal, label: 'Total Labour Cost',
+                        subtotals: [
+                          ('Hours × Rate', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} hrs × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                          ('Overtime', '₹ ${_overtimeCtrl.text.isEmpty ? "0" : _overtimeCtrl.text}'),
+                        ],
+                      ),
+                      EntrySectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const EntryCardHeader(
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Attach Receipt (Optional)',
+                              subtitle: 'Upload supporting document',
+                            ),
+                            const SizedBox(height: 16),
+                            UploadBox(
+                              attachment: _attachment, emptyLabel: 'Tap to attach receipt',
+                              onPicked: (a) => setState(() => _attachment = a),
+                              onRemove: () => setState(() => _attachment = null),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      EntrySubmitButton(
+                        label: 'Confirm & Save Entry', icon: Icons.check_circle,
+                        isLoading: _isConfirming, onTap: () => _confirm(context),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _label('NAME'),
-          const SizedBox(height: 8),
-          _box(_nameCtrl),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label('HOURS WORKED'),
-                    const SizedBox(height: 8),
-                    _box(_hoursCtrl),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label('RATE'),
-                    const SizedBox(height: 8),
-                    _box(_rateCtrl),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _label('TOTAL ESTIMATED'),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F2FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '₹144.00',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: primaryBlue,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: primaryBlue.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Text(
-                    'AUTO',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: primaryBlue,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    });
-  }
-
-  // âœ… FIX: receipt attachment section
-  Widget _buildReceiptSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Attach Receipt (Optional)',
-          style: TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.w800,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 12),
-        UploadBox(
-          attachment: _attachment,
-          emptyLabel: 'Tap to attach receipt',
-          onPicked: (a) => setState(() => _attachment = a),
-          onRemove: () => setState(() => _attachment = null),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTranscript() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.subject, color: primaryBlue, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'ORIGINAL AUDIO TRANSCRIPT',
-              style: TextStyle(
-                color: primaryBlue,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '"Hey SiteTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 rupees per hour. Total comes to 144 rupees. Log this under structural block work."',
-          style: TextStyle(
-            fontSize: 14,
-            color: textGray,
-            fontStyle: FontStyle.italic,
-            height: 1.6,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // âœ… FIX: loading state prevents double-tap
-  Widget _buildConfirmButton(BuildContext context) {
-    return GestureDetector(
-      onTap: _isConfirming
-          ? null
-          : () async {
-              if (_selectedProjectId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select a project')),
-                );
-                return;
-              }
-              if (_selectedFloor == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select a floor')),
-                );
-                return;
-              }
-
-              setState(() => _isConfirming = true);
-              await Future.delayed(const Duration(milliseconds: 600));
-              if (!mounted) return;
-
-              final entryId = 'VOICE-LAB-${DateTime.now().millisecondsSinceEpoch}';
-
-              context.read<ProjectProvider>().addEntry(
-                EntryModel(
-                  id:          entryId,
-                  projectId:   _selectedProjectId!,
-                  type:        EntryType.labour,
-                  amount:      double.tryParse(_hoursCtrl.text) ?? 0.0,
-                  date:        DateTime.now(),
-                  description: _nameCtrl.text,
-                  ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
-                  floor:       _selectedFloor!,
-                  phaseId:     _selectedPhase?.id,
-                ),
-              );
-
-              // Update legacy log tracking
-              Navigator.pushNamed(
-                context,
-                '/logs',
-                arguments: {
-                  'type': 'labour',
-                  'name': _nameCtrl.text,
-                  'newEntry': em.Entry(
-                    id: entryId,
-                    type: em.EntryType.labour,
-                    projectId: _selectedProjectId!,
-                    createdBy: UserSession.userId,
-                  ).toMap()..addAll({
-                    'title': _nameCtrl.text,
-                    'ref': '#$entryId',
-                    'amount': '+${_hoursCtrl.text} hrs',
-                    'date': 'Today',
-                    'isPositive': true,
-                    'icon': Icons.people_outline,
-                  }),
-                },
-              );
-
-              Navigator.pop(context);
-            },
-      child: AnimatedOpacity(
-        opacity: _isConfirming ? 0.7 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            gradient: AppGradients.primaryButton,
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: [
-              BoxShadow(
-                color: primaryBlue.withValues(alpha: 0.4),
-                blurRadius: 14,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: _isConfirming
-              ? const Center(
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Confirm and save',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w800,
-      color: textGray,
-      letterSpacing: 0.8,
-    ),
-  );
-
-  Widget _box(TextEditingController ctrl) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: primaryBlue, width: 2)),
-      ),
-      child: TextField(
-        controller: ctrl,
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 10),
-        ),
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textDark,
-        ),
-      ),
-    );
-  }
-
-  // ── Reusable dropdown helper (matches underline design) ──────
-  Widget _dropdownField<T>({
-    required T? value,
-    required String hint,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?>? onChanged,
-    bool enabled = true,
-  }) {
-    final bool hasValue = items.any((item) => item.value == value);
-    final T? safeValue = hasValue ? value : null;
-
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.45,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: enabled ? primaryBlue : textGray,
-              width: 2,
-            ),
-          ),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            value: safeValue,
-            isExpanded: true,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: enabled ? primaryBlue : textGray,
-            ),
-            hint: Text(
-              hint,
-              style: TextStyle(
-                color: textGray,
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: textDark,
-            ),
-            items: enabled ? items : [],
-            onChanged: enabled ? onChanged : null,
-          ),
         ),
       ),
     );

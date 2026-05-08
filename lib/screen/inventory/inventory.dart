@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -27,6 +28,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String _searchQuery = '';
   String _activeFilter = 'Recently Updated';
 
+  // Project context filter: null = All Active Projects
+  String? _selectedProjectId;
+
   bool _matchSearch(String name) {
     return _searchQuery.isEmpty || name.toLowerCase().contains(_searchQuery.toLowerCase());
   }
@@ -36,6 +40,102 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _pageController.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _showProjectSelector(BuildContext context) {
+    final projects = context.read<ProjectProvider>().projects;
+    final allItems = ['All Active Projects', ...projects.map((p) => p.name)];
+    final idMap = {for (final p in projects) p.name: p.id};
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const Text('Select Project',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: textDark)),
+              const SizedBox(height: 12),
+              ...allItems.map((label) {
+                final id = label == 'All Active Projects'
+                    ? null
+                    : idMap[label];
+                final isSelected = _selectedProjectId == id;
+                return InkWell(
+                  onTap: () {
+                    setState(() => _selectedProjectId = id);
+                    Navigator.pop(ctx);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? primaryBlue.withValues(alpha: 0.08)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? primaryBlue
+                            : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 18,
+                          color: isSelected ? primaryBlue : textGray,
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: isSelected ? primaryBlue : textDark,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showEntryOptions(BuildContext context, String type) {
@@ -184,22 +284,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Inventory',
-                          style: AppTheme.heading1.copyWith(
-                              color: textDark, letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
-                      Text(
-                          'Real-time material tracking and logistical oversight.',
-                          style: AppTheme.body.copyWith(color: textGray)),
-                      const SizedBox(height: 14),
+                      _buildProjectSelector(),
+                      const SizedBox(height: 12),
                       _buildSearchBar(),
                       const SizedBox(height: 12),
                       _buildTabs(),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                     ]),
               ),
               Expanded(
@@ -218,6 +312,68 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ]),
       ),
       bottomNavigationBar: const AppBottomNav(),
+    );
+  }
+
+  Widget _buildProjectSelector() {
+    final projects = context.watch<ProjectProvider>().projects;
+    final ProjectModel? selected = _selectedProjectId == null
+        ? null
+        : projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId, orElse: () => null);
+    final label = selected?.name ?? 'All Active Projects';
+
+    return GestureDetector(
+      onTap: () => _showProjectSelector(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E5FF)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8)
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: primaryBlue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: const Icon(Icons.folder_outlined,
+                  color: primaryBlue, size: 17),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('PROJECT CONTEXT',
+                      style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: textGray,
+                          letterSpacing: 1.1)),
+                  const SizedBox(height: 2),
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: textDark),
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: textGray, size: 22),
+          ],
+        ),
+      ),
     );
   }
 
@@ -313,17 +469,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  bool _matchProject(String projectId) {
+    return _selectedProjectId == null || _selectedProjectId == projectId;
+  }
+
   Widget _buildMaterialsTab(BuildContext context) {
     final stock = context.watch<ProjectProvider>().materialStock;
     final stockList = stock.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     var items = [
-      {'name': 'Steel Rebar 12mm', 'widget': _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 2},
-      {'name': 'Primer White X-2', 'widget': _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'), 'level': 0, 'time': 1},
-      {'name': 'Portland Cement', 'widget': _inventoryCard(context: context, icon: Icons.layers_outlined, name: 'Portland Cement', lastUpdated: 'Last updated 5h ago', qty: '450', unit: 'bags', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'material'), 'level': 1, 'time': 5},
-      {'name': 'urgent material', 'widget': _urgentCard(context), 'level': 0, 'time': 0},
-      {'name': 'HVAC Copper Pipes', 'widget': _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 24},
-    ];
+      {'name': 'Steel Rebar 12mm', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 2},
+      {'name': 'Primer White X-2', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'), 'level': 0, 'time': 1},
+      {'name': 'Portland Cement', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.layers_outlined, name: 'Portland Cement', lastUpdated: 'Last updated 5h ago', qty: '450', unit: 'bags', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'material'), 'level': 1, 'time': 5},
+      {'name': 'urgent material', 'projectId': 'p3', 'widget': _urgentCard(context), 'level': 0, 'time': 0},
+      {'name': 'HVAC Copper Pipes', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 24},
+    ].where((i) => _matchProject(i['projectId'] as String)).toList();
     return _buildTab(items, stockSummary: _buildStockSummary(stockList));
   }
   Widget _buildStockSummary(List<MapEntry<String, double>> stockList) {
@@ -447,18 +607,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
   Widget _buildLabourTab(BuildContext context) {
     var items = [
-      {'name': 'Concrete Form Workers', 'widget': _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'), 'level': 2, 'time': 1},
-      {'name': 'Masonry Team', 'widget': _inventoryCard(context: context, icon: Icons.people_outline, name: 'Masonry Team', lastUpdated: 'Last updated 3h ago', qty: '8', unit: 'workers', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'labour'), 'level': 1, 'time': 3},
-      {'name': 'Electrical Crew', 'widget': _inventoryCard(context: context, icon: Icons.electric_bolt_outlined, name: 'Electrical Crew', lastUpdated: 'Last updated 6h ago', qty: '5', unit: 'workers', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'labour'), 'level': 0, 'time': 6},
-    ];
+      {'name': 'Concrete Form Workers', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'), 'level': 2, 'time': 1},
+      {'name': 'Masonry Team', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.people_outline, name: 'Masonry Team', lastUpdated: 'Last updated 3h ago', qty: '8', unit: 'workers', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'labour'), 'level': 1, 'time': 3},
+      {'name': 'Electrical Crew', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.electric_bolt_outlined, name: 'Electrical Crew', lastUpdated: 'Last updated 6h ago', qty: '5', unit: 'workers', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'labour'), 'level': 0, 'time': 6},
+    ].where((i) => _matchProject(i['projectId'] as String)).toList();
     return _buildTab(items);
   }
   Widget _buildEquipmentTab(BuildContext context) {
     var items = [
-      {'name': 'Tower Crane TC-7', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'), 'level': 2, 'time': 0.5},
-      {'name': 'Concrete Mixer CM-3', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'), 'level': 1, 'time': 2},
-      {'name': 'Excavator EX-200', 'widget': _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'), 'level': 0, 'time': 24},
-    ];
+      {'name': 'Tower Crane TC-7', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'), 'level': 2, 'time': 0.5},
+      {'name': 'Concrete Mixer CM-3', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'), 'level': 1, 'time': 2},
+      {'name': 'Excavator EX-200', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'), 'level': 0, 'time': 24},
+    ].where((i) => _matchProject(i['projectId'] as String)).toList();
     return _buildTab(items);
   }
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
