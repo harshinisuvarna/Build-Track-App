@@ -7,6 +7,7 @@ import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
@@ -211,18 +212,6 @@ class _SummaryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _budgetChip('Budget', project.formattedBudget, AppColors.textDark),
-                  const SizedBox(height: 6),
-                  _budgetChip('Spent', project.formattedSpent, AppColors.primary),
-                  const SizedBox(height: 6),
-                  _budgetChip('Left', project.formattedRemaining,
-                      project.remainingBudget >= 0 ? AppColors.success : AppColors.error),
-                ],
-              ),
             ],
           ),
           if (project.floors != null && project.floors!.isNotEmpty) ...[
@@ -280,14 +269,6 @@ class _SummaryCard extends StatelessWidget {
         ],
       );
 
-  Widget _budgetChip(String label, String value, Color color) => Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textLight,
-              fontWeight: FontWeight.w600, letterSpacing: 0.4)),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-        ],
-      );
 }
 
 // ── Phase Accordion ───────────────────────────────────────────────────────────
@@ -577,11 +558,7 @@ class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry});
   final EntryModel entry;
   static const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  String _fmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
-  }
+
   (Color, IconData) _style(EntryType t) {
     switch (t) {
       case EntryType.material:  return (AppColors.primary, Icons.category_outlined);
@@ -606,7 +583,7 @@ class _EntryTile extends StatelessWidget {
             style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w700, color: AppColors.textDark)),
         Text(dateStr, style: AppTheme.caption),
       ])),
-      Text(_fmt(entry.amount),
+      Text(formatCurrency(entry.amount),
           style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
     ]));
   }

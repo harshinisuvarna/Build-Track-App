@@ -28,7 +28,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _brandCtrl    = TextEditingController();
   final _categoryCtrl = TextEditingController();
   final _qtyCtrl      = TextEditingController();
-  final _unitCtrl     = TextEditingController();
+  String? _selectedUnit;
   final _rateCtrl     = TextEditingController();
   final _notesCtrl    = TextEditingController();
 
@@ -85,7 +85,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _brandCtrl.dispose();
     _categoryCtrl.dispose();
     _qtyCtrl.dispose();
-    _unitCtrl.dispose();
     _rateCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
@@ -411,7 +410,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     EntryUnderlineField(
                                       controller: _qtyCtrl,
                                       hint: '0',
-                                      suffix: _unitCtrl.text.isEmpty ? 'units' : _unitCtrl.text,
+                                      suffix: _selectedUnit ?? 'units',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -441,13 +440,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Unit field
+                          // Unit selector
                           const EntryFieldLabel('Unit (Optional)'),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _unitCtrl,
-                            hint: 'e.g. m³, bags, kg, pcs',
-                            onChanged: (_) => setState(() {}),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            onChanged: (u) => setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 18),
 
@@ -465,7 +463,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       label: 'Total Estimated Amount',
                       subtotals: [
                         ('Quantity', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} '
-                            '${_unitCtrl.text.isEmpty ? "units" : _unitCtrl.text}'),
+                            '${_selectedUnit ?? "units"}'),
                         ('Rate / Unit', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                       ],
                     ),

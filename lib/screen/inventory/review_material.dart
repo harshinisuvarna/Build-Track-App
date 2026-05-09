@@ -41,7 +41,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   late TextEditingController _brandCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _qtyCtrl;
-  late TextEditingController _unitCtrl;
+  String? _selectedUnit;
   late TextEditingController _rateCtrl;
   late TextEditingController _notesCtrl;
 
@@ -64,7 +64,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     _brandCtrl    = TextEditingController();
     _categoryCtrl = TextEditingController();
     _qtyCtrl      = TextEditingController();
-    _unitCtrl     = TextEditingController();
     _rateCtrl     = TextEditingController();
     _notesCtrl    = TextEditingController();
 
@@ -124,7 +123,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     _brandCtrl.text    = brand;
     _categoryCtrl.text = 'Structural';
     _qtyCtrl.text      = qty > 0 ? qty.toString() : '12.5';
-    _unitCtrl.text     = 'm³';
+    _selectedUnit      = 'm³';
     _rateCtrl.text     = '145';
 
     _selectedProjectId = UserSession.projectId;
@@ -140,7 +139,6 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     _brandCtrl.dispose();
     _categoryCtrl.dispose();
     _qtyCtrl.dispose();
-    _unitCtrl.dispose();
     _rateCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
@@ -191,7 +189,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     ExtractedField(
       icon: Icons.straighten_outlined,
       label: 'Quantity',
-      value: '${_qtyCtrl.text} ${_unitCtrl.text}',
+      value: '${_qtyCtrl.text} ${_selectedUnit ?? "units"}',
       confidence: 0.95,
     ),
     ExtractedField(
@@ -377,7 +375,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                                       EntryUnderlineField(
                                         controller: _qtyCtrl,
                                         hint: '0',
-                                        suffix: _unitCtrl.text.isEmpty ? 'units' : _unitCtrl.text,
+                                        suffix: _selectedUnit ?? 'units',
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setState(() {}),
                                       ),
@@ -406,10 +404,9 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Unit'),
                             const SizedBox(height: 8),
-                            EntryUnderlineField(
-                              controller: _unitCtrl,
-                              hint: 'e.g. m³, bags, kg',
-                              onChanged: (_) => setState(() {}),
+                            UnitSelectorField(
+                              value: _selectedUnit,
+                              onChanged: (u) => setState(() => _selectedUnit = u),
                             ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Notes (Optional)'),
@@ -422,7 +419,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                         totalAmount: _computedTotal,
                         label: 'Total Estimated Amount',
                         subtotals: [
-                          ('Quantity', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_unitCtrl.text.isEmpty ? "units" : _unitCtrl.text}'),
+                          ('Quantity', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
                           ('Rate / Unit', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                         ],
                       ),

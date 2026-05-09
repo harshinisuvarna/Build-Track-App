@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 const Map<String, List<String>> kPhaseActivities = {
   'pre_construction':  ['Site Survey', 'Soil Testing', 'Design Approval', 'Permit Acquisition'],
@@ -28,6 +29,47 @@ List<String> activitiesForPhase(PhaseModel? phase) {
       kPhaseActivities[phase.name.toLowerCase().replaceAll(' ', '_')] ??
       ['General Work', 'Site Activity', 'Miscellaneous'];
 }
+// ── Standardized inventory units ──────────────────────────────────────────
+const Map<String, List<String>> kInventoryUnits = {
+  'Weight':  ['kg', 'ton', 'gram'],
+  'Volume':  ['litre', 'm³', 'cum'],
+  'Count':   ['pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets'],
+  'Length':  ['ft', 'sq.ft', 'meter', 'rmt'],
+  'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
+};
+
+// Flat list of all canonical unit strings (for search / lookup)
+const List<String> kAllInventoryUnits = [
+  'kg', 'ton', 'gram',
+  'litre', 'm³', 'cum',
+  'pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets',
+  'ft', 'sq.ft', 'meter', 'rmt',
+  'bundle', 'drum', 'pallet', 'set', 'coil',
+];
+
+/// Normalizes free-text unit strings to a canonical form.
+/// e.g. 'KG', 'kgs', 'kilo' → 'kg'
+String normalizeUnit(String raw) {
+  final s = raw.trim().toLowerCase();
+  const aliases = <String, String>{
+    'kgs': 'kg', 'kilo': 'kg', 'kilos': 'kg',
+    'kilogram': 'kg', 'kilograms': 'kg',
+    'tons': 'ton', 'tonne': 'ton', 'tonnes': 'ton',
+    'grams': 'gram', 'gm': 'gram',
+    'ltr': 'litre', 'lts': 'litre', 'litres': 'litre', 'liter': 'litre', 'liters': 'litre',
+    'cbm': 'm³', 'cu.m': 'm³', 'cu m': 'm³', 'cum': 'cum',
+    'piece': 'pcs', 'pieces': 'pcs', 'pc': 'pcs',
+    'number': 'nos', 'numbers': 'nos', 'no': 'nos',
+    'bag': 'bags', 'box': 'boxes', 'roll': 'rolls', 'sheet': 'sheets',
+    'feet': 'ft', 'foot': 'ft',
+    'sqft': 'sq.ft', 'sq ft': 'sq.ft', 'sft': 'sq.ft',
+    'mtr': 'meter', 'meters': 'meter', 'metres': 'meter', 'metre': 'meter',
+    'rm': 'rmt', 'running meter': 'rmt',
+    'bundles': 'bundle', 'drums': 'drum', 'pallets': 'pallet', 'sets': 'set', 'coils': 'coil',
+  };
+  return aliases[s] ?? s;
+}
+
 const _kBlue   = AppColors.primary;
 const _kGray   = AppColors.textLight;
 const _kDark   = AppColors.textDark;
@@ -206,7 +248,7 @@ class EntryNotesField extends StatelessWidget {
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          hintText: hint ?? 'Add any site notes or remarksâ€¦',
+          hintText: hint ?? 'Add any site notes or remarks...',
           hintStyle: const TextStyle(color: _kGray, fontSize: 13.5),
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
@@ -264,6 +306,308 @@ class EntryDropdownField<T> extends StatelessWidget {
     );
   }
 }
+
+// \u2500\u2500 Unit Selector Field \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+/// Tap-to-open bottom sheet unit selector with predefined categories,
+/// live search, and a "+ Add Custom Unit" escape hatch.
+class UnitSelectorField extends StatelessWidget {
+  const UnitSelectorField({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasValue = value != null && value!.isNotEmpty;
+    return GestureDetector(
+      onTap: () => _showUnitSheet(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: _kBlue, width: 2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                hasValue ? value! : 'Select Unit',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                  color: hasValue ? _kDark : _kGray,
+                ),
+              ),
+            ),
+            if (hasValue)
+              GestureDetector(
+                onTap: () => onChanged(null),
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(Icons.close_rounded, size: 18, color: _kGray),
+                ),
+              )
+            else
+              const Icon(Icons.keyboard_arrow_down_rounded, color: _kBlue, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUnitSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _UnitPickerSheet(
+        currentValue: value,
+        onSelected: (u) => onChanged(u),
+      ),
+    );
+  }
+}
+
+class _UnitPickerSheet extends StatefulWidget {
+  const _UnitPickerSheet({required this.currentValue, required this.onSelected});
+  final String? currentValue;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_UnitPickerSheet> createState() => _UnitPickerSheetState();
+}
+
+class _UnitPickerSheetState extends State<_UnitPickerSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Map<String, List<String>> get _filtered {
+    if (_query.isEmpty) return kInventoryUnits;
+    final q = _query.toLowerCase();
+    final result = <String, List<String>>{};
+    kInventoryUnits.forEach((cat, units) {
+      final matched = units.where((u) => u.toLowerCase().contains(q)).toList();
+      if (matched.isNotEmpty) result[cat] = matched;
+    });
+    return result;
+  }
+
+  void _pick(BuildContext ctx, String unit) {
+    Navigator.pop(ctx);
+    widget.onSelected(unit);
+  }
+
+  Future<void> _addCustom(BuildContext ctx) async {
+    final ctrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Add Custom Unit',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'e.g. coil, container, machine-hrs',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && ctrl.text.trim().isNotEmpty && ctx.mounted) {
+      _pick(ctx, normalizeUnit(ctrl.text.trim()));
+    }
+    ctrl.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filtered;
+    final botPad = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF4F5FF),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(bottom: botPad),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 38, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFBDBEE8),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Title row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Select Unit',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: _kDark,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _addCustom(context),
+                    icon: const Icon(Icons.add_circle_outline, size: 18, color: _kBlue),
+                    label: const Text('Custom',
+                        style: TextStyle(color: _kBlue, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
+
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'Search units...',
+                  hintStyle: const TextStyle(color: _kGray, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: _kGray, size: 20),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+
+            // Unit list
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 360),
+              child: filtered.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.search_off, color: _kGray, size: 36),
+                          const SizedBox(height: 8),
+                          const Text('No matching unit found.',
+                              style: TextStyle(color: _kGray)),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () => _addCustom(context),
+                            icon: const Icon(Icons.add, color: _kBlue, size: 18),
+                            label: const Text('Add Custom Unit',
+                                style: TextStyle(color: _kBlue, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      children: [
+                        for (final entry in filtered.entries) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: 14, bottom: 6),
+                            child: Text(
+                              entry.key.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: _kGray,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: entry.value.map((unit) {
+                              final isSelected = widget.currentValue == unit;
+                              return GestureDetector(
+                                onTap: () => _pick(context, unit),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? _kBlue
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? _kBlue
+                                          : const Color(0xFFDDE0F0),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    unit,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected ? Colors.white : _kDark,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ExecutionContextCard extends StatelessWidget {
   const ExecutionContextCard({
     super.key,
@@ -444,7 +788,7 @@ class CostSummaryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'â‚¹ ${totalAmount.toStringAsFixed(2)}',
+                      formatCurrency(totalAmount),
                       style: const TextStyle(
                           color: _kBlue, fontSize: 26,
                           fontWeight: FontWeight.w900, letterSpacing: -0.5),
@@ -725,11 +1069,7 @@ class PaymentStatusChip extends StatelessWidget {
   }
 }
 
-String _fmt(double v) {
-  if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
-  if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-  return v.toStringAsFixed(0);
-}
+
 
 class PaymentSummaryBanner extends StatelessWidget {
   const PaymentSummaryBanner({
@@ -789,7 +1129,7 @@ class PaymentSummaryBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'â‚¹ ${_fmt(totalPaid)}',
+                      formatCurrency(totalPaid),
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -799,7 +1139,7 @@ class PaymentSummaryBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'of â‚¹ ${_fmt(totalBilled)} billed · $pctLabel settled',
+                      'of ${formatCurrency(totalBilled)} billed · $pctLabel settled',
                       style: const TextStyle(
                           color: Colors.white60,
                           fontSize: 11.5,
@@ -850,7 +1190,7 @@ class PaymentSummaryBanner extends StatelessWidget {
             children: [
               _chip(Icons.check_circle_outline, '$pctLabel paid'),
               const SizedBox(width: 8),
-              _chip(Icons.schedule_outlined, 'â‚¹ ${_fmt(outstanding)} due'),
+              _chip(Icons.schedule_outlined, '${formatCurrency(outstanding)} due'),
               if (pendingCount > 0) ...[
                 const SizedBox(width: 8),
                 _chip(Icons.receipt_outlined, '$pendingCount pending'),
@@ -903,11 +1243,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String? amountError;
   String? uploadedReceipt;
 
-  String fmt(double v) => v >= 100000
-      ? '₹${(v / 100000).toStringAsFixed(1)}L'
-      : v >= 1000
-          ? '₹${(v / 1000).toStringAsFixed(0)}K'
-          : '₹${v.toStringAsFixed(0)}';
 
   const pMethods = [
     {'label': 'UPI',           'icon': Icons.phone_android_outlined},
@@ -931,7 +1266,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
 
         String helperText;
         if (selectedStatus == PaymentStatus.paid) {
-          helperText = 'Full settlement — ${fmt(totalAmount)}';
+          helperText = 'Full settlement — ${formatCurrency(totalAmount)}';
           if (amountCtrl.text.isEmpty) {
             amountCtrl.text = totalAmount.toStringAsFixed(0);
           }
@@ -942,7 +1277,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
           final entered = double.tryParse(amountCtrl.text) ?? 0;
           final rem = (outstanding - entered).clamp(0.0, double.infinity);
           helperText = rem > 0
-              ? 'Remaining: ${fmt(rem)}'
+              ? 'Remaining: ${formatCurrency(rem)}'
               : 'Full settlement via partial recording';
         }
 
@@ -1081,7 +1416,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              fmt(outstanding > 0 ? outstanding : totalAmount),
+                              formatCurrency(outstanding > 0 ? outstanding : totalAmount),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -1091,7 +1426,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                             ),
                             if (alreadyPaid > 0)
                               Text(
-                                '${fmt(alreadyPaid)} paid',
+                                '${formatCurrency(alreadyPaid)} paid',
                                 style: const TextStyle(
                                   color: Colors.white60,
                                   fontSize: 10,
@@ -1407,7 +1742,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               }
                               if (outstanding > 0 && amt > outstanding + 0.01) {
                                 ss(() => amountError =
-                                    'Exceeds outstanding ${fmt(outstanding)}');
+                                    'Exceeds outstanding ${formatCurrency(outstanding)}');
                                 return;
                               }
                             }

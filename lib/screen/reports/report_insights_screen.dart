@@ -7,6 +7,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 class ReportInsightsScreen extends StatefulWidget {
   const ReportInsightsScreen({super.key});
@@ -147,11 +148,7 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     );
   }
 }
-String _fmt(double v) {
-  if (v >= 1_000_000) return '${(v / 1_000_000).toStringAsFixed(1)}M';
-  if (v >= 1_000)     return '${(v / 1_000).toStringAsFixed(0)}k';
-  return v.toStringAsFixed(0);
-}
+
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
   const _ProjectSummaryCard({required this.project});
@@ -280,9 +277,7 @@ class _CostTrendChartCard extends StatelessWidget {
                         horizontal: 12, vertical: 8),
                     getTooltipItems: (spots) => spots.map((s) {
                       if (s.barIndex != 0) return null;
-                      final v = s.y >= 1000
-                          ? '₹${(s.y).toStringAsFixed(0)}k/$unitLabel'
-                          : '₹${s.y.toStringAsFixed(0)}/$unitLabel';
+                      final v = '${formatCurrency(s.y)}/$unitLabel';
                       return LineTooltipItem(
                         v,
                         const TextStyle(
@@ -381,7 +376,7 @@ class _CostTrendChartCard extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                'Actual: ₹${_shortNum(currentVal)}/$unitLabel',
+                'Actual: ${formatCurrency(currentVal)}/$unitLabel',
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.caption.copyWith(
                     color: AppColors.textDark, fontWeight: FontWeight.w700),
@@ -392,7 +387,7 @@ class _CostTrendChartCard extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                'Target: ₹${_shortNum(targetVal)}/$unitLabel',
+                'Target: ${formatCurrency(targetVal)}/$unitLabel',
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.caption.copyWith(color: AppColors.textLight),
               ),
@@ -405,10 +400,7 @@ class _CostTrendChartCard extends StatelessWidget {
   Widget _dot(Color c) => Container(
       width: 10, height: 10,
       decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-  String _shortNum(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
-    return v.toStringAsFixed(1);
-  }
+
 }
 class _InsightUnitToggle extends StatelessWidget {
   const _InsightUnitToggle({required this.unitIndex, required this.onChanged});
@@ -487,16 +479,15 @@ class _CategoryBreakdownCard extends StatelessWidget {
                                 color: AppColors.textDark,
                                 fontWeight: FontWeight.w600)),
                       ),
-                      // ₹ spent
                       Text(
-                        '₹${_fmt(cost)}',
+                        formatCurrency(cost),
                         style: TextStyle(
                             color: color,
                             fontWeight: FontWeight.w800,
                             fontSize: 13),
                       ),
                       Text(
-                        ' / ₹${_fmt(budget)}',
+                        ' / ${formatCurrency(budget)}',
                         style: AppTheme.caption.copyWith(
                             color: AppColors.textLight, fontSize: 11),
                       ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 enum ProjectStage {
   preConstruction,
   sitePreparation,
@@ -78,15 +79,9 @@ class ProjectModel {
   double get remainingBudget   => totalBudget - spentAmount;
   double get budgetUtilization => totalBudget > 0 ? spentAmount / totalBudget : 0.0;
   String get location          => '$city • $sector';
-  String _fmt(double v) {
-    if (v >= 1e7) return '₹${(v / 1e7).toStringAsFixed(2)}Cr';
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
-  }
-  String get formattedBudget    => _fmt(totalBudget);
-  String get formattedSpent     => _fmt(spentAmount);
-  String get formattedRemaining => _fmt(remainingBudget);
+  String get formattedBudget    => formatCurrency(totalBudget);
+  String get formattedSpent     => formatCurrency(spentAmount);
+  String get formattedRemaining => formatCurrency(remainingBudget);
   ProjectModel copyWith({
     String?       name,
     String?       city,

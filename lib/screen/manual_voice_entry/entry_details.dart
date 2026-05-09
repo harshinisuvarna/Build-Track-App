@@ -4,6 +4,7 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
 class EntryDetailScreen extends StatefulWidget {
@@ -86,12 +87,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────
-  String _fmt(double v) {
-    if (v >= 1e7) return '₹${(v / 1e7).toStringAsFixed(2)}Cr';
-    if (v >= 1e5) return '₹${(v / 1e5).toStringAsFixed(1)}L';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}K';
-    return '₹${v.toStringAsFixed(0)}';
-  }
+
 
   Widget _fieldLabel(String t) =>
       Text(t, style: AppTheme.label.copyWith(color: textGray));
@@ -412,13 +408,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _settlementRow('Bill Amount',  _fmt(_billAmount),
+          _settlementRow('Bill Amount',  formatCurrency(_billAmount),
               color: textDark),
           const SizedBox(height: 10),
-          _settlementRow('Paid Amount',  _fmt(_paidAmount),
+          _settlementRow('Paid Amount',  formatCurrency(_paidAmount),
               color: const Color(0xFF15803D)),
           const SizedBox(height: 10),
-          _settlementRow('Due Amount',   _fmt(due),
+          _settlementRow('Due Amount',   formatCurrency(due),
               color: due > 0 ? const Color(0xFFD97706) : const Color(0xFF15803D),
               bold: true),
           if (method.isNotEmpty || lastUpdated.isNotEmpty) ...[

@@ -4,6 +4,7 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 class TransactionLogsScreen extends StatefulWidget {
   const TransactionLogsScreen({super.key});
@@ -344,10 +345,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       }
     }
 
-    String tot(double v) =>
-        v >= 100000 ? '₹ ${(v / 100000).toStringAsFixed(1)}L'
-        : v >= 1000 ? '₹ ${(v / 1000).toStringAsFixed(0)}K'
-        : '₹ ${v.toStringAsFixed(0)}';
 
     Widget card(String label, int count, double total,
         Color dot, Color bg, Color border) {
@@ -387,7 +384,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                           fontWeight: FontWeight.w900,
                           height: 1.1)),
                   const SizedBox(height: 1),
-                  Text(tot(total),
+                  Text(formatCurrency(total),
                       style: TextStyle(
                           color: dot,
                           fontSize: 10.5,
@@ -618,7 +615,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   if (billAmt > 0)
                     Flexible(
                       child: Text(
-                        '₹${paidAmt.toStringAsFixed(0)} paid / ₹${billAmt >= 1000 ? '${(billAmt / 1000).toStringAsFixed(0)}K' : billAmt.toStringAsFixed(0)}',
+                        '${formatCurrency(paidAmt)} paid / ${formatCurrency(billAmt)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.caption.copyWith(
@@ -650,7 +647,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                           if (paid > 0) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               content: Text(
-                                  '₹ ${paid.toStringAsFixed(0)} recorded via ${result['method']}'),
+                                  '${formatCurrency(paid)} recorded via ${result['method']}'),
                               backgroundColor: const Color(0xFF173EEA),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
