@@ -185,28 +185,88 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          Container(
+            padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20, right: 20),
+            decoration: const BoxDecoration(color: AppColors.primary),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'BuildTrack Menu',
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Role: ${UserSession.roleLabel}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: AppColors.textDark),
+            title: const Text('Profile', style: TextStyle(color: AppColors.textDark)),
+            onTap: () => Navigator.pushNamed(context, '/profile'),
+          ),
+          if (UserSession.isAdmin) ...[
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
+              child: Text('Admin Controls', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.workspaces_outline, color: AppColors.textDark),
+              title: const Text('Create Workspace', style: TextStyle(color: AppColors.textDark)),
+              onTap: () => Navigator.pushNamed(context, '/create-workspace'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.manage_accounts_outlined, color: AppColors.textDark),
+              title: const Text('Assign Roles', style: TextStyle(color: AppColors.textDark)),
+              onTap: () => Navigator.pushNamed(context, '/assign-role'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined, color: AppColors.textDark),
+              title: const Text('Transaction Logs', style: TextStyle(color: AppColors.textDark)),
+              onTap: () => Navigator.pushNamed(context, '/logs'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return NurofinScaffold(
+      drawer: _buildDrawer(context),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            AppTopBar(
-              title: 'BuildTrack',
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
+        child: Builder(
+          builder: (ctx) => Column(
+            children: [
+              AppTopBar(
+                title: 'BuildTrack',
+                leftIcon: Icons.menu,
+                onLeftTap: () => Scaffold.of(ctx).openDrawer(),
+                rightWidget: GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.grey.shade800,
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
-            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -224,6 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
       bottomNavigationBar: const AppBottomNav(),

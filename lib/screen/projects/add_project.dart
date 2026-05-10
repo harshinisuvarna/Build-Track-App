@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -28,7 +29,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final List<String> _floors = [];
   ProjectStage _selectedStage = ProjectStage.foundation;
   DateTime     _startDate     = DateTime.now();
-  bool         _saving        = false;
+  bool         _isLoading     = false;
   static const _stages = ProjectStage.values;
   static const _stageBg = <ProjectStage, Color>{
     ProjectStage.preConstruction: Color(0xFFE8EAF6),
@@ -325,7 +326,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
-                          onPressed: _saving ? null : _submit,
+                          onPressed: _isLoading ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryBlue,
                             disabledBackgroundColor:
@@ -335,7 +336,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             ),
                             elevation: 0,
                           ),
-                          child: _saving
+                          child: _isLoading
                               ? const SizedBox(
                                   width: 22, height: 22,
                                   child: CircularProgressIndicator(
@@ -647,56 +648,65 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Keeping your existing subscription logic
     final projectProvider = context.read<ProjectProvider>();
     final subProvider     = context.read<SubscriptionProvider>();
     if (!subProvider.canAddProject(projectProvider.projectCount)) {
       _showUpgradeDialog();
       return;
     }
-    setState(() => _saving = true);
+
+    // Set loading state
+    setState(() => _isLoading = true);
+
+    // Format location from city and sector controllers
+    final location = _sectorCtrl.text.trim().isNotEmpty 
+        ? '${_cityCtrl.text.trim()}, ${_sectorCtrl.text.trim()}' 
+        : _cityCtrl.text.trim();
+
+    // Extract payload per requirements
+    final payload = {
+      'projectName': _nameCtrl.text.trim(),
+      'clientName': _clientCtrl.text.trim(),
+      'location': location,
+      'projectType': _typeCtrl.text.trim(),
+    };
+
     try {
-      final project = ProjectModel(
-        id:          DateTime.now().millisecondsSinceEpoch.toString(),
-        name:        _nameCtrl.text.trim(),
-        city:        _cityCtrl.text.trim(),
-        sector:      _sectorCtrl.text.trim(),
-        stage:       _selectedStage,
-        progress:    0.0,
-        totalBudget: double.parse(_budgetCtrl.text),
-        spentAmount: 0.0,
-        startDate:   _startDate,
-        clientName:      _clientCtrl.text.trim().isEmpty
-                             ? null
-                             : _clientCtrl.text.trim(),
-        projectType:     _typeCtrl.text.trim().isEmpty
-                             ? null
-                             : _typeCtrl.text.trim(),
-        expectedEndDate: _expectedEndDate,
-        // STEP 4G: Auto-assign Ground Floor if user left list empty
-        floors: _floors.isEmpty ? ['Ground Floor'] : _floors,
-      );
+      final response = await ApiService.post('/projects', payload);
+
       if (!mounted) return;
-      await context.read<ProjectProvider>().addProject(project);
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/project-detail',
-        (route) => route.settings.name == '/projects' || route.isFirst,
-      );
+
+      // Success
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Project created!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        // Failure Response
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create project: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
+      // Caught Error
       if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save project: $e'),
+        const SnackBar(
+          content: Text('An error occurred while creating the project.'),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
         ),
       );
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
   void _showUpgradeDialog() {

@@ -32,8 +32,11 @@ import 'package:buildtrack_mobile/screen/inventory/transaction_log.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/updated_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await UserSession.loadFromPrefs();
   final projectProvider = ProjectProvider();
   await projectProvider.load();
   runApp(

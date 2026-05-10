@@ -127,22 +127,24 @@ class ProjectModel {
         if (floors != null)          'floors':          floors,
       };
   factory ProjectModel.fromJson(Map<String, dynamic> j) => ProjectModel(
-        id:          j['id'] as String,
-        name:        j['name'] as String,
-        city:        j['city'] as String,
-        sector:      j['sector'] as String,
-        stage:       ProjectStage.values.firstWhere(
-                       (s) => s.name == j['stage'],
-                       orElse: () => ProjectStage.foundation,
-                     ),
-        progress:    (j['progress'] as num).toDouble(),
-        totalBudget: (j['totalBudget'] as num).toDouble(),
-        spentAmount: (j['spentAmount'] as num).toDouble(),
-        startDate:   DateTime.parse(j['startDate'] as String),
-        clientName:      j['clientName'] as String?,
-        projectType:     j['projectType'] as String?,
+        id:              (j['_id'] ?? j['id'] ?? '').toString(),
+        name:            (j['projectName'] ?? j['name'] ?? '').toString(),
+        city:            (j['location'] ?? j['city'] ?? '').toString(),
+        sector:          (j['sector'] ?? '').toString(),
+        stage:           ProjectStage.values.firstWhere(
+                           (s) => s.name == j['stage'],
+                           orElse: () => ProjectStage.foundation,
+                         ),
+        progress:        (j['progress'] as num?)?.toDouble() ?? 0.0,
+        totalBudget:     (j['totalBudget'] as num?)?.toDouble() ?? 0.0,
+        spentAmount:     (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
+        startDate:       j['startDate'] != null 
+                           ? (DateTime.tryParse(j['startDate'].toString()) ?? DateTime.now()) 
+                           : DateTime.now(),
+        clientName:      j['clientName']?.toString(),
+        projectType:     j['projectType']?.toString(),
         expectedEndDate: j['expectedEndDate'] != null
-                           ? DateTime.tryParse(j['expectedEndDate'] as String)
+                           ? DateTime.tryParse(j['expectedEndDate'].toString())
                            : null,
         floors:          j['floors'] != null
                            ? List<String>.from(j['floors'] as List)

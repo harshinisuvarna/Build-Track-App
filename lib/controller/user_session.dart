@@ -1,4 +1,5 @@
 library;
+import 'package:buildtrack_mobile/services/auth_service.dart';
 enum UserRole { admin, supervisor, mason }
 class UserSession {
   UserSession._();
@@ -18,6 +19,15 @@ class UserSession {
     _userId = '';
     _role = UserRole.admin;
     _projectId = '';
+  }
+
+  static Future<void> loadFromPrefs() async {
+    final roleStr = await AuthService.getUserRole();
+    if (roleStr != null) {
+      if (roleStr == 'supervisor') _role = UserRole.supervisor;
+      else if (roleStr == 'worker' || roleStr == 'mason') _role = UserRole.mason;
+      else _role = UserRole.admin;
+    }
   }
   static String get userId => _userId;
   static UserRole get role => _role;

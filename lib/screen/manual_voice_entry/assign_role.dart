@@ -1,9 +1,10 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 
 class AssignRoleScreen extends StatefulWidget {
@@ -57,18 +58,53 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 900)); // simulate API
-    if (!mounted) return;
-    setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$name has been assigned as $_selectedRole.'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-    Navigator.pop(context);
+    final payload = {
+      'name': name,
+      'email': email,
+      'password': pass,
+      'role': _selectedRole,
+      'projectId': _selectedProject,
+    };
+
+    print('----- EXACT JSON PAYLOAD -----');
+    print(payload);
+
+    try {
+      final response = await ApiService.post('/auth/register', payload);
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name has been assigned as $_selectedRole.'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        print('----- API REQUEST FAILED -----');
+        print('Status Code: ${response.statusCode}');
+        print('Response Body: ${response.body}');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to assign role. Check console.')),
+        );
+      }
+    } catch (e) {
+      print('----- CAUGHT EXCEPTION -----');
+      print(e);
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred. Check console.')),
+      );
+    }
   }
 
   @override

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 const _kProjectsKey = 'buildtrack_projects_v1';
@@ -90,8 +92,7 @@ class ProjectProvider extends ChangeNotifier {
           return p;
         }).toList();
       } else {
-        _projects = _seedProjects();
-        await _persistProjects();
+        _projects = [];
       }
       final rawEntries = prefs.getString(_kEntriesKey);
       if (rawEntries != null && rawEntries.isNotEmpty) {
@@ -104,11 +105,46 @@ class ProjectProvider extends ChangeNotifier {
         _selectedProject = _projects.first;
       }
       _error = '';
+
+      await fetchProjects();
     } catch (e, st) {
       _error = 'Failed to load data: $e';
       dev.log('ProjectProvider.load error', error: e, stackTrace: st);
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<void> fetchProjects() async {
+    _setLoading(true);
+    try {
+      final response = await ApiService.get('/projects');
+      print('RAW API RESPONSE: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final dynamic decoded = jsonDecode(response.body);
+        List<dynamic> data = [];
+        
+        if (decoded is List) {
+          data = decoded;
+        } else if (decoded is Map) {
+          data = decoded['data'] ?? decoded['projects'] ?? decoded['project'] ?? [];
+        }
+        
+        _projects = data.map((json) => ProjectModel.fromJson(json)).toList();
+        await _persistProjects(); // Cache the new list
+      } else {
+        _error = 'Failed to fetch projects: ${response.statusCode}';
+      }
+    } catch (e, st) {
+      _error = 'API Error: $e';
+      dev.log('fetchProjects error', error: e, stackTrace: st);
+    } finally {
+      if (_projects.isNotEmpty && _selectedProject == null) {
+        _selectedProject = _projects.first;
+      }
+      _setLoading(false);
+      notifyListeners();
     }
   }
   Future<void> addProject(
@@ -229,41 +265,7 @@ class ProjectProvider extends ChangeNotifier {
     _isLoading = v;
     notifyListeners();
   }
-  List<ProjectModel> _seedProjects() => [
-        ProjectModel(
-          id:          'p1',
-          name:        'Skyline Residences Phase II',
-          city:        'Mumbai',
-          sector:      'Andheri West',
-          stage:       ProjectStage.superstructure,
-          progress:    0.68,
-          totalBudget: 45_000_000,
-          spentAmount: 24_000_000,
-          startDate:   DateTime(2024, 1, 15),
-        ),
-        ProjectModel(
-          id:          'p2',
-          name:        'Tower Block A – Andheri',
-          city:        'Mumbai',
-          sector:      'Sector 4',
-          stage:       ProjectStage.foundation,
-          progress:    0.34,
-          totalBudget: 28_000_000,
-          spentAmount:  8_400_000,
-          startDate:   DateTime(2024, 3, 1),
-        ),
-        ProjectModel(
-          id:          'p3',
-          name:        'Commercial Plaza – BKC',
-          city:        'Mumbai',
-          sector:      'BKC Block G',
-          stage:       ProjectStage.finishing,
-          progress:    0.92,
-          totalBudget: 72_000_000,
-          spentAmount: 66_240_000,
-          startDate:   DateTime(2023, 6, 10),
-        ),
-      ];
+
   List<EntryModel> _seedEntries() => [
         EntryModel(
           id:          'e1',

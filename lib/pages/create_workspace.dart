@@ -1,8 +1,9 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 class CreateWorkspaceScreen extends StatefulWidget {
   const CreateWorkspaceScreen({super.key});
@@ -19,6 +20,8 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   String _selectedRole = 'Admin';
   bool _obscurePass = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+  
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -173,11 +176,13 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   Widget _buildActions() {
     return Column(
       children: [
-        AppButton(
-          label: 'Create Workspace',
-          icon: Icons.arrow_forward,
-          onPressed: _onCreatePressed,
-        ),
+        _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : AppButton(
+                label: 'Create Workspace',
+                icon: Icons.arrow_forward,
+                onPressed: _onCreatePressed,
+              ),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -201,12 +206,13 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-  void _onCreatePressed() {
+  void _onCreatePressed() async {
     // Basic validation
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     final confirm = _confirmCtrl.text;
+    
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
@@ -231,20 +237,48 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       );
       return;
     }
-    final roleMap = {
-      'Admin': UserRole.admin,
-      'Supervisor': UserRole.supervisor,
-      'Mason': UserRole.mason,
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final payload = {
+      'name': name,
+      'email': email,
+      'password': pass,
+      'role': 'Admin', // CRITICAL: Force the role to be 'Admin'
     };
-    UserSession.set(
-      userId: email,
-      role: roleMap[_selectedRole] ?? UserRole.admin,
-      projectId: '',
-    );
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/home',
-      (route) => false,
-    );
+
+    try {
+      final response = await ApiService.post('/auth/register', payload);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully! Please log in.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create account: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred during sign-up.')),
+      );
+    }
   }
 }

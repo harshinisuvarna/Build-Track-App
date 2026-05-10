@@ -1,7 +1,8 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -158,16 +159,25 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         AppButton(
           label: 'Sign In',
-          onPressed: () {
-            final email = _emailCtrl.text.toLowerCase();
-            if (email.contains('supervisor')) {
-              UserSession.simulateSupervisor();
-            } else if (email.contains('mason')) {
-              UserSession.simulateMason();
+          onPressed: () async {
+            final email = _emailCtrl.text.trim();
+            final password = _passCtrl.text.trim();
+            
+            if (email.isEmpty || password.isEmpty) return;
+
+            final success = await AuthService.login(email, password);
+            
+            if (success) {
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
             } else {
-              UserSession.simulateAdmin();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login failed. Please check your credentials.')),
+                );
+              }
             }
-            Navigator.pushReplacementNamed(context, '/home');
           },
         ),
         const SizedBox(height: 20),

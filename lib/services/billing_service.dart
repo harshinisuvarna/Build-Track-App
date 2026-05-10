@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:in_app_purchase/in_app_purchase.dart';
-const kProMonthlyId     = 'com.buildtrack.pro.monthly';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const kProMonthlyId = 'com.buildtrack.pro.monthly';
 const kEnterpriseMonthlyId = 'com.buildtrack.enterprise.monthly';
 const Set<String> kProductIds = {kProMonthlyId, kEnterpriseMonthlyId};
+
 class BillingService {
   BillingService._();
   static final instance = BillingService._();
@@ -12,7 +15,8 @@ class BillingService {
   bool isAvailable = false;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   Future<void> init(
-      void Function(List<PurchaseDetails>) onPurchaseUpdate) async {
+    void Function(List<PurchaseDetails>) onPurchaseUpdate,
+  ) async {
     isAvailable = await _iap.isAvailable();
     if (!isAvailable) {
       dev.log('BillingService: Play Store not available');
@@ -24,6 +28,7 @@ class BillingService {
     );
     await _loadProducts();
   }
+
   Future<void> _loadProducts() async {
     try {
       final response = await _iap.queryProductDetails(kProductIds);
@@ -36,6 +41,7 @@ class BillingService {
       dev.log('BillingService._loadProducts error: $e');
     }
   }
+
   ProductDetails? productFor(String productId) {
     try {
       return products.firstWhere((p) => p.id == productId);
@@ -43,6 +49,7 @@ class BillingService {
       return null;
     }
   }
+
   Future<bool> purchase(String productId) async {
     final product = productFor(productId);
     if (product == null) {
@@ -57,14 +64,17 @@ class BillingService {
       return false;
     }
   }
+
   Future<void> restorePurchases() async {
     await _iap.restorePurchases();
   }
+
   Future<void> completePurchase(PurchaseDetails details) async {
     if (details.pendingCompletePurchase) {
       await _iap.completePurchase(details);
     }
   }
+
   void dispose() {
     _subscription?.cancel();
   }
