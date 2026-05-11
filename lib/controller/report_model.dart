@@ -1,3 +1,5 @@
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+
 class ReportModel {
   const ReportModel({
     required this.totalCost,
@@ -18,15 +20,10 @@ class ReportModel {
   final List<double> chartDataCuyd;
   final Map<String, double> categoryBudget;
   final String efficiencyNote;
-  String get formattedTotal => _fmt(totalCost);
-  String get formattedMaterial => _fmt(materialCost);
-  String get formattedLabour => _fmt(labourCost);
-  String get formattedEquipment => _fmt(equipmentCost);
-  static String _fmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
-  }
+  String get formattedTotal => formatCurrency(totalCost);
+  String get formattedMaterial => formatCurrency(materialCost);
+  String get formattedLabour => formatCurrency(labourCost);
+  String get formattedEquipment => formatCurrency(equipmentCost);
   static double mockChange(String metric, String period) {
     const table = {
       'total/monthly': 12.0,

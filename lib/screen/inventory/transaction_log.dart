@@ -1,9 +1,10 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
-import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 class TransactionLogsScreen extends StatefulWidget {
   const TransactionLogsScreen({super.key});
@@ -30,6 +31,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': true,
       'icon': Icons.local_shipping_outlined,
       'receipt': 'receipt_9921.pdf',
+      'paymentStatus': PaymentStatus.paid,
+      'billAmount': 45000.0,
+      'paidAmount': 45000.0,
     },
     {
       'title': 'Slab Pouring - Block B',
@@ -39,6 +43,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': false,
       'icon': Icons.home_work_outlined,
       'receipt': null,
+      'paymentStatus': PaymentStatus.pending,
+      'billAmount': 28000.0,
+      'paidAmount': 0.0,
     },
     {
       'title': 'Column Reinforcement',
@@ -48,6 +55,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': false,
       'icon': Icons.architecture,
       'receipt': null,
+      'paymentStatus': PaymentStatus.partial,
+      'billAmount': 18500.0,
+      'paidAmount': 9000.0,
     },
     {
       'title': 'Stock Replenishment',
@@ -57,6 +67,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': true,
       'icon': Icons.local_shipping_outlined,
       'receipt': 'receipt_9820.pdf',
+      'paymentStatus': PaymentStatus.paid,
+      'billAmount': 32000.0,
+      'paidAmount': 32000.0,
     },
     {
       'title': 'Foundation Work',
@@ -66,6 +79,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': false,
       'icon': Icons.construction_outlined,
       'receipt': null,
+      'paymentStatus': PaymentStatus.overdue,
+      'billAmount': 62000.0,
+      'paidAmount': 0.0,
     },
     {
       'title': 'Emergency Restock',
@@ -75,6 +91,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       'isPositive': true,
       'icon': Icons.local_shipping_outlined,
       'receipt': 'receipt_9780.pdf',
+      'paymentStatus': PaymentStatus.paid,
+      'billAmount': 55000.0,
+      'paidAmount': 55000.0,
     },
   ];
 
@@ -178,6 +197,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -199,6 +219,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSummaryCard(),
+                    const SizedBox(height: 14),
+                    _buildPaymentStatusStrip(),
                     const SizedBox(height: 20),
                     _buildLogsHeader(),
                     const SizedBox(height: 14),
@@ -306,6 +328,85 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         ),
       ],
     );
+  }  // ─── Payment Status Strip ──────────────────────────────────────────────────
+  Widget _buildPaymentStatusStrip() {
+    int fullyPaid = 0, partial = 0, notPaid = 0;
+    double fullyPaidTotal = 0, partialTotal = 0, notPaidTotal = 0;
+
+    for (final l in _allLogs) {
+      final ps   = l['paymentStatus'] as PaymentStatus?;
+      final bill = l['billAmount']    as double? ?? 0;
+      if (ps == PaymentStatus.paid) {
+        fullyPaid++;  fullyPaidTotal += bill;
+      } else if (ps == PaymentStatus.partial) {
+        partial++;    partialTotal   += bill;
+      } else {
+        notPaid++;    notPaidTotal   += bill;
+      }
+    }
+
+
+    Widget card(String label, int count, double total,
+        Color dot, Color bg, Color border) {
+      return Expanded(
+        child: Container(
+          height: 92,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: border, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [
+                Container(
+                  width: 7, height: 7,
+                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 5),
+                Text(label,
+                    style: TextStyle(
+                        color: dot,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2)),
+              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$count item${count == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1)),
+                  const SizedBox(height: 1),
+                  Text(formatCurrency(total),
+                      style: TextStyle(
+                          color: dot,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Row(children: [
+      card('Fully Paid', fullyPaid, fullyPaidTotal,
+          const Color(0xFF15803D), const Color(0xFFF0FDF4), const Color(0xFFBBF7D0)),
+      const SizedBox(width: 8),
+      card('Partial', partial, partialTotal,
+          const Color(0xFFB45309), const Color(0xFFFFFBEB), const Color(0xFFFDE68A)),
+      const SizedBox(width: 8),
+      card('Not Paid', notPaid, notPaidTotal,
+          const Color(0xFFDC2626), const Color(0xFFFFF5F5), const Color(0xFFFECACA)),
+    ]);
   }
 
   Widget _buildLogsHeader() {
@@ -392,6 +493,12 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   Widget _logItem(BuildContext context, Map<String, dynamic> log) {
     final isPositive = log['isPositive'] as bool? ?? true;
     final receipt = log['receipt'] as String?;
+    final payStatus = log['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
+    final billAmt  = log['billAmount']  as double? ?? 0;
+    final paidAmt  = log['paidAmount']  as double? ?? 0;
+    final canSettle = payStatus == PaymentStatus.pending ||
+        payStatus == PaymentStatus.partial ||
+        payStatus == PaymentStatus.overdue;
 
     final iconColor = _typeColor();
     final iconBg = _typeBg();
@@ -406,17 +513,24 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           context,
           '/entry-detail',
           arguments: {
-            'title': log['title'],
-            'ref': log['ref'],
-            'amount': log['amount'],
-            'date': log['date'],
-            'isPositive': isPositive,
-            'type': _itemType,
-            'name': _itemName,
-            'receipt': receipt,
-            'createdBy': log['createdBy'] ?? '',
-            'projectId': log['projectId'] ?? '',
-            'status': log['status'] ?? 'pending',
+            'title':         log['title'],
+            'ref':           log['ref'],
+            'amount':        log['amount'],
+            'date':          log['date'],
+            'isPositive':    isPositive,
+            'type':          _itemType,
+            'name':          _itemName,
+            'receipt':       receipt,
+            'createdBy':     log['createdBy'] ?? '',
+            'projectId':     log['projectId'] ?? '',
+            'status':        log['status'] ?? 'pending',
+            // payment lifecycle fields
+            'paymentStatus': payStatus,
+            'billAmount':    billAmt,
+            'paidAmount':    paidAmt,
+            'supplier':      log['supplier'] ?? '',
+            'paymentMethod': log['method'] ?? '',
+            'lastUpdated':   log['lastUpdated'] ?? log['date'] ?? '',
           },
         ),
         child: Container(
@@ -429,61 +543,157 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
             ],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: iconBg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(
-                  (log['icon'] as IconData?) ?? _typeIcon(),
-                  color: iconColor,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      log['title'] as String? ?? '',
-                      style: AppTheme.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w700, color: textDark),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$_itemName • ${log['ref'] ?? ''}',
-                      style: AppTheme.caption.copyWith(color: textGray),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
                 children: [
-                  Text(
-                    log['amount'] as String? ?? '',
-                    style: TextStyle(
-                        color: isPositive
-                            ? primaryBlue
-                            : const Color(0xFFE040FB),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    log['date'] as String? ?? '',
-                    style: AppTheme.caption.copyWith(color: textGray),
-                  ),
-                  const SizedBox(height: 4),
-                  StatusBadge(status: log['status'] as String? ?? 'pending'),
-                  if (receipt != null && receipt.isNotEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(Icons.attach_file, color: textGray, size: 12),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                        color: iconBg, borderRadius: BorderRadius.circular(12)),
+                    child: Icon(
+                      (log['icon'] as IconData?) ?? _typeIcon(),
+                      color: iconColor,
+                      size: 20,
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          log['title'] as String? ?? '',
+                          style: AppTheme.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w700, color: textDark),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$_itemName • ${log['ref'] ?? ''}',
+                          style: AppTheme.caption.copyWith(color: textGray),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        log['amount'] as String? ?? '',
+                        style: TextStyle(
+                            color: isPositive
+                                ? primaryBlue
+                                : const Color(0xFF9C6AAB), // Muted purple
+                            fontWeight: FontWeight.w600, // Semi-bold
+                            fontSize: 15), // Smaller size
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        log['date'] as String? ?? '',
+                        style: AppTheme.caption.copyWith(color: textGray),
+                      ),
+                      if (receipt != null && receipt.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.attach_file, color: textGray, size: 12),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              // ── Payment footer row ─────────────────────────────────────────
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: Color(0xFFF0EEF8)),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  PaymentStatusChip(status: payStatus),
+                  const SizedBox(width: 6),
+                  if (billAmt > 0)
+                    Flexible(
+                      child: Text(
+                        '${formatCurrency(paidAmt)} paid / ${formatCurrency(billAmt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.caption.copyWith(
+                            color: textGray, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: canSettle ? () {
+                      showPaymentSheet(
+                        context,
+                        entryTitle: log['title'] as String? ?? '',
+                        entryRef: log['ref'] as String? ?? '',
+                        totalAmount: billAmt,
+                        alreadyPaid: paidAmt,
+                        vendorName: log['supplier'] as String? ?? '',
+                        category: _itemType,
+                      ).then((result) {
+                        if (result != null && mounted) {
+                          final paid = result['amount'] as double;
+                          final newStatus = result['status'] as PaymentStatus?;
+                          setState(() {
+                            log['paidAmount'] = (paidAmt + paid).clamp(0.0, double.infinity);
+                            log['paymentStatus'] = newStatus ??
+                                ((paidAmt + paid) >= billAmt
+                                    ? PaymentStatus.paid
+                                    : PaymentStatus.partial);
+                          });
+                          if (paid > 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(
+                                  '${formatCurrency(paid)} recorded via ${result['method']}'),
+                              backgroundColor: const Color(0xFF173EEA),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ));
+                          }
+                        }
+                      });
+                    } : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      height: 30,
+                      padding: const EdgeInsets.symmetric(horizontal: 11),
+                      decoration: BoxDecoration(
+                        color: canSettle ? Colors.white : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: canSettle
+                              ? primaryBlue
+                              : const Color(0xFFDDE0F0),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            canSettle
+                                ? Icons.receipt_long_outlined
+                                : Icons.check_circle_outline,
+                            color: canSettle ? primaryBlue : const Color(0xFF9CA3AF),
+                            size: 13,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            canSettle ? 'Record Payment' : 'Settled',
+                            style: TextStyle(
+                              color: canSettle ? primaryBlue : const Color(0xFF9CA3AF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],

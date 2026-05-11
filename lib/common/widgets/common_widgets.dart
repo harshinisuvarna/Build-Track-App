@@ -32,7 +32,6 @@ class AppTopBar extends StatelessWidget {
         height: 44,
         child: Row(
           children: [
-            // â”€â”€ Left side â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             leftIcon != null
                 ? Material(
                     color: Colors.transparent,
@@ -46,8 +45,6 @@ class AppTopBar extends StatelessWidget {
                     ),
                   )
                 : const SizedBox(width: 44),
-
-            // â”€â”€ Centre: title fills remaining space, text centred â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Expanded(
               child: Text(
                 title,
@@ -61,8 +58,6 @@ class AppTopBar extends StatelessWidget {
                 ),
               ),
             ),
-
-            // â”€â”€ Right side â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             IntrinsicWidth(
               child: rightWidget ?? const SizedBox(width: 32),
             ),
@@ -72,12 +67,6 @@ class AppTopBar extends StatelessWidget {
     );
   }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// AppBottomNav
-// Single source of truth for bottom navigation across all main screens.
-// Reads and writes NavController via Provider.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
 

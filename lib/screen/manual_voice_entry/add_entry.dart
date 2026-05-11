@@ -1,10 +1,9 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
-import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:flutter/material.dart';
+
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
   static const primaryBlue = AppColors.primary;
@@ -305,15 +304,6 @@ class AddEntryScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                    // â”€â”€ Team & Access (Admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    if (RoleManager.canViewTeamAccess) ...[
-                      const SizedBox(height: 24),
-                      const AppSectionHeader(title: 'Team & Access'),
-                      _teamAccessCard(context),
-                      const SizedBox(height: 12),
-                      _adminNotice(),
-                    ],
                   ],
                 ),
               ),
@@ -324,220 +314,8 @@ class AddEntryScreen extends StatelessWidget {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-  Widget _teamAccessCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.cardShadows,
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.25),
-          width: 1.5,
-          // Dart doesn't support native dashed borders — simulate with custom paint
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Text content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Team & Access',
-                  style: AppTheme.heading3.copyWith(
-                    color: AppColors.textDark,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Assign roles and manage team access for your project.',
-                  style: AppTheme.body.copyWith(
-                    color: AppColors.textLight,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Gradient "Assign Role" button
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/assign-role'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.primaryButton,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryPurple.withValues(alpha: 0.35),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.person_add_outlined,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Assign Role',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Mini team illustration
-          _teamIllustration(),
-        ],
-      ),
-    );
-  }
-  Widget _teamIllustration() {
-    const purple = AppColors.primaryPurple;
-    const purpleLight = AppColors.primaryLightBlue;
-    return SizedBox(
-      width: 68,
-      height: 68,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background circle
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: purple.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-          ),
-          // Center person (larger)
-          Positioned(
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                color: purple,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 16),
-            ),
-          ),
-          // Side bubbles
-          Positioned(
-            top: 4,
-            left: 2,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 11),
-            ),
-          ),
-          Positioned(
-            top: 4,
-            right: 2,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 11),
-            ),
-          ),
-          Positioned(
-            bottom: 2,
-            left: 8,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 9),
-            ),
-          ),
-          Positioned(
-            bottom: 2,
-            right: 8,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 9),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _adminNotice() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.shield_outlined,
-            color: AppColors.primary.withValues(alpha: 0.7),
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'This feature is only available to Admins.',
-                  style: AppTheme.bodyLarge.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Manage user roles, permissions, and project access.',
-                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _entryCard(BuildContext context, int index) {
     final entry = _entries[index];

@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/controller/user_session.dart';
+
 class RoleManager {
   RoleManager._();
   static bool get isAdmin => UserSession.isAdmin;

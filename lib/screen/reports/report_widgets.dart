@@ -7,8 +7,9 @@ import 'package:buildtrack_mobile/controller/report_model.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -222,9 +223,7 @@ class ChartSection extends StatelessWidget {
                           getTooltipItems: (spots) => spots.map((s) {
                             final isActual = s.barIndex == 0;
                             if (!isActual) return null;
-                            final val = s.y >= 1000
-                                ? '₹${(s.y * 1000).toStringAsFixed(0)}'
-                                : '₹${s.y.toStringAsFixed(0)}';
+                            final val = formatCurrency(s.y);
                             return LineTooltipItem(
                               '$val/$unit',
                               const TextStyle(
@@ -260,7 +259,7 @@ class ChartSection extends StatelessWidget {
                             reservedSize: 40,
                             interval: (maxY - minY) / 3,
                             getTitlesWidget: (v, _) => Text(
-                              _shortNum(v),
+                              formatCurrency(v),
                               style: AppTheme.caption.copyWith(
                                   fontSize: 9, color: AppColors.textLight),
                             ),
@@ -325,7 +324,7 @@ class ChartSection extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Actual: ₹${_shortNum(actualVal)}/$unit',
+                  'Actual: ${formatCurrency(actualVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(
                       color: AppColors.textDark, fontWeight: FontWeight.w700),
@@ -336,7 +335,7 @@ class ChartSection extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  'Target: ₹${_shortNum(targetVal)}/$unit',
+                  'Target: ${formatCurrency(targetVal)}/$unit',
                   overflow: TextOverflow.ellipsis,
                   style: AppTheme.caption.copyWith(color: AppColors.textLight),
                 ),
@@ -350,10 +349,7 @@ class ChartSection extends StatelessWidget {
   Widget _legendDot(Color c) => Container(
         width: 10, height: 10,
         decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-  String _shortNum(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
-    return v.toStringAsFixed(1);
-  }
+
 }
 class _UnitToggle extends StatelessWidget {
   const _UnitToggle({required this.unitIndex, required this.onChanged});

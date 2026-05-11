@@ -1,4 +1,3 @@
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -7,6 +6,7 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 class ProjectReportScreen extends StatelessWidget {
   const ProjectReportScreen({super.key});
@@ -381,7 +381,7 @@ class _EntrySection extends StatelessWidget {
                 style: AppTheme.body.copyWith(color: AppColors.textMedium),
               ),
             ),
-            Text(_fmtAmt(total),
+            Text(formatCurrency(total),
                 style: TextStyle(
                     fontWeight: FontWeight.w800, color: color, fontSize: 14)),
           ]),
@@ -406,7 +406,7 @@ class _EntrySection extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(_fmtAmt(e.amount),
+        Text(formatCurrency(e.amount),
             style: TextStyle(
                 fontWeight: FontWeight.w700, color: c, fontSize: 13)),
       ]),
@@ -433,11 +433,7 @@ class _EntrySection extends StatelessWidget {
       case EntryType.equipment: return 'Equipment';
     }
   }
-  String _fmtAmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
-  }
+
 }
 class _ActivityTimeline extends StatelessWidget {
   const _ActivityTimeline({required this.entries});
@@ -507,7 +503,7 @@ class _ActivityTimeline extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            _fmtAmt(e.amount),
+                            formatCurrency(e.amount),
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: color,
@@ -553,9 +549,5 @@ class _ActivityTimeline extends StatelessWidget {
     const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
-  String _fmtAmt(double v) {
-    if (v >= 1e6) return '₹${(v / 1e6).toStringAsFixed(1)}M';
-    if (v >= 1e3) return '₹${(v / 1e3).toStringAsFixed(0)}k';
-    return '₹${v.toStringAsFixed(0)}';
-  }
+
 }

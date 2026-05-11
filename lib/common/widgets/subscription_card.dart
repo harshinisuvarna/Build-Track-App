@@ -1,10 +1,4 @@
-﻿// lib/common/widgets/subscription_card.dart
-// A premium gradient card shown on the Profile screen.
-// Displays the user's current plan, renewal date, and CTAs.
-// Usage:
-//   const SubscriptionCard()   (reads SubscriptionProvider via context)
-
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/premium_cta_button.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:flutter/material.dart';
@@ -64,7 +58,6 @@ class SubscriptionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -125,8 +118,6 @@ class SubscriptionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // â”€â”€ Renewal date â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (sub.renewalDate != null) ...[
                   const SizedBox(height: 16),
                   Row(
@@ -148,8 +139,6 @@ class SubscriptionCard extends StatelessWidget {
                 const SizedBox(height: 18),
                 const Divider(color: Colors.white24, height: 1),
                 const SizedBox(height: 14),
-
-                // â”€â”€ CTA buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 Row(
                   children: [
                     // Primary CTA
