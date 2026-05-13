@@ -131,7 +131,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         description: _nameCtrl.text,
         ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
         floor:       _selectedFloor!,
-        phaseId:     _selectedPhase?.id,
+        phaseId:     _selectedPhase as String?,
       ),
     );
 

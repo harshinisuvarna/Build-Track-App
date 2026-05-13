@@ -142,7 +142,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
         ratePerUnit: double.tryParse(_rateCtrl.text),
         floor:       _selectedFloor,
-        phaseId:     _selectedPhase?.id,
+        phaseId:     _selectedPhase as String?,
       ),
     );
 

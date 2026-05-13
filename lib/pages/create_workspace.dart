@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -128,7 +128,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           value: _selectedRole,
           hint: 'Select role',
           items: _roles
-              .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+              .map((r) => DropdownMenuItem<String>(value: r, child: Text(r)))
               .toList(),
           onChanged: (v) => setState(() => _selectedRole = v ?? _selectedRole),
         ),

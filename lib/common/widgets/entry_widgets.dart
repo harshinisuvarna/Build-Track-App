@@ -1,34 +1,13 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:buildtrack_mobile/models/phase_model.dart';
+import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
-const Map<String, List<String>> kPhaseActivities = {
-  'pre_construction':  ['Site Survey', 'Soil Testing', 'Design Approval', 'Permit Acquisition'],
-  'site_preparation':  ['Land Clearing', 'Levelling', 'Hoarding', 'Temporary Roads'],
-  'foundation':        ['Excavation', 'PCC', 'Reinforcement', 'Waterproofing', 'Pile Driving'],
-  'plinth':            ['Plinth Beam', 'Backfilling', 'Anti-Termite Treatment'],
-  'superstructure':    ['Column Casting', 'Beam Casting', 'Slab Casting', 'Shuttering'],
-  'masonry':           ['Brick Laying', 'Block Work', 'Parapet Wall'],
-  'mep':               ['Electrical Wiring', 'Pipe Laying', 'Drainage', 'HVAC', 'Fire Safety'],
-  'plastering':        ['Internal Plaster', 'External Plaster', 'Putty Application'],
-  'finishing':         ['Tiling', 'Painting', 'Waterproofing Treatment', 'False Ceiling'],
-  'fixtures':          ['Plumbing Fixtures', 'Electrical Fixtures', 'Carpentry', 'Glazing'],
-  'handover':          ['Snagging', 'Final Inspection', 'Documentation', 'Handover Keys'],
-};
-
-List<String> activitiesForPhase(PhaseModel? phase) {
-  if (phase == null) return [];
-  final key = phase.id.toLowerCase().replaceAll(' ', '_');
-  return kPhaseActivities[key] ??
-      kPhaseActivities[phase.name.toLowerCase().replaceAll(' ', '_')] ??
-      ['General Work', 'Site Activity', 'Miscellaneous'];
-}
 // ── Standardized inventory units ──────────────────────────────────────────
 const Map<String, List<String>> kInventoryUnits = {
   'Weight':  ['kg', 'ton', 'gram'],
@@ -298,7 +277,7 @@ class EntryDropdownField<T> extends StatelessWidget {
                     color: _kGray, fontSize: 15, fontWeight: FontWeight.w400)),
             style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w600, color: _kDark),
-            items: enabled ? items : [],
+            items: enabled ? items : <DropdownMenuItem<T>>[],
             onChanged: enabled ? onChanged : null,
           ),
         ),
@@ -641,15 +620,39 @@ class ExecutionContextCard extends StatelessWidget {
           : projects.cast<ProjectModel?>().firstWhere(
               (p) => p?.id == selectedProjectId, orElse: () => null);
 
-      final List<String> floors =
-          (selProject?.floors != null && selProject!.floors!.isNotEmpty)
-              ? List<String>.from(selProject.floors!)
-              : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+      // Floors: use project-configured floors, fall back to standard list
+      const List<String> _defaultFloors = [
+        'Basement', 'Ground Floor', '1st Floor', '2nd Floor',
+        '3rd Floor', 'Terrace',
+      ];
+      final List<String> floors = (selProject?.floors?.isNotEmpty == true)
+          ? List<String>.from(selProject!.floors!)
+          : (selProject != null ? _defaultFloors : <String>[]);
       if (selectedFloor != null && !floors.contains(selectedFloor)) {
         floors.insert(0, selectedFloor!);
       }
 
-      final activities = activitiesForPhase(selectedPhase as PhaseModel?);
+      // Centralized 9-phase workflow filtered to project selection
+      final List<ConstructionPhase> allPhases = buildDefaultPhases();
+      final List<String>? phaseNames = selProject?.selectedPhaseNames != null
+          ? List<String>.from(selProject!.selectedPhaseNames!)
+          : null;
+      final List<ConstructionPhase> visiblePhases =
+          (phaseNames == null || phaseNames.isEmpty)
+              ? allPhases
+              : allPhases.where((p) => phaseNames.contains(p.name)).toList();
+
+      // Activities: look up selected phase by NAME (String equality is rebuild-safe)
+      final String? selPhaseName = selectedPhase is String
+          ? selectedPhase as String
+          : (selectedPhase != null ? (selectedPhase as dynamic).name as String? : null);
+      final ConstructionPhase? selPhase = selPhaseName != null
+          ? allPhases.cast<ConstructionPhase?>().firstWhere(
+              (p) => p?.name == selPhaseName, orElse: () => null)
+          : null;
+      final List<String> activities = selPhase != null
+          ? selPhase.allActivities.map<String>((a) => a.name).toList()
+          : <String>[];
 
       return EntrySectionCard(
         child: Column(
@@ -669,7 +672,7 @@ class ExecutionContextCard extends StatelessWidget {
               value: selectedProjectId,
               hint: 'Select project',
               items: projects
-                  .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
+                  .map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name)))
                   .toList(),
               onChanged: onProjectChanged,
             ),
@@ -680,20 +683,19 @@ class ExecutionContextCard extends StatelessWidget {
               value: selectedFloor,
               hint: selectedProjectId == null ? 'Select project first' : 'Select floor',
               enabled: selectedProjectId != null,
-              items: floors
-                  .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                  .toList(),
+              items: floors.map((f) => DropdownMenuItem<String>(value: f, child: Text(f))).toList(),
               onChanged: onFloorChanged,
             ),
             const SizedBox(height: 18),
             const EntryFieldLabel('Phase', required: true),
             const SizedBox(height: 8),
-            EntryDropdownField<dynamic>(
-              value: selectedPhase,
+            // Phase stored as String (phase name) — String equality survives rebuilds
+            EntryDropdownField<String>(
+              value: visiblePhases.any((p) => p.name == selPhaseName) ? selPhaseName : null,
               hint: selectedFloor == null ? 'Select floor first' : 'Select phase',
               enabled: selectedFloor != null,
-              items: provider.phases
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+              items: visiblePhases
+                  .map((p) => DropdownMenuItem<String>(value: p.name, child: Text(p.name)))
                   .toList(),
               onChanged: onPhaseChanged,
             ),
@@ -702,10 +704,10 @@ class ExecutionContextCard extends StatelessWidget {
             const SizedBox(height: 8),
             EntryDropdownField<String>(
               value: activities.contains(selectedActivity) ? selectedActivity : null,
-              hint: selectedPhase == null ? 'Select phase first' : 'Select activity',
-              enabled: selectedPhase != null,
+              hint: selPhaseName == null ? 'Select phase first' : 'Select activity',
+              enabled: selPhaseName != null,
               items: activities
-                  .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                  .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
                   .toList(),
               onChanged: onActivityChanged,
             ),

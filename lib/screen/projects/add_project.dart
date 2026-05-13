@@ -118,7 +118,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
 
   bool _saving = false;
-  late final List<ConstructionPhase> _phases;
+  late List<ConstructionPhase> _phases;
+  final _customStageNameCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -141,6 +142,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _budgetEquipmentCtrl.dispose();
     _budgetMiscCtrl.dispose();
     _landAreaCtrl.dispose();
+    _customStageNameCtrl.dispose();
     super.dispose();
   }
 
@@ -149,7 +151,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     setState(() => _saving = true);
 
     try {
-      final subProv = context.read<SubscriptionProvider>();
+      final subProv  = context.read<SubscriptionProvider>();
       final projProv = context.read<ProjectProvider>();
       if (!subProv.canAddProject(projProv.projects.length)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,22 +162,48 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
 
       double parseBudget(TextEditingController c) => double.tryParse(c.text) ?? 0.0;
-      final budgetTotal = parseBudget(_budgetMaterialCtrl) + parseBudget(_budgetLabourCtrl) + parseBudget(_budgetEquipmentCtrl) + parseBudget(_budgetMiscCtrl);
+      final bMat  = parseBudget(_budgetMaterialCtrl);
+      final bLab  = parseBudget(_budgetLabourCtrl);
+      final bEq   = parseBudget(_budgetEquipmentCtrl);
+      final bMisc = parseBudget(_budgetMiscCtrl);
+      final budgetTotal = bMat + bLab + bEq + bMisc;
+
+      String? nn(String s) => s.trim().isEmpty ? null : s.trim();
 
       final newProject = ProjectModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameCtrl.text.trim(),
-        city: _cityCtrl.text.trim(),
-        sector: _sectorCtrl.text.trim(),
-        stage: ProjectStage.preConstruction,
-        progress: 0.0,
+        id:          DateTime.now().millisecondsSinceEpoch.toString(),
+        name:        _nameCtrl.text.trim(),
+        city:        _cityCtrl.text.trim(),
+        sector:      _sectorCtrl.text.trim(),
+        stage:       ProjectStage.preConstruction,
+        progress:    0.0,
         totalBudget: budgetTotal,
         spentAmount: 0.0,
-        startDate: _startDate,
-        clientName: _clientCtrl.text.trim(),
+        startDate:   _startDate,
+        clientName:      nn(_clientCtrl.text),
         expectedEndDate: _expectedEndDate,
-        floors: _selectedFloorChips,
+        floors:          _selectedFloorChips.isEmpty ? null : List<String>.from(_selectedFloorChips),
         selectedPhaseNames: _phases.map((e) => e.name).toList(),
+        contractorName:  nn(_contractorCtrl.text),
+        siteEngineer:    nn(_engineerCtrl.text),
+        contactNumber:   nn(_contactCtrl.text),
+        actualEndDate:   _actualEndDate,
+        landArea:        nn(_landAreaCtrl.text),
+        landUnit:        _landUnit,
+        room1BHK:        _room1BHKCount   > 0 ? _room1BHKCount   : null,
+        room2BHK:        _room2BHKCount   > 0 ? _room2BHKCount   : null,
+        room3BHK:        _room3BHKCount   > 0 ? _room3BHKCount   : null,
+        roomCustom:      _roomCustomCount  > 0 ? _roomCustomCount  : null,
+        bathWestern:     _bathWesternCount > 0 ? _bathWesternCount : null,
+        bathIndian:      _bathIndianCount  > 0 ? _bathIndianCount  : null,
+        bathCommon:      _bathCommonCount  > 0 ? _bathCommonCount  : null,
+        bathAttached:    _bathAttachedCount > 0 ? _bathAttachedCount : null,
+        selectedFeatures: _additionalConfigs.isEmpty ? null : _additionalConfigs.toList(),
+        budgetMaterial:  bMat  > 0 ? bMat  : null,
+        budgetLabour:    bLab  > 0 ? bLab  : null,
+        budgetEquipment: bEq   > 0 ? bEq   : null,
+        budgetMisc:      bMisc > 0 ? bMisc : null,
+        projectStatus:   _projectStatus,
       );
 
       await projProv.addProject(newProject);
@@ -519,24 +547,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                     ),
                                   ],
                                 )),
-                                const SizedBox(width: 8),
-                                Expanded(child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _label('Actual End'),
-                                    const SizedBox(height: 8),
-                                    _datePicker(
-                                      date: _actualEndDate,
-                                      hint: 'dd/mm/yyyy',
-                                      onSelect: () async {
-                                        final picked = await showDatePicker(
-                                          context: context, initialDate: _actualEndDate ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100),
-                                        );
-                                        if (picked != null) setState(() => _actualEndDate = picked);
-                                      }
-                                    ),
-                                  ],
-                                )),
                               ],
                             ),
                             const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(color: Color(0xFFEEF0F5), height: 1)),
@@ -629,16 +639,30 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saving ? null : _submit,
-        backgroundColor: primaryBlue,
-        elevation: 4,
-        child: _saving 
-          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-          : const Icon(Icons.check, color: Colors.white),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _saving
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : const Text('Add Project', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3)),
+            ),
+          ),
+        ),
       ),
     );
   }
+
 
   // ───────────────────────────────────────────────────────────────────────────
   // UI HELPERS
@@ -865,7 +889,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ),
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray),
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items.map((e) => DropdownMenuItem<String>(value: e, child: Text(e))).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -1008,173 +1032,231 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 
   Widget _buildConstructionPhasesCard() {
-    final int totalActivities    = _phases.fold(0, (s, p) => s + p.allActivities.length);
-    final int selectedActivities = _phases.fold(0, (s, p) => s + p.selectedCount);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          // ── Header ─────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryBlue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.checklist_rounded, color: primaryBlue, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Construction Phases',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textDark),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: primaryBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Text(
-                    '$selectedActivities/$totalActivities',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primaryBlue),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFEEF0F5)),
-          // ── Phase accordion list ────────────────────────────────────────
-          ...List.generate(_phases.length, (i) => _buildPhaseAccordion(i, _phases[i])),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhaseAccordion(int index, ConstructionPhase phase) {
-    final total   = phase.allActivities.length;
-    final done    = phase.selectedCount;
-    final pct     = total == 0 ? 0 : ((done / total) * 100).round();
+    final int total = _phases.fold(0, (s, p) => s + p.allActivities.length);
+    final int done  = _phases.fold(0, (s, p) => s + p.selectedCount);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (index > 0) const Divider(height: 1, color: Color(0xFFEEF0F5)),
-        // Phase header row
-        InkWell(
-          onTap: () => setState(() => phase.isExpanded = !phase.isExpanded),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 28, height: 28,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: phase.isExpanded ? primaryBlue : Colors.transparent,
-                    border: Border.all(
-                      color: phase.isExpanded ? primaryBlue : const Color(0xFFDDE0E8),
-                      width: 1.5,
+        // ── Section header — white card ────────────────────────────
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.025), blurRadius: 6, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'CONSTRUCTION PHASES',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textDark, letterSpacing: 0.5),
                     ),
                   ),
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: phase.isExpanded ? Colors.white : textGray,
-                    ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      for (var p in _phases) {
+                        for (var a in p.allActivities) { a.isSelected = true; }
+                      }
+                    }),
+                    child: const Text('Select All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        phase.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: phase.isExpanded ? primaryBlue : textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$done/$total complete \u2022 $pct%',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textGray),
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  Text('|', style: TextStyle(fontSize: 12, color: textGray.withValues(alpha: 0.4))),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      for (var p in _phases) {
+                        for (var a in p.allActivities) { a.isSelected = false; }
+                      }
+                    }),
+                    child: Text('Clear', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
                   ),
-                ),
-                AnimatedRotation(
-                  turns: phase.isExpanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 180),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray, size: 22),
-                ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Select phases and activities required.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textGray.withValues(alpha: 0.8)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$done of $total activities selected',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryBlue),
+              ),
+            ],
           ),
         ),
-        // Activity list (animated)
-        AnimatedCrossFade(
-          firstChild: const SizedBox(width: double.infinity, height: 0),
-          secondChild: Container(
-            color: const Color(0xFFF8F9FD),
-            child: Column(
-              children: [
-                const Divider(height: 1, color: Color(0xFFEEF0F5)),
-                ...phase.allActivities.map((act) => _buildActivityRow(act)),
-              ],
-            ),
+        const SizedBox(height: 14),
+
+        // ── Phase cards (reorderable) ───────────────────────────────
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          proxyDecorator: _buildDragProxy,
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              if (newIndex > oldIndex) newIndex--;
+              _phases.insert(newIndex, _phases.removeAt(oldIndex));
+            });
+          },
+          itemCount: _phases.length,
+          itemBuilder: (_, i) => ReorderableDelayedDragStartListener(
+            key: ValueKey('phase_drag_$i'),
+            index: i,
+            child: _buildPhaseAccordion(i, _phases[i]),
           ),
-          crossFadeState: phase.isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 180),
+        ),
+        const SizedBox(height: 12),
+        // ── Add Custom Phase link ───────────────────────────────────
+        GestureDetector(
+          onTap: _showAddCustomStageDialog,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Text('+ Add Custom Phase', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: primaryBlue)),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildActivityRow(ConstructionActivity act) {
-    return InkWell(
-      onTap: () => setState(() => act.isSelected = !act.isSelected),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            act.isSelected
-                ? const Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 18)
-                : Container(
-                    width: 18, height: 18,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFCDD0DA), width: 1.5),
+  Widget _buildPhaseAccordion(int index, ConstructionPhase phase) {
+    return Container(
+      key: ValueKey('phase_${phase.name}_$index'),
+      margin: EdgeInsets.only(bottom: index < _phases.length - 1 ? 8 : 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.025), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Phase header row
+          InkWell(
+            onTap: () => setState(() => phase.isExpanded = !phase.isExpanded),
+            borderRadius: phase.isExpanded
+                ? const BorderRadius.vertical(top: Radius.circular(12))
+                : BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      phase.name,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textDark),
                     ),
                   ),
+                  AnimatedRotation(
+                    turns: phase.isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray, size: 22),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expanded activity list (reorderable)
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 1, color: Color(0xFFEEF0F5)),
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  proxyDecorator: _buildDragProxy,
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex--;
+                      final list = phase.activities;
+                      list.insert(newIndex, list.removeAt(oldIndex));
+                    });
+                  },
+                  itemCount: phase.allActivities.length,
+                  itemBuilder: (_, idx) => ReorderableDelayedDragStartListener(
+                    key: ValueKey('act_drag_${phase.name}_$idx'),
+                    index: idx,
+                    child: _buildActivityRow(idx, phase.allActivities[idx]),
+                  ),
+                ),
+                // + Add Custom Activity — pill chip
+                GestureDetector(
+                  onTap: () => _showAddCustomActivityDialog(phase),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: primaryBlue.withValues(alpha: 0.2), width: 1),
+                    ),
+                    child: const Text('+ Add Custom Activity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryBlue)),
+                  ),
+                ),
+              ],
+            ),
+            crossFadeState: phase.isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 180),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityRow(int index, ConstructionActivity act) {
+    return InkWell(
+      key: ValueKey('act_${act.key}_$index'),
+      onTap: () => setState(() => act.isSelected = !act.isSelected),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Checkbox
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 22, height: 22,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: act.isSelected ? primaryBlue : Colors.transparent,
+                border: Border.all(
+                  color: act.isSelected ? primaryBlue : const Color(0xFFCDD0DA),
+                  width: 1.5,
+                ),
+              ),
+              child: act.isSelected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 act.name,
-                style: TextStyle(
-                  fontSize: 13,
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: act.isSelected ? const Color(0xFF22C55E) : textDark,
-                  decoration: act.isSelected ? TextDecoration.lineThrough : null,
-                  decorationColor: const Color(0xFF22C55E),
+                  color: textDark,
+                  height: 1.3,
                 ),
               ),
             ),
@@ -1183,5 +1265,118 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-}
 
+  // Drag proxy — gossamer lift, premium BuildTrack shadow
+  Widget _buildDragProxy(Widget child, int index, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, _) => Material(
+        color: Colors.transparent,
+        shadowColor: Colors.transparent,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  // ── Add Custom Phase dialog ─────────────────────────────────────
+  void _showAddCustomStageDialog() {
+    _customStageNameCtrl.clear();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Custom Phase',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+        content: TextField(
+          controller: _customStageNameCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter name',
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryBlue, width: 2)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFDDE0E8))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = _customStageNameCtrl.text.trim();
+              if (name.isEmpty) return;
+              setState(() => _phases.add(ConstructionPhase(name: name, isCustom: true)));
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Add Custom Activity dialog ──────────────────────────────────
+  void _showAddCustomActivityDialog(ConstructionPhase phase) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Custom Activity',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter name',
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryBlue, width: 2)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFDDE0E8))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.isEmpty) return;
+              setState(() => phase.activities.add(ConstructionActivity(
+                key: '${phase.name}::Custom::$name',
+                name: name,
+                isCustom: true,
+              )));
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+        ],
+      ),
+    ).then((_) => ctrl.dispose());
+  }
+}

@@ -135,7 +135,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         description: _nameCtrl.text,
         ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
         floor:       _selectedFloor!,
-        phaseId:     _selectedPhase?.id,
+        phaseId:     _selectedPhase as String?,
       ),
     );
 
