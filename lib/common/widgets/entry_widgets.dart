@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
 // ── Standardized inventory units ──────────────────────────────────────────
 const Map<String, List<String>> kInventoryUnits = {
@@ -300,9 +301,6 @@ class EntryDropdownField<T> extends StatelessWidget {
   }
 }
 
-// \u2500\u2500 Unit Selector Field \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-/// Tap-to-open bottom sheet unit selector with predefined categories,
-/// live search, and a "+ Add Custom Unit" escape hatch.
 class UnitSelectorField extends StatelessWidget {
   const UnitSelectorField({
     super.key,
@@ -1667,8 +1665,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                           ),
                           const SizedBox(height: 16),
 
-                          // RECEIPT UPLOAD
-                          const _SheetSectionLabel('RECEIPT / BILL UPLOAD'),
+                          // PAYMENT RECEIPT UPLOAD
+                          const _SheetSectionLabel('PAYMENT RECEIPT'),
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () async {
@@ -1732,13 +1730,13 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                         const Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('Upload Receipt / Bill',
+                                            Text('Upload Payment Receipt',
                                                 style: TextStyle(
                                                     color: _kDark,
                                                     fontSize: 12.5,
                                                     fontWeight: FontWeight.w700)),
                                             SizedBox(height: 1),
-                                            Text('PNG, JPG, PDF supported',
+                                            Text('PNG, JPG, PDF — UPI / Bank / Cheque proof',
                                                 style: TextStyle(
                                                     color: _kGray,
                                                     fontSize: 10.5,
@@ -1988,4 +1986,350 @@ Widget _pMethodChip(
       ),
     ),
   );
+}
+
+// ── INVOICE ATTACHMENT CARD ───────────────────────────────────────────────
+class InvoiceAttachmentCard extends StatelessWidget {
+  final PickedAttachment? attachment;
+  final String? fileName;
+
+  const InvoiceAttachmentCard({
+    super.key,
+    this.attachment,
+    this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = attachment?.name ?? fileName;
+    final hasDoc = name != null && name.isNotEmpty;
+
+    if (!hasDoc) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F2FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.upload_file_outlined, color: AppColors.textLight, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No document attached',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Upload invoice or bill to view',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Determine icon and color
+    IconData iconData = Icons.insert_drive_file_outlined;
+    Color iconColor = const Color(0xFF546E7A);
+    Color iconBg = const Color(0xFFECEFF1);
+    
+    final lowerName = name.toLowerCase();
+    if (attachment != null) {
+      iconData = attachment!.icon;
+      iconColor = attachment!.iconColor;
+      iconBg = attachment!.iconBg;
+    } else {
+      if (lowerName.endsWith('.pdf')) {
+        iconData = Icons.picture_as_pdf_outlined;
+        iconColor = const Color(0xFFE53935);
+        iconBg = const Color(0xFFFFEBEE);
+      } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+        iconData = Icons.image_outlined;
+        iconColor = const Color(0xFF4A6CF7);
+        iconBg = const Color(0xFFEEF0FF);
+      } else if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+        iconData = Icons.description_outlined;
+        iconColor = const Color(0xFF1565C0);
+        iconBg = const Color(0xFFE3F2FD);
+      } else if (lowerName.endsWith('.xls') || lowerName.endsWith('.xlsx')) {
+        iconData = Icons.table_chart_outlined;
+        iconColor = const Color(0xFF2E7D32);
+        iconBg = const Color(0xFFE8F5E9);
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (hasDoc) {
+          Navigator.pushNamed(context, '/receipt-viewer', arguments: {'receipt': name});
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconData, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green.shade600, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Successfully attached',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F7FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'View',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── PAYMENT RECEIPT CARD ─────────────────────────────────────────────────────
+/// Displays a payment receipt (UPI proof, bank transfer, cheque) uploaded
+/// during the Fulfillment & Payment flow. Separate from InvoiceAttachmentCard.
+class PaymentReceiptCard extends StatelessWidget {
+  /// File name of the uploaded payment receipt.
+  final String? fileName;
+
+  const PaymentReceiptCard({super.key, this.fileName});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDoc = fileName != null && fileName!.isNotEmpty;
+
+    if (!hasDoc) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FFF4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF6B7280), size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No payment receipt attached',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Receipt uploads via Fulfillment & Payment',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Determine icon based on file type
+    final lowerName = fileName!.toLowerCase();
+    IconData iconData = Icons.receipt_long_outlined;
+    Color iconColor = const Color(0xFF15803D);
+    Color iconBg = const Color(0xFFDCFCE7);
+
+    if (lowerName.endsWith('.pdf')) {
+      iconData = Icons.picture_as_pdf_outlined;
+      iconColor = const Color(0xFFE53935);
+      iconBg = const Color(0xFFFFEBEE);
+    } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+      iconData = Icons.image_outlined;
+      iconColor = const Color(0xFF15803D);
+      iconBg = const Color(0xFFDCFCE7);
+    }
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/receipt-viewer',
+          arguments: {'receipt': fileName}),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconData, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName!,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.verified, color: Colors.green.shade600, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Payment proof attached',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'View',
+                style: TextStyle(
+                  color: Colors.green.shade800,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

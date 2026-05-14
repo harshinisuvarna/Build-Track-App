@@ -259,6 +259,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
           'title': _nameCtrl.text, 'ref': '#$entryId',
           'amount': '+${_qtyCtrl.text}', 'date': 'Today',
           'isPositive': true, 'icon': Icons.inventory_2_outlined,
+          'attachment': _attachment, 'receipt': _attachment?.name,
         }),
       },
     );
@@ -429,13 +430,13 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                           children: [
                             const EntryCardHeader(
                               icon:     Icons.receipt_long_outlined,
-                              title:    'Attach Receipt (Optional)',
-                              subtitle: 'Upload supporting document',
+                              title:    'Invoice / Bill',
+                              subtitle: 'Attach invoice, bill, or supporting document (optional)',
                             ),
                             const SizedBox(height: 16),
                             UploadBox(
                               attachment: _attachment,
-                              emptyLabel: 'Tap to attach receipt',
+                              emptyLabel: 'Tap to upload invoice / bill',
                               onPicked: (a) => setState(() => _attachment = a),
                               onRemove:  () => setState(() => _attachment = null),
                             ),

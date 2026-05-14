@@ -160,6 +160,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             'date':       'Today',
             'isPositive': true,
             'icon':       Icons.people_outline,
+            'attachment': _attachment,
+            'receipt':    _attachment?.name,
           }),
       },
     );
@@ -366,13 +368,13 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         children: [
                           const EntryCardHeader(
                             icon:     Icons.receipt_long_outlined,
-                            title:    'Receipt / Bill',
-                            subtitle: 'Attach labour bill (optional)',
+                            title:    'Invoice / Bill',
+                            subtitle: 'Attach invoice, bill, or supporting document (optional)',
                           ),
                           const SizedBox(height: 16),
                           UploadBox(
                             attachment: _attachment,
-                            emptyLabel: 'Tap to upload bill',
+                            emptyLabel: 'Tap to upload invoice / bill',
                             onPicked: (a) => setState(() => _attachment = a),
                             onRemove:  () => setState(() => _attachment = null),
                           ),
