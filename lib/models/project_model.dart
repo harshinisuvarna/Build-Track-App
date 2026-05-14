@@ -57,8 +57,12 @@ class ProjectModel {
     this.expectedEndDate,
     this.floors,
     this.selectedPhaseNames,
+    this.trackedActivityKeys,
     this.completedActivityKeys,
+    this.selectedPhases,
     // ── NEW enterprise fields ──────────────────────────────────────
+    this.projectCode,
+    this.mapAddress,
     this.contractorName,
     this.siteEngineer,
     this.contactNumber,
@@ -98,9 +102,13 @@ class ProjectModel {
   final DateTime?     expectedEndDate;
   final List<String>? floors;
   final List<String>? selectedPhaseNames;
-  final List<String>? completedActivityKeys;
+  final List<String>?       trackedActivityKeys;
+  final List<String>?       completedActivityKeys;
+  final List<ProjectPhase>? selectedPhases;
 
   // ── Enterprise fields ──────────────────────────────────────────────────────
+  final String?       projectCode;
+  final String?       mapAddress;
   final String?       contractorName;
   final String?       siteEngineer;
   final String?       contactNumber;
@@ -144,7 +152,11 @@ class ProjectModel {
     DateTime?     expectedEndDate,
     List<String>? floors,
     List<String>? selectedPhaseNames,
-    List<String>? completedActivityKeys,
+    List<String>?       trackedActivityKeys,
+    List<String>?       completedActivityKeys,
+    List<ProjectPhase>? selectedPhases,
+    String?             projectCode,
+    String?       mapAddress,
     String?       contractorName,
     String?       siteEngineer,
     String?       contactNumber,
@@ -181,7 +193,11 @@ class ProjectModel {
         expectedEndDate:       expectedEndDate      ?? this.expectedEndDate,
         floors:                floors               ?? this.floors,
         selectedPhaseNames:    selectedPhaseNames   ?? this.selectedPhaseNames,
-        completedActivityKeys: completedActivityKeys ?? this.completedActivityKeys,
+        trackedActivityKeys:   trackedActivityKeys   ?? this.trackedActivityKeys,
+        completedActivityKeys: completedActivityKeys  ?? this.completedActivityKeys,
+        selectedPhases:        selectedPhases         ?? this.selectedPhases,
+        projectCode:           projectCode            ?? this.projectCode,
+        mapAddress:            mapAddress           ?? this.mapAddress,
         contractorName:        contractorName       ?? this.contractorName,
         siteEngineer:          siteEngineer         ?? this.siteEngineer,
         contactNumber:         contactNumber        ?? this.contactNumber,
@@ -220,7 +236,11 @@ class ProjectModel {
         if (expectedEndDate != null)       'expectedEndDate':       expectedEndDate!.toIso8601String(),
         if (floors != null)                'floors':                floors,
         if (selectedPhaseNames != null)    'selectedPhaseNames':    selectedPhaseNames,
+        if (trackedActivityKeys != null)   'trackedActivityKeys':   trackedActivityKeys,
         if (completedActivityKeys != null) 'completedActivityKeys': completedActivityKeys,
+        if (selectedPhases != null)        'selectedPhases':        selectedPhases!.map((p) => p.toJson()).toList(),
+        if (projectCode != null)           'projectCode':           projectCode,
+        if (mapAddress != null)            'mapAddress':            mapAddress,
         if (contractorName != null)        'contractorName':        contractorName,
         if (siteEngineer != null)          'siteEngineer':          siteEngineer,
         if (contactNumber != null)         'contactNumber':         contactNumber,
@@ -264,8 +284,15 @@ class ProjectModel {
                                  ? List<String>.from(j['floors'] as List) : null,
         selectedPhaseNames:    j['selectedPhaseNames'] != null
                                  ? List<String>.from(j['selectedPhaseNames'] as List) : null,
+        trackedActivityKeys:   j['trackedActivityKeys'] != null
+                                 ? List<String>.from(j['trackedActivityKeys'] as List) : null,
         completedActivityKeys: j['completedActivityKeys'] != null
                                  ? List<String>.from(j['completedActivityKeys'] as List) : null,
+        selectedPhases: j['selectedPhases'] != null
+                          ? (j['selectedPhases'] as List<dynamic>)
+                              .map((e) => ProjectPhase.fromJson(e as Map<String, dynamic>))
+                              .toList()
+                          : null,
         contractorName:   j['contractorName'] as String?,
         siteEngineer:     j['siteEngineer'] as String?,
         contactNumber:    j['contactNumber'] as String?,
@@ -273,6 +300,8 @@ class ProjectModel {
                             ? DateTime.tryParse(j['actualEndDate'] as String) : null,
         landArea:         j['landArea'] as String?,
         landUnit:         j['landUnit'] as String?,
+        projectCode:      j['projectCode'] as String?,
+        mapAddress:       j['mapAddress'] as String?,
         room1BHK:         j['room1BHK'] as int?,
         room2BHK:         j['room2BHK'] as int?,
         room3BHK:         j['room3BHK'] as int?,
@@ -297,6 +326,87 @@ class ProjectModel {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
     return decoded.map((e) => ProjectModel.fromJson(e as Map<String, dynamic>)).toList();
   }
+}
+
+// ── ProjectActivity ─────────────────────────────────────────────────────────
+class ProjectActivity {
+  final String id;
+  final String name;
+  final bool   isCustom;
+  bool         completed;
+
+  ProjectActivity({
+    required this.id,
+    required this.name,
+    this.isCustom  = false,
+    this.completed = false,
+  });
+
+  ProjectActivity copyWith({bool? completed}) => ProjectActivity(
+    id:        id,
+    name:      name,
+    isCustom:  isCustom,
+    completed: completed ?? this.completed,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id':        id,
+    'name':      name,
+    'isCustom':  isCustom,
+    'completed': completed,
+  };
+
+  factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
+    id:        j['id'] as String,
+    name:      j['name'] as String,
+    isCustom:  (j['isCustom'] as bool?) ?? false,
+    completed: (j['completed'] as bool?) ?? false,
+  );
+}
+
+// ── ProjectPhase ─────────────────────────────────────────────────────────────
+class ProjectPhase {
+  final String                id;
+  final String                phaseName;
+  final bool                  isCustom;
+  bool                        isExpanded;
+  final List<ProjectActivity> activities;
+
+  ProjectPhase({
+    required this.id,
+    required this.phaseName,
+    this.isCustom   = false,
+    this.isExpanded = false,
+    List<ProjectActivity>? activities,
+  }) : activities = activities ?? [];
+
+  int get totalCount     => activities.length;
+  int get completedCount => activities.where((a) => a.completed).length;
+
+  // Deep-copy with optional activity list override
+  ProjectPhase copyWith({List<ProjectActivity>? activities}) => ProjectPhase(
+    id:         id,
+    phaseName:  phaseName,
+    isCustom:   isCustom,
+    isExpanded: isExpanded,
+    activities: activities ?? List<ProjectActivity>.from(this.activities),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id':         id,
+    'phaseName':  phaseName,
+    'isCustom':   isCustom,
+    'activities': activities.map((a) => a.toJson()).toList(),
+  };
+
+  factory ProjectPhase.fromJson(Map<String, dynamic> j) => ProjectPhase(
+    id:        j['id'] as String,
+    phaseName: j['phaseName'] as String,
+    isCustom:  (j['isCustom'] as bool?) ?? false,
+    activities: (j['activities'] as List<dynamic>?)
+        ?.map((e) => ProjectActivity.fromJson(e as Map<String, dynamic>))
+        .toList() ?? [],
+  );
 }
 
 // ── EntryModel ─────────────────────────────────────────────────────────────────

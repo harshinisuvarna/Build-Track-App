@@ -144,24 +144,47 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleActivityCompletion(
-      String projectId, String activityKey, int totalActivities) async {
+  Future<void> toggleActivityCompletion(String projectId, String activityId) async {
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
-    final project   = _projects[idx];
-    final completed = List<String>.from(project.completedActivityKeys ?? []);
-    if (completed.contains(activityKey)) {
-      completed.remove(activityKey);
+    final project = _projects[idx];
+
+    // ── New path: project has selectedPhases ───────────────────────
+    if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
+      // Build a mutable deep-copy of selectedPhases
+      final updatedPhases = project.selectedPhases!.map((phase) {
+        final updatedActivities = phase.activities.map((act) {
+          if (act.id == activityId) return act.copyWith(completed: !act.completed);
+          return act;
+        }).toList();
+        return phase.copyWith(activities: updatedActivities);
+      }).toList();
+
+      final total = updatedPhases.fold<int>(0, (sum, p) => sum + p.totalCount);
+      final done  = updatedPhases.fold<int>(0, (sum, p) => sum + p.completedCount);
+      final newProgress = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
+
+      _projects[idx] = project.copyWith(
+        selectedPhases: updatedPhases,
+        progress:       newProgress,
+      );
     } else {
-      completed.add(activityKey);
+      // ── Legacy path: use completedActivityKeys list ──────────────
+      final completed = List<String>.from(project.completedActivityKeys ?? []);
+      if (completed.contains(activityId)) {
+        completed.remove(activityId);
+      } else {
+        completed.add(activityId);
+      }
+      // Calculate total from master list size (legacy behaviour)
+      const legacyTotal = 161; // approximate master list count
+      final newProgress = (completed.length / legacyTotal).clamp(0.0, 1.0);
+      _projects[idx] = project.copyWith(
+        completedActivityKeys: completed,
+        progress:              newProgress,
+      );
     }
-    final newProgress = totalActivities > 0
-        ? (completed.length / totalActivities).clamp(0.0, 1.0)
-        : 0.0;
-    _projects[idx] = project.copyWith(
-      completedActivityKeys: completed,
-      progress: newProgress,
-    );
+
     if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
     await _persistProjects();
     notifyListeners();

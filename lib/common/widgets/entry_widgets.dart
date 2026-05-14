@@ -17,6 +17,20 @@ const Map<String, List<String>> kInventoryUnits = {
   'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
 };
 
+// ── Labour-specific units ──────────────────────────────────────────────────
+const Map<String, List<String>> kLabourUnits = {
+  'Time Based': ['Day', 'Hour', 'Week', 'Month'],
+  'Area Based': ['Sq ft', 'Sq meter', 'Rmt'],
+  'Job Based':  ['Job Basis', 'Contract', 'Lump Sum'],
+};
+
+// ── Equipment-specific units ──────────────────────────────────────────────
+const Map<String, List<String>> kEquipmentUnits = {
+  'Time Based': ['Hour', 'Day', 'Week', 'Month'],
+  'Trip Based': ['Trip', 'Load', 'Shift'],
+  'Fixed':      ['Job Basis', 'Lump Sum'],
+};
+
 // Flat list of all canonical unit strings (for search / lookup)
 const List<String> kAllInventoryUnits = [
   'kg', 'ton', 'gram',
@@ -294,10 +308,14 @@ class UnitSelectorField extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
+    this.units,
+    this.hint = 'Select Unit',
   });
 
   final String? value;
   final ValueChanged<String?> onChanged;
+  final Map<String, List<String>>? units;  // null → defaults to kInventoryUnits
+  final String hint;
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +333,7 @@ class UnitSelectorField extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                hasValue ? value! : 'Select Unit',
+                hasValue ? value! : hint,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
@@ -346,6 +364,7 @@ class UnitSelectorField extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _UnitPickerSheet(
         currentValue: value,
+        units: units ?? kInventoryUnits,
         onSelected: (u) => onChanged(u),
       ),
     );
@@ -353,9 +372,14 @@ class UnitSelectorField extends StatelessWidget {
 }
 
 class _UnitPickerSheet extends StatefulWidget {
-  const _UnitPickerSheet({required this.currentValue, required this.onSelected});
+  const _UnitPickerSheet({
+    required this.currentValue,
+    required this.onSelected,
+    required this.units,
+  });
   final String? currentValue;
   final ValueChanged<String> onSelected;
+  final Map<String, List<String>> units;
 
   @override
   State<_UnitPickerSheet> createState() => _UnitPickerSheetState();
@@ -372,10 +396,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
   }
 
   Map<String, List<String>> get _filtered {
-    if (_query.isEmpty) return kInventoryUnits;
+    if (_query.isEmpty) return widget.units;
     final q = _query.toLowerCase();
     final result = <String, List<String>>{};
-    kInventoryUnits.forEach((cat, units) {
+    widget.units.forEach((cat, units) {
       final matched = units.where((u) => u.toLowerCase().contains(q)).toList();
       if (matched.isNotEmpty) result[cat] = matched;
     });
@@ -621,38 +645,68 @@ class ExecutionContextCard extends StatelessWidget {
               (p) => p?.id == selectedProjectId, orElse: () => null);
 
       // Floors: use project-configured floors, fall back to standard list
-      const List<String> _defaultFloors = [
+      const List<String> defaultFloors = [
         'Basement', 'Ground Floor', '1st Floor', '2nd Floor',
         '3rd Floor', 'Terrace',
       ];
       final List<String> floors = (selProject?.floors?.isNotEmpty == true)
           ? List<String>.from(selProject!.floors!)
-          : (selProject != null ? _defaultFloors : <String>[]);
+          : (selProject != null ? defaultFloors : <String>[]);
       if (selectedFloor != null && !floors.contains(selectedFloor)) {
         floors.insert(0, selectedFloor!);
       }
 
-      // Centralized 9-phase workflow filtered to project selection
-      final List<ConstructionPhase> allPhases = buildDefaultPhases();
-      final List<String>? phaseNames = selProject?.selectedPhaseNames != null
-          ? List<String>.from(selProject!.selectedPhaseNames!)
-          : null;
-      final List<ConstructionPhase> visiblePhases =
-          (phaseNames == null || phaseNames.isEmpty)
-              ? allPhases
-              : allPhases.where((p) => phaseNames.contains(p.name)).toList();
-
-      // Activities: look up selected phase by NAME (String equality is rebuild-safe)
+      // ── Phase & Activity — project-driven architecture ─────────────────────
+      // Resolve the selected phase name (always stored as String in dropdowns)
       final String? selPhaseName = selectedPhase is String
           ? selectedPhase as String
-          : (selectedPhase != null ? (selectedPhase as dynamic).name as String? : null);
-      final ConstructionPhase? selPhase = selPhaseName != null
-          ? allPhases.cast<ConstructionPhase?>().firstWhere(
-              (p) => p?.name == selPhaseName, orElse: () => null)
           : null;
-      final List<String> activities = selPhase != null
-          ? selPhase.allActivities.map<String>((a) => a.name).toList()
-          : <String>[];
+
+      List<String> visiblePhaseNames;
+      List<String> activities;
+
+      final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
+      final bool hasNewWorkflow =
+          projectPhases != null && projectPhases.isNotEmpty;
+
+      if (hasNewWorkflow) {
+        // ── NEW: load directly from project.selectedPhases ────────────────
+        visiblePhaseNames = projectPhases
+            .where((p) => p.activities.isNotEmpty)   // never show empty phases
+            .map((p) => p.phaseName)
+            .toList();
+
+        // Activities: find the chosen phase inside selectedPhases
+        final ProjectPhase? selPhase = selPhaseName != null
+            ? projectPhases.cast<ProjectPhase?>().firstWhere(
+                (p) => p?.phaseName == selPhaseName, orElse: () => null)
+            : null;
+        activities = selPhase != null
+            ? selPhase.activities.map((a) => a.name).toList()
+            : <String>[];
+      } else {
+        // ── LEGACY: fall back to master list + selectedPhaseNames filter ──
+        final List<ConstructionPhase> allPhases = buildDefaultPhases();
+        final List<String>? legacyPhaseNames =
+            selProject?.selectedPhaseNames != null
+                ? List<String>.from(selProject!.selectedPhaseNames!)
+                : null;
+        final List<ConstructionPhase> visiblePhases =
+            (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
+                ? allPhases
+                : allPhases
+                    .where((p) => legacyPhaseNames.contains(p.name))
+                    .toList();
+        visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
+
+        final ConstructionPhase? selPhase = selPhaseName != null
+            ? allPhases.cast<ConstructionPhase?>().firstWhere(
+                (p) => p?.name == selPhaseName, orElse: () => null)
+            : null;
+        activities = selPhase != null
+            ? selPhase.allActivities.map<String>((a) => a.name).toList()
+            : <String>[];
+      }
 
       return EntrySectionCard(
         child: Column(
@@ -689,13 +743,16 @@ class ExecutionContextCard extends StatelessWidget {
             const SizedBox(height: 18),
             const EntryFieldLabel('Phase', required: true),
             const SizedBox(height: 8),
-            // Phase stored as String (phase name) — String equality survives rebuilds
             EntryDropdownField<String>(
-              value: visiblePhases.any((p) => p.name == selPhaseName) ? selPhaseName : null,
-              hint: selectedFloor == null ? 'Select floor first' : 'Select phase',
-              enabled: selectedFloor != null,
-              items: visiblePhases
-                  .map((p) => DropdownMenuItem<String>(value: p.name, child: Text(p.name)))
+              value: visiblePhaseNames.contains(selPhaseName) ? selPhaseName : null,
+              hint: selectedFloor == null
+                  ? 'Select floor first'
+                  : visiblePhaseNames.isEmpty
+                      ? 'No phases configured for this project'
+                      : 'Select phase',
+              enabled: selectedFloor != null && visiblePhaseNames.isNotEmpty,
+              items: visiblePhaseNames
+                  .map((n) => DropdownMenuItem<String>(value: n, child: Text(n)))
                   .toList(),
               onChanged: onPhaseChanged,
             ),
@@ -704,8 +761,12 @@ class ExecutionContextCard extends StatelessWidget {
             const SizedBox(height: 8),
             EntryDropdownField<String>(
               value: activities.contains(selectedActivity) ? selectedActivity : null,
-              hint: selPhaseName == null ? 'Select phase first' : 'Select activity',
-              enabled: selPhaseName != null,
+              hint: selPhaseName == null
+                  ? 'Select phase first'
+                  : activities.isEmpty
+                      ? 'No activities in this phase'
+                      : 'Select activity',
+              enabled: selPhaseName != null && activities.isNotEmpty,
               items: activities
                   .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
                   .toList(),

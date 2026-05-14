@@ -24,6 +24,7 @@ class ConstructionPhase {
   final List<ConstructionActivity> activities;
   final List<ConstructionActivityGroup> groups;
   bool isExpanded;
+  bool isSelected;
 
   ConstructionPhase({
     required this.name,
@@ -31,6 +32,7 @@ class ConstructionPhase {
     List<ConstructionActivity>? activities,
     List<ConstructionActivityGroup>? groups,
     this.isExpanded = false,
+    this.isSelected = false,
   })  : activities = activities ?? [],
         groups = groups ?? [];
 

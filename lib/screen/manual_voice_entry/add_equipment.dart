@@ -27,10 +27,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _nameCtrl     = TextEditingController(); // Equipment Name
   final _typeCtrl     = TextEditingController(); // Equipment Type
   final _operatorCtrl = TextEditingController(); // Operator Name
-  final _hoursCtrl    = TextEditingController(); // Usage Hours
+  final _hoursCtrl    = TextEditingController(); // Usage Quantity
   final _fuelCtrl     = TextEditingController(); // Fuel Usage
-  final _rateCtrl     = TextEditingController(); // Rate / Hour
+  final _rateCtrl     = TextEditingController(); // Rate / Unit
   final _notesCtrl    = TextEditingController(); // Notes
+  String? _selectedUnit;                         // Equipment unit
 
   // ── UI state ─────────────────────────────────────────────────────────────
   bool _isSaving   = false;
@@ -151,7 +152,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ..addAll({
             'title':      _nameCtrl.text,
             'ref':        '#$entryId',
-            'amount':     '+${_hoursCtrl.text} hrs',
+            'amount':     '+${_hoursCtrl.text} ${_selectedUnit ?? "Unit"}',
             'date':       'Today',
             'isPositive': true,
             'icon':       Icons.precision_manufacturing_outlined,
@@ -278,12 +279,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Usage Hours', required: true),
+                                    const EntryFieldLabel('Usage Quantity', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _hoursCtrl,
                                       hint: '0',
-                                      suffix: 'hrs',
+                                      suffix: _selectedUnit ?? 'Unit',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -296,7 +297,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Rate / Hour', required: true),
+                                    const EntryFieldLabel('Rate / Unit', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _rateCtrl,
@@ -310,6 +311,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Unit selector
+                          const EntryFieldLabel('Unit'),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            units: kEquipmentUnits,
+                            hint: 'Select unit (e.g. Hour, Day, Trip)',
+                            onChanged: (u) => setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 18),
 
@@ -337,8 +349,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       totalAmount: _computedTotal,
                       label: 'Equipment Usage Cost',
                       subtotals: [
-                        ('Usage Hours', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} hrs'),
-                        ('Rate / Hour', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Usage × Rate', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                         ('Fuel Used',   '${_fuelCtrl.text.isEmpty ? "—" : _fuelCtrl.text} L'),
                       ],
                     ),

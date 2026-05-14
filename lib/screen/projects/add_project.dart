@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
@@ -25,10 +24,26 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final _nameCtrl  = TextEditingController();
   final _cityCtrl  = TextEditingController();
   final _sectorCtrl= TextEditingController();
+
+  // ── Basic Information ──────────────────────────────────────────
+  final _mapAddressCtrl = TextEditingController();
   final _clientCtrl    = TextEditingController();
   final _contractorCtrl = TextEditingController();
   final _engineerCtrl   = TextEditingController();
   final _contactCtrl    = TextEditingController();
+  late final String _projectCode;
+
+  // ── Building Type ──────────────────────────────────────────────
+  String? _mainBuildingType;
+  String? _buildingSubType;
+
+  static const Map<String, List<String>> _buildingSubTypes = {
+    'Residential':           ['1 BHK', '2 BHK', '3 BHK', 'Villa', 'Apartment'],
+    'Educational':           ['School', 'College'],
+    'Institutional':         ['Church', 'Presbytery', 'Convention Hall'],
+    'Business / Commercial': ['Shop', 'Office', 'Complex'],
+    'Industrial':            ['Factory', 'Warehouse'],
+  };
   
   // ── Dates, Budget & Status ─────────────────────────────────────
   DateTime _startDate = DateTime.now();
@@ -46,6 +61,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   ];
 
   // ── Accordion States ───────────────────────────────────────────
+  bool _cfgBasicInfoExpanded = true;
+  bool _cfgBuildingTypeExpanded = true;
   bool _cfgLandExpanded = true;
   bool _cfgRoomsExpanded = false;
   bool _cfgAddlExpanded = false;
@@ -125,6 +142,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   void initState() {
     super.initState();
     _phases = buildDefaultPhases();
+    // Generate project code: CF-YYYY-XXXX
+    final year = DateTime.now().year;
+    final rand = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    _projectCode = 'CF-$year-$rand';
   }
 
   @override
@@ -132,6 +153,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _nameCtrl.dispose();
     _cityCtrl.dispose();
     _sectorCtrl.dispose();
+    _mapAddressCtrl.dispose();
     _clientCtrl.dispose();
     _contractorCtrl.dispose();
     _engineerCtrl.dispose();
@@ -151,15 +173,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     setState(() => _saving = true);
 
     try {
-      final subProv  = context.read<SubscriptionProvider>();
       final projProv = context.read<ProjectProvider>();
-      if (!subProv.canAddProject(projProv.projects.length)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project limit reached. Please upgrade plan.')),
-        );
-        setState(() => _saving = false);
-        return;
-      }
 
       double parseBudget(TextEditingController c) => double.tryParse(c.text) ?? 0.0;
       final bMat  = parseBudget(_budgetMaterialCtrl);
@@ -169,6 +183,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final budgetTotal = bMat + bLab + bEq + bMisc;
 
       String? nn(String s) => s.trim().isEmpty ? null : s.trim();
+
+      // Compose building type string: "Main → Sub" or just "Main"
+      String? buildingTypeStr;
+      if (_mainBuildingType != null) {
+        buildingTypeStr = _buildingSubType != null
+            ? '$_mainBuildingType → $_buildingSubType'
+            : _mainBuildingType;
+      }
 
       final newProject = ProjectModel(
         id:          DateTime.now().millisecondsSinceEpoch.toString(),
@@ -180,16 +202,34 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         totalBudget: budgetTotal,
         spentAmount: 0.0,
         startDate:   _startDate,
+        projectCode:     _projectCode,
+        mapAddress:      nn(_mapAddressCtrl.text),
         clientName:      nn(_clientCtrl.text),
         expectedEndDate: _expectedEndDate,
         floors:          _selectedFloorChips.isEmpty ? null : List<String>.from(_selectedFloorChips),
-        selectedPhaseNames: _phases.map((e) => e.name).toList(),
+        selectedPhases:  _phases
+            .where((p) => p.isSelected && p.allActivities.any((a) => a.isSelected))
+            .map((p) => ProjectPhase(
+                  id:         'phase_${p.name.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
+                  phaseName:  p.name,
+                  isCustom:   p.isCustom,
+                  activities: p.allActivities
+                      .where((a) => a.isSelected)
+                      .map((a) => ProjectActivity(
+                            id:       a.key,
+                            name:     a.name,
+                            isCustom: a.isCustom,
+                          ))
+                      .toList(),
+                ))
+            .toList(),
         contractorName:  nn(_contractorCtrl.text),
         siteEngineer:    nn(_engineerCtrl.text),
         contactNumber:   nn(_contactCtrl.text),
         actualEndDate:   _actualEndDate,
         landArea:        nn(_landAreaCtrl.text),
         landUnit:        _landUnit,
+        projectType:     buildingTypeStr,
         room1BHK:        _room1BHKCount   > 0 ? _room1BHKCount   : null,
         room2BHK:        _room2BHKCount   > 0 ? _room2BHKCount   : null,
         room3BHK:        _room3BHKCount   > 0 ? _room3BHKCount   : null,
@@ -321,13 +361,200 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 ),
                               ],
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── BASIC INFORMATION ──────────────────────────────────
+                      _buildAccordionCard(
+                        title: 'Basic Information',
+                        isExpanded: _cfgBasicInfoExpanded,
+                        onToggle: () => setState(() => _cfgBasicInfoExpanded = !_cfgBasicInfoExpanded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Project Code chip (read-only)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4FF),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: primaryBlue.withValues(alpha: 0.18), width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Project Code',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                                              color: textGray.withValues(alpha: 0.7), letterSpacing: 0.3)),
+                                        const SizedBox(height: 2),
+                                        Text('Auto-generated',
+                                          style: TextStyle(fontSize: 10, color: textGray.withValues(alpha: 0.5))),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: primaryBlue,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      _projectCode,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _label('Client Name'),
+
+                            // Map Location
+                            _label('Map Location / Address', icon: Icons.location_on_rounded),
                             const SizedBox(height: 8),
                             _field(
-                              controller: _clientCtrl,
-                              hint: 'Client Name (Optional)',
-                              icon: Icons.person_rounded,
+                              controller: _mapAddressCtrl,
+                              hint: 'e.g. 1240 Bay St, San Francisco, CA',
+                              icon: Icons.place_rounded,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Client + Contractor row
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Client Name', icon: Icons.person_rounded),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _clientCtrl,
+                                        hint: 'Client / Owner',
+                                        icon: Icons.person_outline_rounded,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Contractor Name', icon: Icons.engineering_rounded),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _contractorCtrl,
+                                        hint: 'Main contractor',
+                                        icon: Icons.engineering_outlined,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Engineer + Contact row
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Site Engineer', icon: Icons.construction_rounded),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _engineerCtrl,
+                                        hint: 'Engineer in charge',
+                                        icon: Icons.construction_outlined,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Contact Number', icon: Icons.phone_rounded),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _contactCtrl,
+                                        hint: '+1 (555) 000-0000',
+                                        icon: Icons.phone_outlined,
+                                        keyboardType: TextInputType.phone,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── BUILDING TYPE ───────────────────────────────────────
+                      _buildAccordionCard(
+                        title: 'Building Type',
+                        isExpanded: _cfgBuildingTypeExpanded,
+                        onToggle: () => setState(() => _cfgBuildingTypeExpanded = !_cfgBuildingTypeExpanded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Main Type'),
+                                      const SizedBox(height: 8),
+                                      _buildDropdown(
+                                        value: _mainBuildingType,
+                                        hint: 'Select building type',
+                                        items: _buildingSubTypes.keys.toList(),
+                                        onChanged: (val) => setState(() {
+                                          _mainBuildingType = val;
+                                          _buildingSubType = null; // reset sub
+                                        }),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Sub Type'),
+                                      const SizedBox(height: 8),
+                                      _buildDropdown(
+                                        value: _buildingSubType,
+                                        hint: _mainBuildingType == null
+                                            ? 'Select main type first'
+                                            : 'Select sub type',
+                                        items: _mainBuildingType != null
+                                            ? (_buildingSubTypes[_mainBuildingType!] ?? <String>[])
+                                            : <String>[],
+                                        onChanged: _mainBuildingType == null
+                                            ? null
+                                            : (val) => setState(() => _buildingSubType = val),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -869,13 +1096,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     required String? value,
     required String hint,
     required List<String> items,
-    required ValueChanged<String?> onChanged,
+    ValueChanged<String?>? onChanged,
   }) {
+    final bool disabled = onChanged == null;
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: disabled ? const Color(0xFFF5F5F8) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
       ),
@@ -885,9 +1113,16 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           isExpanded: true,
           hint: Text(
             hint,
-            style: TextStyle(color: textGray.withValues(alpha: 0.5), fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: disabled
+                  ? textGray.withValues(alpha: 0.3)
+                  : textGray.withValues(alpha: 0.5),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray),
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: disabled ? textGray.withValues(alpha: 0.3) : textGray),
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
           items: items.map((e) => DropdownMenuItem<String>(value: e, child: Text(e))).toList(),
           onChanged: onChanged,
@@ -1158,6 +1393,26 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
+                  // Phase Selection Checkbox
+                  GestureDetector(
+                    onTap: () => setState(() => phase.isSelected = !phase.isSelected),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: phase.isSelected ? primaryBlue : Colors.transparent,
+                        border: Border.all(
+                          color: phase.isSelected ? primaryBlue : const Color(0xFFCDD0DA),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: phase.isSelected
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       phase.name,
@@ -1227,17 +1482,18 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     return InkWell(
       key: ValueKey('act_${act.key}_$index'),
       onTap: () => setState(() => act.isSelected = !act.isSelected),
+      splashColor: primaryBlue.withValues(alpha: 0.06),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Checkbox
+            // ── Animated checkbox ─────────────────────────────────────
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 22, height: 22,
+              width: 20, height: 20,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(5),
                 color: act.isSelected ? primaryBlue : Colors.transparent,
                 border: Border.all(
                   color: act.isSelected ? primaryBlue : const Color(0xFFCDD0DA),
@@ -1245,19 +1501,29 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ),
               ),
               child: act.isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 12),
+            // ── Activity name ─────────────────────────────────────────
             Expanded(
               child: Text(
                 act.name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: textDark,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: act.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: act.isSelected ? textDark : const Color(0xFF6B7280),
                   height: 1.3,
                 ),
+              ),
+            ),
+            // ── Subtle drag handle (trailing) ─────────────────────────
+            ReorderableDragStartListener(
+              index: index,
+              child: const Icon(
+                Icons.drag_indicator_rounded,
+                size: 18,
+                color: Color(0xFFCDD0DA),
               ),
             ),
           ],
@@ -1265,6 +1531,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
+
 
   // Drag proxy — gossamer lift, premium BuildTrack shadow
   Widget _buildDragProxy(Widget child, int index, Animation<double> animation) {

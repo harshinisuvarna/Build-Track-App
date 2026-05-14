@@ -48,18 +48,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       );
     }
 
-    // Build phase list — filter to only selected phases (show all for legacy projects)
-    final allPhases    = buildDefaultPhases();
-    final selectedNames = project.selectedPhaseNames;
-    final phases = (selectedNames == null || selectedNames.isEmpty)
-        ? allPhases
-        : allPhases.where((p) => selectedNames.contains(p.name)).toList();
+    // ── Execution Tracker data ────────────────────────────────────────────
+    // New projects: use self-contained selectedPhases model
+    final selectedPhases = project.selectedPhases;
+    final hasNewTracker  = selectedPhases != null && selectedPhases.isNotEmpty;
 
-    final completed = project.completedActivityKeys ?? [];
-    final allKeys   = phases.expand((p) => p.allActivities.map((a) => a.key)).toList();
-    final total     = allKeys.length;
-    final doneCount = completed.length;
-    final progress  = total > 0 ? doneCount / total : project.progress;
+    final int trackerTotal = hasNewTracker
+        ? selectedPhases.fold<int>(0, (s, p) => s + p.totalCount)
+        : 0;
+    final int trackerDone = hasNewTracker
+        ? selectedPhases.fold<int>(0, (s, p) => s + p.completedCount)
+        : (project.completedActivityKeys?.length ?? 0);
+    final double progress = trackerTotal > 0
+        ? trackerDone / trackerTotal
+        : project.progress;
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -82,13 +84,21 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   children: [
                     // ── Summary Header ─────────────────────────────────
                     _SummaryCard(project: project, progress: progress,
-                        doneCount: doneCount, totalCount: total),
+                        doneCount: trackerDone, totalCount: trackerTotal),
                     const SizedBox(height: 14),
 
                     // ── Project Information ────────────────────────────
                     const AppSectionHeader(title: 'Project Information'),
                     _ProjectInfoCard(project: project),
                     const SizedBox(height: 14),
+
+                    // ── Building Type ───────────────────────────────────
+                    if (project.projectType != null &&
+                        project.projectType!.isNotEmpty) ...[
+                      const AppSectionHeader(title: 'Building Type'),
+                      _BuildingTypeCard(project: project),
+                      const SizedBox(height: 14),
+                    ],
 
                     // ── Land & Floors ──────────────────────────────────
                     if ((project.landArea != null && project.landArea!.isNotEmpty) ||
@@ -108,7 +118,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
-                    // ── Configuration Sections (expandable per group) ──
+                    // ── Configuration Sections ─────────────────────────
                     if (project.selectedFeatures != null &&
                         project.selectedFeatures!.isNotEmpty)
                       ..._buildConfigSections(project.selectedFeatures!),
@@ -124,35 +134,53 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     const SizedBox(height: 14),
 
                     // ── Execution Tracker ──────────────────────────────
-                    if (phases.isNotEmpty) ...[
-                      AppSectionHeader(
-                        title: 'Execution Tracker',
-                        actionLabel: '$doneCount/$total done',
-                      ),
-                      ...phases.map((phase) {
-                        final phaseKeys  = phase.allActivities.map((a) => a.key).toList();
-                        final phaseDone  = phaseKeys.where(completed.contains).length;
-                        final isExpanded = _expanded.contains(phase.name);
-                        return _PhaseAccordion(
-                          phase:       phase,
-                          completed:   completed,
-                          phaseDone:   phaseDone,
-                          isExpanded:  isExpanded,
-                          totalForProject: total,
-                          onToggleExpand: () => setState(() {
-                            if (isExpanded) {
-                              _expanded.remove(phase.name);
-                            } else {
-                              _expanded.add(phase.name);
-                            }
-                          }),
-                          onToggleActivity: (key) {
-                            context.read<ProjectProvider>()
-                                .toggleActivityCompletion(project.id, key, total);
-                          },
-                        );
-                      }),
+                    AppSectionHeader(
+                      title: 'Execution Tracker',
+                      actionLabel: hasNewTracker
+                          ? '$trackerDone/$trackerTotal done'
+                          : null,
+                    ),
+                    if (hasNewTracker) ...[
+                      ...selectedPhases.map((phase) => _TrackerPhaseCard(
+                            phase:    phase,
+                            projectId: project.id,
+                            isExpanded: _expanded.contains(phase.id),
+                            onToggleExpand: () => setState(() {
+                              if (_expanded.contains(phase.id)) {
+                                _expanded.remove(phase.id);
+                              } else {
+                                _expanded.add(phase.id);
+                              }
+                            }),
+                            onToggleActivity: (activityId) {
+                              context.read<ProjectProvider>()
+                                  .toggleActivityCompletion(project.id, activityId);
+                            },
+                          )),
                       const SizedBox(height: 14),
+                    ] else ...[
+                      // Empty state for legacy / no-tracker projects
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+                        ),
+                        child: Column(children: [
+                          const Icon(Icons.checklist_rounded,
+                              size: 40, color: Color(0xFFCDD0DA)),
+                          const SizedBox(height: 10),
+                          const Text('No execution plan configured',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                  color: Color(0xFF9CA3AF))),
+                          const SizedBox(height: 4),
+                          Text('Select phases & activities when creating a project.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                        ]),
+                      ),
                     ],
 
                     // ── Recent Entries ─────────────────────────────────
@@ -173,13 +201,22 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   List<Widget> _buildConfigSections(List<String> features) {
-    final known = [..._kUtility, ..._kGas, ..._kKitchen, ..._kElectrical, ..._kTerrace];
-    final addl       = features.where((f) => !known.contains(f)).toList();
+    // Split features into their exact named groups (mirrors add_project.dart sections)
+    final addl       = _grp(features, _kAddlConfig);
     final utility    = _grp(features, _kUtility);
     final gas        = _grp(features, _kGas);
     final kitchen    = _grp(features, _kKitchen);
     final electrical = _grp(features, _kElectrical);
     final terrace    = _grp(features, _kTerrace);
+
+    // Anything not in any known group goes into Additional Configuration
+    final allKnown = [
+      ..._kAddlConfig, ..._kUtility, ..._kGas,
+      ..._kKitchen, ..._kElectrical, ..._kTerrace,
+    ];
+    final unknown = features.where((f) => !allKnown.contains(f)).toList();
+    final addlAll = [...addl, ...unknown];
+
     Widget sec(String t, List<String> items, IconData icon) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -189,7 +226,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ],
     );
     return [
-      if (addl.isNotEmpty)       sec('Additional Configuration', addl,       Icons.tune_rounded),
+      if (addlAll.isNotEmpty)    sec('Additional Configuration', addlAll,    Icons.tune_rounded),
       if (utility.isNotEmpty)    sec('Utility & Services',       utility,    Icons.electrical_services_rounded),
       if (gas.isNotEmpty)        sec('Gas Connection',           gas,        Icons.local_fire_department_rounded),
       if (kitchen.isNotEmpty)    sec('Kitchen Requirements',     kitchen,    Icons.kitchen_rounded),
@@ -199,7 +236,205 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 }
 
+// ── Tracker Phase Card ────────────────────────────────────────────────────────
+class _TrackerPhaseCard extends StatelessWidget {
+  const _TrackerPhaseCard({
+    required this.phase,
+    required this.projectId,
+    required this.isExpanded,
+    required this.onToggleExpand,
+    required this.onToggleActivity,
+  });
+
+  final ProjectPhase phase;
+  final String       projectId;
+  final bool         isExpanded;
+  final VoidCallback onToggleExpand;
+  final void Function(String activityId) onToggleActivity;
+
+  @override
+  Widget build(BuildContext context) {
+    final done  = phase.completedCount;
+    final total = phase.totalCount;
+    final pct   = total > 0 ? done / total : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8, offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(children: [
+        // ── Phase header row ────────────────────────────────────────
+        InkWell(
+          onTap: onToggleExpand,
+          borderRadius: isExpanded
+              ? const BorderRadius.vertical(top: Radius.circular(16))
+              : BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(children: [
+              // Phase icon bubble
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: phase.isCustom
+                      ? const Color(0xFF7B3FE7).withValues(alpha: 0.10)
+                      : AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(
+                  phase.isCustom ? Icons.star_rounded : Icons.construction_rounded,
+                  color: phase.isCustom ? const Color(0xFF7B3FE7) : AppColors.primary,
+                  size: 17,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(phase.phaseName,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w800,
+                          color: AppColors.textDark)),
+                  const SizedBox(height: 2),
+                  Text('$done of $total activities done',
+                      style: const TextStyle(fontSize: 11,
+                          color: AppColors.textLight, fontWeight: FontWeight.w600)),
+                ],
+              )),
+              // Mini progress + chevron
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${(pct * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w800,
+                        color: pct >= 1.0 ? AppColors.success : AppColors.primary)),
+                const SizedBox(height: 4),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textLight, size: 20),
+                ),
+              ]),
+            ]),
+          ),
+        ),
+        // ── Phase progress bar ──────────────────────────────────────
+        if (total > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: pct,
+                minHeight: 3,
+                backgroundColor: const Color(0xFFEEF0F8),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    pct >= 1.0 ? AppColors.success : AppColors.primary),
+              ),
+            ),
+          ),
+        // ── Activity list ───────────────────────────────────────────
+        AnimatedCrossFade(
+          firstChild: const SizedBox(width: double.infinity, height: 0),
+          secondChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Divider(height: 1, color: Color(0xFFEEF0F5)),
+              ...phase.activities.map((act) => _TrackerActivityRow(
+                    activity:         act,
+                    onToggle: () => onToggleActivity(act.id),
+                  )),
+            ],
+          ),
+          crossFadeState: isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Tracker Activity Row ──────────────────────────────────────────────────────
+class _TrackerActivityRow extends StatelessWidget {
+  const _TrackerActivityRow({required this.activity, required this.onToggle});
+  final ProjectActivity activity;
+  final VoidCallback    onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = activity.completed;
+    return InkWell(
+      onTap: onToggle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(children: [
+          // ── Animated checkbox ─────────────────────────────────────
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: done ? AppColors.success : Colors.transparent,
+              border: Border.all(
+                color: done ? AppColors.success : const Color(0xFFCDD0DA),
+                width: 1.5,
+              ),
+            ),
+            child: done
+                ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          // ── Activity name ─────────────────────────────────────────
+          Expanded(
+            child: Text(
+              activity.name,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: done ? FontWeight.w600 : FontWeight.w500,
+                color: done ? const Color(0xFF9CA3AF) : AppColors.textDark,
+                decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
+                decorationColor: const Color(0xFF9CA3AF),
+              ),
+            ),
+          ),
+          // ── Status chip ───────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: done
+                  ? AppColors.success.withValues(alpha: 0.10)
+                  : const Color(0xFFFFF3CD),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              done ? 'Done' : 'Pending',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: done ? AppColors.success : const Color(0xFFF59E0B),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 // ── Summary Card ─────────────────────────────────────────────────────────────
+
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.project, required this.progress,
@@ -212,19 +447,44 @@ class _SummaryCard extends StatelessWidget {
   static const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 
+  // ── Resolve real status from project model ──────────────────────
+  static Color _statusColor(String? status) {
+    switch (status) {
+      case 'Completed':  return AppColors.success;
+      case 'In Progress': return AppColors.primary;
+      case 'On Hold':    return AppColors.warning;
+      case 'Cancelled':  return AppColors.error;
+      default:           return const Color(0xFF6B7280); // Planning / unknown
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pct = (progress * 100).toStringAsFixed(1);
-    final statusColor = progress >= 1.0
-        ? AppColors.success
-        : progress >= 0.7
-            ? AppColors.primary
-            : AppColors.warning;
-    final statusLabel = progress >= 1.0
-        ? 'Completed'
-        : progress >= 0.3
-            ? 'In Progress'
-            : 'Starting';
+
+    // Use the user-entered project status as primary source of truth.
+    // Fall back to progress-derived label only if no status was set.
+    final rawStatus = project.projectStatus;
+    final statusLabel = (rawStatus != null && rawStatus.isNotEmpty)
+        ? rawStatus
+        : (progress >= 1.0 ? 'Completed' : progress >= 0.3 ? 'In Progress' : 'Planning');
+    final statusColor = _statusColor(rawStatus);
+
+    // Determine active phase (first phase with incomplete activities)
+    final allPhases = buildDefaultPhases();
+    final selectedNames = project.selectedPhaseNames;
+    final phases = (selectedNames == null || selectedNames.isEmpty)
+        ? allPhases
+        : allPhases.where((p) => selectedNames.contains(p.name)).toList();
+    final completed = project.completedActivityKeys ?? [];
+    String? activePhase;
+    for (final p in phases) {
+      final keys = p.allActivities.map((a) => a.key).toList();
+      if (keys.any((k) => !completed.contains(k))) {
+        activePhase = p.name;
+        break;
+      }
+    }
 
     return AppCard(
       margin: EdgeInsets.zero,
@@ -239,22 +499,18 @@ class _SummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(project.name, style: AppTheme.heading2.copyWith(letterSpacing: -0.3)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        statusLabel,
-                        style: TextStyle(
-                          color: statusColor, fontSize: 11,
-                          fontWeight: FontWeight.w800, letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 8),
+                    // Status chip — from real project.projectStatus
+                    Wrap(
+                      spacing: 6, runSpacing: 6,
+                      children: [
+                        _chip(statusLabel, statusColor),
+                        if (activePhase != null)
+                          _chip(activePhase, AppColors.primary,
+                              icon: Icons.play_circle_outline, subtle: true),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     _infoRow(Icons.location_on_outlined, project.location),
                     const SizedBox(height: 4),
                     _infoRow(Icons.calendar_today_outlined, 'Started ${_fmt(project.startDate)}'),
@@ -266,6 +522,10 @@ class _SummaryCard extends StatelessWidget {
                     if (project.clientName != null && project.clientName!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       _infoRow(Icons.person_outline, project.clientName!),
+                    ],
+                    if (project.projectCode != null && project.projectCode!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _infoRow(Icons.qr_code_scanner_outlined, project.projectCode!),
                     ],
                   ],
                 ),
@@ -316,6 +576,34 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 
+  Widget _chip(String label, Color c,
+      {IconData? icon, bool subtle = false}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: subtle ? c.withValues(alpha: 0.07) : c.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: subtle
+              ? Border.all(color: c.withValues(alpha: 0.25), width: 1)
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 11, color: c),
+              const SizedBox(width: 4),
+            ],
+            Text(label,
+                style: TextStyle(
+                    color: c,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4)),
+          ],
+        ),
+      );
+
   Widget _infoRow(IconData icon, String text) => Row(
         children: [
           Icon(icon, color: AppColors.textLight, size: 14),
@@ -326,10 +614,10 @@ class _SummaryCard extends StatelessWidget {
           ),
         ],
       );
-
 }
 
 // ── Phase Accordion ───────────────────────────────────────────────────────────
+// ignore: unused_element
 class _PhaseAccordion extends StatelessWidget {
   const _PhaseAccordion({
     required this.phase,
@@ -548,36 +836,183 @@ class _ProjectInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = <_InfoRow>[
-      if (project.clientName?.isNotEmpty == true)     _InfoRow(Icons.person_outline,          'Client',      project.clientName!),
-      if (project.contractorName?.isNotEmpty == true) _InfoRow(Icons.engineering_outlined,     'Contractor',  project.contractorName!),
-      if (project.siteEngineer?.isNotEmpty == true)   _InfoRow(Icons.construction_outlined,    'Engineer',    project.siteEngineer!),
-      if (project.contactNumber?.isNotEmpty == true)  _InfoRow(Icons.phone_outlined,           'Contact',     project.contactNumber!),
-      if (project.projectType?.isNotEmpty == true)    _InfoRow(Icons.apartment_outlined,       'Type',        project.projectType!),
-      if (project.projectStatus?.isNotEmpty == true)  _InfoRow(Icons.flag_outlined,            'Status',      project.projectStatus!),
+      if (project.projectCode?.isNotEmpty == true)    _InfoRow(Icons.qr_code_scanner_outlined,  'Project Code',  project.projectCode!),
+      if (project.clientName?.isNotEmpty == true)     _InfoRow(Icons.person_outline,             'Client',        project.clientName!),
+      if (project.contractorName?.isNotEmpty == true) _InfoRow(Icons.engineering_outlined,       'Contractor',    project.contractorName!),
+      if (project.siteEngineer?.isNotEmpty == true)   _InfoRow(Icons.construction_outlined,      'Engineer',      project.siteEngineer!),
+      if (project.contactNumber?.isNotEmpty == true)  _InfoRow(Icons.phone_outlined,             'Contact',       project.contactNumber!),
+      if (project.mapAddress?.isNotEmpty == true)     _InfoRow(Icons.place_outlined,             'Map Address',   project.mapAddress!),
+      if (project.projectStatus?.isNotEmpty == true)  _InfoRow(Icons.flag_outlined,              'Status',        project.projectStatus!),
       _InfoRow(Icons.location_on_outlined,   'Location',    project.location),
     ];
     if (rows.isEmpty) return const SizedBox.shrink();
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
-        children: rows.map((r) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            Container(width: 32, height: 32,
-              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
-              child: Icon(r.icon, color: AppColors.primary, size: 16)),
-            const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(r.label, style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.5)),
-              Text(r.value, style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: FontWeight.w700)),
-            ])),
-          ]),
-        )).toList(),
+        children: [
+          // Project Code chip header (if available)
+          if (project.projectCode?.isNotEmpty == true) ...[
+            _buildProjectCodeChip(project.projectCode!),
+            const AppDivider(verticalPadding: 10),
+          ],
+          ...rows.where((r) => r.label != 'Project Code').map((r) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(children: [
+              Container(width: 32, height: 32,
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                child: Icon(r.icon, color: AppColors.primary, size: 16)),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(r.label, style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.5)),
+                Text(r.value, style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: FontWeight.w700)),
+              ])),
+            ]),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectCodeChip(String code) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Project Code',
+                  style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.4)),
+                Text('Auto-generated',
+                  style: AppTheme.caption.copyWith(fontSize: 9, color: AppColors.textLight)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              code,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 class _InfoRow { const _InfoRow(this.icon, this.label, this.value); final IconData icon; final String label, value; }
+
+// ── Building Type Card ───────────────────────────────────────────────────────
+class _BuildingTypeCard extends StatelessWidget {
+  const _BuildingTypeCard({required this.project});
+  final ProjectModel project;
+
+  @override
+  Widget build(BuildContext context) {
+    // projectType is stored as "Main → Sub" or just "Main"
+    final raw = project.projectType ?? '';
+    final parts = raw.split(' → ');
+    final mainType = parts.isNotEmpty ? parts[0].trim() : raw;
+    final subType  = parts.length > 1 ? parts[1].trim() : null;
+
+    final IconData mainIcon = _iconForType(mainType);
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(mainIcon, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Main Type',
+                      style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.5)),
+                    Text(mainType,
+                      style: AppTheme.body.copyWith(
+                          color: AppColors.textDark, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+              if (subType != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Text(subType,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    )),
+                ),
+            ],
+          ),
+          if (subType != null) ...[
+            const AppDivider(verticalPadding: 10),
+            Row(
+              children: [
+                Container(width: 32, height: 32,
+                  decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.category_outlined, color: AppColors.primary, size: 16)),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Sub Type', style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.5)),
+                  Text(subType, style: AppTheme.body.copyWith(
+                      color: AppColors.textDark, fontWeight: FontWeight.w700)),
+                ])),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'Residential':           return Icons.home_rounded;
+      case 'Educational':           return Icons.school_rounded;
+      case 'Institutional':         return Icons.account_balance_rounded;
+      case 'Business / Commercial': return Icons.store_rounded;
+      case 'Industrial':            return Icons.factory_rounded;
+      default:                      return Icons.apartment_rounded;
+    }
+  }
+}
 
 // ── Land & Floors Card ────────────────────────────────────────────────────────
 class _LandFloorsCard extends StatelessWidget {
@@ -666,13 +1101,38 @@ class _RoomsBathsCard extends StatelessWidget {
   }
 }
 
-// ── Feature group constants (mirror add_project.dart) ────────────────────────
-const _kUtility    = ['Main Electricity','Temporary Connection','Generator Backup','Water Connection','Borewell Motor','Sump Motor'];
-const _kGas        = ['Piped Gas','Cylinder Bank','Gas Pipeline Routing'];
-const _kKitchen    = ['Granite Counter','Quartz Counter','Stainless Steel Sink','Chimney Provision','Exhaust Fan Provision'];
-const _kElectrical = ['Concealed Wiring','Open Wiring','3-Phase Connection','AC Points','Geyser Points'];
-const _kTerrace    = ['Weathering Course','Cool Roof Paint','Overhead Tank','Solar Panels'];
-List<String> _grp(List<String> all, List<String> opts) => all.where(opts.contains).toList();
+// ── Feature group constants — EXACT mirror of add_project.dart ──────────────
+// Additional Configuration options
+const _kAddlConfig = [
+  'Balcony', 'Car Parking', 'Lift', 'Terrace Access',
+  'Interior Work', 'Compound Wall', 'Parapet Wall', 'Waterproofing',
+  'Putty', 'False Ceiling', 'Modular Kitchen', 'Wardrobes',
+  'Sump', 'Septic Tank', 'Rainwater', 'Borewell',
+  'Solar', 'Generator', 'CCTV', 'Intercom',
+  'Landscaping', 'Paving', 'Water Tanks', 'Stairs',
+  'Security Room', 'Cladding', 'Elevation', 'Gates',
+  'Grills', 'Aluminium', 'Glass',
+];
+const _kUtility = [
+  'Main Electricity', 'Temporary Connection', 'Generator Backup',
+  'Water Connection', 'Borewell Motor', 'Sump Motor',
+];
+const _kGas = [
+  'Piped Gas', 'Cylinder Bank', 'Gas Pipeline Routing',
+];
+const _kKitchen = [
+  'Granite Counter', 'Quartz Counter', 'Stainless Steel Sink',
+  'Chimney Provision', 'Exhaust Fan Provision',
+];
+const _kElectrical = [
+  'Concealed Wiring', 'Open Wiring', '3-Phase Connection',
+  'AC Points', 'Geyser Points',
+];
+const _kTerrace = [
+  'Weathering Course', 'Cool Roof Paint', 'Overhead Tank', 'Solar Panels',
+];
+List<String> _grp(List<String> all, List<String> opts) =>
+    all.where(opts.contains).toList();
 
 // ── Feature Group Card (self-expanding accordion) ──────────────────────────────
 class _FeatureGroupCard extends StatefulWidget {
@@ -777,6 +1237,12 @@ class _ProjectTimelineCard extends StatelessWidget {
             _dateBox('Expected End', _fmt(project.expectedEndDate!), Icons.event_outlined, AppColors.warning),
           ],
         ]),
+        if (project.actualEndDate != null) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            _dateBox('Actual End Date', _fmt(project.actualEndDate!), Icons.event_available_rounded, AppColors.success),
+          ]),
+        ],
       ]),
     );
   }
@@ -804,14 +1270,34 @@ class _FinancialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final util = project.budgetUtilization;
     final over = project.spentAmount > project.totalBudget;
-    final hasBrk = (project.budgetMaterial ?? 0) + (project.budgetLabour ?? 0) +
-        (project.budgetEquipment ?? 0) + (project.budgetMisc ?? 0) > 0;
+    final bMat  = project.budgetMaterial  ?? 0;
+    final bLab  = project.budgetLabour    ?? 0;
+    final bEq   = project.budgetEquipment ?? 0;
+    final bMisc = project.budgetMisc      ?? 0;
+    final hasBrk = bMat + bLab + bEq + bMisc > 0;
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(children: [
-        _frow('Total Budget', project.formattedBudget, AppColors.textDark, Icons.account_balance_outlined),
-        const AppDivider(verticalPadding: 8),
-        _frow('Spent', project.formattedSpent, over ? AppColors.error : AppColors.primary, Icons.payments_outlined),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+          ),
+          child: Row(children: [
+            Container(width: 36, height: 36,
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary, size: 18)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('TOTAL BUDGET', style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 1.0, fontWeight: FontWeight.w800, color: AppColors.textLight)),
+              Text(project.formattedBudget, style: AppTheme.heading2.copyWith(color: AppColors.primary, letterSpacing: -0.3)),
+            ])),
+          ]),
+        ),
+        const AppDivider(verticalPadding: 12),
+        _frow('Spent Amount', project.formattedSpent, over ? AppColors.error : AppColors.primary, Icons.payments_outlined),
         const AppDivider(verticalPadding: 8),
         _frow('Remaining', project.formattedRemaining,
             project.remainingBudget >= 0 ? AppColors.success : AppColors.error, Icons.savings_outlined),
@@ -819,14 +1305,23 @@ class _FinancialCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(color: Color(0xFFEEF0F8), height: 1),
           const SizedBox(height: 10),
-          Text('BUDGET BREAKDOWN', style: AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 1.1, fontWeight: FontWeight.w800)),
+          Text('BUDGET BREAKDOWN', style: AppTheme.caption.copyWith(
+              fontSize: 10, letterSpacing: 1.1, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            if ((project.budgetMaterial ?? 0) > 0)  _brkChip('Material',  project.budgetMaterial!,  AppColors.primary),
-            if ((project.budgetLabour ?? 0) > 0)    _brkChip('Labour',    project.budgetLabour!,    AppColors.info),
-            if ((project.budgetEquipment ?? 0) > 0) _brkChip('Equipment', project.budgetEquipment!, const Color(0xFF7B3FE7)),
-            if ((project.budgetMisc ?? 0) > 0)      _brkChip('Misc',      project.budgetMisc!,      AppColors.warning),
-          ]),
+          if (bMat > 0) ...[
+            _catRow('Material', bMat, AppColors.primary, Icons.category_outlined),
+            const AppDivider(verticalPadding: 6),
+          ],
+          if (bLab > 0) ...[
+            _catRow('Labour', bLab, AppColors.info, Icons.people_outline_rounded),
+            const AppDivider(verticalPadding: 6),
+          ],
+          if (bEq > 0) ...[
+            _catRow('Equipment', bEq, const Color(0xFF7B3FE7), Icons.precision_manufacturing_outlined),
+            const AppDivider(verticalPadding: 6),
+          ],
+          if (bMisc > 0)
+            _catRow('Miscellaneous', bMisc, AppColors.warning, Icons.more_horiz_rounded),
         ],
         const SizedBox(height: 14),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -851,16 +1346,15 @@ class _FinancialCard extends StatelessWidget {
     Expanded(child: Text(label, style: AppTheme.body.copyWith(color: AppColors.textMedium))),
     Text(value, style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: color)),
   ]);
-  static Widget _brkChip(String label, double amount, Color c) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(color: c.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: c.withValues(alpha: 0.2))),
-    child: Column(children: [
-      Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
-      const SizedBox(height: 2),
-      Text(formatCurrency(amount), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: c)),
-    ]),
-  );
+  // Category breakdown row: icon, label, formatted amount
+  Widget _catRow(String label, double amount, Color c, IconData icon) => Row(children: [
+    Container(width: 30, height: 30,
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+      child: Icon(icon, color: c, size: 15)),
+    const SizedBox(width: 10),
+    Expanded(child: Text(label, style: AppTheme.body.copyWith(color: AppColors.textMedium, fontSize: 13))),
+    Text(formatCurrency(amount), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c)),
+  ]);
 }
 
 // ── Recent Entries Section ────────────────────────────────────────────────────

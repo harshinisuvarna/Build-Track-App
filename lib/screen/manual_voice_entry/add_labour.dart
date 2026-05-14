@@ -27,10 +27,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   final _nameCtrl     = TextEditingController(); // Worker / Team Name
   final _workTypeCtrl = TextEditingController(); // Work Type
   final _categoryCtrl = TextEditingController(); // Labour Category
-  final _hoursCtrl    = TextEditingController(); // Hours Worked
-  final _rateCtrl     = TextEditingController(); // Rate / Hour
+  final _hoursCtrl    = TextEditingController(); // Quantity (hours/days/sqft etc)
+  final _rateCtrl     = TextEditingController(); // Rate / Unit
   final _overtimeCtrl = TextEditingController(); // Overtime (optional)
   final _notesCtrl    = TextEditingController(); // Notes
+  String? _selectedUnit;                         // Labour unit
 
   // ── UI state ─────────────────────────────────────────────────────────────
   bool _isSaving   = false;
@@ -94,18 +95,18 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   double get _computedTotal {
-    final hours    = double.tryParse(_hoursCtrl.text) ?? 0;
+    final qty      = double.tryParse(_hoursCtrl.text) ?? 0;
     final rate     = double.tryParse(_rateCtrl.text)  ?? 0;
     final overtime = double.tryParse(_overtimeCtrl.text) ?? 0;
-    return (hours * rate) + overtime;
+    return (qty * rate) + overtime;
   }
 
   bool _validate() {
     bool ok = true;
     setState(() {
       _nameError  = _nameCtrl.text.trim().isEmpty ? 'Worker / team name is required' : null;
-      final hours = double.tryParse(_hoursCtrl.text);
-      _hoursError = (hours == null || hours <= 0) ? 'Enter valid hours > 0' : null;
+      final qty = double.tryParse(_hoursCtrl.text);
+      _hoursError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
       final rate  = double.tryParse(_rateCtrl.text);
       _rateError  = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
       ok = _nameError == null && _hoursError == null && _rateError == null;
@@ -155,7 +156,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ..addAll({
             'title':      _nameCtrl.text,
             'ref':        '#$entryId',
-            'amount':     '+${_hoursCtrl.text} hrs',
+            'amount':     '+${_hoursCtrl.text} ${_selectedUnit ?? "Unit"}',
             'date':       'Today',
             'isPositive': true,
             'icon':       Icons.people_outline,
@@ -282,12 +283,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Hours Worked', required: true),
+                                    const EntryFieldLabel('Work Quantity', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _hoursCtrl,
                                       hint: '0',
-                                      suffix: 'hrs',
+                                      suffix: _selectedUnit ?? 'Unit',
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -300,7 +301,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Rate / Hour', required: true),
+                                    const EntryFieldLabel('Rate / Unit', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _rateCtrl,
@@ -314,6 +315,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Unit selector
+                          const EntryFieldLabel('Unit', required: false),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            units: kLabourUnits,
+                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
+                            onChanged: (u) => setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 18),
 
@@ -342,7 +354,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       totalAmount: _computedTotal,
                       label: 'Total Labour Cost',
                       subtotals: [
-                        ('Hours × Rate', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} hrs × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Qty × Rate', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                         ('Overtime', '₹ ${_overtimeCtrl.text.isEmpty ? "0" : _overtimeCtrl.text}'),
                       ],
                     ),
