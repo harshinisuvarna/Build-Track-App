@@ -131,7 +131,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           value: _selectedRole,
           hint: 'Select role',
           items: _roles
-              .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+              .map((r) => DropdownMenuItem<String>(value: r, child: Text(r)))
               .toList(),
           onChanged: (v) => setState(() => _selectedRole = v ?? _selectedRole),
         ),

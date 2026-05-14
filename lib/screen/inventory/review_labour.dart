@@ -207,6 +207,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
           'title': _nameCtrl.text, 'ref': '#$entryId',
           'amount': '+${_hoursCtrl.text} hrs', 'date': 'Today',
           'isPositive': true, 'icon': Icons.people_outline,
+          'attachment': _attachment, 'receipt': _attachment?.name,
         }),
       },
     );
@@ -351,12 +352,12 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                           children: [
                             const EntryCardHeader(
                               icon: Icons.receipt_long_outlined,
-                              title: 'Attach Receipt (Optional)',
-                              subtitle: 'Upload supporting document',
+                              title: 'Invoice / Bill',
+                              subtitle: 'Attach invoice, bill, or supporting document (optional)',
                             ),
                             const SizedBox(height: 16),
                             UploadBox(
-                              attachment: _attachment, emptyLabel: 'Tap to attach receipt',
+                              attachment: _attachment, emptyLabel: 'Tap to upload invoice / bill',
                               onPicked: (a) => setState(() => _attachment = a),
                               onRemove: () => setState(() => _attachment = null),
                             ),

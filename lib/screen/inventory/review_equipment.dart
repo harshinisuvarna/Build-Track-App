@@ -216,6 +216,7 @@ class _ReviewEquipmentEntryScreenState
           'title': _nameCtrl.text, 'ref': '#$entryId',
           'amount': '+${_hoursCtrl.text} hrs', 'date': 'Today',
           'isPositive': true, 'icon': Icons.precision_manufacturing_outlined,
+          'attachment': _attachment, 'receipt': _attachment?.name,
         }),
       },
     );
@@ -360,12 +361,12 @@ class _ReviewEquipmentEntryScreenState
                           children: [
                             const EntryCardHeader(
                               icon: Icons.attach_file_outlined,
-                              title: 'Equipment Log (Optional)',
-                              subtitle: 'Upload supporting document',
+                              title: 'Invoice / Bill',
+                              subtitle: 'Attach invoice, bill, or supporting document (optional)',
                             ),
                             const SizedBox(height: 16),
                             UploadBox(
-                              attachment: _attachment, emptyLabel: 'Tap to upload log',
+                              attachment: _attachment, emptyLabel: 'Tap to upload invoice / bill',
                               onPicked: (a) => setState(() => _attachment = a),
                               onRemove: () => setState(() => _attachment = null),
                             ),

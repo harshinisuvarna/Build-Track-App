@@ -7,32 +7,32 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kProjectsKey = 'buildtrack_projects_v1';
-const _kEntriesKey  = 'buildtrack_entries_v1';
+const _kEntriesKey = 'buildtrack_entries_v1';
 
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
-  List<EntryModel>   _entries  = [];
-  List<PhaseModel>   _phases   = [];
-  ProjectModel?      _selectedProject;
-  
-  bool   _isLoading = false;
-  String _error     = '';
-  
-  List<ProjectModel> get projects        => List.unmodifiable(_projects);
-  List<EntryModel>   get entries         => List.unmodifiable(_entries);
-  List<PhaseModel>   get phases          => List.unmodifiable(_phases);
-  ProjectModel?      get selectedProject => _selectedProject;
-  bool               get isLoading       => _isLoading;
-  String             get error           => _error;
-  bool               get hasProjects     => _projects.isNotEmpty;
-  int                get projectCount    => _projects.length;
-  
+  List<EntryModel> _entries = [];
+  List<PhaseModel> _phases = [];
+  ProjectModel? _selectedProject;
+
+  bool _isLoading = false;
+  String _error = '';
+
+  List<ProjectModel> get projects => List.unmodifiable(_projects);
+  List<EntryModel> get entries => List.unmodifiable(_entries);
+  List<PhaseModel> get phases => List.unmodifiable(_phases);
+  ProjectModel? get selectedProject => _selectedProject;
+  bool get isLoading => _isLoading;
+  String get error => _error;
+  bool get hasProjects => _projects.isNotEmpty;
+  int get projectCount => _projects.length;
+
   Map<String, double> get materialStock {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
-    final materialEntries = _entries.where((e) =>
-      e.projectId == _selectedProject!.id &&
-      e.type == EntryType.material,
+    final materialEntries = _entries.where(
+      (e) =>
+          e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -42,13 +42,13 @@ class ProjectProvider extends ChangeNotifier {
     }
     return stockMap;
   }
-  
+
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId == projectId).toList();
-      
+
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (s, e) => s + e.amount);
-      
+
   Future<void> load() async {
     _setLoading(true);
     try {
@@ -66,11 +66,19 @@ class ProjectProvider extends ChangeNotifier {
 
       if (_phases.isEmpty || _phases.length < 11) {
         final phaseNames = [
-          'Pre-Construction', 'Site Preparation', 'Foundation', 'Plinth',
-          'Superstructure', 'Masonry', 'MEP', 'Plastering', 'Finishing',
-          'Fixtures', 'Handover'
+          'Pre-Construction',
+          'Site Preparation',
+          'Foundation',
+          'Plinth',
+          'Superstructure',
+          'Masonry',
+          'MEP',
+          'Plastering',
+          'Finishing',
+          'Fixtures',
+          'Handover',
         ];
-        
+
         _phases = phaseNames.asMap().entries.map((entry) {
           return PhaseModel(
             id: entry.value.toLowerCase().replaceAll(' ', '_'),
@@ -78,7 +86,7 @@ class ProjectProvider extends ChangeNotifier {
             order: entry.key,
           );
         }).toList();
-        
+
         _savePhases();
       }
 
@@ -94,10 +102,10 @@ class ProjectProvider extends ChangeNotifier {
       } else {
         _projects = [];
       }
-      
+
       try {
         final apiMaterials = await ApiService.fetchMaterials();
-        
+
         _entries = apiMaterials.map<EntryModel>((json) {
           EntryType parsedType = EntryType.material;
           if (json['type'] == 'labour') parsedType = EntryType.labour;
@@ -105,18 +113,19 @@ class ProjectProvider extends ChangeNotifier {
 
           return EntryModel(
             id: json['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: json['project'] ?? 'p1', 
+            projectId: json['project'] ?? 'p1',
             type: parsedType,
             amount: (json['quantity'] ?? 0).toDouble(),
-            date: json['date'] != null ? DateTime.tryParse(json['date']) ?? DateTime.now() : DateTime.now(),
+            date: json['date'] != null
+                ? DateTime.tryParse(json['date']) ?? DateTime.now()
+                : DateTime.now(),
             description: json['title'] ?? 'Material Entry',
             brand: json['brand'],
             ratePerUnit: (json['rate'] ?? 0).toDouble(),
           );
         }).toList();
-        
+
         await _persistEntries();
-        
       } catch (e) {
         dev.log('API fetch failed, falling back to local storage: $e');
         final rawEntries = prefs.getString(_kEntriesKey);
@@ -132,10 +141,6 @@ class ProjectProvider extends ChangeNotifier {
         _selectedProject = _projects.first;
       }
       _error = '';
-
-      // We still run the projects fetch from Track 1
-      // await fetchProjects(); 
-
     } catch (e, st) {
       _error = 'Failed to load data: $e';
       dev.log('ProjectProvider.load error', error: e, stackTrace: st);
@@ -146,70 +151,100 @@ class ProjectProvider extends ChangeNotifier {
 
   Future<void> fetchProjects() async {
     _setLoading(true);
-    // Note: Assuming ApiService.get exists in Roselin's implementation
-    // If this throws an error, you can comment it out for now.
     _setLoading(false);
     notifyListeners();
   }
-  
+
   Future<void> addProject(
     ProjectModel project, {
-    String?       clientName,
-    String?       projectType,
-    DateTime?     expectedEndDate,
+    String? clientName,
+    String? projectType,
+    DateTime? expectedEndDate,
     List<String>? floors,
   }) async {
-    final finalFloors =
-        (floors == null || floors.isEmpty) ? ['Ground Floor'] : floors;
+    final finalFloors = (floors == null || floors.isEmpty)
+        ? ['Ground Floor']
+        : floors;
     final updatedProject = project.copyWith(
-      clientName:      clientName,
-      projectType:     projectType,
+      clientName: clientName,
+      projectType: projectType,
       expectedEndDate: expectedEndDate,
-      floors:          finalFloors,
+      floors: finalFloors,
     );
     _projects.add(updatedProject);
     _selectedProject = updatedProject;
     await _persistProjects();
     notifyListeners();
   }
-  
+
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     notifyListeners();
   }
-  
+
   Future<void> updateProjectProgress(String id, double progress) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
-    _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
+    _projects[idx] = _projects[idx].copyWith(
+      progress: progress.clamp(0.0, 1.0),
+    );
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     await _persistProjects();
     notifyListeners();
   }
 
-  // --- ROSELIN'S ACTIVITY COMPLETION FEATURE ---
-  Future<void> toggleActivityCompletion(String projectId, String activityKey, int totalActivities) async {
+  // --- MERGED ACTIVITY COMPLETION FEATURE ---
+  Future<void> toggleActivityCompletion(
+    String projectId,
+    String activityId, {
+    int? legacyTotalActivities,
+  }) async {
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
-    
-    final project   = _projects[idx];
-    final completed = List<String>.from(project.completedActivityKeys ?? []);
-    
-    if (completed.contains(activityKey)) {
-      completed.remove(activityKey);
+    final project = _projects[idx];
+
+    // ── New path: project has selectedPhases ───────────────────────
+    if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
+      final updatedPhases = project.selectedPhases!.map((phase) {
+        final updatedActivities = phase.activities.map((act) {
+          if (act.id == activityId)
+            return act.copyWith(completed: !act.completed);
+          return act;
+        }).toList();
+        return phase.copyWith(activities: updatedActivities);
+      }).toList();
+
+      final total = updatedPhases.fold<int>(0, (sum, p) => sum + p.totalCount);
+      final done = updatedPhases.fold<int>(
+        0,
+        (sum, p) => sum + p.completedCount,
+      );
+      final newProgress = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
+
+      _projects[idx] = project.copyWith(
+        selectedPhases: updatedPhases,
+        progress: newProgress,
+      );
     } else {
-      completed.add(activityKey);
+      // ── Legacy path: use completedActivityKeys list ──────────────
+      final completed = List<String>.from(project.completedActivityKeys ?? []);
+      if (completed.contains(activityId)) {
+        completed.remove(activityId);
+      } else {
+        completed.add(activityId);
+      }
+
+      final totalToUse = legacyTotalActivities ?? 161;
+      final newProgress = totalToUse > 0
+          ? (completed.length / totalToUse).clamp(0.0, 1.0)
+          : 0.0;
+
+      _projects[idx] = project.copyWith(
+        completedActivityKeys: completed,
+        progress: newProgress,
+      );
     }
-    
-    final newProgress = totalActivities > 0
-        ? (completed.length / totalActivities).clamp(0.0, 1.0)
-        : 0.0;
-        
-    _projects[idx] = project.copyWith(
-      completedActivityKeys: completed,
-      progress: newProgress,
-    );
-    
+
     if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
     await _persistProjects();
     notifyListeners();
@@ -217,16 +252,15 @@ class ProjectProvider extends ChangeNotifier {
 
   Future<void> addEntry(
     EntryModel entry, {
-    String?       brand,
-    double?       ratePerUnit,
-    String?       floor,
+    String? brand,
+    double? ratePerUnit,
+    String? floor,
     ProjectStage? phase,
   }) async {
-    
     // --- HARSHINI'S INTEGRATION CODE FOR POSTING ---
     final payload = {
       "title": entry.description,
-      "type": entry.type.name, 
+      "type": entry.type.name,
       "project": entry.projectId,
       "quantity": entry.amount,
       "rate": ratePerUnit ?? entry.ratePerUnit ?? 0,
@@ -237,24 +271,24 @@ class ProjectProvider extends ChangeNotifier {
 
     if (!success) {
       dev.log("Failed to save entry to backend!");
-      return; 
+      return;
     }
     // --------------------------------------------
 
     final updatedEntry = EntryModel(
-      id:          entry.id,
-      projectId:   entry.projectId,
-      type:        entry.type,
-      amount:      entry.amount,
-      date:        entry.date,
+      id: entry.id,
+      projectId: entry.projectId,
+      type: entry.type,
+      amount: entry.amount,
+      date: entry.date,
       description: entry.description,
-      brand:       brand       ?? entry.brand,
+      brand: brand ?? entry.brand,
       ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
-      floor:       floor       ?? entry.floor,
-      phase:       phase       ?? entry.phase,
+      floor: floor ?? entry.floor,
+      phase: phase ?? entry.phase,
     );
     _entries.add(updatedEntry);
-    
+
     final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
       final newSpent = _projects[idx].spentAmount + updatedEntry.amount;
@@ -265,14 +299,14 @@ class ProjectProvider extends ChangeNotifier {
       await _persistProjects();
     }
     await _persistEntries();
-    notifyListeners(); 
+    notifyListeners();
   }
-  
+
   Future<void> _persistProjects() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kProjectsKey, ProjectModel.encodeList(_projects));
   }
-  
+
   Future<void> _persistEntries() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEntriesKey, EntryModel.encodeList(_entries));
@@ -280,10 +314,7 @@ class ProjectProvider extends ChangeNotifier {
 
   void _savePhases() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'phases',
-      PhaseModel.encodeList(_phases),
-    );
+    await prefs.setString('phases', PhaseModel.encodeList(_phases));
   }
 
   void addPhase(String name) {
@@ -318,38 +349,49 @@ class ProjectProvider extends ChangeNotifier {
 
   // --- SEED FALLBACK DATA ---
   List<ProjectModel> _seedProjects() => [
-        ProjectModel(
-          id:          'p1', 
-          name:        'Skyline Residences Phase II',
-          city:        'Mumbai', // <--- FIXED THIS LINE
-          sector:      'Andheri West',
-          stage:       ProjectStage.superstructure,
-          progress:    0.68,
-          totalBudget: 45000000,
-          spentAmount: 24000000,
-          startDate:   DateTime(2024, 1, 15),
-        ),
-        ProjectModel(
-          id:          'p2',
-          name:        'Tower Block A – Andheri',
-          city:        'Mumbai',
-          sector:      'Sector 4',
-          stage:       ProjectStage.foundation,
-          progress:    0.34,
-          totalBudget: 28000000,
-          spentAmount:  8400000,
-          startDate:   DateTime(2024, 3, 1),
-        ),
-      ];
-      
+    ProjectModel(
+      id: 'p1',
+      name: 'Skyline Residences Phase II',
+      city: 'Mumbai',
+      sector: 'Andheri West',
+      stage: ProjectStage.floorConstruction,
+      progress: 0.68,
+      totalBudget: 45000000,
+      spentAmount: 24000000,
+      startDate: DateTime(2024, 1, 15),
+    ),
+    ProjectModel(
+      id: 'p2',
+      name: 'Tower Block A – Andheri',
+      city: 'Mumbai',
+      sector: 'Sector 4',
+      stage: ProjectStage.foundationPlinthWork,
+      progress: 0.34,
+      totalBudget: 28000000,
+      spentAmount: 8400000,
+      startDate: DateTime(2024, 3, 1),
+    ),
+    ProjectModel(
+      id: 'p3',
+      name: 'Commercial Plaza – BKC',
+      city: 'Mumbai',
+      sector: 'BKC Block G',
+      stage: ProjectStage.finishingWork,
+      progress: 0.92,
+      totalBudget: 72_000_000,
+      spentAmount: 66_240_000,
+      startDate: DateTime(2023, 6, 10),
+    ),
+  ];
+
   List<EntryModel> _seedEntries() => [
-        EntryModel(
-          id:          'e1',
-          projectId:   'p1',
-          type:        EntryType.material,
-          amount:      120.0, 
-          date:        DateTime.now().subtract(const Duration(days: 2)),
-          description: 'Concrete M30 – 120 m³',
-        ),
-      ];
+    EntryModel(
+      id: 'e1',
+      projectId: 'p1',
+      type: EntryType.material,
+      amount: 120.0,
+      date: DateTime.now().subtract(const Duration(days: 2)),
+      description: 'Concrete M30 – 120 m³',
+    ),
+  ];
 }
