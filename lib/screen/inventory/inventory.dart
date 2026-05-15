@@ -4,6 +4,8 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+// --- ADDED YOUR NEW PROVIDER IMPORTS ---
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -28,8 +30,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String _searchQuery = '';
   String _activeFilter = 'Recently Updated';
 
-  // Project context filter: null = All Active Projects
   String? _selectedProjectId;
+
+  // --- ADDED: Fetch initial live data when screen opens ---
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadInventory(_selectedProjectId ?? '');
+    });
+  }
 
   bool _matchSearch(String name) {
     return _searchQuery.isEmpty || name.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -84,6 +94,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 return InkWell(
                   onTap: () {
                     setState(() => _selectedProjectId = id);
+                    // --- ADDED: Reload inventory when project changes ---
+                    context.read<InventoryProvider>().loadInventory(id ?? '');
                     Navigator.pop(ctx);
                   },
                   borderRadius: BorderRadius.circular(12),
@@ -139,6 +151,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showEntryOptions(BuildContext context, String type) {
+    // ... (Your exact existing code for _showEntryOptions remains here)
     final voiceRoutes = {
       'material': '/review-material',
       'labour': '/review-labour',
@@ -316,6 +329,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildProjectSelector() {
+    // ... (Your exact existing code)
     final projects = context.watch<ProjectProvider>().projects;
     final ProjectModel? selected = _selectedProjectId == null
         ? null
@@ -378,6 +392,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildSearchBar() {
+    // ... (Your exact existing code)
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
@@ -425,6 +440,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildTabs() {
+    // ... (Your exact existing code)
     const tabs = ['Materials', 'Labour', 'Equipment'];
     return Container(
       padding: const EdgeInsets.all(4),
@@ -473,20 +489,49 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return _selectedProjectId == null || _selectedProjectId == projectId;
   }
 
+  // --- UPDATED: Uses Live Inventory Provider ---
   Widget _buildMaterialsTab(BuildContext context) {
     final stock = context.watch<ProjectProvider>().materialStock;
     final stockList = stock.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    var items = [
-      {'name': 'Steel Rebar 12mm', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.architecture, name: 'Steel Rebar 12mm', lastUpdated: 'Last updated 2h ago', qty: '1,240', unit: 'units', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 2},
-      {'name': 'Primer White X-2', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.format_paint_outlined, name: 'Primer White X-2', lastUpdated: 'Last updated 45m ago', qty: '42', unit: 'cans', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'material'), 'level': 0, 'time': 1},
-      {'name': 'Portland Cement', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.layers_outlined, name: 'Portland Cement', lastUpdated: 'Last updated 5h ago', qty: '450', unit: 'bags', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'material'), 'level': 1, 'time': 5},
-      {'name': 'urgent material', 'projectId': 'p3', 'widget': _urgentCard(context), 'level': 0, 'time': 0},
-      {'name': 'HVAC Copper Pipes', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.construction_outlined, name: 'HVAC Copper Pipes', lastUpdated: 'Last updated 1d ago', qty: '3,200', unit: 'meters', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'material'), 'level': 2, 'time': 24},
-    ].where((i) => _matchProject(i['projectId'] as String)).toList();
+      
+    final provider = context.watch<InventoryProvider>();
+
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: primaryBlue));
+    }
+
+    // Maps your real backend data directly into your custom `_inventoryCard` UI
+    var items = provider.inventory.map((item) {
+      final isLow = item.closingStock < item.threshold;
+      final levelStr = isLow ? 'LOW' : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
+      final color = isLow ? Colors.redAccent : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
+
+      return {
+        'name': item.name,
+        'projectId': _selectedProjectId ?? 'p1', 
+        'widget': _inventoryCard(
+          context: context, 
+          icon: Icons.architecture, 
+          name: item.name, 
+          lastUpdated: 'Live Stock Level', 
+          qty: item.closingStock.toStringAsFixed(0), 
+          unit: 'units', 
+          level: levelStr, 
+          levelColor: color, 
+          bottomColor: color, 
+          type: 'material'
+        ),
+        'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1), 
+        'time': 1
+      };
+    }).toList();
+
     return _buildTab(items, stockSummary: _buildStockSummary(stockList));
   }
+
   Widget _buildStockSummary(List<MapEntry<String, double>> stockList) {
+    // ... (Your exact existing code)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -538,9 +583,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           )
         else
           ...stockList.map((entry) {
-            final brand = entry.key; // 'Unknown' already handled by provider
+            final brand = entry.key; 
             final qty   = entry.value;
-            // Visual bar: proportion relative to max
             final maxQty = stockList.first.value;
             final ratio  = maxQty > 0 ? (qty / maxQty).clamp(0.0, 1.0) : 0.0;
             return Container(
@@ -581,7 +625,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Mini progress bar
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
@@ -605,23 +648,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ],
     );
   }
+
+  // --- UPDATED: Cleared out dummy hardcoded data ---
   Widget _buildLabourTab(BuildContext context) {
-    var items = [
-      {'name': 'Concrete Form Workers', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.engineering_outlined, name: 'Concrete Form Workers', lastUpdated: 'Last updated 1h ago', qty: '14', unit: 'workers', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'labour'), 'level': 2, 'time': 1},
-      {'name': 'Masonry Team', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.people_outline, name: 'Masonry Team', lastUpdated: 'Last updated 3h ago', qty: '8', unit: 'workers', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'labour'), 'level': 1, 'time': 3},
-      {'name': 'Electrical Crew', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.electric_bolt_outlined, name: 'Electrical Crew', lastUpdated: 'Last updated 6h ago', qty: '5', unit: 'workers', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'labour'), 'level': 0, 'time': 6},
-    ].where((i) => _matchProject(i['projectId'] as String)).toList();
-    return _buildTab(items);
+    return _buildTab([]); 
   }
+  
   Widget _buildEquipmentTab(BuildContext context) {
-    var items = [
-      {'name': 'Tower Crane TC-7', 'projectId': 'p1', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Tower Crane TC-7', lastUpdated: 'Last updated 30m ago', qty: '6', unit: 'hrs today', level: 'HIGH', levelColor: primaryBlue, bottomColor: primaryBlue, type: 'equipment'), 'level': 2, 'time': 0.5},
-      {'name': 'Concrete Mixer CM-3', 'projectId': 'p2', 'widget': _inventoryCard(context: context, icon: Icons.precision_manufacturing_outlined, name: 'Concrete Mixer CM-3', lastUpdated: 'Last updated 2h ago', qty: '4', unit: 'hrs today', level: 'MED', levelColor: Colors.orange, bottomColor: Colors.orange, type: 'equipment'), 'level': 1, 'time': 2},
-      {'name': 'Excavator EX-200', 'projectId': 'p3', 'widget': _inventoryCard(context: context, icon: Icons.local_shipping_outlined, name: 'Excavator EX-200', lastUpdated: 'Last updated 1d ago', qty: '0', unit: 'hrs today', level: 'LOW', levelColor: Colors.redAccent, bottomColor: Colors.redAccent, type: 'equipment'), 'level': 0, 'time': 24},
-    ].where((i) => _matchProject(i['projectId'] as String)).toList();
-    return _buildTab(items);
+    return _buildTab([]); 
   }
+
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
+    // ... (Your exact existing code)
     var filtered = items.where((i) => _matchSearch(i['name'] as String)).toList();
     
     if (_activeFilter == 'Sort by Name (A-Z)') {
@@ -636,6 +674,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Column(
         children: [
           if (stockSummary != null) ...[stockSummary],
+          if (filtered.isEmpty && items.isEmpty)
+             const Padding(
+               padding: EdgeInsets.only(top: 40),
+               child: Center(child: Text('No entries found.', style: TextStyle(color: textGray))),
+             ),
           ...filtered.map((i) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: i['widget'] as Widget,
@@ -644,7 +687,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
+
   void _showFilterOptions() {
+    // ... (Your exact existing code)
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -665,6 +710,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
+
   Widget _filterTile(BuildContext ctx, String label, IconData icon) {
     final isActive = _activeFilter == label;
     return ListTile(
@@ -680,6 +726,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       },
     );
   }
+
   Widget _inventoryCard({
     required BuildContext context,
     required IconData icon,
@@ -692,6 +739,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required Color bottomColor,
     required String type,
   }) {
+    // ... (Your exact existing code)
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -787,97 +835,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ]),
         ),
       ),
-    );
-  }
-  Widget _urgentCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppGradients.primaryButton,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.45),
-              blurRadius: 20,
-              offset: const Offset(0, 6))
-        ],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Row(children: [
-          Icon(Icons.notification_important_outlined,
-              color: Colors.white70, size: 14),
-          SizedBox(width: 6),
-          Text('URGENT REQUIREMENT',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.3)),
-        ]),
-        const SizedBox(height: 12),
-        const Text('Glazing Panels\nSection B-12',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                height: 1.2,
-                letterSpacing: -0.3)),
-        const SizedBox(height: 8),
-        const Text(
-            'Stock level critically low for the upcoming facade installation phase.',
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
-        const SizedBox(height: 18),
-        Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                child: InkWell(
-                  onTap: () => _showEntryOptions(context, 'material'),
-                  borderRadius: BorderRadius.circular(30),
-                  child: const Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-                    child: Text('Restock Now',
-                        style: TextStyle(
-                            color: AppColors.primaryBlue,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14)),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 78,
-                height: 78,
-                child: Stack(alignment: Alignment.center, children: const [
-                  SizedBox(
-                    width: 78,
-                    height: 78,
-                    child: CircularProgressIndicator(
-                        value: 0.12,
-                        strokeWidth: 7,
-                        backgroundColor: Colors.white24,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white)),
-                  ),
-                  Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('12%',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 17)),
-                    Text('REMAINING',
-                        style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 8,
-                            letterSpacing: 0.5)),
-                  ]),
-                ]),
-              ),
-            ]),
-      ]),
     );
   }
 }

@@ -55,12 +55,19 @@ class ApiService {
   // 1. HTTP GET: Fetch Materials
   static Future<List<dynamic>> fetchMaterials() async {
     try {
-      // Using Roselin's 'get' method ensures the real JWT token is attached!
-      final response = await get('/materials');
+      final response = await get('/inventory');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        return decoded['materials'] ?? decoded; 
+        
+        // --- SMART PARSING APPLIED HERE SO IT NEVER CRASHES ---
+        if (decoded is List) {
+          return decoded;
+        } else if (decoded is Map) {
+          return decoded['materials'] ?? decoded['inventory'] ?? decoded['data'] ?? decoded['items'] ?? [];
+        }
+        return [];
+        
       } else {
         throw Exception('Failed to load materials');
       }
@@ -73,13 +80,34 @@ class ApiService {
   // 2. HTTP POST: Add New Material
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
-      // Using Roselin's 'post' method ensures the real JWT token is attached!
-      final response = await post('/materials', payload);
-
+      final response = await post('/inventory', payload);
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print('POST Error: $e');
       return false;
+    }
+  }
+
+  static Future<List<dynamic>> fetchInventory(String projectId) async {
+    try {
+      final response = await get('/inventory'); 
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        
+        if (decoded is List) {
+          return decoded;
+        } else if (decoded is Map) {
+          return decoded['inventory'] ?? decoded['data'] ?? decoded['items'] ?? [];
+        }
+        return [];
+        
+      } else {
+        throw Exception('Failed to load live inventory');
+      }
+    } catch (e) {
+      print('Inventory GET Error: $e');
+      return [];
     }
   }
 }
