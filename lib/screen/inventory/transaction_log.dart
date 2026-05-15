@@ -521,6 +521,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'type':          _itemType,
             'name':          _itemName,
             'receipt':       receipt,
+            'attachment':    log['attachment'],
             'createdBy':     log['createdBy'] ?? '',
             'projectId':     log['projectId'] ?? '',
             'status':        log['status'] ?? 'pending',

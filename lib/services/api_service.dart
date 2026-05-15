@@ -110,4 +110,68 @@ class ApiService {
       return [];
     }
   }
+
+  // POST /api/auth/reset-password
+  static Future<bool> resetPassword(String email) async {
+    try {
+      // Using your existing 'post' helper! 
+      // baseUrl is already 'http://localhost:5000/api', so we just add the endpoint.
+      final response = await post('/auth/reset-password', {'email': email});
+      
+      // Return true if 200 OK or 201 Created
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        throw Exception('Server returned ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to request password reset: $e');
+    }
+  }
+
+  // GET /api/inventory with Search & Category filters
+  static Future<List<dynamic>> searchMaterials({String? query, String? category}) async {
+    try {
+      // Build the query string dynamically
+      String endpoint = '/inventory?';
+      if (query != null && query.isNotEmpty) endpoint += 'search=$query&';
+      if (category != null && category.isNotEmpty && category != 'All') {
+        endpoint += 'category=${category.toLowerCase()}';
+      }
+
+      final response = await get(endpoint);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map) {
+          return decoded['inventory'] ?? decoded['data'] ?? [];
+        }
+        return [];
+      } else {
+        throw Exception('Search failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Search API Error: $e');
+      return [];
+    }
+  }
+
+  // TASK 3: Fetch Live Daily Tasks
+  static Future<List<dynamic>> fetchDailyTasks() async {
+    try {
+      final response = await get('/tasks/daily');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map) return decoded['tasks'] ?? decoded['data'] ?? [];
+        return [];
+      } else {
+        throw Exception('Failed to load daily tasks');
+      }
+    } catch (e) {
+      print('Tasks API Error: $e');
+      return []; // Return empty list on error to prevent UI crash
+    }
+  }
 }

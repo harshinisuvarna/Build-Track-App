@@ -20,8 +20,8 @@ class InventoryItem {
       id: json['_id'] ?? '',
       // --- UPDATED: Checking all possible backend keys for the name ---
       name: json['materialName'] ?? json['itemName'] ?? json['title'] ?? json['name'] ?? json['brand'] ?? 'Unknown Material',
-      totalPurchased: (json['totalPurchased'] ?? 0).toDouble(),
-      totalUsed: (json['totalUsed'] ?? 0).toDouble(),
+      totalPurchased: (json['purchased'] ?? json['totalPurchased'] ?? 0).toDouble(),
+      totalUsed: (json['used'] ?? json['totalUsed'] ?? 0).toDouble(),
       closingStock: (json['closingStock'] ?? 0).toDouble(),
       threshold: (json['threshold'] ?? 0).toDouble(),
     );

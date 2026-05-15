@@ -1,3 +1,4 @@
+import 'dart:async'; // --- ADDED: Required for Debounce Timer ---
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -31,6 +32,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String _activeFilter = 'Recently Updated';
 
   String? _selectedProjectId;
+  
+  Timer? _debounce; // --- ADDED: Debounce Timer variable ---
 
   // --- ADDED: Fetch initial live data when screen opens ---
   @override
@@ -41,12 +44,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     });
   }
 
-  bool _matchSearch(String name) {
-    return _searchQuery.isEmpty || name.toLowerCase().contains(_searchQuery.toLowerCase());
-  }
-
   @override
   void dispose() {
+    _debounce?.cancel(); // --- ADDED: Clean up timer ---
     _pageController.dispose();
     _searchCtrl.dispose();
     super.dispose();
@@ -409,7 +409,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
         Expanded(
           child: TextField(
             controller: _searchCtrl,
-            onChanged: (val) => setState(() => _searchQuery = val),
+            // --- ADDED: Task 2 Debounce Timer Logic ---
+            onChanged: (val) {
+              setState(() => _searchQuery = val);
+              if (_debounce?.isActive ?? false) _debounce!.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), () {
+                String category = 'All';
+                if (_tabIndex == 0) category = 'Materials';
+                if (_tabIndex == 1) category = 'Labour';
+                if (_tabIndex == 2) category = 'Equipment';
+                context.read<InventoryProvider>().performSearch(val, category);
+              });
+            },
             decoration: const InputDecoration(
               hintText: 'Search materials, SKU, or site log...',
               hintStyle: TextStyle(color: textGray, fontSize: 14),
@@ -483,10 +494,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }),
       ),
     );
-  }
-
-  bool _matchProject(String projectId) {
-    return _selectedProjectId == null || _selectedProjectId == projectId;
   }
 
   // --- UPDATED: Uses Live Inventory Provider ---
@@ -660,7 +667,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
     // ... (Your exact existing code)
-    var filtered = items.where((i) => _matchSearch(i['name'] as String)).toList();
+    // --- ADDED: We no longer filter locally using _matchSearch, because the backend handles it via searchMaterials ---
+    var filtered = List<Map<String, dynamic>>.from(items);
     
     if (_activeFilter == 'Sort by Name (A-Z)') {
       filtered.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));

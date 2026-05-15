@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
@@ -103,14 +102,22 @@ class ProjectProvider extends ChangeNotifier {
           if (json['type'] == 'labour') parsedType = EntryType.labour;
           if (json['type'] == 'equipment') parsedType = EntryType.equipment;
 
+          // Safe extraction of projectId from object or string
+          String pId = 'p1';
+          if (json['project'] is Map) {
+            pId = json['project']['_id']?.toString() ?? 'p1';
+          } else if (json['project'] != null) {
+            pId = json['project'].toString();
+          }
+
           return EntryModel(
-            id: json['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: json['project'] ?? 'p1', 
+            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            projectId: pId, 
             type: parsedType,
-            amount: (json['quantity'] ?? 0).toDouble(),
+            amount: (json['closingStock'] ?? json['quantity'] ?? 0).toDouble(),
             date: json['date'] != null ? DateTime.tryParse(json['date']) ?? DateTime.now() : DateTime.now(),
-            description: json['title'] ?? 'Material Entry',
-            brand: json['brand'],
+            description: json['materialName'] ?? json['title'] ?? 'Material Entry',
+            brand: json['materialName'] ?? json['brand'],
             ratePerUnit: (json['rate'] ?? 0).toDouble(),
           );
         }).toList();
@@ -188,28 +195,47 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   // --- ROSELIN'S ACTIVITY COMPLETION FEATURE ---
-  Future<void> toggleActivityCompletion(String projectId, String activityKey, int totalActivities) async {
+  Future<void> toggleActivityCompletion(String projectId, String activityId) async {
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
-    
-    final project   = _projects[idx];
-    final completed = List<String>.from(project.completedActivityKeys ?? []);
-    
-    if (completed.contains(activityKey)) {
-      completed.remove(activityKey);
+    final project = _projects[idx];
+
+    // ── New path: project has selectedPhases ───────────────────────
+    if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
+      // Build a mutable deep-copy of selectedPhases
+      final updatedPhases = project.selectedPhases!.map((phase) {
+        final updatedActivities = phase.activities.map((act) {
+          if (act.id == activityId) return act.copyWith(completed: !act.completed);
+          return act;
+        }).toList();
+        return phase.copyWith(activities: updatedActivities);
+      }).toList();
+
+      final total = updatedPhases.fold<int>(0, (sum, p) => sum + p.totalCount);
+      final done  = updatedPhases.fold<int>(0, (sum, p) => sum + p.completedCount);
+      final newProgress = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
+
+      _projects[idx] = project.copyWith(
+        selectedPhases: updatedPhases,
+        progress:       newProgress,
+      );
     } else {
-      completed.add(activityKey);
+      // ── Legacy path: use completedActivityKeys list ──────────────
+      final completed = List<String>.from(project.completedActivityKeys ?? []);
+      if (completed.contains(activityId)) {
+        completed.remove(activityId);
+      } else {
+        completed.add(activityId);
+      }
+      // Calculate total from master list size (legacy behaviour)
+      const legacyTotal = 161; // approximate master list count
+      final newProgress = (completed.length / legacyTotal).clamp(0.0, 1.0);
+      _projects[idx] = project.copyWith(
+        completedActivityKeys: completed,
+        progress:              newProgress,
+      );
     }
-    
-    final newProgress = totalActivities > 0
-        ? (completed.length / totalActivities).clamp(0.0, 1.0)
-        : 0.0;
-        
-    _projects[idx] = project.copyWith(
-      completedActivityKeys: completed,
-      progress: newProgress,
-    );
-    
+
     if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
     await _persistProjects();
     notifyListeners();
@@ -317,39 +343,7 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   // --- SEED FALLBACK DATA ---
-  List<ProjectModel> _seedProjects() => [
-        ProjectModel(
-          id:          'p1', 
-          name:        'Skyline Residences Phase II',
-          city:        'Mumbai', // <--- FIXED THIS LINE
-          sector:      'Andheri West',
-          stage:       ProjectStage.superstructure,
-          progress:    0.68,
-          totalBudget: 45000000,
-          spentAmount: 24000000,
-          startDate:   DateTime(2024, 1, 15),
-        ),
-        ProjectModel(
-          id:          'p2',
-          name:        'Tower Block A – Andheri',
-          city:        'Mumbai',
-          sector:      'Sector 4',
-          stage:       ProjectStage.foundation,
-          progress:    0.34,
-          totalBudget: 28000000,
-          spentAmount:  8400000,
-          startDate:   DateTime(2024, 3, 1),
-        ),
-      ];
-      
-  List<EntryModel> _seedEntries() => [
-        EntryModel(
-          id:          'e1',
-          projectId:   'p1',
-          type:        EntryType.material,
-          amount:      120.0, 
-          date:        DateTime.now().subtract(const Duration(days: 2)),
-          description: 'Concrete M30 – 120 m³',
-        ),
-      ];
+  // Completely emptied out per requirement to remove all dummy projects and records
+  List<ProjectModel> _seedProjects() => [];
+  List<EntryModel> _seedEntries() => [];
 }
