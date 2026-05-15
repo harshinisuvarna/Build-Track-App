@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
@@ -111,7 +110,16 @@ class ProjectProvider extends ChangeNotifier {
           if (json['type'] == 'labour') parsedType = EntryType.labour;
           if (json['type'] == 'equipment') parsedType = EntryType.equipment;
 
+          // Safe extraction of projectId from object or string
+          String pId = 'p1';
+          if (json['project'] is Map) {
+            pId = json['project']['_id']?.toString() ?? 'p1';
+          } else if (json['project'] != null) {
+            pId = json['project'].toString();
+          }
+
           return EntryModel(
+<<<<<<< HEAD
             id: json['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
             projectId: json['project'] ?? 'p1',
             type: parsedType,
@@ -121,6 +129,15 @@ class ProjectProvider extends ChangeNotifier {
                 : DateTime.now(),
             description: json['title'] ?? 'Material Entry',
             brand: json['brand'],
+=======
+            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            projectId: pId, 
+            type: parsedType,
+            amount: (json['closingStock'] ?? json['quantity'] ?? 0).toDouble(),
+            date: json['date'] != null ? DateTime.tryParse(json['date']) ?? DateTime.now() : DateTime.now(),
+            description: json['materialName'] ?? json['title'] ?? 'Material Entry',
+            brand: json['materialName'] ?? json['brand'],
+>>>>>>> feat/roselin-sprint-final
             ratePerUnit: (json['rate'] ?? 0).toDouble(),
           );
         }).toList();
@@ -193,12 +210,17 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+<<<<<<< HEAD
   // --- MERGED ACTIVITY COMPLETION FEATURE ---
   Future<void> toggleActivityCompletion(
     String projectId,
     String activityId, {
     int? legacyTotalActivities,
   }) async {
+=======
+  // --- ROSELIN'S ACTIVITY COMPLETION FEATURE ---
+  Future<void> toggleActivityCompletion(String projectId, String activityId) async {
+>>>>>>> feat/roselin-sprint-final
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
     final project = _projects[idx];
@@ -348,6 +370,7 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   // --- SEED FALLBACK DATA ---
+<<<<<<< HEAD
   List<ProjectModel> _seedProjects() => [
     ProjectModel(
       id: 'p1',
@@ -395,3 +418,9 @@ class ProjectProvider extends ChangeNotifier {
     ),
   ];
 }
+=======
+  // Completely emptied out per requirement to remove all dummy projects and records
+  List<ProjectModel> _seedProjects() => [];
+  List<EntryModel> _seedEntries() => [];
+}
+>>>>>>> feat/roselin-sprint-final

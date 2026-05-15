@@ -280,6 +280,7 @@ class ProjectModel {
   };
 
   factory ProjectModel.fromJson(Map<String, dynamic> j) => ProjectModel(
+<<<<<<< HEAD
     id: (j['_id'] ?? j['id'] ?? '').toString(),
     name: (j['projectName'] ?? j['name'] ?? '').toString(),
     city: (j['location'] ?? j['city'] ?? '').toString(),
@@ -341,6 +342,66 @@ class ProjectModel {
     budgetMisc: (j['budgetMisc'] as num?)?.toDouble(),
     projectStatus: j['projectStatus'] as String?,
   );
+=======
+        // Safely extract from backend mappings
+        id:              (j['_id'] ?? j['id'] ?? '').toString(),
+        name:            (j['projectName'] ?? j['name'] ?? '').toString(),
+        city:            (j['location'] ?? j['city'] ?? '').toString(),
+        sector:          (j['sector'] ?? '').toString(),
+        stage:           ProjectStage.values.firstWhere(
+                           (s) => s.name == j['stage'],
+                           orElse: () => ProjectStage.preConstruction,
+                         ),
+        progress:        (j['progress'] as num?)?.toDouble() ?? 0.0,
+        totalBudget:     (j['totalBudget'] as num?)?.toDouble() ?? 0.0,
+        spentAmount:     (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
+        startDate:       j['startDate'] != null 
+                           ? (DateTime.tryParse(j['startDate'].toString()) ?? DateTime.now()) 
+                           : DateTime.now(),
+        clientName:      j['clientName']?.toString(),
+        projectType:     j['projectType']?.toString(),
+        expectedEndDate: j['expectedEndDate'] != null
+                           ? DateTime.tryParse(j['expectedEndDate'].toString())
+                           : null,
+        floors:                j['floors'] != null
+                                 ? List<String>.from(j['floors'] as List) : null,
+        selectedPhaseNames:    j['selectedPhaseNames'] != null
+                                 ? List<String>.from(j['selectedPhaseNames'] as List) : null,
+        trackedActivityKeys:   j['trackedActivityKeys'] != null
+                                 ? List<String>.from(j['trackedActivityKeys'] as List) : null,
+        completedActivityKeys: j['completedActivityKeys'] != null
+                                 ? List<String>.from(j['completedActivityKeys'] as List) : null,
+        selectedPhases: j['selectedPhases'] != null
+                          ? (j['selectedPhases'] as List<dynamic>)
+                              .map((e) => ProjectPhase.fromJson(e as Map<String, dynamic>))
+                              .toList()
+                          : null,
+        contractorName:   j['contractorName'] as String?,
+        siteEngineer:     j['siteEngineer'] as String?,
+        contactNumber:    j['contactNumber'] as String?,
+        actualEndDate:    j['actualEndDate'] != null
+                            ? DateTime.tryParse(j['actualEndDate'] as String) : null,
+        landArea:         j['landArea'] as String?,
+        landUnit:         j['landUnit'] as String?,
+        projectCode:      j['projectCode'] as String?,
+        mapAddress:       j['mapAddress'] as String?,
+        room1BHK:         j['room1BHK'] as int?,
+        room2BHK:         j['room2BHK'] as int?,
+        room3BHK:         j['room3BHK'] as int?,
+        roomCustom:       j['roomCustom'] as int?,
+        bathWestern:      j['bathWestern'] as int?,
+        bathIndian:       j['bathIndian'] as int?,
+        bathCommon:       j['bathCommon'] as int?,
+        bathAttached:     j['bathAttached'] as int?,
+        selectedFeatures: j['selectedFeatures'] != null
+                            ? List<String>.from(j['selectedFeatures'] as List) : null,
+        budgetMaterial:   (j['budgetMaterial'] as num?)?.toDouble(),
+        budgetLabour:     (j['budgetLabour'] as num?)?.toDouble(),
+        budgetEquipment:  (j['budgetEquipment'] as num?)?.toDouble(),
+        budgetMisc:       (j['budgetMisc'] as num?)?.toDouble(),
+        projectStatus:    j['projectStatus'] as String?,
+      );
+>>>>>>> feat/roselin-sprint-final
 
   static String encodeList(List<ProjectModel> list) =>
       jsonEncode(list.map((p) => p.toJson()).toList());

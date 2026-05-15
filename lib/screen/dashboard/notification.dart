@@ -1,7 +1,9 @@
 ﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -17,6 +19,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the entire provider to access both alerts and loading state
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final alerts = inventoryProvider.lowStockAlerts;
+    final isLoading = inventoryProvider.isLoading;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -52,7 +59,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '3 NEW',
+                            isLoading ? '...' : '${alerts.isNotEmpty ? alerts.length : "NO"} ALERTS',
                             style: AppTheme.label.copyWith(
                               color: Colors.white,
                               fontSize: 11,
@@ -63,9 +70,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _criticalAlertCard(),
-                    const SizedBox(height: 12),
-                    _inventoryWarningCard(),
+
+                    // --- Dynamic UI Alert Generation with Loading State ---
+                    if (isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 30),
+                        child: Center(
+                          child: CircularProgressIndicator(color: primaryBlue),
+                        ),
+                      )
+                    else if (alerts.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text("All inventory levels are looking healthy! 🎉", 
+                          style: TextStyle(color: textGray, fontSize: 14)),
+                      )
+                    else
+                      ...alerts.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _dynamicInventoryWarningCard(
+                          title: 'Low Stock: ${item.name}',
+                          body: 'Only ${item.closingStock} units remaining (Threshold: ${item.threshold}). Re-order is recommended to avoid site delays.',
+                        ),
+                      )),
+
                     const SizedBox(height: 12),
                     _weeklyReportCard(),
                     const SizedBox(height: 26),
@@ -104,103 +132,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _criticalAlertCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border(left: BorderSide(color: Colors.red.shade400, width: 4)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.red.withValues(alpha: 0.07), blurRadius: 14),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(11)),
-                child: Icon(Icons.warning_amber_rounded,
-                    color: Colors.red.shade400, size: 20),
-              ),
-              Text('12m ago',
-                  style: AppTheme.caption.copyWith(color: textGray)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                    color: Colors.red, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text('CRITICAL ALERT',
-                style: AppTheme.label.copyWith(
-                    color: Colors.red, fontSize: 10, letterSpacing: 0.9)),
-          ]),
-          const SizedBox(height: 7),
-          Text(
-            'Structural Beam Deflection Detected',
-            style: AppTheme.heading3
-                .copyWith(color: textDark, fontSize: 18, height: 1.3),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Sensor 4B in Sector 7 reports stress levels exceeding 15% threshold. Immediate inspection required at the Western support pillar.',
-            style: AppTheme.body.copyWith(color: textGray, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: BorderSide(color: Colors.red.shade300),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                  child: Text('Resolve',
-                      style: AppTheme.body.copyWith(
-                          color: Colors.red, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: textDark,
-                    side: const BorderSide(color: Color(0xFFDDE0F0)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                  child: Text('View Map',
-                      style: AppTheme.body.copyWith(
-                          color: textDark, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _inventoryWarningCard() {
+  Widget _dynamicInventoryWarningCard({required String title, required String body}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -225,10 +157,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 decoration: BoxDecoration(
                     color: const Color(0xFFFFF8EE),
                     borderRadius: BorderRadius.circular(11)),
-                child: const Icon(Icons.inventory_2_outlined,
+                child: const Icon(Icons.warning_amber_rounded,
                     color: Colors.orange, size: 20),
               ),
-              Text('2h ago',
+              Text('Just now',
                   style: AppTheme.caption.copyWith(color: textGray)),
             ],
           ),
@@ -246,12 +178,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ]),
           const SizedBox(height: 7),
           Text(
-            'Low Cement Stock (Phase 2)',
+            title,
             style: AppTheme.heading3.copyWith(color: textDark, fontSize: 18),
           ),
           const SizedBox(height: 6),
           Text(
-            "Current supply will be depleted by tomorrow's afternoon shift. Re-order scheduled but requires manual approval.",
+            body,
             style: AppTheme.body.copyWith(color: textGray, height: 1.4),
           ),
         ],

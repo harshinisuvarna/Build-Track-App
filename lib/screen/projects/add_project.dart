@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   // ── Basic Information ──────────────────────────────────────────
   final _mapAddressCtrl = TextEditingController();
-  final _clientCtrl    = TextEditingController();
+  final _clientCtrl     = TextEditingController();
   final _contractorCtrl = TextEditingController();
   final _engineerCtrl   = TextEditingController();
   final _contactCtrl    = TextEditingController();
@@ -50,10 +51,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   DateTime? _expectedEndDate;
   DateTime? _actualEndDate;
 
-  final _budgetMaterialCtrl = TextEditingController();
-  final _budgetLabourCtrl = TextEditingController();
+  final _budgetMaterialCtrl  = TextEditingController();
+  final _budgetLabourCtrl    = TextEditingController();
   final _budgetEquipmentCtrl = TextEditingController();
-  final _budgetMiscCtrl = TextEditingController();
+  final _budgetMiscCtrl      = TextEditingController();
 
   String _projectStatus = 'Planning';
   final List<String> _statusOptions = [
@@ -61,16 +62,16 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   ];
 
   // ── Accordion States ───────────────────────────────────────────
-  bool _cfgBasicInfoExpanded = true;
+  bool _cfgBasicInfoExpanded    = true;
   bool _cfgBuildingTypeExpanded = true;
-  bool _cfgLandExpanded = true;
-  bool _cfgRoomsExpanded = false;
-  bool _cfgAddlExpanded = false;
-  bool _cfgUtilityExpanded = false;
-  bool _cfgGasExpanded = false;
-  bool _cfgKitchenExpanded = false;
-  bool _cfgElectricalExpanded = false;
-  bool _cfgTerraceExpanded = false;
+  bool _cfgLandExpanded         = true;
+  bool _cfgRoomsExpanded        = false;
+  bool _cfgAddlExpanded         = false;
+  bool _cfgUtilityExpanded      = false;
+  bool _cfgGasExpanded          = false;
+  bool _cfgKitchenExpanded      = false;
+  bool _cfgElectricalExpanded   = false;
+  bool _cfgTerraceExpanded      = false;
 
   // ── Land & Floors ──────────────────────────────────────────────
   final _landAreaCtrl = TextEditingController();
@@ -81,36 +82,26 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   ];
 
   // ── Rooms & Bathrooms ──────────────────────────────────────────
-  int _room1BHKCount = 0;
-  int _room2BHKCount = 0;
-  int _room3BHKCount = 0;
+  int _room1BHKCount   = 0;
+  int _room2BHKCount   = 0;
+  int _room3BHKCount   = 0;
   int _roomCustomCount = 0;
 
-  int _bathWesternCount = 0;
-  int _bathIndianCount = 0;
-  int _bathCommonCount = 0;
+  int _bathWesternCount  = 0;
+  int _bathIndianCount   = 0;
+  int _bathCommonCount   = 0;
   int _bathAttachedCount = 0;
 
   // ── Additional Configuration & Services ────────────────────────
   final Set<String> _additionalConfigs = {};
 
   final List<String> _addlConfigOptions = [
-    'Balcony', 'Car Parking',
-    'Lift', 'Terrace Access',
-    'Interior Work', 'Compound Wall',
-    'Parapet Wall', 'Waterproofing',
-    'Putty', 'False Ceiling',
-    'Modular Kitchen', 'Wardrobes',
-    'Sump', 'Septic Tank',
-    'Rainwater', 'Borewell',
-    'Solar', 'Generator',
-    'CCTV', 'Intercom',
-    'Landscaping', 'Paving',
-    'Water Tanks', 'Stairs',
-    'Security Room', 'Cladding',
-    'Elevation', 'Gates',
-    'Grills', 'Aluminium',
-    'Glass',
+    'Balcony', 'Car Parking', 'Lift', 'Terrace Access', 'Interior Work', 
+    'Compound Wall', 'Parapet Wall', 'Waterproofing', 'Putty', 'False Ceiling',
+    'Modular Kitchen', 'Wardrobes', 'Sump', 'Septic Tank', 'Rainwater', 
+    'Borewell', 'Solar', 'Generator', 'CCTV', 'Intercom', 'Landscaping', 
+    'Paving', 'Water Tanks', 'Stairs', 'Security Room', 'Cladding',
+    'Elevation', 'Gates', 'Grills', 'Aluminium', 'Glass',
   ];
 
   final List<String> _utilityOptions = [
@@ -132,7 +123,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final List<String> _terraceOptions = [
     'Weathering Course', 'Cool Roof Paint', 'Overhead Tank', 'Solar Panels'
   ];
-
 
   bool _saving = false;
   late List<ConstructionPhase> _phases;
@@ -158,7 +148,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _contractorCtrl.dispose();
     _engineerCtrl.dispose();
     _contactCtrl.dispose();
-    
     _budgetMaterialCtrl.dispose();
     _budgetLabourCtrl.dispose();
     _budgetEquipmentCtrl.dispose();
@@ -168,13 +157,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     super.dispose();
   }
 
+<<<<<<< HEAD
   void _submit() async {
+=======
+  Future<void> _submit() async {
+>>>>>>> feat/roselin-sprint-final
     if (!_formKey.currentState!.validate()) return;
+
+    // --- HARSHINI'S SUBSCRIPTION CHECK ---
+    final projectProvider = context.read<ProjectProvider>();
+    final subProvider = context.read<SubscriptionProvider>();
+    if (!subProvider.canAddProject(projectProvider.projectCount)) {
+      _showUpgradeDialog();
+      return;
+    }
+
     setState(() => _saving = true);
 
     try {
-      final projProv = context.read<ProjectProvider>();
-
       double parseBudget(TextEditingController c) => double.tryParse(c.text) ?? 0.0;
       final bMat  = parseBudget(_budgetMaterialCtrl);
       final bLab  = parseBudget(_budgetLabourCtrl);
@@ -184,7 +184,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
       String? nn(String s) => s.trim().isEmpty ? null : s.trim();
 
-      // Compose building type string: "Main → Sub" or just "Main"
+      // Compose building type string
       String? buildingTypeStr;
       if (_mainBuildingType != null) {
         buildingTypeStr = _buildingSubType != null
@@ -192,16 +192,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             : _mainBuildingType;
       }
 
+      // --- ROSELIN'S ENTERPRISE PROJECT MODEL ---
       final newProject = ProjectModel(
-        id:          DateTime.now().millisecondsSinceEpoch.toString(),
-        name:        _nameCtrl.text.trim(),
-        city:        _cityCtrl.text.trim(),
-        sector:      _sectorCtrl.text.trim(),
-        stage:       ProjectStage.preConstruction,
-        progress:    0.0,
-        totalBudget: budgetTotal,
-        spentAmount: 0.0,
-        startDate:   _startDate,
+        id:              DateTime.now().millisecondsSinceEpoch.toString(),
+        name:            _nameCtrl.text.trim(),
+        city:            _cityCtrl.text.trim(),
+        sector:          _sectorCtrl.text.trim(),
+        stage:           ProjectStage.preConstruction,
+        progress:        0.0,
+        totalBudget:     budgetTotal,
+        spentAmount:     0.0,
+        startDate:       _startDate,
         projectCode:     _projectCode,
         mapAddress:      nn(_mapAddressCtrl.text),
         clientName:      nn(_clientCtrl.text),
@@ -246,18 +247,124 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         projectStatus:   _projectStatus,
       );
 
-      await projProv.addProject(newProject);
+      // Save to local state
+      await projectProvider.addProject(newProject);
 
-      if (mounted) Navigator.pop(context);
+      // --- HARSHINI'S API POST BACKBACK ---
+      final location = _sectorCtrl.text.trim().isNotEmpty
+          ? '${_cityCtrl.text.trim()}, ${_sectorCtrl.text.trim()}'
+          : _cityCtrl.text.trim();
+
+      final payload = {
+        'projectName': _nameCtrl.text.trim(),
+        'clientName':  _clientCtrl.text.trim(),
+        'location':    location,
+        'projectType': buildingTypeStr,
+      };
+
+      try {
+        await ApiService.post('/projects', payload);
+      } catch (e) {
+        // Just catch silently if backend is unavailable, local state already saved
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Project created!'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+<<<<<<< HEAD
+=======
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: primaryBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.lock_outline,
+                color: primaryBlue,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Project Limit Reached',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Free plan allows up to 2 projects.\nUpgrade to Pro for unlimited projects.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.5, color: textGray, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushNamed(context, '/subscription');
+                },
+                child: const Text(
+                  'Upgrade to Pro',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(color: textGray, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+>>>>>>> feat/roselin-sprint-final
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -374,7 +481,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Project Code chip (read-only)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
@@ -417,8 +523,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
-                            // Map Location
                             _label('Map Location / Address', icon: Icons.location_on_rounded),
                             const SizedBox(height: 8),
                             _field(
@@ -427,8 +531,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               icon: Icons.place_rounded,
                             ),
                             const SizedBox(height: 16),
-
-                            // Client + Contractor row
                             Row(
                               children: [
                                 Expanded(
@@ -463,8 +565,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-
-                            // Engineer + Contact row
                             Row(
                               children: [
                                 Expanded(
@@ -526,7 +626,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                         items: _buildingSubTypes.keys.toList(),
                                         onChanged: (val) => setState(() {
                                           _mainBuildingType = val;
-                                          _buildingSubType = null; // reset sub
+                                          _buildingSubType = null;
                                         }),
                                       ),
                                     ],
@@ -890,7 +990,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> feat/roselin-sprint-final
   // ───────────────────────────────────────────────────────────────────────────
   // UI HELPERS
   // ───────────────────────────────────────────────────────────────────────────
@@ -1646,4 +1749,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     ).then((_) => ctrl.dispose());
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feat/roselin-sprint-final
