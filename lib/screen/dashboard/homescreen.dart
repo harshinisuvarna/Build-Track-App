@@ -9,6 +9,8 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// --- TASK 3: Imported API Service ---
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -368,7 +370,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ),
         ),
 
-        // Cost row
         Row(
           children: [
             Expanded(
@@ -610,7 +611,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-
   Widget _buildSpeakUpdate(BuildContext context) {
     return Material(
       color: Colors.transparent,
@@ -806,45 +806,28 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 }
 
-// SUPERVISOR DASHBOARD
+// SUPERVISOR DASHBOARD (TASK 3 UPDATED)
 class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard();
   @override
   State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
 }
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
-  static const _pendingItems = [
-    {
-      'mason': 'Rajan Kumar',
-      'task': 'Column Casting â€“ Level 3',
-      'time': 'Submitted • 08:30 AM',
-      'floor': 'Floor 3 • Block A',
-    },
-    {
-      'mason': 'Suresh Babu',
-      'task': 'Slab Reinforcement â€“ Level 2',
-      'time': 'Submitted • 09:15 AM',
-      'floor': 'Floor 2 • Block B',
-    },
-    {
-      'mason': 'Anwar Sheikh',
-      'task': 'Plinth Beam Work',
-      'time': 'Submitted • 10:00 AM',
-      'floor': 'Ground • Parking',
-    },
-  ];
-  late List<String> _statuses;
+  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
+  late Future<List<dynamic>> _tasksFuture;
+  final Map<int, String> _statuses = {};
 
   @override
   void initState() {
     super.initState();
-    _statuses = List.filled(_pendingItems.length, 'pending');
+    _tasksFuture = ApiService.fetchDailyTasks();
   }
-  void _approve(int i) {
+
+  void _approve(int i, String taskName) {
     setState(() => _statuses[i] = 'approved');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_pendingItems[i]['task']} approved'),
+        content: Text('$taskName approved'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -853,11 +836,12 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-  void _reject(int i) {
+
+  void _reject(int i, String taskName) {
     setState(() => _statuses[i] = 'rejected');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_pendingItems[i]['task']} rejected'),
+        content: Text('$taskName rejected'),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -866,61 +850,77 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
-    final pendingCount = _statuses.where((s) => s == 'pending').length;
-    final approvedCount = _statuses.where((s) => s == 'approved').length;
-    final rejectedCount = _statuses.where((s) => s == 'rejected').length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    // --- TASK 3: FUTUREBUILDER FOR SUPERVISOR ---
+    return FutureBuilder<List<dynamic>>(
+      future: _tasksFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+          );
+        }
+        
+        final liveItems = snapshot.data ?? [];
+        
+        // Ensure status map is populated for new items
+        for (int i = 0; i < liveItems.length; i++) {
+          _statuses.putIfAbsent(i, () => 'pending');
+        }
+
+        final pendingCount = _statuses.values.where((s) => s == 'pending').length;
+        final approvedCount = _statuses.values.where((s) => s == 'approved').length;
+        final rejectedCount = _statuses.values.where((s) => s == 'rejected').length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
-            const SizedBox(width: 8),
-            _summaryChip(
-              '${approvedCount + 12}',
-              'Approved Today',
-              AppTheme.success,
+            Row(
+              children: [
+                _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
+                const SizedBox(width: 8),
+                _summaryChip(
+                  '${approvedCount + 12}', // Keeping your +12 logic
+                  'Approved Today',
+                  AppTheme.success,
+                ),
+                const SizedBox(width: 8),
+                _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
+              ],
             ),
-            const SizedBox(width: 8),
-            _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
+            const SizedBox(height: 16),
+            const AppSectionHeader(title: 'Pending Approvals'),
+            if (liveItems.isEmpty)
+               const Padding(
+                 padding: EdgeInsets.all(16.0),
+                 child: Text('No daily tasks found from server.', style: TextStyle(color: Colors.grey)),
+               ),
+            ...List.generate(
+              liveItems.length,
+              (i) => _pendingCard(context, liveItems[i] as Map<String, dynamic>, i),
+            ),
+            const SizedBox(height: 8),
+            const AppSectionHeader(title: 'Recent Updates'),
+            AppCard(
+              child: Column(
+                children: [
+                  _recentRow('Beam Casting – Level 1', 'Mohan Singh', AppStatus.completed),
+                  const AppDivider(verticalPadding: 8),
+                  _recentRow('Plastering – East Wing', 'Ravi Teja', AppStatus.inProgress),
+                  const AppDivider(verticalPadding: 8),
+                  _recentRow('Curing – Ground Slab', 'Pradeep K', AppStatus.delayed),
+                ],
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        const AppSectionHeader(title: 'Pending Approvals'),
-        ...List.generate(
-          _pendingItems.length,
-          (i) => _pendingCard(context, _pendingItems[i], i),
-        ),
-        const SizedBox(height: 8),
-        const AppSectionHeader(title: 'Recent Updates'),
-        AppCard(
-          child: Column(
-            children: [
-              _recentRow(
-                'Beam Casting â€“ Level 1',
-                'Mohan Singh',
-                AppStatus.completed,
-              ),
-              const AppDivider(verticalPadding: 8),
-              _recentRow(
-                'Plastering â€“ East Wing',
-                'Ravi Teja',
-                AppStatus.inProgress,
-              ),
-              const AppDivider(verticalPadding: 8),
-              _recentRow(
-                'Curing â€“ Ground Slab',
-                'Pradeep K',
-                AppStatus.delayed,
-              ),
-            ],
-          ),
-        ),
-      ],
+        );
+      }
     );
   }
+
   Widget _summaryChip(String count, String label, Color color) {
     return Expanded(
       child: Container(
@@ -954,13 +954,21 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
+
   Widget _pendingCard(
     BuildContext context,
-    Map<String, String> item,
+    Map<String, dynamic> item,
     int index,
   ) {
     final status = _statuses[index];
     final isPending = status == 'pending';
+    
+    // Smart parsing to prevent crashes from backend mismatches
+    final masonName = item['mason'] ?? item['assignee'] ?? 'Unknown Mason';
+    final taskName = item['task'] ?? item['title'] ?? 'Daily Task';
+    final timeStr = item['time'] ?? item['createdAt'] ?? 'Recently';
+    final floorStr = item['floor'] ?? item['location'] ?? 'On Site';
+
     Color badgeColor;
     String badgeLabel;
     if (status == 'approved') {
@@ -994,13 +1002,13 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['mason']!,
+                      masonName,
                       style: AppTheme.bodyLarge.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      item['time']!,
+                      timeStr,
                       style: AppTheme.caption.copyWith(
                         color: AppTheme.textMedium,
                       ),
@@ -1018,7 +1026,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                   ),
                 ),
                 child: Text(
-                  item['floor']!,
+                  floorStr,
                   style: AppTheme.caption.copyWith(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.w700,
@@ -1031,7 +1039,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text(item['task']!, style: AppTheme.heading3)),
+              Expanded(child: Text(taskName, style: AppTheme.heading3)),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
@@ -1058,7 +1066,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                 child: AppButton(
                   label: 'Approve',
                   icon: Icons.check_circle_outline,
-                  onPressed: isPending ? () => _approve(index) : () {},
+                  onPressed: isPending ? () => _approve(index, taskName) : () {},
                   enabled: isPending,
                 ),
               ),
@@ -1068,7 +1076,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                   label: 'Reject',
                   icon: Icons.cancel_outlined,
                   variant: AppButtonVariant.danger,
-                  onPressed: isPending ? () => _reject(index) : () {},
+                  onPressed: isPending ? () => _reject(index, taskName) : () {},
                   enabled: isPending,
                 ),
               ),
@@ -1078,6 +1086,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
+
   Widget _recentRow(String task, String mason, AppStatus status) {
     return Row(
       children: [
@@ -1098,28 +1107,25 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     );
   }
 }
-// MASON DASHBOARD
-class _MasonDashboard extends StatelessWidget {
+
+// MASON DASHBOARD (TASK 3 UPDATED)
+class _MasonDashboard extends StatefulWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
 
-  static const _tasks = [
-    {
-      'task': 'Column Casting â€“ Level 3',
-      'phase': 'Superstructure',
-      'status': 'In Progress',
-    },
-    {
-      'task': 'Slab Reinforcement â€“ Level 3',
-      'phase': 'Superstructure',
-      'status': 'Not Started',
-    },
-    {
-      'task': 'Curing â€“ Level 2 Slab',
-      'phase': 'Superstructure',
-      'status': 'Completed',
-    },
-  ];
+  @override
+  State<_MasonDashboard> createState() => _MasonDashboardState();
+}
+
+class _MasonDashboardState extends State<_MasonDashboard> {
+  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
+  late Future<List<dynamic>> _tasksFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tasksFuture = ApiService.fetchDailyTasks();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1145,7 +1151,7 @@ class _MasonDashboard extends StatelessWidget {
                 children: [
                   Text('Good Morning, Mason', style: AppTheme.heading3),
                   Text(
-                    'You have ${_tasks.length} tasks today',
+                    'Ready for today\'s tasks',
                     style: AppTheme.caption,
                   ),
                 ],
@@ -1165,22 +1171,57 @@ class _MasonDashboard extends StatelessWidget {
           label: 'Add Material Entry',
           icon: Icons.category_outlined,
           variant: AppButtonVariant.outline,
-          onPressed: () => onEntryTap(context, 'material'),
+          onPressed: () => widget.onEntryTap(context, 'material'),
         ),
         const SizedBox(height: 16),
 
-        // Today's tasks
+        // Today's tasks with FutureBuilder
         const AppSectionHeader(title: "Today's Tasks"),
-        ..._tasks.map((t) => _taskCard(t)),
+        FutureBuilder<List<dynamic>>(
+          future: _tasksFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+              );
+            }
+            if (snapshot.hasError) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Failed to load tasks from server.', style: TextStyle(color: Colors.red)),
+              );
+            }
+
+            final liveTasks = snapshot.data ?? [];
+            if (liveTasks.isEmpty) {
+               return const Padding(
+                 padding: EdgeInsets.all(16.0),
+                 child: Text('No tasks assigned for today.', style: TextStyle(color: Colors.grey)),
+               );
+            }
+
+            return Column(
+              children: liveTasks.map((t) => _taskCard(t as Map<String, dynamic>)).toList(),
+            );
+          }
+        ),
       ],
     );
   }
-  Widget _taskCard(Map<String, String> task) {
+
+  Widget _taskCard(Map<String, dynamic> task) {
     final statusMap = {
       'Completed': AppStatus.completed,
       'In Progress': AppStatus.inProgress,
       'Not Started': AppStatus.notStarted,
     };
+    
+    // Smart parsing for dynamic backend data
+    final taskName = task['task'] ?? task['title'] ?? 'Task';
+    final phaseStr = task['phase'] ?? task['category'] ?? 'General';
+    final statusStr = task['status'] ?? 'Not Started';
+
     return AppCard(
       child: Row(
         children: [
@@ -1189,18 +1230,18 @@ class _MasonDashboard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  task['task']!,
+                  taskName,
                   style: AppTheme.bodyLarge.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(task['phase']!, style: AppTheme.caption),
+                Text(phaseStr, style: AppTheme.caption),
               ],
             ),
           ),
           AppStatusBadge(
-            status: statusMap[task['status']] ?? AppStatus.notStarted,
+            status: statusMap[statusStr] ?? AppStatus.notStarted,
           ),
         ],
       ),

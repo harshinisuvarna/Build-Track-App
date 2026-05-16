@@ -1,15 +1,17 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
   final _formKey = GlobalKey<FormState>();
@@ -23,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passCtrl.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -162,19 +165,35 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () async {
             final email = _emailCtrl.text.trim();
             final password = _passCtrl.text.trim();
-            
+
             if (email.isEmpty || password.isEmpty) return;
 
             final success = await AuthService.login(email, password);
-            
+
             if (success) {
               if (mounted) {
-                Navigator.pushReplacementNamed(context, '/home');
+                // 1. Wait for token to write to disk
+                await Future.delayed(const Duration(milliseconds: 200));
+
+                // 2. FORCE THE PROVIDER TO RE-FETCH WITH THE NEW TOKEN
+                // Note: Change 'fetchProjects()' to whatever the actual load method
+                // is named inside your ProjectProvider class if it's different.
+                // You may need to import 'package:provider/provider.dart'; at the top.
+                context.read<ProjectProvider>().fetchProjects();
+
+                // 3. Now go to the dashboard
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
               }
             } else {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Login failed. Please check your credentials.')),
+                  const SnackBar(
+                    content: Text(
+                      'Login failed. Please check your credentials.',
+                    ),
+                  ),
                 );
               }
             }

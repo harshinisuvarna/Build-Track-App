@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/services/api_service.dart'; // Added API Service
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,6 +13,8 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
+  bool _isLoading = false; // Added loading state
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -85,7 +88,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-
   Widget _buildForm() {
     return AppTextField(
       label: 'Email Address',
@@ -96,14 +98,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-
   Widget _buildActions() {
     return Column(
       children: [
-        AppButton(
-          label: 'Reset Password',
-          onPressed: _onResetPressed,
-        ),
+        // Show loading spinner if waiting for API, otherwise show the button
+        _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.0),
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : AppButton(
+                label: 'Reset Password',
+                onPressed: _onResetPressed,
+              ),
         const SizedBox(height: AppTheme.spacingLg),
         GestureDetector(
           onTap: () => Navigator.pop(context),
@@ -130,21 +137,47 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-
-  void _onResetPressed() {
+  // --- UPDATED: Live API connection with Snackbars ---
+  Future<void> _onResetPressed() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address')),
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Reset link sent to $email'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-    Navigator.pop(context);
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await ApiService.resetPassword(email);
+      
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset link sent to your email.'),
+            backgroundColor: Colors.green, // Green on success
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context); // Send user back to login screen
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red, // Red on error
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }
