@@ -21,13 +21,14 @@ class ReviewVoiceEntryScreen extends StatefulWidget {
 class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   // ── Default transcript (pre-parsed on first load) ─────────────────────────
   String _transcript =
-      'Hey SiteTrack, record a material entry for North District. '
+      'Hey BuildTrack, record a material entry for North District. '
       'We just received 12.5 cubic meters of C35 ready-mix concrete from UltraTech. '
       'Rate is fixed at 145 per unit. Log this under structural foundations on 1st Floor.';
 
   // ── Voice engine ──────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
-  VoiceEntryState _voiceState = VoiceEntryState.processing; // start with processing animation
+  VoiceEntryState _voiceState =
+      VoiceEntryState.processing; // start with processing animation
   bool _animateReveal = false;
 
   // ── Selection state ───────────────────────────────────────────────────────
@@ -60,12 +61,12 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl     = TextEditingController();
-    _brandCtrl    = TextEditingController();
+    _nameCtrl = TextEditingController();
+    _brandCtrl = TextEditingController();
     _categoryCtrl = TextEditingController();
-    _qtyCtrl      = TextEditingController();
-    _rateCtrl     = TextEditingController();
-    _notesCtrl    = TextEditingController();
+    _qtyCtrl = TextEditingController();
+    _rateCtrl = TextEditingController();
+    _notesCtrl = TextEditingController();
 
     _parseVoiceInput();
 
@@ -76,7 +77,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     Future.delayed(const Duration(milliseconds: 2200), () {
       if (!mounted) return;
       setState(() {
-        _voiceState    = VoiceEntryState.parsed;
+        _voiceState = VoiceEntryState.parsed;
         _animateReveal = true;
       });
     });
@@ -119,16 +120,16 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
       floor = 'Basement';
     }
 
-    _nameCtrl.text     = 'Premium Ready-Mix Concrete (C35)';
-    _brandCtrl.text    = brand;
+    _nameCtrl.text = 'Premium Ready-Mix Concrete (C35)';
+    _brandCtrl.text = brand;
     _categoryCtrl.text = 'Structural';
-    _qtyCtrl.text      = qty > 0 ? qty.toString() : '12.5';
-    _selectedUnit      = 'm³';
-    _rateCtrl.text     = '145';
+    _qtyCtrl.text = qty > 0 ? qty.toString() : '12.5';
+    _selectedUnit = 'm³';
+    _rateCtrl.text = '145';
 
     _selectedProjectId = UserSession.projectId;
-    _selectedFloor     = floor;
-    _selectedActivity  = 'PCC';
+    _selectedFloor = floor;
+    _selectedActivity = 'PCC';
   }
 
   @override
@@ -145,7 +146,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   }
 
   double get _computedTotal {
-    final qty  = double.tryParse(_qtyCtrl.text) ?? 0;
+    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     return qty * rate;
   }
@@ -222,10 +223,22 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   ];
 
   Future<void> _confirm(BuildContext ctx) async {
-    if (_selectedProjectId == null) { _snack('Please select a project'); return; }
-    if (_selectedFloor == null)     { _snack('Please select a floor / zone'); return; }
-    if (_selectedPhase == null)     { _snack('Please select a phase'); return; }
-    if (_selectedActivity == null)  { _snack('Please select an activity'); return; }
+    if (_selectedProjectId == null) {
+      _snack('Please select a project');
+      return;
+    }
+    if (_selectedFloor == null) {
+      _snack('Please select a floor / zone');
+      return;
+    }
+    if (_selectedPhase == null) {
+      _snack('Please select a phase');
+      return;
+    }
+    if (_selectedActivity == null) {
+      _snack('Please select an activity');
+      return;
+    }
 
     setState(() => _isConfirming = true);
     await Future.delayed(const Duration(milliseconds: 600));
@@ -234,33 +247,41 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     final entryId = 'VOICE-MAT-${DateTime.now().millisecondsSinceEpoch}';
     ctx.read<ProjectProvider>().addEntry(
       EntryModel(
-        id:          entryId,
-        projectId:   _selectedProjectId!,
-        type:        EntryType.material,
-        amount:      double.tryParse(_qtyCtrl.text) ?? 0.0,
-        date:        DateTime.now(),
+        id: entryId,
+        projectId: _selectedProjectId!,
+        type: EntryType.material,
+        amount: double.tryParse(_qtyCtrl.text) ?? 0.0,
+        date: DateTime.now(),
         description: _nameCtrl.text,
-        brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+        brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
         ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
-        floor:       _selectedFloor!,
-        phaseId:     (_selectedPhase as PhaseModel?)?.id,
+        floor: _selectedFloor!,
+        phaseId: (_selectedPhase as PhaseModel?)?.id,
       ),
     );
 
     Navigator.pushNamed(
-      ctx, '/logs',
+      ctx,
+      '/logs',
       arguments: {
         'type': 'material',
         'name': _nameCtrl.text,
-        'newEntry': em.Entry(
-          id: entryId, type: em.EntryType.material,
-          projectId: _selectedProjectId!, createdBy: UserSession.userId,
-        ).toMap()..addAll({
-          'title': _nameCtrl.text, 'ref': '#$entryId',
-          'amount': '+${_qtyCtrl.text}', 'date': 'Today',
-          'isPositive': true, 'icon': Icons.inventory_2_outlined,
-          'attachment': _attachment, 'receipt': _attachment?.name,
-        }),
+        'newEntry':
+            em.Entry(
+              id: entryId,
+              type: em.EntryType.material,
+              projectId: _selectedProjectId!,
+              createdBy: UserSession.userId,
+            ).toMap()..addAll({
+              'title': _nameCtrl.text,
+              'ref': '#$entryId',
+              'amount': '+${_qtyCtrl.text}',
+              'date': 'Today',
+              'isPositive': true,
+              'icon': Icons.inventory_2_outlined,
+              'attachment': _attachment,
+              'receipt': _attachment?.name,
+            }),
       },
     );
   }
@@ -268,7 +289,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final isProcessing = _voiceState == VoiceEntryState.processing;
-    final isParsed     = _voiceState == VoiceEntryState.parsed;
+    final isParsed = _voiceState == VoiceEntryState.parsed;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -280,7 +301,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
             AppTopBar(
               title: 'Review Voice Entry',
               isSubScreen: true,
-              leftIcon:  Icons.arrow_back,
+              leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
             ),
             Expanded(
@@ -291,14 +312,14 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                   children: [
                     // ── Voice status header with live feedback ───────────
                     VoiceStatusHeader(
-                      state:             _voiceState,
-                      entryTypeLabel:    'Material',
-                      confidence:        98.4,
-                      onMicTap:          _handleMicTap,
+                      state: _voiceState,
+                      entryTypeLabel: 'Material',
+                      confidence: 98.4,
+                      onMicTap: _handleMicTap,
                       partialTranscript: _voiceCtrl.partialTranscript,
-                      elapsedDisplay:    _voiceCtrl.elapsedDisplay,
-                      onStop:            _handleStopRecording,
-                      onCancel:          _handleCancelRecording,
+                      elapsedDisplay: _voiceCtrl.elapsedDisplay,
+                      onStop: _handleStopRecording,
+                      onCancel: _handleCancelRecording,
                     ),
 
                     // ── Processing: staged extraction card ──────────────
@@ -308,70 +329,87 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                     // ── Parsed: progressive extraction reveal ───────────
                     if (isParsed)
                       ExtractedDataSummaryCard(
-                        fields:        _extractedFields,
-                        subtitle:      'Detected from your voice recording',
+                        fields: _extractedFields,
+                        subtitle: 'Detected from your voice recording',
                         animateReveal: _animateReveal,
                       ),
 
-                    if (isParsed)
-                      ExpandableTranscript(transcript: _transcript),
+                    if (isParsed) ExpandableTranscript(transcript: _transcript),
 
                     // ── Rest of the form (only when parsed) ─────────────
                     if (isParsed) ...[
                       ExecutionContextCard(
                         selectedProjectId: _selectedProjectId,
-                        selectedFloor:     _selectedFloor,
-                        selectedPhase:     _selectedPhase,
-                        selectedActivity:  _selectedActivity,
+                        selectedFloor: _selectedFloor,
+                        selectedPhase: _selectedPhase,
+                        selectedActivity: _selectedActivity,
                         onProjectChanged: (v) => setState(() {
                           _selectedProjectId = v;
-                          _selectedFloor     = null;
-                          _selectedPhase     = null;
-                          _selectedActivity  = null;
+                          _selectedFloor = null;
+                          _selectedPhase = null;
+                          _selectedActivity = null;
                         }),
                         onFloorChanged: (v) => setState(() {
-                          _selectedFloor    = v;
-                          _selectedPhase    = null;
+                          _selectedFloor = v;
+                          _selectedPhase = null;
                           _selectedActivity = null;
                         }),
                         onPhaseChanged: (v) => setState(() {
-                          _selectedPhase    = v;
+                          _selectedPhase = v;
                           _selectedActivity = null;
                         }),
-                        onActivityChanged: (v) => setState(() => _selectedActivity = v),
+                        onActivityChanged: (v) =>
+                            setState(() => _selectedActivity = v),
                       ),
                       EntrySectionCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const EntryCardHeader(
-                              icon:     Icons.inventory_2_outlined,
-                              title:    'Material Details',
-                              subtitle: 'AI extracted — review and edit if needed',
+                              icon: Icons.inventory_2_outlined,
+                              title: 'Material Details',
+                              subtitle:
+                                  'AI extracted — review and edit if needed',
                             ),
                             const SizedBox(height: 20),
                             const Divider(color: Color(0xFFF0EEF8)),
                             const SizedBox(height: 16),
-                            const EntryFieldLabel('Material Name', required: true),
+                            const EntryFieldLabel(
+                              'Material Name',
+                              required: true,
+                            ),
                             const SizedBox(height: 8),
-                            EntryUnderlineField(controller: _nameCtrl, hint: 'Material name'),
+                            EntryUnderlineField(
+                              controller: _nameCtrl,
+                              hint: 'Material name',
+                            ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Brand'),
                             const SizedBox(height: 8),
-                            EntryUnderlineField(controller: _brandCtrl, hint: 'Brand name'),
+                            EntryUnderlineField(
+                              controller: _brandCtrl,
+                              hint: 'Brand name',
+                            ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Category'),
                             const SizedBox(height: 8),
-                            EntryUnderlineField(controller: _categoryCtrl, hint: 'e.g. Structural'),
+                            EntryUnderlineField(
+                              controller: _categoryCtrl,
+                              hint: 'e.g. Structural',
+                            ),
                             const SizedBox(height: 18),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const EntryFieldLabel('Quantity', required: true),
+                                      const EntryFieldLabel(
+                                        'Quantity',
+                                        required: true,
+                                      ),
                                       const SizedBox(height: 8),
                                       EntryUnderlineField(
                                         controller: _qtyCtrl,
@@ -386,9 +424,13 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                                 const SizedBox(width: 20),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const EntryFieldLabel('Rate / Unit', required: true),
+                                      const EntryFieldLabel(
+                                        'Rate / Unit',
+                                        required: true,
+                                      ),
                                       const SizedBox(height: 8),
                                       EntryUnderlineField(
                                         controller: _rateCtrl,
@@ -407,7 +449,8 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                             const SizedBox(height: 8),
                             UnitSelectorField(
                               value: _selectedUnit,
-                              onChanged: (u) => setState(() => _selectedUnit = u),
+                              onChanged: (u) =>
+                                  setState(() => _selectedUnit = u),
                             ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Notes (Optional)'),
@@ -420,8 +463,14 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                         totalAmount: _computedTotal,
                         label: 'Total Estimated Amount',
                         subtotals: [
-                          ('Quantity', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
-                          ('Rate / Unit', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                          (
+                            'Quantity',
+                            '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}',
+                          ),
+                          (
+                            'Rate / Unit',
+                            '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}',
+                          ),
                         ],
                       ),
                       EntrySectionCard(
@@ -429,26 +478,28 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const EntryCardHeader(
-                              icon:     Icons.receipt_long_outlined,
-                              title:    'Invoice / Bill',
-                              subtitle: 'Attach invoice, bill, or supporting document (optional)',
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Invoice / Bill',
+                              subtitle:
+                                  'Attach invoice, bill, or supporting document (optional)',
                             ),
                             const SizedBox(height: 16),
                             UploadBox(
                               attachment: _attachment,
                               emptyLabel: 'Tap to upload invoice / bill',
                               onPicked: (a) => setState(() => _attachment = a),
-                              onRemove:  () => setState(() => _attachment = null),
+                              onRemove: () =>
+                                  setState(() => _attachment = null),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 4),
                       EntrySubmitButton(
-                        label:     'Confirm & Save Entry',
-                        icon:      Icons.check_circle,
+                        label: 'Confirm & Save Entry',
+                        icon: Icons.check_circle,
                         isLoading: _isConfirming,
-                        onTap:     () => _confirm(context),
+                        onTap: () => _confirm(context),
                       ),
                       const SizedBox(height: 24),
                     ],

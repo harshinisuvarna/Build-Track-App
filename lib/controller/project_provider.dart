@@ -5,7 +5,7 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _kProjectsKey = 'buildtrack_projects_v1';
+// SharedPreferences key for entries only — project persistence is fully API-driven.
 const _kEntriesKey = 'buildtrack_entries_v1';
 
 class ProjectProvider extends ChangeNotifier {
@@ -53,6 +53,7 @@ class ProjectProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // ── Phases (still local) ──────────────────────────────────────
       final phaseRaw = prefs.getString('phases');
 
       if (phaseRaw != null && phaseRaw.isNotEmpty) {
@@ -89,19 +90,22 @@ class ProjectProvider extends ChangeNotifier {
         _savePhases();
       }
 
-      final rawProjects = prefs.getString(_kProjectsKey);
-      if (rawProjects != null && rawProjects.isNotEmpty) {
-        final decoded = ProjectModel.decodeList(rawProjects);
-        _projects = decoded.map((p) {
+      // ── Projects — single source of truth is the API ──────────────
+      try {
+        _projects = await ApiService.fetchProjects();
+        // Ensure every project has at least one floor
+        _projects = _projects.map((p) {
           if (p.floors == null || p.floors!.isEmpty) {
             return p.copyWith(floors: ['Ground Floor']);
           }
           return p;
         }).toList();
-      } else {
+      } catch (e) {
+        dev.log('API fetchProjects failed: $e');
         _projects = [];
       }
 
+      // ── Entries (materials) ────────────────────────────────────────
       try {
         final apiMaterials = await ApiService.fetchMaterials();
 
@@ -119,25 +123,18 @@ class ProjectProvider extends ChangeNotifier {
           }
 
           return EntryModel(
-<<<<<<< HEAD
-            id: json['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: json['project'] ?? 'p1',
+            id:
+                json['_id']?.toString() ??
+                DateTime.now().millisecondsSinceEpoch.toString(),
+            projectId: pId,
             type: parsedType,
-            amount: (json['quantity'] ?? 0).toDouble(),
+            amount: (json['closingStock'] ?? json['quantity'] ?? 0).toDouble(),
             date: json['date'] != null
                 ? DateTime.tryParse(json['date']) ?? DateTime.now()
                 : DateTime.now(),
-            description: json['title'] ?? 'Material Entry',
-            brand: json['brand'],
-=======
-            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: pId, 
-            type: parsedType,
-            amount: (json['closingStock'] ?? json['quantity'] ?? 0).toDouble(),
-            date: json['date'] != null ? DateTime.tryParse(json['date']) ?? DateTime.now() : DateTime.now(),
-            description: json['materialName'] ?? json['title'] ?? 'Material Entry',
+            description:
+                json['materialName'] ?? json['title'] ?? 'Material Entry',
             brand: json['materialName'] ?? json['brand'],
->>>>>>> feat/roselin-sprint-final
             ratePerUnit: (json['rate'] ?? 0).toDouble(),
           );
         }).toList();
@@ -166,12 +163,30 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
+  /// Re-fetch the project list from the API and refresh the UI.
   Future<void> fetchProjects() async {
     _setLoading(true);
-    _setLoading(false);
-    notifyListeners();
+    try {
+      _projects = await ApiService.fetchProjects();
+      _projects = _projects.map((p) {
+        if (p.floors == null || p.floors!.isEmpty) {
+          return p.copyWith(floors: ['Ground Floor']);
+        }
+        return p;
+      }).toList();
+      if (_projects.isNotEmpty && _selectedProject == null) {
+        _selectedProject = _projects.first;
+      }
+      _error = '';
+    } catch (e) {
+      _error = 'Failed to fetch projects: $e';
+      dev.log('fetchProjects error: $e');
+    } finally {
+      _setLoading(false);
+    }
   }
 
+  /// Persist project to the backend first; only add to local list on success.
   Future<void> addProject(
     ProjectModel project, {
     String? clientName,
@@ -188,9 +203,17 @@ class ProjectProvider extends ChangeNotifier {
       expectedEndDate: expectedEndDate,
       floors: finalFloors,
     );
-    _projects.add(updatedProject);
-    _selectedProject = updatedProject;
-    await _persistProjects();
+
+    // POST to backend — do NOT add locally if this fails.
+    final saved = await ApiService.addProject(updatedProject.toJson());
+    if (saved == null) {
+      dev.log('addProject: API call failed — project not added locally.');
+      throw Exception('Failed to save project to server.');
+    }
+
+    // Use the server-returned model (has real _id, etc.)
+    _projects.add(saved);
+    _selectedProject = saved;
     notifyListeners();
   }
 
@@ -206,31 +229,48 @@ class ProjectProvider extends ChangeNotifier {
       progress: progress.clamp(0.0, 1.0),
     );
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
-    await _persistProjects();
+
+    // --- API SYNC: Save progress update ---
+    try {
+      await ApiService.put('/projects/$id', _projects[idx].toJson());
+    } catch (e) {
+      dev.log('Failed to persist progress: $e');
+    }
+
     notifyListeners();
   }
 
-<<<<<<< HEAD
   // --- MERGED ACTIVITY COMPLETION FEATURE ---
   Future<void> toggleActivityCompletion(
     String projectId,
     String activityId, {
     int? legacyTotalActivities,
   }) async {
-=======
-  // --- ROSELIN'S ACTIVITY COMPLETION FEATURE ---
-  Future<void> toggleActivityCompletion(String projectId, String activityId) async {
->>>>>>> feat/roselin-sprint-final
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
     final project = _projects[idx];
+
+    // Keep a copy of the completed keys so we can send it to the backend
+    List<String> updatedCompletedKeys = List.from(
+      project.completedActivityKeys ?? [],
+    );
 
     // ── New path: project has selectedPhases ───────────────────────
     if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
       final updatedPhases = project.selectedPhases!.map((phase) {
         final updatedActivities = phase.activities.map((act) {
-          if (act.id == activityId)
-            return act.copyWith(completed: !act.completed);
+          if (act.id == activityId) {
+            final isNowCompleted = !act.completed;
+
+            // Sync with the master completedActivityKeys array for the backend
+            if (isNowCompleted && !updatedCompletedKeys.contains(activityId)) {
+              updatedCompletedKeys.add(activityId);
+            } else if (!isNowCompleted) {
+              updatedCompletedKeys.remove(activityId);
+            }
+
+            return act.copyWith(completed: isNowCompleted);
+          }
           return act;
         }).toList();
         return phase.copyWith(activities: updatedActivities);
@@ -245,31 +285,47 @@ class ProjectProvider extends ChangeNotifier {
 
       _projects[idx] = project.copyWith(
         selectedPhases: updatedPhases,
+        completedActivityKeys: updatedCompletedKeys,
         progress: newProgress,
       );
     } else {
       // ── Legacy path: use completedActivityKeys list ──────────────
-      final completed = List<String>.from(project.completedActivityKeys ?? []);
-      if (completed.contains(activityId)) {
-        completed.remove(activityId);
+      if (updatedCompletedKeys.contains(activityId)) {
+        updatedCompletedKeys.remove(activityId);
       } else {
-        completed.add(activityId);
+        updatedCompletedKeys.add(activityId);
       }
 
       final totalToUse = legacyTotalActivities ?? 161;
       final newProgress = totalToUse > 0
-          ? (completed.length / totalToUse).clamp(0.0, 1.0)
+          ? (updatedCompletedKeys.length / totalToUse).clamp(0.0, 1.0)
           : 0.0;
 
       _projects[idx] = project.copyWith(
-        completedActivityKeys: completed,
+        completedActivityKeys: updatedCompletedKeys,
         progress: newProgress,
       );
     }
 
     if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
-    await _persistProjects();
+
+    // Instantly update the UI
     notifyListeners();
+
+    // ── THE FIX: Fire the network call to save to MongoDB ──────────
+    try {
+      final response = await ApiService.put(
+        '/projects/$projectId',
+        _projects[idx].toJson(),
+      );
+      if (response.statusCode != 200) {
+        dev.log(
+          'WARNING: Failed to save activity state to server: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      dev.log('ERROR: Network exception saving activity state: $e');
+    }
   }
 
   Future<void> addEntry(
@@ -318,15 +374,9 @@ class ProjectProvider extends ChangeNotifier {
       if (_selectedProject?.id == updatedEntry.projectId) {
         _selectedProject = _projects[idx];
       }
-      await _persistProjects();
     }
     await _persistEntries();
     notifyListeners();
-  }
-
-  Future<void> _persistProjects() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kProjectsKey, ProjectModel.encodeList(_projects));
   }
 
   Future<void> _persistEntries() async {
@@ -370,57 +420,5 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   // --- SEED FALLBACK DATA ---
-<<<<<<< HEAD
-  List<ProjectModel> _seedProjects() => [
-    ProjectModel(
-      id: 'p1',
-      name: 'Skyline Residences Phase II',
-      city: 'Mumbai',
-      sector: 'Andheri West',
-      stage: ProjectStage.floorConstruction,
-      progress: 0.68,
-      totalBudget: 45000000,
-      spentAmount: 24000000,
-      startDate: DateTime(2024, 1, 15),
-    ),
-    ProjectModel(
-      id: 'p2',
-      name: 'Tower Block A – Andheri',
-      city: 'Mumbai',
-      sector: 'Sector 4',
-      stage: ProjectStage.foundationPlinthWork,
-      progress: 0.34,
-      totalBudget: 28000000,
-      spentAmount: 8400000,
-      startDate: DateTime(2024, 3, 1),
-    ),
-    ProjectModel(
-      id: 'p3',
-      name: 'Commercial Plaza – BKC',
-      city: 'Mumbai',
-      sector: 'BKC Block G',
-      stage: ProjectStage.finishingWork,
-      progress: 0.92,
-      totalBudget: 72_000_000,
-      spentAmount: 66_240_000,
-      startDate: DateTime(2023, 6, 10),
-    ),
-  ];
-
-  List<EntryModel> _seedEntries() => [
-    EntryModel(
-      id: 'e1',
-      projectId: 'p1',
-      type: EntryType.material,
-      amount: 120.0,
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      description: 'Concrete M30 – 120 m³',
-    ),
-  ];
-}
-=======
-  // Completely emptied out per requirement to remove all dummy projects and records
-  List<ProjectModel> _seedProjects() => [];
   List<EntryModel> _seedEntries() => [];
 }
->>>>>>> feat/roselin-sprint-final

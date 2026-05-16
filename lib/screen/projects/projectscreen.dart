@@ -18,52 +18,78 @@ enum _ProjectStatus {
 
   static _ProjectStatus fromString(String? raw) {
     switch ((raw ?? '').toLowerCase().replaceAll(' ', '').replaceAll('_', '')) {
-      case 'planning':    return _ProjectStatus.planning;
-      case 'inprogress':  return _ProjectStatus.inProgress;
-      case 'onhold':      return _ProjectStatus.onHold;
-      case 'completed':   return _ProjectStatus.completed;
-      case 'cancelled':   return _ProjectStatus.cancelled;
-      default:            return _ProjectStatus.inProgress;
+      case 'planning':
+        return _ProjectStatus.planning;
+      case 'inprogress':
+        return _ProjectStatus.inProgress;
+      case 'onhold':
+        return _ProjectStatus.onHold;
+      case 'completed':
+        return _ProjectStatus.completed;
+      case 'cancelled':
+        return _ProjectStatus.cancelled;
+      default:
+        return _ProjectStatus.inProgress;
     }
   }
 
   String get label {
     switch (this) {
-      case _ProjectStatus.planning:   return 'Planning';
-      case _ProjectStatus.inProgress: return 'In Progress';
-      case _ProjectStatus.onHold:     return 'On Hold';
-      case _ProjectStatus.completed:  return 'Completed';
-      case _ProjectStatus.cancelled:  return 'Cancelled';
+      case _ProjectStatus.planning:
+        return 'Planning';
+      case _ProjectStatus.inProgress:
+        return 'In Progress';
+      case _ProjectStatus.onHold:
+        return 'On Hold';
+      case _ProjectStatus.completed:
+        return 'Completed';
+      case _ProjectStatus.cancelled:
+        return 'Cancelled';
     }
   }
 
   Color get bg {
     switch (this) {
-      case _ProjectStatus.planning:   return const Color(0xFFFFF8E1); // amber/yellow soft
-      case _ProjectStatus.inProgress: return const Color(0xFFE8F0FE); // blue soft
-      case _ProjectStatus.onHold:     return const Color(0xFFFFF3E0); // orange soft
-      case _ProjectStatus.completed:  return const Color(0xFFE8F5E9); // green soft
-      case _ProjectStatus.cancelled:  return const Color(0xFFFFEBEE); // red/pink soft
+      case _ProjectStatus.planning:
+        return const Color(0xFFFFF8E1); // amber/yellow soft
+      case _ProjectStatus.inProgress:
+        return const Color(0xFFE8F0FE); // blue soft
+      case _ProjectStatus.onHold:
+        return const Color(0xFFFFF3E0); // orange soft
+      case _ProjectStatus.completed:
+        return const Color(0xFFE8F5E9); // green soft
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFFFEBEE); // red/pink soft
     }
   }
 
   Color get border {
     switch (this) {
-      case _ProjectStatus.planning:   return const Color(0xFFFFC107);
-      case _ProjectStatus.inProgress: return const Color(0xFF4A6CF7);
-      case _ProjectStatus.onHold:     return const Color(0xFFFF9800);
-      case _ProjectStatus.completed:  return const Color(0xFF43A047);
-      case _ProjectStatus.cancelled:  return const Color(0xFFE53935);
+      case _ProjectStatus.planning:
+        return const Color(0xFFFFC107);
+      case _ProjectStatus.inProgress:
+        return const Color(0xFF4A6CF7);
+      case _ProjectStatus.onHold:
+        return const Color(0xFFFF9800);
+      case _ProjectStatus.completed:
+        return const Color(0xFF43A047);
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFE53935);
     }
   }
 
   Color get text {
     switch (this) {
-      case _ProjectStatus.planning:   return const Color(0xFFF57F17);
-      case _ProjectStatus.inProgress: return const Color(0xFF3D5AFE);
-      case _ProjectStatus.onHold:     return const Color(0xFFE65100);
-      case _ProjectStatus.completed:  return const Color(0xFF2E7D32);
-      case _ProjectStatus.cancelled:  return const Color(0xFFC62828);
+      case _ProjectStatus.planning:
+        return const Color(0xFFF57F17);
+      case _ProjectStatus.inProgress:
+        return const Color(0xFF3D5AFE);
+      case _ProjectStatus.onHold:
+        return const Color(0xFFE65100);
+      case _ProjectStatus.completed:
+        return const Color(0xFF2E7D32);
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFC62828);
     }
   }
 }
@@ -84,7 +110,10 @@ class ProjectStatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: status.bg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: status.border.withValues(alpha: 0.6), width: 1.0),
+        border: Border.all(
+          color: status.border.withValues(alpha: 0.6),
+          width: 1.0,
+        ),
       ),
       child: Text(
         status.label,
@@ -108,9 +137,9 @@ class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
 
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {
@@ -132,19 +161,21 @@ class ProjectsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppTopBar(
-              title: 'SiteTrack',
+              title: 'BuildTrack',
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
-            Expanded(
-              child: _buildBody(context, provider),
-            ),
+            Expanded(child: _buildBody(context, provider)),
           ],
         ),
       ),
@@ -213,7 +244,10 @@ class ProjectsScreen extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEF0FF),
                     borderRadius: BorderRadius.circular(20),
@@ -230,10 +264,12 @@ class ProjectsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            ...provider.projects.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _projectCard(context, p, provider),
-                )),
+            ...provider.projects.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _projectCard(context, p, provider),
+              ),
+            ),
           ],
         ),
       ),
@@ -241,7 +277,10 @@ class ProjectsScreen extends StatelessWidget {
   }
 
   Widget _projectCard(
-      BuildContext context, ProjectModel p, ProjectProvider provider) {
+    BuildContext context,
+    ProjectModel p,
+    ProjectProvider provider,
+  ) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -357,7 +396,9 @@ class ProjectsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 8),
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -370,8 +411,7 @@ class ProjectsScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.arrow_forward,
-                            color: primaryBlue, size: 16),
+                        Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
                       ],
                     ),
                   ),

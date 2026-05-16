@@ -15,23 +15,23 @@ class AddProjectScreen extends StatefulWidget {
 
 class _AddProjectScreenState extends State<AddProjectScreen> {
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
-  final _formKey   = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   // ── Project Setup ──────────────────────────────────────────────
-  final _nameCtrl  = TextEditingController();
-  final _cityCtrl  = TextEditingController();
-  final _sectorCtrl= TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _sectorCtrl = TextEditingController();
 
   // ── Basic Information ──────────────────────────────────────────
   final _mapAddressCtrl = TextEditingController();
-  final _clientCtrl     = TextEditingController();
+  final _clientCtrl = TextEditingController();
   final _contractorCtrl = TextEditingController();
-  final _engineerCtrl   = TextEditingController();
-  final _contactCtrl    = TextEditingController();
+  final _engineerCtrl = TextEditingController();
+  final _contactCtrl = TextEditingController();
   late final String _projectCode;
 
   // ── Building Type ──────────────────────────────────────────────
@@ -39,89 +39,142 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   String? _buildingSubType;
 
   static const Map<String, List<String>> _buildingSubTypes = {
-    'Residential':           ['1 BHK', '2 BHK', '3 BHK', 'Villa', 'Apartment'],
-    'Educational':           ['School', 'College'],
-    'Institutional':         ['Church', 'Presbytery', 'Convention Hall'],
+    'Residential': ['1 BHK', '2 BHK', '3 BHK', 'Villa', 'Apartment'],
+    'Educational': ['School', 'College'],
+    'Institutional': ['Church', 'Presbytery', 'Convention Hall'],
     'Business / Commercial': ['Shop', 'Office', 'Complex'],
-    'Industrial':            ['Factory', 'Warehouse'],
+    'Industrial': ['Factory', 'Warehouse'],
   };
-  
+
   // ── Dates, Budget & Status ─────────────────────────────────────
   DateTime _startDate = DateTime.now();
   DateTime? _expectedEndDate;
   DateTime? _actualEndDate;
 
-  final _budgetMaterialCtrl  = TextEditingController();
-  final _budgetLabourCtrl    = TextEditingController();
+  final _budgetMaterialCtrl = TextEditingController();
+  final _budgetLabourCtrl = TextEditingController();
   final _budgetEquipmentCtrl = TextEditingController();
-  final _budgetMiscCtrl      = TextEditingController();
+  final _budgetMiscCtrl = TextEditingController();
 
   String _projectStatus = 'Planning';
   final List<String> _statusOptions = [
-    'Planning', 'In Progress', 'On Hold', 'Completed', 'Cancelled'
+    'Planning',
+    'In Progress',
+    'On Hold',
+    'Completed',
+    'Cancelled',
   ];
 
   // ── Accordion States ───────────────────────────────────────────
-  bool _cfgBasicInfoExpanded    = true;
+  bool _cfgBasicInfoExpanded = true;
   bool _cfgBuildingTypeExpanded = true;
-  bool _cfgLandExpanded         = true;
-  bool _cfgRoomsExpanded        = false;
-  bool _cfgAddlExpanded         = false;
-  bool _cfgUtilityExpanded      = false;
-  bool _cfgGasExpanded          = false;
-  bool _cfgKitchenExpanded      = false;
-  bool _cfgElectricalExpanded   = false;
-  bool _cfgTerraceExpanded      = false;
+  bool _cfgLandExpanded = true;
+  bool _cfgRoomsExpanded = false;
+  bool _cfgAddlExpanded = false;
+  bool _cfgUtilityExpanded = false;
+  bool _cfgGasExpanded = false;
+  bool _cfgKitchenExpanded = false;
+  bool _cfgElectricalExpanded = false;
+  bool _cfgTerraceExpanded = false;
 
   // ── Land & Floors ──────────────────────────────────────────────
   final _landAreaCtrl = TextEditingController();
   String _landUnit = 'Sq ft';
   final List<String> _selectedFloorChips = [];
   final List<String> _floorChipOptions = [
-    'Ground', '1st', '2nd', '3rd', '4th', 'Terrace', 'Head Room'
+    'Ground',
+    '1st',
+    '2nd',
+    '3rd',
+    '4th',
+    'Terrace',
+    'Head Room',
   ];
 
   // ── Rooms & Bathrooms ──────────────────────────────────────────
-  int _room1BHKCount   = 0;
-  int _room2BHKCount   = 0;
-  int _room3BHKCount   = 0;
+  int _room1BHKCount = 0;
+  int _room2BHKCount = 0;
+  int _room3BHKCount = 0;
   int _roomCustomCount = 0;
 
-  int _bathWesternCount  = 0;
-  int _bathIndianCount   = 0;
-  int _bathCommonCount   = 0;
+  int _bathWesternCount = 0;
+  int _bathIndianCount = 0;
+  int _bathCommonCount = 0;
   int _bathAttachedCount = 0;
 
   // ── Additional Configuration & Services ────────────────────────
   final Set<String> _additionalConfigs = {};
 
   final List<String> _addlConfigOptions = [
-    'Balcony', 'Car Parking', 'Lift', 'Terrace Access', 'Interior Work', 
-    'Compound Wall', 'Parapet Wall', 'Waterproofing', 'Putty', 'False Ceiling',
-    'Modular Kitchen', 'Wardrobes', 'Sump', 'Septic Tank', 'Rainwater', 
-    'Borewell', 'Solar', 'Generator', 'CCTV', 'Intercom', 'Landscaping', 
-    'Paving', 'Water Tanks', 'Stairs', 'Security Room', 'Cladding',
-    'Elevation', 'Gates', 'Grills', 'Aluminium', 'Glass',
+    'Balcony',
+    'Car Parking',
+    'Lift',
+    'Terrace Access',
+    'Interior Work',
+    'Compound Wall',
+    'Parapet Wall',
+    'Waterproofing',
+    'Putty',
+    'False Ceiling',
+    'Modular Kitchen',
+    'Wardrobes',
+    'Sump',
+    'Septic Tank',
+    'Rainwater',
+    'Borewell',
+    'Solar',
+    'Generator',
+    'CCTV',
+    'Intercom',
+    'Landscaping',
+    'Paving',
+    'Water Tanks',
+    'Stairs',
+    'Security Room',
+    'Cladding',
+    'Elevation',
+    'Gates',
+    'Grills',
+    'Aluminium',
+    'Glass',
   ];
 
   final List<String> _utilityOptions = [
-    'Main Electricity', 'Temporary Connection', 'Generator Backup', 'Water Connection', 'Borewell Motor', 'Sump Motor'
+    'Main Electricity',
+    'Temporary Connection',
+    'Generator Backup',
+    'Water Connection',
+    'Borewell Motor',
+    'Sump Motor',
   ];
 
   final List<String> _gasOptions = [
-    'Piped Gas', 'Cylinder Bank', 'Gas Pipeline Routing'
+    'Piped Gas',
+    'Cylinder Bank',
+    'Gas Pipeline Routing',
   ];
 
   final List<String> _kitchenOptions = [
-    'Granite Counter', 'Quartz Counter', 'Stainless Steel Sink', 'Chimney Provision', 'Exhaust Fan Provision'
+    'Granite Counter',
+    'Quartz Counter',
+    'Stainless Steel Sink',
+    'Chimney Provision',
+    'Exhaust Fan Provision',
   ];
 
   final List<String> _electricalOptions = [
-    'Concealed Wiring', 'Open Wiring', '3-Phase Connection', 'AC Points', 'Geyser Points'
+    'Concealed Wiring',
+    'Open Wiring',
+    '3-Phase Connection',
+    'AC Points',
+    'Geyser Points',
   ];
 
   final List<String> _terraceOptions = [
-    'Weathering Course', 'Cool Roof Paint', 'Overhead Tank', 'Solar Panels'
+    'Weathering Course',
+    'Cool Roof Paint',
+    'Overhead Tank',
+    'Solar Panels',
   ];
 
   bool _saving = false;
@@ -134,7 +187,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _phases = buildDefaultPhases();
     // Generate project code: CF-YYYY-XXXX
     final year = DateTime.now().year;
-    final rand = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    final rand = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
+        .toString();
     _projectCode = 'CF-$year-$rand';
   }
 
@@ -157,28 +211,25 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     super.dispose();
   }
 
-<<<<<<< HEAD
-  void _submit() async {
-=======
   Future<void> _submit() async {
->>>>>>> feat/roselin-sprint-final
     if (!_formKey.currentState!.validate()) return;
 
     // --- HARSHINI'S SUBSCRIPTION CHECK ---
     final projectProvider = context.read<ProjectProvider>();
-    final subProvider = context.read<SubscriptionProvider>();
-    if (!subProvider.canAddProject(projectProvider.projectCount)) {
-      _showUpgradeDialog();
-      return;
-    }
+    // final subProvider = context.read<SubscriptionProvider>();
+    // if (!subProvider.canAddProject(projectProvider.projectCount)) {
+    //   _showUpgradeDialog();
+    //   return;
+    // }
 
     setState(() => _saving = true);
 
     try {
-      double parseBudget(TextEditingController c) => double.tryParse(c.text) ?? 0.0;
-      final bMat  = parseBudget(_budgetMaterialCtrl);
-      final bLab  = parseBudget(_budgetLabourCtrl);
-      final bEq   = parseBudget(_budgetEquipmentCtrl);
+      double parseBudget(TextEditingController c) =>
+          double.tryParse(c.text) ?? 0.0;
+      final bMat = parseBudget(_budgetMaterialCtrl);
+      final bLab = parseBudget(_budgetLabourCtrl);
+      final bEq = parseBudget(_budgetEquipmentCtrl);
       final bMisc = parseBudget(_budgetMiscCtrl);
       final budgetTotal = bMat + bLab + bEq + bMisc;
 
@@ -192,85 +243,102 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             : _mainBuildingType;
       }
 
+      // --- THE FIX FOR BUG 3: Extracting Tracking Arrays ---
+      final selectedPhaseNamesList = _phases
+          .where((p) => p.isSelected)
+          .map((p) => p.name)
+          .toList();
+
+      final trackedActivityKeysList = _phases
+          .expand((p) => p.allActivities)
+          .where((a) => a.isSelected)
+          .map((a) => a.key)
+          .toList();
+
       // --- ROSELIN'S ENTERPRISE PROJECT MODEL ---
       final newProject = ProjectModel(
-        id:              DateTime.now().millisecondsSinceEpoch.toString(),
-        name:            _nameCtrl.text.trim(),
-        city:            _cityCtrl.text.trim(),
-        sector:          _sectorCtrl.text.trim(),
-        stage:           ProjectStage.preConstruction,
-        progress:        0.0,
-        totalBudget:     budgetTotal,
-        spentAmount:     0.0,
-        startDate:       _startDate,
-        projectCode:     _projectCode,
-        mapAddress:      nn(_mapAddressCtrl.text),
-        clientName:      nn(_clientCtrl.text),
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: _nameCtrl.text.trim(),
+        city: _cityCtrl.text.trim(),
+        sector: _sectorCtrl.text.trim(),
+        stage: ProjectStage.preConstruction,
+        progress: 0.0,
+        totalBudget: budgetTotal,
+        spentAmount: 0.0,
+        startDate: _startDate,
+        projectCode: _projectCode,
+        mapAddress: nn(_mapAddressCtrl.text),
+        clientName: nn(_clientCtrl.text),
         expectedEndDate: _expectedEndDate,
-        floors:          _selectedFloorChips.isEmpty ? null : List<String>.from(_selectedFloorChips),
-        selectedPhases:  _phases
-            .where((p) => p.isSelected && p.allActivities.any((a) => a.isSelected))
-            .map((p) => ProjectPhase(
-                  id:         'phase_${p.name.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
-                  phaseName:  p.name,
-                  isCustom:   p.isCustom,
-                  activities: p.allActivities
-                      .where((a) => a.isSelected)
-                      .map((a) => ProjectActivity(
-                            id:       a.key,
-                            name:     a.name,
-                            isCustom: a.isCustom,
-                          ))
-                      .toList(),
-                ))
+        floors: _selectedFloorChips.isEmpty
+            ? null
+            : List<String>.from(_selectedFloorChips),
+
+        // Inject the tracking arrays here!
+        selectedPhaseNames: selectedPhaseNamesList,
+        trackedActivityKeys: trackedActivityKeysList,
+        completedActivityKeys: [], // Empty on creation
+
+        selectedPhases: _phases
+            .where(
+              (p) => p.isSelected && p.allActivities.any((a) => a.isSelected),
+            )
+            .map(
+              (p) => ProjectPhase(
+                id: 'phase_${p.name.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
+                phaseName: p.name,
+                isCustom: p.isCustom,
+                activities: p.allActivities
+                    .where((a) => a.isSelected)
+                    .map(
+                      (a) => ProjectActivity(
+                        id: a.key,
+                        name: a.name,
+                        isCustom: a.isCustom,
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
             .toList(),
-        contractorName:  nn(_contractorCtrl.text),
-        siteEngineer:    nn(_engineerCtrl.text),
-        contactNumber:   nn(_contactCtrl.text),
-        actualEndDate:   _actualEndDate,
-        landArea:        nn(_landAreaCtrl.text),
-        landUnit:        _landUnit,
-        projectType:     buildingTypeStr,
-        room1BHK:        _room1BHKCount   > 0 ? _room1BHKCount   : null,
-        room2BHK:        _room2BHKCount   > 0 ? _room2BHKCount   : null,
-        room3BHK:        _room3BHKCount   > 0 ? _room3BHKCount   : null,
-        roomCustom:      _roomCustomCount  > 0 ? _roomCustomCount  : null,
-        bathWestern:     _bathWesternCount > 0 ? _bathWesternCount : null,
-        bathIndian:      _bathIndianCount  > 0 ? _bathIndianCount  : null,
-        bathCommon:      _bathCommonCount  > 0 ? _bathCommonCount  : null,
-        bathAttached:    _bathAttachedCount > 0 ? _bathAttachedCount : null,
-        selectedFeatures: _additionalConfigs.isEmpty ? null : _additionalConfigs.toList(),
-        budgetMaterial:  bMat  > 0 ? bMat  : null,
-        budgetLabour:    bLab  > 0 ? bLab  : null,
-        budgetEquipment: bEq   > 0 ? bEq   : null,
-        budgetMisc:      bMisc > 0 ? bMisc : null,
-        projectStatus:   _projectStatus,
+        contractorName: nn(_contractorCtrl.text),
+        siteEngineer: nn(_engineerCtrl.text),
+        contactNumber: nn(_contactCtrl.text),
+        actualEndDate: _actualEndDate,
+        landArea: nn(_landAreaCtrl.text),
+        landUnit: _landUnit,
+        projectType: buildingTypeStr,
+        room1BHK: _room1BHKCount > 0 ? _room1BHKCount : null,
+        room2BHK: _room2BHKCount > 0 ? _room2BHKCount : null,
+        room3BHK: _room3BHKCount > 0 ? _room3BHKCount : null,
+        roomCustom: _roomCustomCount > 0 ? _roomCustomCount : null,
+        bathWestern: _bathWesternCount > 0 ? _bathWesternCount : null,
+        bathIndian: _bathIndianCount > 0 ? _bathIndianCount : null,
+        bathCommon: _bathCommonCount > 0 ? _bathCommonCount : null,
+        bathAttached: _bathAttachedCount > 0 ? _bathAttachedCount : null,
+        selectedFeatures: _additionalConfigs.isEmpty
+            ? null
+            : _additionalConfigs.toList(),
+        budgetMaterial: bMat > 0 ? bMat : null,
+        budgetLabour: bLab > 0 ? bLab : null,
+        budgetEquipment: bEq > 0 ? bEq : null,
+        budgetMisc: bMisc > 0 ? bMisc : null,
+        projectStatus: _projectStatus,
       );
 
-      // Save to local state
+      print('DEBUG PHASES COUNT: ${newProject.selectedPhases?.length}');
+      print('DEBUG PHASE NAMES: ${newProject.selectedPhaseNames}');
+      print('DEBUG ACTIVITY KEYS: ${newProject.trackedActivityKeys}');
+
+      // Save via provider (which POSTs to backend first, then adds locally)
       await projectProvider.addProject(newProject);
-
-      // --- HARSHINI'S API POST BACKBACK ---
-      final location = _sectorCtrl.text.trim().isNotEmpty
-          ? '${_cityCtrl.text.trim()}, ${_sectorCtrl.text.trim()}'
-          : _cityCtrl.text.trim();
-
-      final payload = {
-        'projectName': _nameCtrl.text.trim(),
-        'clientName':  _clientCtrl.text.trim(),
-        'location':    location,
-        'projectType': buildingTypeStr,
-      };
-
-      try {
-        await ApiService.post('/projects', payload);
-      } catch (e) {
-        // Just catch silently if backend is unavailable, local state already saved
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project created!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Project created!'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
@@ -285,8 +353,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     }
   }
 
-<<<<<<< HEAD
-=======
   void _showUpgradeDialog() {
     showDialog(
       context: context,
@@ -364,7 +430,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
->>>>>>> feat/roselin-sprint-final
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -380,18 +445,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 40, height: 40,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 8, offset: const Offset(0, 2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new, color: textDark, size: 18),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: textDark,
+                        size: 18,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -430,14 +501,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               controller: _nameCtrl,
                               hint: 'e.g. Skyline Towers',
                               icon: Icons.apartment_rounded,
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Required'
+                                  : null,
                             ),
                             const SizedBox(height: 16),
                             Row(
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('City'),
                                       const SizedBox(height: 8),
@@ -445,7 +519,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                         controller: _cityCtrl,
                                         hint: 'City',
                                         icon: Icons.location_city_rounded,
-                                        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                                        validator: (v) =>
+                                            v == null || v.trim().isEmpty
+                                            ? 'Required'
+                                            : null,
                                       ),
                                     ],
                                   ),
@@ -453,7 +530,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('Sector / Area'),
                                       const SizedBox(height: 8),
@@ -461,7 +539,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                         controller: _sectorCtrl,
                                         hint: 'Sector',
                                         icon: Icons.map_rounded,
-                                        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                                        validator: (v) =>
+                                            v == null || v.trim().isEmpty
+                                            ? 'Required'
+                                            : null,
                                       ),
                                     ],
                                   ),
@@ -477,34 +558,61 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildAccordionCard(
                         title: 'Basic Information',
                         isExpanded: _cfgBasicInfoExpanded,
-                        onToggle: () => setState(() => _cfgBasicInfoExpanded = !_cfgBasicInfoExpanded),
+                        onToggle: () => setState(
+                          () => _cfgBasicInfoExpanded = !_cfgBasicInfoExpanded,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF3F4FF),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: primaryBlue.withValues(alpha: 0.18), width: 1.5),
+                                border: Border.all(
+                                  color: primaryBlue.withValues(alpha: 0.18),
+                                  width: 1.5,
+                                ),
                               ),
                               child: Row(
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text('Project Code',
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                                              color: textGray.withValues(alpha: 0.7), letterSpacing: 0.3)),
+                                        Text(
+                                          'Project Code',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: textGray.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
                                         const SizedBox(height: 2),
-                                        Text('Auto-generated',
-                                          style: TextStyle(fontSize: 10, color: textGray.withValues(alpha: 0.5))),
+                                        Text(
+                                          'Auto-generated',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: textGray.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 7,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: primaryBlue,
                                       borderRadius: BorderRadius.circular(20),
@@ -523,7 +631,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            _label('Map Location / Address', icon: Icons.location_on_rounded),
+                            _label(
+                              'Map Location / Address',
+                              icon: Icons.location_on_rounded,
+                            ),
                             const SizedBox(height: 8),
                             _field(
                               controller: _mapAddressCtrl,
@@ -535,9 +646,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      _label('Client Name', icon: Icons.person_rounded),
+                                      _label(
+                                        'Client Name',
+                                        icon: Icons.person_rounded,
+                                      ),
                                       const SizedBox(height: 8),
                                       _field(
                                         controller: _clientCtrl,
@@ -550,9 +665,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      _label('Contractor Name', icon: Icons.engineering_rounded),
+                                      _label(
+                                        'Contractor Name',
+                                        icon: Icons.engineering_rounded,
+                                      ),
                                       const SizedBox(height: 8),
                                       _field(
                                         controller: _contractorCtrl,
@@ -569,9 +688,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      _label('Site Engineer', icon: Icons.construction_rounded),
+                                      _label(
+                                        'Site Engineer',
+                                        icon: Icons.construction_rounded,
+                                      ),
                                       const SizedBox(height: 8),
                                       _field(
                                         controller: _engineerCtrl,
@@ -584,9 +707,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      _label('Contact Number', icon: Icons.phone_rounded),
+                                      _label(
+                                        'Contact Number',
+                                        icon: Icons.phone_rounded,
+                                      ),
                                       const SizedBox(height: 8),
                                       _field(
                                         controller: _contactCtrl,
@@ -608,7 +735,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildAccordionCard(
                         title: 'Building Type',
                         isExpanded: _cfgBuildingTypeExpanded,
-                        onToggle: () => setState(() => _cfgBuildingTypeExpanded = !_cfgBuildingTypeExpanded),
+                        onToggle: () => setState(
+                          () => _cfgBuildingTypeExpanded =
+                              !_cfgBuildingTypeExpanded,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -616,7 +746,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('Main Type'),
                                       const SizedBox(height: 8),
@@ -635,7 +766,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('Sub Type'),
                                       const SizedBox(height: 8),
@@ -645,11 +777,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                             ? 'Select main type first'
                                             : 'Select sub type',
                                         items: _mainBuildingType != null
-                                            ? (_buildingSubTypes[_mainBuildingType!] ?? <String>[])
+                                            ? (_buildingSubTypes[_mainBuildingType!] ??
+                                                  <String>[])
                                             : <String>[],
                                         onChanged: _mainBuildingType == null
                                             ? null
-                                            : (val) => setState(() => _buildingSubType = val),
+                                            : (val) => setState(
+                                                () => _buildingSubType = val,
+                                              ),
                                       ),
                                     ],
                                   ),
@@ -665,7 +800,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildAccordionCard(
                         title: 'Land & Floors',
                         isExpanded: _cfgLandExpanded,
-                        onToggle: () => setState(() => _cfgLandExpanded = !_cfgLandExpanded),
+                        onToggle: () => setState(
+                          () => _cfgLandExpanded = !_cfgLandExpanded,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -674,7 +811,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 Expanded(
                                   flex: 2,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('Total Land Area'),
                                       const SizedBox(height: 8),
@@ -690,15 +828,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 Expanded(
                                   flex: 1,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _label('Unit'),
                                       const SizedBox(height: 8),
                                       _buildDropdown(
                                         value: _landUnit,
                                         hint: 'Unit',
-                                        items: const ['Sq ft', 'Sq m', 'Acres', 'Hectares'],
-                                        onChanged: (val) => setState(() => _landUnit = val ?? 'Sq ft'),
+                                        items: const [
+                                          'Sq ft',
+                                          'Sq m',
+                                          'Acres',
+                                          'Hectares',
+                                        ],
+                                        onChanged: (val) => setState(
+                                          () => _landUnit = val ?? 'Sq ft',
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -709,20 +855,27 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             _label('Floors Included'),
                             const SizedBox(height: 12),
                             Wrap(
-                              spacing: 8, runSpacing: 8,
-                              children: _floorChipOptions.map((f) => _buildSelectableChip(
-                                label: f,
-                                isSelected: _selectedFloorChips.contains(f),
-                                onTap: () {
-                                  setState(() {
-                                    if (_selectedFloorChips.contains(f)) {
-                                      _selectedFloorChips.remove(f);
-                                    } else {
-                                      _selectedFloorChips.add(f);
-                                    }
-                                  });
-                                },
-                              )).toList(),
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _floorChipOptions
+                                  .map(
+                                    (f) => _buildSelectableChip(
+                                      label: f,
+                                      isSelected: _selectedFloorChips.contains(
+                                        f,
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          if (_selectedFloorChips.contains(f)) {
+                                            _selectedFloorChips.remove(f);
+                                          } else {
+                                            _selectedFloorChips.add(f);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                           ],
                         ),
@@ -733,50 +886,105 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildAccordionCard(
                         title: 'Rooms & Bathrooms',
                         isExpanded: _cfgRoomsExpanded,
-                        onToggle: () => setState(() => _cfgRoomsExpanded = !_cfgRoomsExpanded),
+                        onToggle: () => setState(
+                          () => _cfgRoomsExpanded = !_cfgRoomsExpanded,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _label('ROOM TYPES', uppercase: true),
                             const SizedBox(height: 16),
-                            _buildCounterRow('1 BHK', _room1BHKCount, 
-                              onInc: () => setState(() => _room1BHKCount++), 
-                              onDec: () => setState(() => _room1BHKCount > 0 ? _room1BHKCount-- : 0)),
+                            _buildCounterRow(
+                              '1 BHK',
+                              _room1BHKCount,
+                              onInc: () => setState(() => _room1BHKCount++),
+                              onDec: () => setState(
+                                () => _room1BHKCount > 0 ? _room1BHKCount-- : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('2 BHK', _room2BHKCount, 
-                              onInc: () => setState(() => _room2BHKCount++), 
-                              onDec: () => setState(() => _room2BHKCount > 0 ? _room2BHKCount-- : 0)),
+                            _buildCounterRow(
+                              '2 BHK',
+                              _room2BHKCount,
+                              onInc: () => setState(() => _room2BHKCount++),
+                              onDec: () => setState(
+                                () => _room2BHKCount > 0 ? _room2BHKCount-- : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('3 BHK', _room3BHKCount, 
-                              onInc: () => setState(() => _room3BHKCount++), 
-                              onDec: () => setState(() => _room3BHKCount > 0 ? _room3BHKCount-- : 0)),
+                            _buildCounterRow(
+                              '3 BHK',
+                              _room3BHKCount,
+                              onInc: () => setState(() => _room3BHKCount++),
+                              onDec: () => setState(
+                                () => _room3BHKCount > 0 ? _room3BHKCount-- : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('Custom Room', _roomCustomCount, 
-                              onInc: () => setState(() => _roomCustomCount++), 
-                              onDec: () => setState(() => _roomCustomCount > 0 ? _roomCustomCount-- : 0)),
-                            
+                            _buildCounterRow(
+                              'Custom Room',
+                              _roomCustomCount,
+                              onInc: () => setState(() => _roomCustomCount++),
+                              onDec: () => setState(
+                                () => _roomCustomCount > 0
+                                    ? _roomCustomCount--
+                                    : 0,
+                              ),
+                            ),
+
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Divider(color: Color(0xFFEEF0F5), height: 1),
+                              child: Divider(
+                                color: Color(0xFFEEF0F5),
+                                height: 1,
+                              ),
                             ),
 
                             _label('BATHROOM TYPES', uppercase: true),
                             const SizedBox(height: 16),
-                            _buildCounterRow('Western Toilet', _bathWesternCount, 
-                              onInc: () => setState(() => _bathWesternCount++), 
-                              onDec: () => setState(() => _bathWesternCount > 0 ? _bathWesternCount-- : 0)),
+                            _buildCounterRow(
+                              'Western Toilet',
+                              _bathWesternCount,
+                              onInc: () => setState(() => _bathWesternCount++),
+                              onDec: () => setState(
+                                () => _bathWesternCount > 0
+                                    ? _bathWesternCount--
+                                    : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('Indian Toilet', _bathIndianCount, 
-                              onInc: () => setState(() => _bathIndianCount++), 
-                              onDec: () => setState(() => _bathIndianCount > 0 ? _bathIndianCount-- : 0)),
+                            _buildCounterRow(
+                              'Indian Toilet',
+                              _bathIndianCount,
+                              onInc: () => setState(() => _bathIndianCount++),
+                              onDec: () => setState(
+                                () => _bathIndianCount > 0
+                                    ? _bathIndianCount--
+                                    : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('Common Bath', _bathCommonCount, 
-                              onInc: () => setState(() => _bathCommonCount++), 
-                              onDec: () => setState(() => _bathCommonCount > 0 ? _bathCommonCount-- : 0)),
+                            _buildCounterRow(
+                              'Common Bath',
+                              _bathCommonCount,
+                              onInc: () => setState(() => _bathCommonCount++),
+                              onDec: () => setState(
+                                () => _bathCommonCount > 0
+                                    ? _bathCommonCount--
+                                    : 0,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            _buildCounterRow('Attached Bath', _bathAttachedCount, 
-                              onInc: () => setState(() => _bathAttachedCount++), 
-                              onDec: () => setState(() => _bathAttachedCount > 0 ? _bathAttachedCount-- : 0)),
+                            _buildCounterRow(
+                              'Attached Bath',
+                              _bathAttachedCount,
+                              onInc: () => setState(() => _bathAttachedCount++),
+                              onDec: () => setState(
+                                () => _bathAttachedCount > 0
+                                    ? _bathAttachedCount--
+                                    : 0,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -786,7 +994,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildAccordionCard(
                         title: 'Additional Configuration',
                         isExpanded: _cfgAddlExpanded,
-                        onToggle: () => setState(() => _cfgAddlExpanded = !_cfgAddlExpanded),
+                        onToggle: () => setState(
+                          () => _cfgAddlExpanded = !_cfgAddlExpanded,
+                        ),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final halfWidth = (constraints.maxWidth - 16) / 2;
@@ -797,7 +1007,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 return SizedBox(
                                   width: halfWidth,
                                   child: _buildCheckboxRow(
-                                    opt, 
+                                    opt,
                                     _additionalConfigs.contains(opt),
                                     (v) {
                                       setState(() {
@@ -807,26 +1017,61 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                           _additionalConfigs.remove(opt);
                                         }
                                       });
-                                    }
+                                    },
                                   ),
                                 );
                               }).toList(),
                             );
-                          }
+                          },
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       // ── OTHER CONFIGS ──────────────────────────────────────
-                      _buildAccordionCard(title: 'Utility & Services', isExpanded: _cfgUtilityExpanded, onToggle: () => setState(() => _cfgUtilityExpanded = !_cfgUtilityExpanded), child: _buildConfigList(_utilityOptions)),
+                      _buildAccordionCard(
+                        title: 'Utility & Services',
+                        isExpanded: _cfgUtilityExpanded,
+                        onToggle: () => setState(
+                          () => _cfgUtilityExpanded = !_cfgUtilityExpanded,
+                        ),
+                        child: _buildConfigList(_utilityOptions),
+                      ),
                       const SizedBox(height: 16),
-                      _buildAccordionCard(title: 'Gas Connection', isExpanded: _cfgGasExpanded, onToggle: () => setState(() => _cfgGasExpanded = !_cfgGasExpanded), child: _buildConfigList(_gasOptions)),
+                      _buildAccordionCard(
+                        title: 'Gas Connection',
+                        isExpanded: _cfgGasExpanded,
+                        onToggle: () =>
+                            setState(() => _cfgGasExpanded = !_cfgGasExpanded),
+                        child: _buildConfigList(_gasOptions),
+                      ),
                       const SizedBox(height: 16),
-                      _buildAccordionCard(title: 'Kitchen Requirements', isExpanded: _cfgKitchenExpanded, onToggle: () => setState(() => _cfgKitchenExpanded = !_cfgKitchenExpanded), child: _buildConfigList(_kitchenOptions)),
+                      _buildAccordionCard(
+                        title: 'Kitchen Requirements',
+                        isExpanded: _cfgKitchenExpanded,
+                        onToggle: () => setState(
+                          () => _cfgKitchenExpanded = !_cfgKitchenExpanded,
+                        ),
+                        child: _buildConfigList(_kitchenOptions),
+                      ),
                       const SizedBox(height: 16),
-                      _buildAccordionCard(title: 'Electrical & Plumbing', isExpanded: _cfgElectricalExpanded, onToggle: () => setState(() => _cfgElectricalExpanded = !_cfgElectricalExpanded), child: _buildConfigList(_electricalOptions)),
+                      _buildAccordionCard(
+                        title: 'Electrical & Plumbing',
+                        isExpanded: _cfgElectricalExpanded,
+                        onToggle: () => setState(
+                          () =>
+                              _cfgElectricalExpanded = !_cfgElectricalExpanded,
+                        ),
+                        child: _buildConfigList(_electricalOptions),
+                      ),
                       const SizedBox(height: 16),
-                      _buildAccordionCard(title: 'Terrace & Interior', isExpanded: _cfgTerraceExpanded, onToggle: () => setState(() => _cfgTerraceExpanded = !_cfgTerraceExpanded), child: _buildConfigList(_terraceOptions)),
+                      _buildAccordionCard(
+                        title: 'Terrace & Interior',
+                        isExpanded: _cfgTerraceExpanded,
+                        onToggle: () => setState(
+                          () => _cfgTerraceExpanded = !_cfgTerraceExpanded,
+                        ),
+                        child: _buildConfigList(_terraceOptions),
+                      ),
                       const SizedBox(height: 16),
 
                       // ── DATES, BUDGET & STATUS ─────────────────────────────
@@ -840,99 +1085,184 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                Expanded(child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _label('Start Date'),
-                                    const SizedBox(height: 8),
-                                    _datePicker(
-                                      date: _startDate,
-                                      onSelect: () async {
-                                        final picked = await showDatePicker(
-                                          context: context, initialDate: _startDate, firstDate: DateTime(2000), lastDate: DateTime(2100),
-                                        );
-                                        if (picked != null) setState(() => _startDate = picked);
-                                      }
-                                    ),
-                                  ],
-                                )),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Start Date'),
+                                      const SizedBox(height: 8),
+                                      _datePicker(
+                                        date: _startDate,
+                                        onSelect: () async {
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate: _startDate,
+                                            firstDate: DateTime(2000),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (picked != null) {
+                                            setState(() => _startDate = picked);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _label('Expected End'),
-                                    const SizedBox(height: 8),
-                                    _datePicker(
-                                      date: _expectedEndDate,
-                                      hint: 'dd/mm/yyyy',
-                                      onSelect: () async {
-                                        final picked = await showDatePicker(
-                                          context: context, initialDate: _expectedEndDate ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100),
-                                        );
-                                        if (picked != null) setState(() => _expectedEndDate = picked);
-                                      }
-                                    ),
-                                  ],
-                                )),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Expected End'),
+                                      const SizedBox(height: 8),
+                                      _datePicker(
+                                        date: _expectedEndDate,
+                                        hint: 'dd/mm/yyyy',
+                                        onSelect: () async {
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate:
+                                                _expectedEndDate ??
+                                                DateTime.now(),
+                                            firstDate: DateTime(2000),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (picked != null) {
+                                            setState(
+                                              () => _expectedEndDate = picked,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                            const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(color: Color(0xFFEEF0F5), height: 1)),
-                            
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Divider(
+                                color: Color(0xFFEEF0F5),
+                                height: 1,
+                              ),
+                            ),
+
                             _label('BUDGET BREAKDOWN', uppercase: true),
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  _label('Material (\u20B9)'),
-                                  const SizedBox(height: 8),
-                                  _field(controller: _budgetMaterialCtrl, hint: '\u20B9 0', keyboardType: TextInputType.number),
-                                ])),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Material (\u20B9)'),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _budgetMaterialCtrl,
+                                        hint: '\u20B9 0',
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  _label('Labour (\u20B9)'),
-                                  const SizedBox(height: 8),
-                                  _field(controller: _budgetLabourCtrl, hint: '\u20B9 0', keyboardType: TextInputType.number),
-                                ])),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Labour (\u20B9)'),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _budgetLabourCtrl,
+                                        hint: '\u20B9 0',
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  _label('Equipment (\u20B9)'),
-                                  const SizedBox(height: 8),
-                                  _field(controller: _budgetEquipmentCtrl, hint: '\u20B9 0', keyboardType: TextInputType.number),
-                                ])),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Equipment (\u20B9)'),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _budgetEquipmentCtrl,
+                                        hint: '\u20B9 0',
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  _label('Misc (\u20B9)'),
-                                  const SizedBox(height: 8),
-                                  _field(controller: _budgetMiscCtrl, hint: '\u20B9 0', keyboardType: TextInputType.number),
-                                ])),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Misc (\u20B9)'),
+                                      const SizedBox(height: 8),
+                                      _field(
+                                        controller: _budgetMiscCtrl,
+                                        hint: '\u20B9 0',
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                            const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(color: Color(0xFFEEF0F5), height: 1)),
-                            
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Divider(
+                                color: Color(0xFFEEF0F5),
+                                height: 1,
+                              ),
+                            ),
+
                             _label('PROJECT STATUS', uppercase: true),
                             const SizedBox(height: 16),
                             Wrap(
-                              spacing: 8, runSpacing: 8,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: _statusOptions.map((opt) {
                                 final isSelected = _projectStatus == opt;
                                 final isCancelled = opt == 'Cancelled';
                                 return GestureDetector(
-                                  onTap: () => setState(() => _projectStatus = opt),
+                                  onTap: () =>
+                                      setState(() => _projectStatus = opt),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isSelected 
-                                        ? (isCancelled ? const Color(0xFFFFF0F0) : primaryBlue.withValues(alpha: 0.1)) 
-                                        : Colors.white,
+                                      color: isSelected
+                                          ? (isCancelled
+                                                ? const Color(0xFFFFF0F0)
+                                                : primaryBlue.withValues(
+                                                    alpha: 0.1,
+                                                  ))
+                                          : Colors.white,
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: isSelected 
-                                          ? (isCancelled ? Colors.red.withValues(alpha: 0.5) : primaryBlue) 
-                                          : const Color(0xFFEEF0F5),
+                                        color: isSelected
+                                            ? (isCancelled
+                                                  ? Colors.red.withValues(
+                                                      alpha: 0.5,
+                                                    )
+                                                  : primaryBlue)
+                                            : const Color(0xFFEEF0F5),
                                         width: 1.5,
                                       ),
                                     ),
@@ -941,9 +1271,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: isSelected 
-                                          ? (isCancelled ? Colors.red : primaryBlue) 
-                                          : textGray,
+                                        color: isSelected
+                                            ? (isCancelled
+                                                  ? Colors.red
+                                                  : primaryBlue)
+                                            : textGray,
                                       ),
                                     ),
                                   ),
@@ -957,7 +1289,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
                       // ── CONSTRUCTION PHASES ────────────────────────────────
                       _buildConstructionPhasesCard(),
-
                     ],
                   ),
                 ),
@@ -978,11 +1309,28 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 backgroundColor: primaryBlue,
                 disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: _saving
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                  : const Text('Add Project', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3)),
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : const Text(
+                      'Add Project',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -990,10 +1338,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> feat/roselin-sprint-final
   // ───────────────────────────────────────────────────────────────────────────
   // UI HELPERS
   // ───────────────────────────────────────────────────────────────────────────
@@ -1005,7 +1349,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: _buildCheckboxRow(opt, _additionalConfigs.contains(opt), (v) {
             setState(() {
-              if (v == true) { _additionalConfigs.add(opt); } else { _additionalConfigs.remove(opt); }
+              if (v == true) {
+                _additionalConfigs.add(opt);
+              } else {
+                _additionalConfigs.remove(opt);
+              }
             });
           }),
         );
@@ -1027,7 +1375,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10, offset: const Offset(0, 4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1053,7 +1402,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray, size: 24),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: textGray,
+                      size: 24,
+                    ),
                   ),
                 ],
               ),
@@ -1064,13 +1417,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             secondChild: Column(
               children: [
                 const Divider(height: 1, color: Color(0xFFEEF0F5)),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: child,
-                ),
+                Padding(padding: const EdgeInsets.all(16), child: child),
               ],
             ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
         ],
@@ -1091,7 +1443,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10, offset: const Offset(0, 4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1123,10 +1476,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ),
           ),
           const Divider(height: 1, color: Color(0xFFEEF0F5)),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(16), child: child),
         ],
       ),
     );
@@ -1167,13 +1517,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textDark),
+      style: const TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        color: textDark,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: textGray.withValues(alpha: 0.5), fontSize: 14),
+        hintStyle: TextStyle(
+          color: textGray.withValues(alpha: 0.5),
+          fontSize: 14,
+        ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         prefixIcon: icon != null ? Icon(icon, size: 18, color: textGray) : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1224,17 +1584,29 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          icon: Icon(Icons.keyboard_arrow_down_rounded,
-              color: disabled ? textGray.withValues(alpha: 0.3) : textGray),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
-          items: items.map((e) => DropdownMenuItem<String>(value: e, child: Text(e))).toList(),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: disabled ? textGray.withValues(alpha: 0.3) : textGray,
+          ),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: textDark,
+          ),
+          items: items
+              .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildSelectableChip({required String label, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildSelectableChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1260,13 +1632,22 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-  Widget _buildCounterRow(String title, int value, {required VoidCallback onInc, required VoidCallback onDec}) {
+  Widget _buildCounterRow(
+    String title,
+    int value, {
+    required VoidCallback onInc,
+    required VoidCallback onDec,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: textDark,
+          ),
         ),
         Container(
           decoration: BoxDecoration(
@@ -1278,7 +1659,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               GestureDetector(
                 onTap: onDec,
                 child: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   color: Colors.transparent,
                   child: const Icon(Icons.remove, size: 16, color: textGray),
                 ),
@@ -1287,17 +1669,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 width: 36,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  border: Border.symmetric(vertical: BorderSide(color: Color(0xFFEEF0F5), width: 1.5)),
+                  border: Border.symmetric(
+                    vertical: BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+                  ),
                 ),
                 child: Text(
                   value.toString(),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textDark),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: textDark,
+                  ),
                 ),
               ),
               GestureDetector(
                 onTap: onInc,
                 child: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   color: Colors.transparent,
                   child: const Icon(Icons.add, size: 16, color: primaryBlue),
                 ),
@@ -1309,16 +1698,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-  Widget _buildCheckboxRow(String title, bool value, ValueChanged<bool?> onChanged) {
+  Widget _buildCheckboxRow(
+    String title,
+    bool value,
+    ValueChanged<bool?> onChanged,
+  ) {
     return Row(
       children: [
         SizedBox(
-          width: 24, height: 24,
+          width: 24,
+          height: 24,
           child: Checkbox(
             value: value,
             onChanged: onChanged,
             activeColor: primaryBlue,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
             side: const BorderSide(color: Color(0xFFDDE0E8), width: 1.5),
           ),
         ),
@@ -1326,7 +1722,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: textDark,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -1334,7 +1734,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-  Widget _datePicker({DateTime? date, String? hint, required VoidCallback onSelect}) {
+  Widget _datePicker({
+    DateTime? date,
+    String? hint,
+    required VoidCallback onSelect,
+  }) {
     return GestureDetector(
       onTap: onSelect,
       child: Container(
@@ -1356,13 +1760,19 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: date != null ? textDark : textGray.withValues(alpha: 0.5),
+                  color: date != null
+                      ? textDark
+                      : textGray.withValues(alpha: 0.5),
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
-            Icon(Icons.calendar_month_rounded, size: 14, color: textGray.withValues(alpha: 0.5)),
+            Icon(
+              Icons.calendar_month_rounded,
+              size: 14,
+              color: textGray.withValues(alpha: 0.5),
+            ),
           ],
         ),
       ),
@@ -1371,7 +1781,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   Widget _buildConstructionPhasesCard() {
     final int total = _phases.fold(0, (s, p) => s + p.allActivities.length);
-    final int done  = _phases.fold(0, (s, p) => s + p.selectedCount);
+    final int done = _phases.fold(0, (s, p) => s + p.selectedCount);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1385,7 +1795,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.025), blurRadius: 6, offset: const Offset(0, 2)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.025),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
           child: Column(
@@ -1400,40 +1814,77 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       'CONSTRUCTION PHASES',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textDark, letterSpacing: 0.5),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: textDark,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => setState(() {
                       for (var p in _phases) {
-                        for (var a in p.allActivities) { a.isSelected = true; }
+                        for (var a in p.allActivities) {
+                          a.isSelected = true;
+                        }
                       }
                     }),
-                    child: const Text('Select All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
+                    child: const Text(
+                      'Select All',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: primaryBlue,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Text('|', style: TextStyle(fontSize: 12, color: textGray.withValues(alpha: 0.4))),
+                  Text(
+                    '|',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textGray.withValues(alpha: 0.4),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => setState(() {
                       for (var p in _phases) {
-                        for (var a in p.allActivities) { a.isSelected = false; }
+                        for (var a in p.allActivities) {
+                          a.isSelected = false;
+                        }
                       }
                     }),
-                    child: Text('Clear', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
+                    child: Text(
+                      'Clear',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: textGray.withValues(alpha: 0.7),
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 'Select phases and activities required.',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textGray.withValues(alpha: 0.8)),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: textGray.withValues(alpha: 0.8),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 '$done of $total activities selected',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryBlue),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: primaryBlue,
+                ),
               ),
             ],
           ),
@@ -1465,7 +1916,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           onTap: _showAddCustomStageDialog,
           child: const Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
-            child: Text('+ Add Custom Phase', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: primaryBlue)),
+            child: Text(
+              '+ Add Custom Phase',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: primaryBlue,
+              ),
+            ),
           ),
         ),
       ],
@@ -1481,7 +1939,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.025), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -1498,20 +1960,30 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 children: [
                   // Phase Selection Checkbox
                   GestureDetector(
-                    onTap: () => setState(() => phase.isSelected = !phase.isSelected),
+                    onTap: () =>
+                        setState(() => phase.isSelected = !phase.isSelected),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      width: 22, height: 22,
+                      width: 22,
+                      height: 22,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(6),
-                        color: phase.isSelected ? primaryBlue : Colors.transparent,
+                        color: phase.isSelected
+                            ? primaryBlue
+                            : Colors.transparent,
                         border: Border.all(
-                          color: phase.isSelected ? primaryBlue : const Color(0xFFCDD0DA),
+                          color: phase.isSelected
+                              ? primaryBlue
+                              : const Color(0xFFCDD0DA),
                           width: 1.5,
                         ),
                       ),
                       child: phase.isSelected
-                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
                           : null,
                     ),
                   ),
@@ -1519,13 +1991,21 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   Expanded(
                     child: Text(
                       phase.name,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textDark),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: textDark,
+                      ),
                     ),
                   ),
                   AnimatedRotation(
                     turns: phase.isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 180),
-                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: textGray, size: 22),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: textGray,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -1562,18 +2042,33 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   onTap: () => _showAddCustomActivityDialog(phase),
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: primaryBlue.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: primaryBlue.withValues(alpha: 0.2), width: 1),
+                      border: Border.all(
+                        color: primaryBlue.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
                     ),
-                    child: const Text('+ Add Custom Activity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryBlue)),
+                    child: const Text(
+                      '+ Add Custom Activity',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: primaryBlue,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            crossFadeState: phase.isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: phase.isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 180),
           ),
         ],
@@ -1594,7 +2089,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             // ── Animated checkbox ─────────────────────────────────────
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 20, height: 20,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(5),
                 color: act.isSelected ? primaryBlue : Colors.transparent,
@@ -1604,7 +2100,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ),
               ),
               child: act.isSelected
-                  ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                  ? const Icon(
+                      Icons.check_rounded,
+                      size: 13,
+                      color: Colors.white,
+                    )
                   : null,
             ),
             const SizedBox(width: 12),
@@ -1614,7 +2114,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 act.name,
                 style: TextStyle(
                   fontSize: 13.5,
-                  fontWeight: act.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: act.isSelected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: act.isSelected ? textDark : const Color(0xFF6B7280),
                   height: 1.3,
                 ),
@@ -1634,7 +2136,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
 
   // Drag proxy — gossamer lift, premium BuildTrack shadow
   Widget _buildDragProxy(Widget child, int index, Animation<double> animation) {
@@ -1668,35 +2169,62 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Custom Phase',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+        title: const Text(
+          'Add Custom Phase',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: textDark,
+          ),
+        ),
         content: TextField(
           controller: _customStageNameCtrl,
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'Enter name',
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryBlue, width: 2)),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFDDE0E8))),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: primaryBlue, width: 2),
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFDDE0E8)),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: textGray.withValues(alpha: 0.7),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               final name = _customStageNameCtrl.text.trim();
               if (name.isEmpty) return;
-              setState(() => _phases.add(ConstructionPhase(name: name, isCustom: true)));
+              setState(
+                () =>
+                    _phases.add(ConstructionPhase(name: name, isCustom: true)),
+              );
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+            child: const Text(
+              'Add',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -1711,46 +2239,70 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Custom Activity',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+        title: const Text(
+          'Add Custom Activity',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: textDark,
+          ),
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'Enter name',
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryBlue, width: 2)),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFDDE0E8))),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: primaryBlue, width: 2),
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFDDE0E8)),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, color: textGray.withValues(alpha: 0.7))),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: textGray.withValues(alpha: 0.7),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               final name = ctrl.text.trim();
               if (name.isEmpty) return;
-              setState(() => phase.activities.add(ConstructionActivity(
-                key: '${phase.name}::Custom::$name',
-                name: name,
-                isCustom: true,
-              )));
+              setState(
+                () => phase.activities.add(
+                  ConstructionActivity(
+                    key: '${phase.name}::Custom::$name',
+                    name: name,
+                    isCustom: true,
+                  ),
+                ),
+              );
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+            child: const Text(
+              'Add',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
     ).then((_) => ctrl.dispose());
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> feat/roselin-sprint-final

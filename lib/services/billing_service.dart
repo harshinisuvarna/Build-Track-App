@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'package:flutter/foundation.dart' show kIsWeb; 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 const kProMonthlyId = 'com.buildtrack.pro.monthly';
 const kEnterpriseMonthlyId = 'com.buildtrack.enterprise.monthly';
@@ -11,21 +10,23 @@ const Set<String> kProductIds = {kProMonthlyId, kEnterpriseMonthlyId};
 class BillingService {
   BillingService._();
   static final instance = BillingService._();
-  
+
   // Changed to a getter to prevent LateInitializationError on Web startup
   InAppPurchase get _iap => InAppPurchase.instance;
-  
+
   List<ProductDetails> products = [];
   bool isAvailable = false;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
-  
+
   Future<void> init(
     void Function(List<PurchaseDetails>) onPurchaseUpdate,
   ) async {
     // --- SAFELY BYPASS ON WEB ---
     if (kIsWeb) {
-      dev.log('BillingService: Skipping In-App Purchases (Not supported on Web)');
-      return; 
+      dev.log(
+        'BillingService: Skipping In-App Purchases (Not supported on Web)',
+      );
+      return;
     }
     // ----------------------------
 

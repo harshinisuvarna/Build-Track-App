@@ -28,9 +28,9 @@ class UserSession {
   static Future<void> loadFromPrefs() async {
     final roleStr = await AuthService.getUserRole();
     if (roleStr != null) {
-      if (roleStr == 'supervisor')
+      if (roleStr == 'supervisor') {
         _role = UserRole.supervisor;
-      else if (roleStr == 'worker' || roleStr == 'mason')
+      } else if (roleStr == 'worker' || roleStr == 'mason')
         _role = UserRole.mason;
       else
         _role = UserRole.admin;

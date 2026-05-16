@@ -4,12 +4,9 @@ import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
-import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
-import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
-import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -25,27 +22,27 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   String? _selectedActivity;
 
   // ── Resource detail controllers ─────────────────────────────────────────
-  final _nameCtrl     = TextEditingController();
-  final _brandCtrl    = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _brandCtrl = TextEditingController();
   final _categoryCtrl = TextEditingController();
-  final _qtyCtrl      = TextEditingController();
+  final _qtyCtrl = TextEditingController();
   String? _selectedUnit;
-  final _rateCtrl     = TextEditingController();
-  final _notesCtrl    = TextEditingController();
+  final _rateCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
 
   // ── Supplier ────────────────────────────────────────────────────────────
   bool _supplierSelected = false;
-  bool _supplierError    = false;
+  bool _supplierError = false;
 
   // ── UI state ────────────────────────────────────────────────────────────
-  bool _isSaving  = false;
+  bool _isSaving = false;
   bool _isEditing = false;
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
 
   // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
-  final _gstCtrl  = TextEditingController();
+  final _gstCtrl = TextEditingController();
 
   // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
@@ -73,7 +70,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
 
       if (_isEditing) {
-        _nameCtrl.text = args['title'] as String? ?? args['name'] as String? ?? '';
+        _nameCtrl.text =
+            args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
         _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
       } else {
@@ -98,7 +96,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   // ── GST Calculation Helpers ─────────────────────────────────────
   double _subtotal() {
-    final qty  = double.tryParse(_qtyCtrl.text)  ?? 0;
+    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     return qty * rate;
   }
@@ -114,77 +112,72 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   bool _validate() {
     bool ok = true;
     setState(() {
-      _nameError = _nameCtrl.text.trim().isEmpty ? 'Material name is required' : null;
-      final qty  = double.tryParse(_qtyCtrl.text);
-      _qtyError  = (qty == null || qty <= 0) ? 'Enter a valid quantity > 0' : null;
+      _nameError = _nameCtrl.text.trim().isEmpty
+          ? 'Material name is required'
+          : null;
+      final qty = double.tryParse(_qtyCtrl.text);
+      _qtyError = (qty == null || qty <= 0)
+          ? 'Enter a valid quantity > 0'
+          : null;
       final rate = double.tryParse(_rateCtrl.text);
-      _rateError = (rate == null || rate <= 0) ? 'Enter a valid rate > 0' : null;
+      _rateError = (rate == null || rate <= 0)
+          ? 'Enter a valid rate > 0'
+          : null;
       _supplierError = !_supplierSelected;
-      ok = _nameError == null && _qtyError == null &&
-           _rateError == null && _supplierSelected;
+      ok =
+          _nameError == null &&
+          _qtyError == null &&
+          _rateError == null &&
+          _supplierSelected;
     });
     return ok;
   }
 
   Future<void> _save(BuildContext ctx) async {
     if (_selectedProjectId == null) {
-      _snack('Please select a project'); return;
+      _snack('Please select a project');
+      return;
     }
     if (_selectedFloor == null) {
-      _snack('Please select a floor / zone'); return;
+      _snack('Please select a floor / zone');
+      return;
     }
     if (_selectedPhase == null) {
-      _snack('Please select a phase'); return;
+      _snack('Please select a phase');
+      return;
     }
     if (_selectedActivity == null) {
-      _snack('Please select an activity'); return;
+      _snack('Please select an activity');
+      return;
     }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+
+    // 1. Build the correct payload matching the Node.js backend
+    final payload = {
+      "project": _selectedProjectId,
+      "materialName": _nameCtrl.text,
+      "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
+      "rate": double.tryParse(_rateCtrl.text) ?? 0,
+      "unit": _selectedUnit ?? "units",
+      "type": "material",
+    };
+
+    // 2. Call the REAL backend route we just built
+    final success = await ApiService.addMaterial(payload);
+
     if (!mounted) return;
 
-    final entryId = 'MAT-${DateTime.now().millisecondsSinceEpoch}';
-    ctx.read<ProjectProvider>().addEntry(
-      EntryModel(
-        id:          entryId,
-        projectId:   _selectedProjectId!,
-        type:        EntryType.material,
-        amount:      double.tryParse(_qtyCtrl.text) ?? 0.0,
-        date:        DateTime.now(),
-        description: _nameCtrl.text,
-        brand:       _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-        ratePerUnit: double.tryParse(_rateCtrl.text),
-        floor:       _selectedFloor,
-        phaseId:     _selectedPhase as String?,
-      ),
-    );
+    if (success) {
+      // 3. Only navigate if the database actually saved it!
+      _snack('Material logged to database!');
+      Navigator.maybePop(context); // Go back to inventory list
+    } else {
+      _snack('Error saving to server. Please try again.');
+    }
 
-    Navigator.pushNamed(
-      ctx,
-      '/logs',
-      arguments: {
-        'type': 'material',
-        'name': _nameCtrl.text,
-        'newEntry': em.Entry(
-          id:        entryId,
-          type:      em.EntryType.material,
-          projectId: _selectedProjectId ?? UserSession.projectId,
-          createdBy: UserSession.userId,
-        ).toMap()
-          ..addAll({
-            'title':      _nameCtrl.text,
-            'ref':        '#$entryId',
-            'amount':     '+${_qtyCtrl.text}',
-            'date':       'Today',
-            'isPositive': true,
-            'icon':       Icons.inventory_2_outlined,
-            'attachment': _attachment,
-            'receipt':    _attachment?.name,
-          }),
-      },
-    );
     setState(() => _isSaving = false);
   }
 
@@ -198,18 +191,22 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(
-              color: muted ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            )),
-        Text(value,
-            style: TextStyle(
-              color: muted ? const Color(0xFF6B7280) : const Color(0xFF111827),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            )),
+        Text(
+          label,
+          style: TextStyle(
+            color: muted ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: muted ? const Color(0xFF6B7280) : const Color(0xFF111827),
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }
@@ -220,7 +217,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -230,7 +228,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: const Color(0xFFDDE0F0),
                     borderRadius: BorderRadius.circular(16),
@@ -238,42 +237,57 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Select Supplier',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              const Text(
+                'Select Supplier',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 16),
               ...[
-                'ABC Suppliers Ltd.', 'Metro Build Co.', 'SteelWorks Inc.',
-              ].map((s) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Material(
-                      color: const Color(0xFFF8F9FF),
+                'ABC Suppliers Ltd.',
+                'Metro Build Co.',
+                'SteelWorks Inc.',
+              ].map(
+                (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Material(
+                    color: const Color(0xFFF8F9FF),
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          setState(() {
-                            _supplierSelected = true;
-                            _supplierError = false;
-                          });
-                          Navigator.pop(ctx);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.business,
-                                  color: AppColors.primary, size: 20),
-                              const SizedBox(width: 12),
-                              Text(s,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, fontSize: 15)),
-                            ],
-                          ),
+                      onTap: () {
+                        setState(() {
+                          _supplierSelected = true;
+                          _supplierError = false;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.business,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              s,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  )),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -306,25 +320,26 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     // ── SECTION 1: EXECUTION CONTEXT ──────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
-                      selectedFloor:     _selectedFloor,
-                      selectedPhase:     _selectedPhase,
-                      selectedActivity:  _selectedActivity,
-                      onProjectChanged:  (v) => setState(() {
+                      selectedFloor: _selectedFloor,
+                      selectedPhase: _selectedPhase,
+                      selectedActivity: _selectedActivity,
+                      onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
                       }),
-                      onFloorChanged:    (v) => setState(() {
+                      onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
                         _selectedPhase = null;
                         _selectedActivity = null;
                       }),
-                      onPhaseChanged:    (v) => setState(() {
+                      onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
                         _selectedActivity = null;
                       }),
-                      onActivityChanged: (v) => setState(() => _selectedActivity = v),
+                      onActivityChanged: (v) =>
+                          setState(() => _selectedActivity = v),
                     ),
 
                     // ── SECTION 2: MATERIAL DETAILS ────────────────────────
@@ -342,7 +357,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const SizedBox(height: 16),
 
                           // Material Name
-                          const EntryFieldLabel('Material Name', required: true),
+                          const EntryFieldLabel(
+                            'Material Name',
+                            required: true,
+                          ),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _nameCtrl,
@@ -405,18 +423,25 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                     ),
                                   ),
                                   if (_supplierError)
-                                    const Icon(Icons.error,
-                                        color: AppColors.error, size: 22),
+                                    const Icon(
+                                      Icons.error,
+                                      color: AppColors.error,
+                                      size: 22,
+                                    ),
                                   if (_supplierSelected)
-                                    const Icon(Icons.check_circle,
-                                        color: Colors.green, size: 22),
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 22,
+                                    ),
                                 ],
                               ),
                             ),
                           ),
                           if (_supplierError)
                             const EntryErrorText(
-                                'Please select a valid supplier from the database.'),
+                              'Please select a valid supplier from the database.',
+                            ),
                         ],
                       ),
                     ),
@@ -442,7 +467,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Quantity', required: true),
+                                    const EntryFieldLabel(
+                                      'Quantity',
+                                      required: true,
+                                    ),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _qtyCtrl,
@@ -451,7 +479,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
-                                    if (_qtyError != null) EntryErrorText(_qtyError!),
+                                    if (_qtyError != null)
+                                      EntryErrorText(_qtyError!),
                                   ],
                                 ),
                               ),
@@ -460,7 +489,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Rate / Unit', required: true),
+                                    const EntryFieldLabel(
+                                      'Rate / Unit',
+                                      required: true,
+                                    ),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller: _rateCtrl,
@@ -469,7 +501,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
                                     ),
-                                    if (_rateError != null) EntryErrorText(_rateError!),
+                                    if (_rateError != null)
+                                      EntryErrorText(_rateError!),
                                   ],
                                 ),
                               ),
@@ -492,7 +525,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF7F8FF),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFDDE0F8), width: 1.2),
+                              border: Border.all(
+                                color: const Color(0xFFDDE0F8),
+                                width: 1.2,
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,22 +537,28 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      width: 28, height: 28,
+                                      width: 28,
+                                      height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.percent_rounded,
-                                          color: Color(0xFF173EEA), size: 15),
+                                      child: const Icon(
+                                        Icons.percent_rounded,
+                                        color: Color(0xFF173EEA),
+                                        size: 15,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text('GST Configuration',
-                                        style: TextStyle(
-                                          color: Color(0xFF1E1E2E),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.2,
-                                        )),
+                                    const Text(
+                                      'GST Configuration',
+                                      style: TextStyle(
+                                        color: Color(0xFF1E1E2E),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -528,7 +570,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFECEDF8),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFD5D7EF), width: 1),
+                                    border: Border.all(
+                                      color: const Color(0xFFD5D7EF),
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
@@ -539,59 +584,92 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                             _gstCtrl.clear();
                                           }),
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: !_isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                               boxShadow: !_isWithGst
-                                                  ? [BoxShadow(
-                                                      color: const Color(0xFF173EEA).withValues(alpha: 0.22),
-                                                      blurRadius: 6,
-                                                      offset: const Offset(0, 2))]
+                                                  ? [
+                                                      BoxShadow(
+                                                        color:
+                                                            const Color(
+                                                              0xFF173EEA,
+                                                            ).withValues(
+                                                              alpha: 0.22,
+                                                            ),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text('Without GST',
-                                                style: TextStyle(
-                                                  color: !_isWithGst
-                                                      ? Colors.white
-                                                      : const Color(0xFF6B7280),
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                )),
+                                            child: Text(
+                                              'Without GST',
+                                              style: TextStyle(
+                                                color: !_isWithGst
+                                                    ? Colors.white
+                                                    : const Color(0xFF6B7280),
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () => setState(() => _isWithGst = true),
+                                          onTap: () =>
+                                              setState(() => _isWithGst = true),
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: _isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                               boxShadow: _isWithGst
-                                                  ? [BoxShadow(
-                                                      color: const Color(0xFF173EEA).withValues(alpha: 0.22),
-                                                      blurRadius: 6,
-                                                      offset: const Offset(0, 2))]
+                                                  ? [
+                                                      BoxShadow(
+                                                        color:
+                                                            const Color(
+                                                              0xFF173EEA,
+                                                            ).withValues(
+                                                              alpha: 0.22,
+                                                            ),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text('With GST',
-                                                style: TextStyle(
-                                                  color: _isWithGst
-                                                      ? Colors.white
-                                                      : const Color(0xFF6B7280),
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                )),
+                                            child: Text(
+                                              'With GST',
+                                              style: TextStyle(
+                                                color: _isWithGst
+                                                    ? Colors.white
+                                                    : const Color(0xFF6B7280),
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -602,13 +680,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 // GST % field (only when With GST)
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
-                                  const Text('GST Percentage',
-                                      style: TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.3,
-                                      )),
+                                  const Text(
+                                    'GST Percentage',
+                                    style: TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
                                   const SizedBox(height: 6),
                                   EntryUnderlineField(
                                     controller: _gstCtrl,
@@ -621,26 +701,38 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
                                 // Live cost breakdown
                                 const SizedBox(height: 14),
-                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
+                                const Divider(
+                                  color: Color(0xFFE2E4F6),
+                                  thickness: 1,
+                                ),
                                 const SizedBox(height: 10),
-                                _calcRow('Subtotal',
-                                    formatCurrency(_subtotal()),
-                                    muted: true),
+                                _calcRow(
+                                  'Subtotal',
+                                  formatCurrency(_subtotal()),
+                                  muted: true,
+                                ),
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 6),
                                   _calcRow(
-                                      'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
-                                      '+ ${formatCurrency(_gstAmount())}',
-                                      muted: true),
+                                    'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
+                                    '+ ${formatCurrency(_gstAmount())}',
+                                    muted: true,
+                                  ),
                                 ],
                                 const SizedBox(height: 8),
-                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
+                                const Divider(
+                                  color: Color(0xFFE2E4F6),
+                                  thickness: 1,
+                                ),
                                 const SizedBox(height: 8),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      _isWithGst ? 'Final Total (incl. GST)' : 'Total',
+                                      _isWithGst
+                                          ? 'Final Total (incl. GST)'
+                                          : 'Total',
                                       style: const TextStyle(
                                         color: Color(0xFF173EEA),
                                         fontSize: 13,
@@ -674,15 +766,25 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     // ── SECTION 4: COST SUMMARY ────────────────────────────
                     CostSummaryCard(
                       totalAmount: _finalTotal(),
-                      label: _isWithGst ? 'Total (incl. GST)' : 'Total Estimated Amount',
+                      label: _isWithGst
+                          ? 'Total (incl. GST)'
+                          : 'Total Estimated Amount',
                       subtotals: [
-                        ('Quantity', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} '
-                            '${_selectedUnit ?? "units"}'),
-                        ('Rate / Unit', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        (
+                          'Quantity',
+                          '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} '
+                              '${_selectedUnit ?? "units"}',
+                        ),
+                        (
+                          'Rate / Unit',
+                          '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}',
+                        ),
                         ('Subtotal', formatCurrency(_subtotal())),
                         if (_isWithGst) ...[
-                          ('GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
-                           '+ ${formatCurrency(_gstAmount())}'),
+                          (
+                            'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
+                            '+ ${formatCurrency(_gstAmount())}',
+                          ),
                         ],
                       ],
                     ),
@@ -695,14 +797,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const EntryCardHeader(
                             icon: Icons.receipt_long_outlined,
                             title: 'Invoice / Bill',
-                            subtitle: 'Attach invoice, bill, or supporting document (optional)',
+                            subtitle:
+                                'Attach invoice, bill, or supporting document (optional)',
                           ),
                           const SizedBox(height: 16),
                           UploadBox(
                             attachment: _attachment,
                             emptyLabel: 'Tap to upload invoice / bill',
                             onPicked: (a) => setState(() => _attachment = a),
-                            onRemove: ()  => setState(() => _attachment = null),
+                            onRemove: () => setState(() => _attachment = null),
                           ),
                         ],
                       ),
@@ -711,10 +814,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     // ── SUBMIT ─────────────────────────────────────────────
                     const SizedBox(height: 4),
                     EntrySubmitButton(
-                      label:     'Save Material Entry',
-                      icon:      Icons.check_circle,
+                      label: 'Save Material Entry',
+                      icon: Icons.check_circle,
                       isLoading: _isSaving,
-                      onTap:     () => _save(context),
+                      onTap: () => _save(context),
                     ),
                     const SizedBox(height: 24),
                   ],

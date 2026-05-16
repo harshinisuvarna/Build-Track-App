@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 
 class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
@@ -52,6 +53,77 @@ class ApiService {
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();
     return http.delete(Uri.parse('$baseUrl$endpoint'), headers: headers);
+  }
+
+  // ==========================================
+  // PROJECT API METHODS
+  // ==========================================
+
+  static Future<List<ProjectModel>> fetchProjects() async {
+    try {
+      final response = await get('/projects');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+
+        List<dynamic> rawList = [];
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map) {
+          rawList = decoded['projects'] ?? decoded['data'] ?? [];
+        }
+
+        // --- THE FIX: Parse one by one to prevent full crashes ---
+        List<ProjectModel> validProjects = [];
+        for (var item in rawList) {
+          try {
+            validProjects.add(
+              ProjectModel.fromJson(item as Map<String, dynamic>),
+            );
+          } catch (e) {
+            // If a legacy project crashes, print exactly why, but keep loading the rest!
+            print('CRASH parsing project ${item['_id']}: $e');
+          }
+        }
+
+        return validProjects;
+      } else if (response.statusCode == 401) {
+        print('AUTH Error: Token missing (401).');
+        throw Exception('Unauthorized');
+      } else {
+        print('GET /projects failed: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('fetchProjects Master Error: $e');
+      return [];
+    }
+  }
+
+  /// POST /api/projects → creates a project on the backend and returns the
+  /// server-generated ProjectModel (with real `_id`), or `null` on failure.
+  static Future<ProjectModel?> addProject(Map<String, dynamic> payload) async {
+    try {
+      final response = await post('/projects', payload);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        // The response may wrap the project in a key or return it directly.
+        final Map<String, dynamic> projectJson =
+            (decoded is Map && decoded.containsKey('project'))
+            ? decoded['project'] as Map<String, dynamic>
+            : decoded as Map<String, dynamic>;
+        return ProjectModel.fromJson(projectJson);
+      } else {
+        print(
+          'POST /projects failed (${response.statusCode}): ${response.body}',
+        );
+        return null;
+      }
+    } catch (e) {
+      print('addProject Error: $e');
+      return null;
+    }
   }
 
   // ==========================================
