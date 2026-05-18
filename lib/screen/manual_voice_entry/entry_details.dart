@@ -5,6 +5,7 @@ import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 
 class EntryDetailScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   PaymentStatus _payStatus   = PaymentStatus.pending;
   double       _billAmount   = 0;
   double       _paidAmount   = 0;
+  String?      _paymentReceiptFile;
 
   @override
   void didChangeDependencies() {
@@ -105,6 +107,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String name        = args['name']         as String? ?? 'Item';
     final bool   isPositive  = args['isPositive']   as bool?   ?? true;
     final String? receipt    = args['receipt']      as String?;
+    final PickedAttachment? attachment = args['attachment'] as PickedAttachment?;
     final String createdBy   = args['createdBy']    as String? ?? '';
     final String projectId   = args['projectId']    as String? ?? '';
     final String supplier    = args['supplier']     as String? ?? '';
@@ -259,7 +262,24 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
-                    // ── RECEIPT / BILL ──────────────────────────────────────
+                    // ── INVOICE / BILL (uploaded at entry creation) ───────────
+                    AppCard(
+                      margin: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel('INVOICE / BILL'),
+                          const SizedBox(height: 12),
+                          InvoiceAttachmentCard(
+                            attachment: attachment,
+                            fileName: receipt,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── PAYMENT RECEIPT (uploaded via Fulfillment & Payment) ──
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -267,7 +287,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         children: [
                           _fieldLabel('PAYMENT RECEIPT'),
                           const SizedBox(height: 12),
-                          _buildReceiptSection(context, receipt),
+                          PaymentReceiptCard(fileName: _paymentReceiptFile),
                         ],
                       ),
                     ),
@@ -456,89 +476,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
-  // ── RECEIPT SECTION ───────────────────────────────────────────────────────
-  Widget _buildReceiptSection(BuildContext context, String? receipt) {
-    final hasReceipt = receipt != null && receipt.isNotEmpty;
-    final isPdf = hasReceipt && receipt.toLowerCase().endsWith('.pdf');
-    final iconColor = isPdf ? const Color(0xFFEF5350) : primaryBlue;
-    final iconBg    = isPdf ? const Color(0xFFFFEBEE) : const Color(0xFFEEF0FF);
 
-    // Contextual label per payment state
-    String emptyLabel;
-    String emptySubLabel;
-    if (_payStatus == PaymentStatus.paid) {
-      emptyLabel    = 'Payment receipt expected';
-      emptySubLabel = 'Payment settled — receipt can be uploaded';
-    } else if (_payStatus == PaymentStatus.partial) {
-      emptyLabel    = 'Partial settlement receipt';
-      emptySubLabel = 'Upload partial payment confirmation';
-    } else if (_payStatus == PaymentStatus.overdue) {
-      emptyLabel    = 'Awaiting overdue payment receipt';
-      emptySubLabel = 'Payment is overdue — upload when settled';
-    } else {
-      emptyLabel    = 'Awaiting payment receipt';
-      emptySubLabel = 'Upload receipt after payment is made';
-    }
-
-    return GestureDetector(
-      onTap: hasReceipt
-          ? () => Navigator.pushNamed(context, '/receipt-viewer',
-              arguments: {'receipt': receipt})
-          : null,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: hasReceipt ? const Color(0xFFEEF8EE) : AppTheme.background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: hasReceipt ? Colors.green.shade300 : AppTheme.divider),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: hasReceipt ? iconBg : const Color(0xFFF0F2FF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                hasReceipt
-                    ? (isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined)
-                    : Icons.upload_file_outlined,
-                color: hasReceipt ? iconColor : textGray,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasReceipt ? receipt : emptyLabel,
-                    style: AppTheme.bodyLarge.copyWith(
-                      color: textDark, fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    hasReceipt ? 'Tap to view receipt' : emptySubLabel,
-                    style: TextStyle(
-                      color: hasReceipt ? Colors.green : textGray,
-                      fontSize: 12, fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (hasReceipt)
-              const Icon(Icons.chevron_right, color: Colors.green, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ── RECORD PAYMENT CTA ────────────────────────────────────────────────────
   Widget _buildRecordPaymentCTA(
@@ -564,14 +502,19 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           category:    type,
         ).then((result) {
           if (result != null && mounted) {
-            final paid      = result['amount'] as double? ?? 0;
-            final newStatus = result['status'] as PaymentStatus?;
+            final paid         = result['amount'] as double? ?? 0;
+            final newStatus    = result['status'] as PaymentStatus?;
+            final receiptFile  = result['receipt'] as String?;
             setState(() {
               _paidAmount += paid;
               _payStatus  = newStatus ??
                   (_paidAmount >= _billAmount
                       ? PaymentStatus.paid
                       : PaymentStatus.partial);
+              // Store payment receipt separately — never overwrites invoice
+              if (receiptFile != null && receiptFile.isNotEmpty) {
+                _paymentReceiptFile = receiptFile;
+              }
             });
           }
         });

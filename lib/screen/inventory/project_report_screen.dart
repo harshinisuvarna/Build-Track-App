@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
+
 class ProjectReportScreen extends StatelessWidget {
   const ProjectReportScreen({super.key});
   @override
@@ -140,17 +141,15 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.project});
   final ProjectModel project;
   static const _stageMeta = <ProjectStage, (Color, Color)>{
-    ProjectStage.preConstruction: (Color(0xFFE8EAF6), Color(0xFF3949AB)),
-    ProjectStage.sitePreparation: (Color(0xFFFCE4EC), Color(0xFFC62828)),
-    ProjectStage.foundation:      (Color(0xFFEEEFFF), Color(0xFF4455CC)),
-    ProjectStage.plinth:          (Color(0xFFE3F2FD), Color(0xFF1565C0)),
-    ProjectStage.superstructure:  (Color(0xFFF3E8FF), Color(0xFF9B59B6)),
-    ProjectStage.masonry:         (Color(0xFFFFF3E0), Color(0xFFE65100)),
-    ProjectStage.mep:             (Color(0xFFE0F7FA), Color(0xFF00838F)),
-    ProjectStage.plastering:      (Color(0xFFF9FBE7), Color(0xFF827717)),
-    ProjectStage.finishing:       (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
-    ProjectStage.fixtures:        (Color(0xFFFFF8E1), Color(0xFFF9A825)),
-    ProjectStage.handover:        (Color(0xFFFFF8E1), Color(0xFFF57F17)),
+    ProjectStage.preConstruction:      (Color(0xFFE8EAF6), Color(0xFF3949AB)),
+    ProjectStage.sitePreparation:      (Color(0xFFFCE4EC), Color(0xFFC62828)),
+    ProjectStage.foundationPlinthWork: (Color(0xFFEEEFFF), Color(0xFF4455CC)),
+    ProjectStage.floorConstruction:    (Color(0xFFE3F2FD), Color(0xFF1565C0)),
+    ProjectStage.finishingWork:        (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+    ProjectStage.externalWorks:        (Color(0xFFF3E8FF), Color(0xFF9B59B6)),
+    ProjectStage.materialMaster:       (Color(0xFFFFF3E0), Color(0xFFE65100)),
+    ProjectStage.labourMaster:         (Color(0xFFE0F7FA), Color(0xFF00838F)),
+    ProjectStage.equipmentMaster:      (Color(0xFFF9FBE7), Color(0xFF827717)),
   };
 
   @override

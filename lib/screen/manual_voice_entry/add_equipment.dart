@@ -3,12 +3,15 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -25,29 +28,23 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   // ── Resource detail controllers ──────────────────────────────────────────
   final _nameCtrl     = TextEditingController(); // Equipment Name
-  final _typeCtrl     = TextEditingController(); // Equipment Type
-  final _operatorCtrl = TextEditingController(); // Operator Name
-  final _hoursCtrl    = TextEditingController(); // Usage Hours
-  final _fuelCtrl     = TextEditingController(); // Fuel Usage
-  final _rateCtrl     = TextEditingController(); // Rate / Hour
-  final _notesCtrl    = TextEditingController(); // Notes
+  final _typeCtrl     = TextEditingController(); // Machinery Class / SubType
+  final _operatorCtrl = TextEditingController(); // Operator identifier info
+  final _qtyCtrl      = TextEditingController(); // Usage duration metrics
+  String? _selectedUnit;
+  final _rateCtrl     = TextEditingController(); // Runtime hourly / rental baseline rate
+  final _notesCtrl    = TextEditingController();
 
-  // ── UI state ─────────────────────────────────────────────────────────────
-  bool _isSaving   = false;
-  bool _isEditing  = false;
-  bool _argsLoaded = false;
+  // ── UI dynamic state variables ───────────────────────────────────────────
+  bool _isSaving    = false;
+  bool _isEditing   = false;
+  bool _argsLoaded  = false;
   PickedAttachment? _attachment;
 
-  // ── Validation ────────────────────────────────────────────────────────────
+  // ── Local validation structures ──────────────────────────────────────────
   String? _nameError;
-  String? _hoursError;
+  String? _qtyError;
   String? _rateError;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedProjectId = UserSession.projectId;
-  }
 
   @override
   void didChangeDependencies() {
@@ -72,10 +69,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       if (_isEditing) {
         _nameCtrl.text = args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
-        _hoursCtrl.text =
-            rawAmount.replaceAll('+', '').replaceAll('-', '').replaceAll(' hrs', '');
+        _qtyCtrl.text   = rawAmount.replaceAll('+', '').replaceAll('-', '');
+      } else {
+        final prefill = args['prefill'] as String?;
+        if (prefill != null) _nameCtrl.text = prefill;
       }
     }
+    _selectedProjectId ??= UserSession.projectId;
   }
 
   @override
@@ -83,81 +83,69 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _nameCtrl.dispose();
     _typeCtrl.dispose();
     _operatorCtrl.dispose();
-    _hoursCtrl.dispose();
-    _fuelCtrl.dispose();
+    _qtyCtrl.dispose();
     _rateCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
-  double get _computedTotal {
-    final hours = double.tryParse(_hoursCtrl.text) ?? 0;
-    final rate  = double.tryParse(_rateCtrl.text)  ?? 0;
-    return hours * rate;
+  double _totalCalculatedCost() {
+    final qty  = double.tryParse(_qtyCtrl.text) ?? 0;
+    final rate = double.tryParse(_rateCtrl.text) ?? 0;
+    return qty * rate;
   }
 
   bool _validate() {
     bool ok = true;
     setState(() {
-      _nameError  = _nameCtrl.text.trim().isEmpty ? 'Equipment name is required' : null;
-      final hours = double.tryParse(_hoursCtrl.text);
-      _hoursError = (hours == null || hours <= 0) ? 'Enter valid hours > 0' : null;
-      final rate  = double.tryParse(_rateCtrl.text);
-      _rateError  = (rate == null || rate <= 0) ? 'Enter valid cost > 0' : null;
-      ok = _nameError == null && _hoursError == null && _rateError == null;
+      _nameError = _nameCtrl.text.trim().isEmpty ? 'Equipment runtime nomenclature is required' : null;
+      
+      final qty = double.tryParse(_qtyCtrl.text);
+      _qtyError = (qty == null || qty <= 0) ? 'Enter valid asset duration value > 0' : null;
+
+      final rate = double.tryParse(_rateCtrl.text);
+      _rateError = (rate == null || rate <= 0) ? 'Rental processing rate index mandatory > 0' : null;
+
+      ok = _nameError == null && _qtyError == null && _rateError == null;
     });
     return ok;
   }
 
   Future<void> _save(BuildContext ctx) async {
-    if (_selectedProjectId == null) { _snack('Please select a project'); return; }
-    if (_selectedFloor == null)     { _snack('Please select a floor / zone'); return; }
-    if (_selectedPhase == null)     { _snack('Please select a phase'); return; }
-    if (_selectedActivity == null)  { _snack('Please select an activity'); return; }
+    if (_selectedProjectId == null) { _snack('Working context deployment site mandatory'); return; }
+    if (_selectedFloor == null)     { _snack('Execution zone layer selection missing'); return; }
+    if (_selectedPhase == null)     { _snack('Project element tracker target mandatory'); return; }
+    if (_selectedActivity == null)  { _snack('Activity profile tag required'); return; }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+
+    // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Mongoose schema for Machinery/Equipment
+    final payload = {
+      "title": _nameCtrl.text.trim(),
+      "type": "Expense", 
+      "category": "Equipment",
+      "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
+      "rate": double.tryParse(_rateCtrl.text) ?? 0,
+      "unit": _selectedUnit == "pcs" ? "unit" : (_selectedUnit ?? "hour"),
+      "project": _selectedProjectId,
+    };
+
+    final success = await ApiService.addMaterial(payload);
+
     if (!mounted) return;
 
-    final entryId = 'EQP-${DateTime.now().millisecondsSinceEpoch}';
-    ctx.read<ProjectProvider>().addEntry(
-      EntryModel(
-        id:          entryId,
-        projectId:   _selectedProjectId!,
-        type:        EntryType.equipment,
-        amount:      double.tryParse(_hoursCtrl.text) ?? 0.0,
-        date:        DateTime.now(),
-        description: _nameCtrl.text,
-        ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
-        floor:       _selectedFloor!,
-        phaseId:     _selectedPhase?.id,
-      ),
-    );
+    if (success) {
+      // 🌟 THE REFRESH FIX
+      context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
+      context.read<ProjectProvider>().refreshEntries();
 
-    Navigator.pushNamed(
-      // ignore: use_build_context_synchronously
-      ctx,
-      '/logs',
-      arguments: {
-        'type': 'equipment',
-        'name': _nameCtrl.text,
-        'newEntry': em.Entry(
-          id:        entryId,
-          type:      em.EntryType.equipment,
-          projectId: _selectedProjectId!,
-          createdBy: UserSession.userId,
-        ).toMap()
-          ..addAll({
-            'title':      _nameCtrl.text,
-            'ref':        '#$entryId',
-            'amount':     '+${_hoursCtrl.text} hrs',
-            'date':       'Today',
-            'isPositive': true,
-            'icon':       Icons.precision_manufacturing_outlined,
-          }),
-      },
-    );
+      _snack('Equipment log recorded to workspace!');
+      Navigator.maybePop(context); 
+    } else {
+      _snack('Error saving to server. Please try again.');
+    }
+
     setState(() => _isSaving = false);
   }
 
@@ -177,10 +165,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         child: Column(
           children: [
             AppTopBar(
-              title:       _isEditing ? 'Edit Equipment' : 'Add Equipment',
+              title: _isEditing ? 'Modify Machinery Log' : 'Deploy Heavy Equipment',
               isSubScreen: true,
-              leftIcon:    Icons.arrow_back,
-              onLeftTap:   () => Navigator.maybePop(context),
+              leftIcon: Icons.arrow_back,
+              onLeftTap: () => Navigator.maybePop(context),
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -189,83 +177,60 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── SECTION 1: EXECUTION CONTEXT ──────────────────────
+                    // ── EXECUTION CONTEXT ─────────────────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
                       selectedFloor:     _selectedFloor,
                       selectedPhase:     _selectedPhase,
                       selectedActivity:  _selectedActivity,
-                      onProjectChanged:  (v) => setState(() {
-                        _selectedProjectId = v;
-                        _selectedFloor     = null;
-                        _selectedPhase     = null;
-                        _selectedActivity  = null;
-                      }),
-                      onFloorChanged: (v) => setState(() {
-                        _selectedFloor    = v;
-                        _selectedPhase    = null;
-                        _selectedActivity = null;
-                      }),
-                      onPhaseChanged: (v) => setState(() {
-                        _selectedPhase    = v;
-                        _selectedActivity = null;
-                      }),
+                      onProjectChanged:  (v) => setState(() { _selectedProjectId = v; _selectedFloor = null; _selectedPhase = null; _selectedActivity = null; }),
+                      onFloorChanged:    (v) => setState(() { _selectedFloor = v; _selectedPhase = null; _selectedActivity = null; }),
+                      onPhaseChanged:    (v) => setState(() { _selectedPhase = v; _selectedActivity = null; }),
                       onActivityChanged: (v) => setState(() => _selectedActivity = v),
                     ),
 
-                    // ── SECTION 2: EQUIPMENT DETAILS ───────────────────────
+                    // ── RESOURCE ASSET IDENTITY ────────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
                             icon:     Icons.precision_manufacturing_outlined,
-                            title:    'Equipment Details',
-                            subtitle: 'Specify the equipment being logged',
+                            title:    'Machinery Identification',
+                            subtitle: 'Track deployable dynamic equipment metrics',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          // Equipment Name
                           const EntryFieldLabel('Equipment Name', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _nameCtrl,
-                            hint: 'e.g. Tower Crane, Excavator',
-                          ),
+                          EntryUnderlineField(controller: _nameCtrl, hint: 'e.g. JCB Excavator 3DX, Hydra Crane 14T'),
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 18),
 
-                          // Equipment Type
-                          const EntryFieldLabel('Equipment Type (Optional)'),
+                          const EntryFieldLabel('Machinery Sub-Class / Model Tag (Optional)'),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _typeCtrl,
-                            hint: 'e.g. Heavy, Light, Mechanical',
-                          ),
+                          EntryUnderlineField(controller: _typeCtrl, hint: 'e.g. Earthmoving, Material Handling'),
                           const SizedBox(height: 18),
 
-                          // Operator Name
-                          const EntryFieldLabel('Operator Name (Optional)'),
+                          const EntryFieldLabel('Assigned Operator / Vendor (Optional)'),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _operatorCtrl,
-                            hint: 'Enter operator name',
-                          ),
+                          EntryUnderlineField(controller: _operatorCtrl, hint: 'e.g. Sunil Mehta (Shree Balaji Logistics)'),
+                          const SizedBox(height: 18),
                         ],
                       ),
                     ),
 
-                    // ── SECTION 3: USAGE DETAILS ───────────────────────────
+                    // ── TIMELINE LOG QUANTIFICATION ───────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
-                            icon:     Icons.av_timer_outlined,
-                            title:    'Usage Details',
-                            subtitle: 'Hours, fuel and rate for cost calculation',
+                            icon:     Icons.shutter_speed_outlined,
+                            title:    'Log Metrics & Billing Rates',
+                            subtitle: 'Quantify logistical assets timeline operations cost',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
@@ -278,16 +243,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Usage Hours', required: true),
+                                    const EntryFieldLabel('Runtime Volume', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller: _hoursCtrl,
-                                      hint: '0',
-                                      suffix: 'hrs',
+                                      controller:   _qtyCtrl,
+                                      hint:         '0',
+                                      suffix:       _selectedUnit ?? 'units',
                                       keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
+                                      onChanged:    (_) => setState(() {}),
                                     ),
-                                    if (_hoursError != null) EntryErrorText(_hoursError!),
+                                    if (_qtyError != null) EntryErrorText(_qtyError!),
                                   ],
                                 ),
                               ),
@@ -296,14 +261,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Rate / Hour', required: true),
+                                    const EntryFieldLabel('Billing Unit Rate', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
+                                      controller:   _rateCtrl,
+                                      hint:         '0',
+                                      prefix:       '₹',
                                       keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
+                                      onChanged:    (_) => setState(() {}),
                                     ),
                                     if (_rateError != null) EntryErrorText(_rateError!),
                                   ],
@@ -313,50 +278,45 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Fuel Usage
-                          const EntryFieldLabel('Fuel Usage (Optional)'),
+                          const EntryFieldLabel('Log Operational Framework Unit'),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _fuelCtrl,
-                            hint: '0',
-                            suffix: 'L',
-                            keyboardType: TextInputType.number,
+                          UnitSelectorField(
+                            value:     _selectedUnit,
+                            onChanged: (u) => setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 18),
 
-                          // Notes
-                          const EntryFieldLabel('Notes (Optional)'),
+                          const EntryFieldLabel('Deployment Event Comments (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
                         ],
                       ),
                     ),
 
-                    // ── SECTION 4: COST SUMMARY ────────────────────────────
+                    // ── MATRIX SUMMARY ANALYSIS ────────────────────────────
                     CostSummaryCard(
-                      totalAmount: _computedTotal,
-                      label: 'Equipment Usage Cost',
+                      totalAmount: _totalCalculatedCost(),
+                      label:       'Calculated Mechanical Rental Valuation',
                       subtotals: [
-                        ('Usage Hours', '${_hoursCtrl.text.isEmpty ? "—" : _hoursCtrl.text} hrs'),
-                        ('Rate / Hour', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
-                        ('Fuel Used',   '${_fuelCtrl.text.isEmpty ? "—" : _fuelCtrl.text} L'),
+                        ('Quantified Active Logs', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
+                        ('Rental Pricing Baseline Index', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                       ],
                     ),
 
-                    // ── LOG / RECEIPT UPLOAD ───────────────────────────────
+                    // ── BILLING EVIDENCE ATTACHMENT ────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
                             icon:     Icons.attach_file_outlined,
-                            title:    'Equipment Log / Bill',
-                            subtitle: 'Attach equipment log or bill (optional)',
+                            title:    'Invoice / Bill',
+                            subtitle: 'Attach invoice, bill, or supporting document (optional)',
                           ),
                           const SizedBox(height: 16),
                           UploadBox(
                             attachment: _attachment,
-                            emptyLabel: 'Tap to upload log',
+                            emptyLabel: 'Tap to upload invoice / bill',
                             onPicked: (a) => setState(() => _attachment = a),
                             onRemove:  () => setState(() => _attachment = null),
                           ),

@@ -1,0 +1,345 @@
+From 189cc75c92a431fcb3f80d528c1cf8c58aec7d5b Mon Sep 17 00:00:00 2001
+From: Rosy-8 <roselindsouza842004@gmail.com>
+Date: Mon, 18 May 2026 22:01:39 +0530
+Subject: [PATCH] Updated inventory screens and project provider logic
+
+---
+ lib/controller/project_provider.dart          | 110 ++++++++++++------
+ lib/screen/inventory/inventory.dart           |   2 +-
+ lib/screen/inventory/review_equipment.dart    |   5 +-
+ lib/screen/inventory/review_labour.dart       |   5 +-
+ lib/screen/inventory/review_material.dart     |   5 +-
+ .../manual_voice_entry/add_equipment.dart     |   1 +
+ lib/screen/manual_voice_entry/add_labour.dart |   1 +
+ .../manual_voice_entry/add_material.dart      |   2 +
+ lib/services/api_service.dart                 |  23 +++-
+ 9 files changed, 112 insertions(+), 42 deletions(-)
+
+diff --git a/lib/controller/project_provider.dart b/lib/controller/project_provider.dart
+index f006c80..7bab320 100644
+--- a/lib/controller/project_provider.dart
++++ b/lib/controller/project_provider.dart
+@@ -45,6 +45,74 @@ class ProjectProvider extends ChangeNotifier {
+   List<EntryModel> entriesForProject(String projectId) =>
+       _entries.where((e) => e.projectId == projectId).toList();
+ 
++  Future<void> refreshEntries() async {
++    try {
++      final apiMaterials = await ApiService.fetchMaterials();
++
++      final List<EntryModel> validEntries = [];
++      for (var json in apiMaterials) {
++        try {
++          final rawType = (json['category'] ?? json['type'] ?? '').toString().toLowerCase();
++          EntryType parsedType = EntryType.material;
++          if (rawType.contains('labour') || rawType == 'wages') parsedType = EntryType.labour;
++          if (rawType.contains('equipment') || rawType == 'expense') parsedType = EntryType.equipment;
++
++          // Safe extraction of projectId from object or string
++          String pId = 'p1';
++          if (json['project'] is Map) {
++            pId = json['project']['_id']?.toString() ?? 'p1';
++          } else if (json['project'] != null) {
++            pId = json['project'].toString();
++          }
++
++          // Safe double parsing helper
++          double parseDouble(dynamic val) {
++            if (val == null) return 0.0;
++            if (val is num) return val.toDouble();
++            if (val is String) return double.tryParse(val) ?? 0.0;
++            return 0.0;
++          }
++
++          // Safe DateTime parsing helper
++          DateTime parseDateTime(dynamic val) {
++            if (val == null) return DateTime.now();
++            if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
++            return DateTime.now();
++          }
++
++          // Determine amount: prefer 'amount' (total cost spent) if present and > 0,
++          // otherwise closingStock, quantity, or fallback.
++          double parsedAmount = parseDouble(json['amount']);
++          if (parsedAmount <= 0) {
++            parsedAmount = parseDouble(json['closingStock'] ?? json['quantity'] ?? 0);
++          }
++
++          validEntries.add(EntryModel(
++            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
++            projectId: pId,
++            type: parsedType,
++            amount: parsedAmount,
++            date: json['date'] != null
++                ? parseDateTime(json['date'])
++                : (json['createdAt'] != null ? parseDateTime(json['createdAt']) : DateTime.now()),
++            description: json['title'] ?? json['materialName'] ?? 'Material Entry',
++            brand: json['brand'] ?? json['materialName'],
++            ratePerUnit: parseDouble(json['rate'] ?? 0),
++          ));
++        } catch (e, st) {
++          dev.log('CRASH parsing transaction item: $e', stackTrace: st);
++        }
++      }
++
++      _entries = validEntries;
++      await _persistEntries();
++      notifyListeners();
++    } catch (e) {
++      dev.log('refreshEntries failed: $e');
++      rethrow;
++    }
++  }
++
+   double totalSpentForProject(String projectId) =>
+       entriesForProject(projectId).fold(0.0, (s, e) => s + e.amount);
+ 
+@@ -107,39 +175,7 @@ class ProjectProvider extends ChangeNotifier {
+ 
+       // ── Entries (materials) ────────────────────────────────────────
+       try {
+-        final apiMaterials = await ApiService.fetchMaterials();
+-
+-        _entries = apiMaterials.map<EntryModel>((json) {
+-          EntryType parsedType = EntryType.material;
+-          if (json['type'] == 'labour') parsedType = EntryType.labour;
+-          if (json['type'] == 'equipment') parsedType = EntryType.equipment;
+-
+-          // Safe extraction of projectId from object or string
+-          String pId = 'p1';
+-          if (json['project'] is Map) {
+-            pId = json['project']['_id']?.toString() ?? 'p1';
+-          } else if (json['project'] != null) {
+-            pId = json['project'].toString();
+-          }
+-
+-          return EntryModel(
+-            id:
+-                json['_id']?.toString() ??
+-                DateTime.now().millisecondsSinceEpoch.toString(),
+-            projectId: pId,
+-            type: parsedType,
+-            amount: (json['closingStock'] ?? json['quantity'] ?? 0).toDouble(),
+-            date: json['date'] != null
+-                ? DateTime.tryParse(json['date']) ?? DateTime.now()
+-                : DateTime.now(),
+-            description:
+-                json['materialName'] ?? json['title'] ?? 'Material Entry',
+-            brand: json['materialName'] ?? json['brand'],
+-            ratePerUnit: (json['rate'] ?? 0).toDouble(),
+-          );
+-        }).toList();
+-
+-        await _persistEntries();
++        await refreshEntries();
+       } catch (e) {
+         dev.log('API fetch failed, falling back to local storage: $e');
+         final rawEntries = prefs.getString(_kEntriesKey);
+@@ -178,6 +214,7 @@ class ProjectProvider extends ChangeNotifier {
+         _selectedProject = _projects.first;
+       }
+       _error = '';
++      await refreshEntries();
+     } catch (e) {
+       _error = 'Failed to fetch projects: $e';
+       dev.log('fetchProjects error: $e');
+@@ -336,9 +373,14 @@ class ProjectProvider extends ChangeNotifier {
+     ProjectStage? phase,
+   }) async {
+     // --- HARSHINI'S INTEGRATION CODE FOR POSTING ---
++    String backendType = 'Materials';
++    if (entry.type.name == 'labour') backendType = 'Wages';
++    if (entry.type.name == 'equipment') backendType = 'Expense';
++
+     final payload = {
+       "title": entry.description,
+-      "type": entry.type.name,
++      "type": backendType,
++      "category": entry.type.name,
+       "project": entry.projectId,
+       "quantity": entry.amount,
+       "rate": ratePerUnit ?? entry.ratePerUnit ?? 0,
+diff --git a/lib/screen/inventory/inventory.dart b/lib/screen/inventory/inventory.dart
+index 6d194dc..c155ad9 100644
+--- a/lib/screen/inventory/inventory.dart
++++ b/lib/screen/inventory/inventory.dart
+@@ -509,7 +509,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
+     }
+ 
+     // Maps your real backend data directly into your custom `_inventoryCard` UI
+-    var items = provider.inventory.map((item) {
++    var items = provider.materialInventory.map((item) {
+       final isLow = item.closingStock < item.threshold;
+       final levelStr = isLow ? 'LOW' : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
+       final color = isLow ? Colors.redAccent : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
+diff --git a/lib/screen/inventory/review_equipment.dart b/lib/screen/inventory/review_equipment.dart
+index d8bee22..6afa3fb 100644
+--- a/lib/screen/inventory/review_equipment.dart
++++ b/lib/screen/inventory/review_equipment.dart
+@@ -242,7 +242,7 @@ class _ReviewEquipmentEntryScreenState
+     );
+ 
+     if (!mounted) return;
+-    ctx.read<ProjectProvider>().addEntry(
++    await ctx.read<ProjectProvider>().addEntry(
+       EntryModel(
+         id: entryId,
+         projectId: _selectedProjectId!,
+@@ -256,6 +256,9 @@ class _ReviewEquipmentEntryScreenState
+       ),
+     );
+ 
++    if (!mounted) return;
++    await ctx.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++
+     Navigator.pushNamed(
+       ctx,
+       '/logs',
+diff --git a/lib/screen/inventory/review_labour.dart b/lib/screen/inventory/review_labour.dart
+index 638ad9f..73e5119 100644
+--- a/lib/screen/inventory/review_labour.dart
++++ b/lib/screen/inventory/review_labour.dart
+@@ -227,7 +227,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
+     );
+ 
+     if (!mounted) return;
+-    ctx.read<ProjectProvider>().addEntry(
++    await ctx.read<ProjectProvider>().addEntry(
+       EntryModel(
+         id: entryId,
+         projectId: _selectedProjectId!,
+@@ -241,6 +241,9 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
+       ),
+     );
+ 
++    if (!mounted) return;
++    await ctx.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++
+     Navigator.pushNamed(
+       // ignore: use_build_context_synchronously
+       ctx,
+diff --git a/lib/screen/inventory/review_material.dart b/lib/screen/inventory/review_material.dart
+index f3b7915..57282dd 100644
+--- a/lib/screen/inventory/review_material.dart
++++ b/lib/screen/inventory/review_material.dart
+@@ -257,7 +257,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
+     );
+ 
+     if (!mounted) return;
+-    ctx.read<ProjectProvider>().addEntry(
++    await ctx.read<ProjectProvider>().addEntry(
+       EntryModel(
+         id: entryId,
+         projectId: _selectedProjectId!,
+@@ -272,6 +272,9 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
+       ),
+     );
+ 
++    if (!mounted) return;
++    await ctx.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++
+     Navigator.pushNamed(
+       ctx,
+       '/logs',
+diff --git a/lib/screen/manual_voice_entry/add_equipment.dart b/lib/screen/manual_voice_entry/add_equipment.dart
+index 96e70c0..0ea941a 100644
+--- a/lib/screen/manual_voice_entry/add_equipment.dart
++++ b/lib/screen/manual_voice_entry/add_equipment.dart
+@@ -138,6 +138,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
+     if (success) {
+       // 🌟 THE REFRESH FIX
+       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++      context.read<ProjectProvider>().refreshEntries();
+ 
+       _snack('Equipment log recorded to workspace!');
+       Navigator.maybePop(context); 
+diff --git a/lib/screen/manual_voice_entry/add_labour.dart b/lib/screen/manual_voice_entry/add_labour.dart
+index 469a7a6..fcda5c8 100644
+--- a/lib/screen/manual_voice_entry/add_labour.dart
++++ b/lib/screen/manual_voice_entry/add_labour.dart
+@@ -139,6 +139,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
+     if (success) {
+       // 🌟 THE REFRESH FIX
+       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++      context.read<ProjectProvider>().refreshEntries();
+ 
+       _snack('Labour entry logged to database!');
+       Navigator.maybePop(context); 
+diff --git a/lib/screen/manual_voice_entry/add_material.dart b/lib/screen/manual_voice_entry/add_material.dart
+index 4300c2d..b83cca2 100644
+--- a/lib/screen/manual_voice_entry/add_material.dart
++++ b/lib/screen/manual_voice_entry/add_material.dart
+@@ -9,6 +9,7 @@ import 'package:buildtrack_mobile/services/api_service.dart';
+ import 'package:flutter/material.dart';
+ import 'package:provider/provider.dart';
+ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
++import 'package:buildtrack_mobile/controller/project_provider.dart';
+ 
+ class AddMaterialScreen extends StatefulWidget {
+   const AddMaterialScreen({super.key});
+@@ -177,6 +178,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
+     if (success) {
+       // 🌟 THE REFRESH FIX: Triggers the app's provider to get fresh database changes
+       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
++      context.read<ProjectProvider>().refreshEntries();
+ 
+       _snack('Material logged and inventory stock synchronized!');
+       Navigator.maybePop(context); 
+diff --git a/lib/services/api_service.dart b/lib/services/api_service.dart
+index f7e0c33..63d494d 100644
+--- a/lib/services/api_service.dart
++++ b/lib/services/api_service.dart
+@@ -133,7 +133,7 @@ class ApiService {
+   // 1. HTTP GET: Fetch Materials
+   static Future<List<dynamic>> fetchMaterials() async {
+     try {
+-      final response = await get('/inventory');
++      final response = await get('/transactions');
+ 
+       if (response.statusCode == 200) {
+         final decoded = json.decode(response.body);
+@@ -142,7 +142,8 @@ class ApiService {
+         if (decoded is List) {
+           return decoded;
+         } else if (decoded is Map) {
+-          return decoded['materials'] ??
++          return decoded['transactions'] ??
++              decoded['materials'] ??
+               decoded['inventory'] ??
+               decoded['data'] ??
+               decoded['items'] ??
+@@ -165,7 +166,7 @@ class ApiService {
+       }
+     } catch (e) {
+       print('GET Error: $e');
+-      return [];
++      rethrow;
+     }
+   }
+ 
+@@ -210,7 +211,21 @@ class ApiService {
+         final Map<String, Map<String, dynamic>> grouped = {};
+         for (final t in raw) {
+           final String title    = (t['title'] ?? t['materialName'] ?? 'Unknown').toString();
+-          final String category = (t['category'] ?? 'material').toString().toLowerCase();
++          
++          final String rawType     = (t['type'] ?? '').toString().toLowerCase();
++          final String rawCategory = (t['category'] ?? '').toString().toLowerCase();
++          
++          String category = 'material'; // strict UI tab identity
++          if (rawType == 'wages' || rawCategory.contains('labour') || rawCategory == 'wages') {
++            category = 'labour';
++          } else if (rawType == 'expense' || rawCategory.contains('equipment') || rawCategory == 'expense') {
++            category = 'equipment';
++          } else if (rawType == 'materials' || rawCategory.contains('material')) {
++            category = 'material';
++          } else {
++            category = 'material'; // Fallback
++          }
++
+           final double qty      = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+           final String unit     = (t['unit'] ?? 'units').toString();
+           final String key      = title + '||' + category;
+-- 
+2.53.0.windows.1
+
