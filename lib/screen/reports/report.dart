@@ -61,11 +61,8 @@ class _ReportsViewState extends State<_ReportsView> {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
-                  ),
+                  child: const Icon(Icons.person,
+                      color: Colors.white, size: 18),
                 ),
               ),
             ),
@@ -147,9 +144,7 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Cost per Unit'),
-
-          // ✅ FIXED LINE (IMPORTANT)
-          const ChartSection(),
+          ChartSection(report: report),
 
           const SizedBox(height: 14),
 
@@ -169,9 +164,11 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 }
-
 class _PeriodTabs extends StatelessWidget {
-  const _PeriodTabs({required this.tabIndex, required this.onTabChanged});
+  const _PeriodTabs({
+    required this.tabIndex,
+    required this.onTabChanged,
+  });
 
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
@@ -185,28 +182,18 @@ class _PeriodTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
-        ],
       ),
       child: Row(
         children: List.generate(_tabs.length, (i) {
           final active = i == tabIndex;
 
           return Expanded(
-            child: InkWell(
+            child: GestureDetector(
               onTap: () => onTabChanged(i),
-              borderRadius: BorderRadius.circular(26),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 11),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  gradient:
-                      active ? AppGradients.primaryButton : null,
-                  color: active ? null : Colors.transparent,
+                  color: active ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Text(
@@ -214,8 +201,7 @@ class _PeriodTabs extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: active ? Colors.white : AppColors.textLight,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

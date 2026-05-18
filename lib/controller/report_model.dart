@@ -6,7 +6,7 @@ class ReportModel {
     required this.materialCost,
     required this.labourCost,
     required this.equipmentCost,
-    required this.chartDataSqft,
+    required this.costPerSqftData,
     required this.chartDataCuyd,
     required this.categoryBudget,
     required this.efficiencyNote,
@@ -16,29 +16,52 @@ class ReportModel {
   final double materialCost;
   final double labourCost;
   final double equipmentCost;
-  final List<double> chartDataSqft;
+
+  final List<double> costPerSqftData;
   final List<double> chartDataCuyd;
+
   final Map<String, double> categoryBudget;
   final String efficiencyNote;
+
   String get formattedTotal => formatCurrency(totalCost);
   String get formattedMaterial => formatCurrency(materialCost);
   String get formattedLabour => formatCurrency(labourCost);
   String get formattedEquipment => formatCurrency(equipmentCost);
-  static double mockChange(String metric, String period) {
-    const table = {
-      'total/monthly': 12.0,
-      'total/quarterly': 4.0,
-      'total/yearly': 8.0,
-      'material/monthly': 0.0,
-      'material/quarterly': -3.0,
-      'material/yearly': 2.0,
-      'labour/monthly': 4.0,
-      'labour/quarterly': -1.0,
-      'labour/yearly': 6.0,
-      'equipment/monthly': -2.0,
-      'equipment/quarterly': -5.0,
-      'equipment/yearly': -1.0,
-    };
-    return table['$metric/$period'] ?? 0.0;
+
+  factory ReportModel.fromJson(Map<String, dynamic> json) {
+    final analytics = json['analytics'] ?? {};
+
+    List<double> safeList(dynamic value) {
+      if (value is List) {
+        return value.map((e) => (e as num).toDouble()).toList();
+      }
+      return [0.0];
+    }
+
+    return ReportModel(
+      totalCost: (json['expenses'] ?? 0).toDouble(),
+
+      materialCost:
+          (json['categoryBreakdown']?['Materials'] ?? 0).toDouble(),
+
+      labourCost:
+          (json['categoryBreakdown']?['Labour'] ?? 0).toDouble(),
+
+      equipmentCost:
+          (json['categoryBreakdown']?['Equipment'] ?? 0).toDouble(),
+
+      costPerSqftData: safeList(analytics['costPerSqftData']),
+      chartDataCuyd: safeList(json['chartDataCuyd']),
+
+      categoryBudget: Map<String, double>.from(
+        (json['categoryBreakdown'] ?? {}).map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        ),
+      ),
+
+      efficiencyNote: (analytics['chartStatus'] == 'OVER_BUDGET')
+          ? 'Project exceeded budget'
+          : 'Project within budget',
+    );
   }
 }
