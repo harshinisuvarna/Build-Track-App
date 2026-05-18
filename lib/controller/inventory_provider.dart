@@ -15,6 +15,42 @@ class InventoryProvider extends ChangeNotifier {
   List<InventoryItem> get lowStockAlerts {
     return _inventory.where((item) => item.closingStock < item.threshold).toList();
   }
+
+  // Filtered getters for each tab in InventoryScreen
+  List<InventoryItem> get materialInventory =>
+      _inventory.where((item) => item.category == 'material').toList();
+
+  List<InventoryItem> get labourInventory =>
+      _inventory.where((item) => item.category == 'labour').toList();
+
+  List<InventoryItem> get equipmentInventory =>
+      _inventory.where((item) => item.category == 'equipment').toList();
+
+  // Call this after saving a new entry to push it to the backend & refresh
+  Future<void> addToInventory({
+    required String materialName,
+    required double quantity,
+    required String unit,
+    required String projectId,
+    required String category, // 'material' | 'labour' | 'equipment'
+    double threshold = 10,
+  }) async {
+    try {
+      await ApiService.addInventoryItem(
+        materialName: materialName,
+        purchased: quantity,
+        unit: unit,
+        projectId: projectId,
+        category: category,
+        threshold: threshold,
+      );
+      // Refresh the list so the UI updates
+      await loadInventory(projectId);
+    } catch (e) {
+      _error = 'Could not add to inventory: $e';
+      notifyListeners();
+    }
+  }
   
 
   Future<void> loadInventory(String projectId) async {
@@ -30,6 +66,24 @@ class InventoryProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners(); // Tells the UI to rebuild!
+    }
+  }
+
+  // New method for Server-Side Search
+  Future<void> performSearch(String query, String category) async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
+    try {
+      // Hits the new backend-connected search method
+      final rawData = await ApiService.searchMaterials(query: query, category: category);
+      _inventory = rawData.map((json) => InventoryItem.fromJson(json)).toList();
+    } catch (e) {
+      _error = 'Search failed: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

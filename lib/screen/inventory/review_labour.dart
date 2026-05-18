@@ -227,7 +227,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     );
 
     if (!mounted) return;
-    await ctx.read<ProjectProvider>().addEntry(
+    ctx.read<ProjectProvider>().addEntry(
       EntryModel(
         id: entryId,
         projectId: _selectedProjectId!,
@@ -240,9 +240,6 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         phaseId: (_selectedPhase as PhaseModel?)?.id,
       ),
     );
-
-    if (!mounted) return;
-    await ctx.read<InventoryProvider>().loadInventory(_selectedProjectId!);
 
     Navigator.pushNamed(
       // ignore: use_build_context_synchronously

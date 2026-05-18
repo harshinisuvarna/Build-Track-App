@@ -1,7 +1,3 @@
-// lib/screen/subscription_screen.dart
-// Premium SaaS-style paywall.
-// Features clean typography, soft shadows, and high-converting CTAs.
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';

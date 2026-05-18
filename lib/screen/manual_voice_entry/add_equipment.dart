@@ -113,9 +113,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Future<void> _save(BuildContext ctx) async {
     if (_selectedProjectId == null) { _snack('Working context deployment site mandatory'); return; }
-    if (_selectedFloor == null)     { _snack('Execution zone layer selection missing'); return; }
-    if (_selectedPhase == null)     { _snack('Project element tracker target mandatory'); return; }
-    if (_selectedActivity == null)  { _snack('Activity profile tag required'); return; }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -127,7 +124,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "category": "Equipment",
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
-      "unit": _selectedUnit == "pcs" ? "unit" : (_selectedUnit ?? "hour"),
+      "unit": _selectedUnit == null
+          ? "hour"
+          : _selectedUnit == "Day" || _selectedUnit == "day"
+              ? "day"
+              : _selectedUnit == "Hour" || _selectedUnit == "hour"
+                  ? "hour"
+                  : _selectedUnit == "Trip" || _selectedUnit == "Load" || _selectedUnit == "Shift"
+                      ? "truck"
+                      : "unit",
       "project": _selectedProjectId,
     };
 
@@ -138,7 +143,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (success) {
       // 🌟 THE REFRESH FIX
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
-      context.read<ProjectProvider>().refreshEntries();
+      context.read<ProjectProvider>().load();
 
       _snack('Equipment log recorded to workspace!');
       Navigator.maybePop(context); 
@@ -283,6 +288,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           UnitSelectorField(
                             value:     _selectedUnit,
                             onChanged: (u) => setState(() => _selectedUnit = u),
+                            units:     kEquipmentUnits,
                           ),
                           const SizedBox(height: 18),
 

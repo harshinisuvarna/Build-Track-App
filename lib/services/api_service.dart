@@ -133,7 +133,7 @@ class ApiService {
   // 1. HTTP GET: Fetch Materials
   static Future<List<dynamic>> fetchMaterials() async {
     try {
-      final response = await get('/transactions');
+      final response = await get('/inventory');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -142,8 +142,7 @@ class ApiService {
         if (decoded is List) {
           return decoded;
         } else if (decoded is Map) {
-          return decoded['transactions'] ??
-              decoded['materials'] ??
+          return decoded['materials'] ??
               decoded['inventory'] ??
               decoded['data'] ??
               decoded['items'] ??
@@ -166,7 +165,7 @@ class ApiService {
       }
     } catch (e) {
       print('GET Error: $e');
-      rethrow;
+      return [];
     }
   }
 
@@ -184,6 +183,21 @@ class ApiService {
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print('POST Error: $e');
+      return false;
+    }
+  }
+
+  // Update transaction payment (e.g. Record Payment)
+  static Future<bool> updateTransactionPayment(String id, Map<String, dynamic> payload) async {
+    try {
+      final response = await put('/transactions/$id', payload);
+      print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('=============================');
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('PUT /transactions/$id Error: $e');
       return false;
     }
   }
@@ -210,20 +224,16 @@ class ApiService {
 
         final Map<String, Map<String, dynamic>> grouped = {};
         for (final t in raw) {
-          final String title    = (t['title'] ?? t['materialName'] ?? 'Unknown').toString();
+          final String title = (t['title'] ?? t['materialName'] ?? 'Unknown').toString();
           
-          final String rawType     = (t['type'] ?? '').toString().toLowerCase();
-          final String rawCategory = (t['category'] ?? '').toString().toLowerCase();
+          final String rawCat = (t['category'] ?? '').toString().trim().toLowerCase();
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
           
-          String category = 'material'; // strict UI tab identity
-          if (rawType == 'wages' || rawCategory.contains('labour') || rawCategory == 'wages') {
+          String category = 'material';
+          if (rawCat == 'labour' || rawCat == 'wages' || rawCat == 'labor' || rawCat.contains('labour') || rawType == 'wages' || rawType == 'labour') {
             category = 'labour';
-          } else if (rawType == 'expense' || rawCategory.contains('equipment') || rawCategory == 'expense') {
+          } else if (rawCat == 'equipment' || rawCat == 'machinery' || rawCat == 'expense' || rawType == 'expense' || rawType == 'equipment') {
             category = 'equipment';
-          } else if (rawType == 'materials' || rawCategory.contains('material')) {
-            category = 'material';
-          } else {
-            category = 'material'; // Fallback
           }
 
           final double qty      = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();

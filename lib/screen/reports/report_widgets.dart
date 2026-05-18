@@ -143,201 +143,196 @@ class _M {
   final double   change;
 }
 class ChartSection extends StatelessWidget {
-  const ChartSection({super.key, required this.provider});
-  final ReportProvider provider;
+  const ChartSection({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final data      = provider.activeChartData;
-    final unitIndex = provider.unitIndex;
-    final target    = data.map((v) => v * 0.93).toList();
-    final unit      = unitIndex == 0 ? 'SQFT' : 'CUYD';
+    // 📊 MOCK DATA (TASK REQUIREMENT)
+    final List<double> data = [
+      12,
+      1350,
+      100,
+      1650,
+      1580,
+      1720,
+    ];
+
+    const double targetCost = 1500;
+
+    final List<String> phases = [
+      'Foundation',
+      'Plinth',
+      'Slab',
+      'Walls',
+      'Roof',
+      'Finishing',
+    ];
+
     final actualVal = data.isNotEmpty ? data.last : 0.0;
-    final targetVal = target.isNotEmpty ? target.last : 0.0;
-    final actualSpots = [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])];
-    final targetSpots = [for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])];
-    final minY = data.isEmpty ? 0.0
-        : (data.reduce((a, b) => a < b ? a : b) * 0.92);
-    final maxY = data.isEmpty ? 30.0
-        : (data.reduce((a, b) => a > b ? a : b) * 1.05);
+    final targetVal = targetCost;
+
+    final actualSpots = List.generate(
+      data.length,
+      (i) => FlSpot(i.toDouble(), data[i]),
+    );
+
+    final targetSpots = List.generate(
+      data.length,
+      (i) => FlSpot(i.toDouble(), targetCost),
+    );
+
+    final minY = data.reduce((a, b) => a < b ? a : b) * 0.9;
+    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.1;
+
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header + unit toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // 📌 HEADER
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Cost per $unit',
-                        style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
-                    const SizedBox(height: 3),
-                    Text('Concrete pouring efficiency vs target',
-                        style: AppTheme.caption
-                            .copyWith(color: AppColors.textLight, height: 1.4)),
-                  ],
+              Text(
+                'Cost per SQFT',
+                style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Construction cost vs efficiency benchmark',
+                style: AppTheme.caption.copyWith(
+                  color: AppColors.textLight,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(width: 12),
-              _UnitToggle(unitIndex: unitIndex, onChanged: provider.selectUnit),
             ],
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 140,
-            child: data.isEmpty
-                ? const Center(child: Text('No chart data'))
-                : LineChart(
-                    key: ValueKey('$unit-${provider.tabIndex}'),
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOut,
-                    LineChartData(
-                      minY: minY,
-                      maxY: maxY,
-                      clipData: const FlClipData.all(),
-                      lineTouchData: LineTouchData(
-                        handleBuiltInTouches: true,
-                        getTouchedSpotIndicator: (barData, spotIndexes) =>
-                            spotIndexes.map((i) => TouchedSpotIndicatorData(
-                                  // Zero-width line = no stick
-                                  const FlLine(strokeWidth: 0),
-                                  FlDotData(
-                                    getDotPainter: (spot, percent, barData, index) =>
-                                        FlDotCirclePainter(
-                                      radius: 6,
-                                      color: AppColors.primary,
-                                      strokeWidth: 2.5,
-                                      strokeColor: Colors.white,
-                                    ),
-                                  ),
-                                )).toList(),
-                        touchTooltipData: LineTouchTooltipData(
-                          getTooltipColor: (_) => const Color(0xFF1A1D3A),
-                          tooltipRoundedRadius: 12,
-                          tooltipPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          getTooltipItems: (spots) => spots.map((s) {
-                            final isActual = s.barIndex == 0;
-                            if (!isActual) return null;
-                            final val = formatCurrency(s.y);
-                            return LineTooltipItem(
-                              '$val/$unit',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.2,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: (maxY - minY) / 3,
-                        getDrawingHorizontalLine: (_) => FlLine(
-                          color: const Color(0xFFEEF0F8),
-                          strokeWidth: 1,
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            interval: (maxY - minY) / 3,
-                            getTitlesWidget: (v, _) => Text(
-                              formatCurrency(v),
-                              style: AppTheme.caption.copyWith(
-                                  fontSize: 9, color: AppColors.textLight),
-                            ),
-                          ),
-                        ),
-                      ),
 
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: actualSpots,
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primary.withValues(alpha: 0.70),
-                            ],
+          const SizedBox(height: 20),
+
+          // 📊 CHART
+          SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                minY: minY,
+                maxY: maxY,
+                clipData: const FlClipData.all(),
+
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (maxY - minY) / 3,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: const Color(0xFFEEF0F8),
+                    strokeWidth: 1,
+                  ),
+                ),
+
+                borderData: FlBorderData(show: false),
+
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        int i = value.toInt();
+                        if (i < 0 || i >= phases.length) {
+                          return const SizedBox();
+                        }
+                        return Text(
+                          phases[i],
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 10,
+                            color: AppColors.textLight,
                           ),
-                          dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primary.withValues(alpha: 0.22),
-                                AppColors.primary.withValues(alpha: 0.0),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                        ),
-                        LineChartBarData(
-                          spots: targetSpots,
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          color: const Color(0xFFBBC0D0),
-                          barWidth: 1.8,
-                          dashArray: [6, 4],
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(show: false),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: (maxY - minY) / 3,
+                      reservedSize: 40,
+                      getTitlesWidget: (v, _) => Text(
+                        '₹${v.toInt()}',
+                        style: AppTheme.caption.copyWith(
+                          fontSize: 9,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                lineBarsData: [
+                  // 📈 ACTUAL COST LINE
+                  LineChartBarData(
+                    spots: actualSpots,
+                    isCurved: true,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withValues(alpha: 0.6),
+                      ],
+                    ),
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.2),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+
+                  // 📉 TARGET LINE (DASHED)
+                  LineChartBarData(
+                    spots: targetSpots,
+                    isCurved: false,
+                    barWidth: 2,
+                    color: const Color(0xFFBBC0D0),
+                    dashArray: [6, 4],
+                    dotData: const FlDotData(show: false),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['WK 12', 'WK 13', 'WK 14', 'WK 15', 'WK 16', 'WK 17']
-                .map((w) => Text(w,
-                    style:
-                        AppTheme.caption.copyWith(color: AppColors.textLight)))
-                .toList(),
-          ),
+
           const SizedBox(height: 14),
+
+          // 📌 LEGEND
           Row(
             children: [
               _legendDot(AppColors.primary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  'Actual: ${formatCurrency(actualVal)}/$unit',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(
-                      color: AppColors.textDark, fontWeight: FontWeight.w700),
+              const SizedBox(width: 6),
+              Text(
+                'Actual: ₹${actualVal.toInt()}/SQFT',
+                style: AppTheme.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               _legendDot(const Color(0xFFBBC0D0)),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  'Target: ${formatCurrency(targetVal)}/$unit',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
+              const SizedBox(width: 6),
+              Text(
+                'Target: ₹1500/SQFT',
+                style: AppTheme.caption.copyWith(
+                  color: AppColors.textLight,
                 ),
               ),
             ],
@@ -346,10 +341,12 @@ class ChartSection extends StatelessWidget {
       ),
     );
   }
-  Widget _legendDot(Color c) => Container(
-        width: 10, height: 10,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle));
 
+  Widget _legendDot(Color c) => Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      );
 }
 class _UnitToggle extends StatelessWidget {
   const _UnitToggle({required this.unitIndex, required this.onChanged});

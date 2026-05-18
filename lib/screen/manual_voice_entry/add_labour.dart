@@ -114,9 +114,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   Future<void> _save(BuildContext ctx) async {
     if (_selectedProjectId == null) { _snack('Please pick target working site execution context'); return; }
-    if (_selectedFloor == null)     { _snack('Zone deployment floor scope needed'); return; }
-    if (_selectedPhase == null)     { _snack('Target scheduling structure element required'); return; }
-    if (_selectedActivity == null)  { _snack('Activity assignment tag required'); return; }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -128,7 +125,15 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       "category": _categoryCtrl.text.trim().isEmpty ? "General Labour" : _categoryCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
-      "unit": _selectedUnit == "pcs" ? "day" : (_selectedUnit ?? "hour"),
+      "unit": _selectedUnit == null
+          ? "hour"
+          : _selectedUnit == "Day" || _selectedUnit == "day"
+              ? "day"
+              : _selectedUnit == "Hour" || _selectedUnit == "hour"
+                  ? "hour"
+                  : _selectedUnit == "Sq ft" || _selectedUnit == "sqft" || _selectedUnit == "Sq.ft"
+                      ? "sqft"
+                      : "unit",
       "project": _selectedProjectId,
     };
 
@@ -139,7 +144,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (success) {
       // 🌟 THE REFRESH FIX
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
-      context.read<ProjectProvider>().refreshEntries();
+      context.read<ProjectProvider>().load();
 
       _snack('Labour entry logged to database!');
       Navigator.maybePop(context); 
@@ -285,6 +290,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           UnitSelectorField(
                             value:     _selectedUnit,
                             onChanged: (u) => setState(() => _selectedUnit = u),
+                            units:     kLabourUnits,
                           ),
                           const SizedBox(height: 18),
 

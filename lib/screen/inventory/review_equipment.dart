@@ -242,7 +242,7 @@ class _ReviewEquipmentEntryScreenState
     );
 
     if (!mounted) return;
-    await ctx.read<ProjectProvider>().addEntry(
+    ctx.read<ProjectProvider>().addEntry(
       EntryModel(
         id: entryId,
         projectId: _selectedProjectId!,
@@ -255,9 +255,6 @@ class _ReviewEquipmentEntryScreenState
         phaseId: (_selectedPhase as PhaseModel?)?.id,
       ),
     );
-
-    if (!mounted) return;
-    await ctx.read<InventoryProvider>().loadInventory(_selectedProjectId!);
 
     Navigator.pushNamed(
       ctx,

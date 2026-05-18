@@ -141,18 +141,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       _snack('Please select a project');
       return;
     }
-    if (_selectedFloor == null) {
-      _snack('Please select a floor / zone');
-      return;
-    }
-    if (_selectedPhase == null) {
-      _snack('Please select a phase');
-      return;
-    }
-    if (_selectedActivity == null) {
-      _snack('Please select an activity');
-      return;
-    }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -166,7 +154,19 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
-      "unit": _selectedUnit == "pcs" ? "unit" : (_selectedUnit ?? "unit"), // 🌟 CHANGED: Safely maps 'pcs'
+      "unit": _selectedUnit == null
+          ? "unit"
+          : _selectedUnit == "bags" || _selectedUnit == "bag"
+              ? "bag"
+              : _selectedUnit == "sq.ft" || _selectedUnit == "sqft" || _selectedUnit == "Sq.ft"
+                  ? "sqft"
+                  : _selectedUnit == "ton" || _selectedUnit == "tons"
+                      ? "ton"
+                      : _selectedUnit == "kg" || _selectedUnit == "kgs"
+                          ? "kg"
+                          : _selectedUnit == "pcs" || _selectedUnit == "unit"
+                              ? "unit"
+                              : "unit",
       "project": _selectedProjectId,
       "notes": _notesCtrl.text.trim(),
     };
@@ -178,7 +178,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (success) {
       // 🌟 THE REFRESH FIX: Triggers the app's provider to get fresh database changes
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
-      context.read<ProjectProvider>().refreshEntries();
+      context.read<ProjectProvider>().load();
 
       _snack('Material logged and inventory stock synchronized!');
       Navigator.maybePop(context); 

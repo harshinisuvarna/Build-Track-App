@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'dart:convert';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
@@ -31,7 +32,7 @@ class ProjectProvider extends ChangeNotifier {
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
       (e) =>
-          e.projectId == _selectedProject!.id && e.type == EntryType.material,
+          e.projectId.trim() == _selectedProject!.id.trim() && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -43,75 +44,7 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   List<EntryModel> entriesForProject(String projectId) =>
-      _entries.where((e) => e.projectId == projectId).toList();
-
-  Future<void> refreshEntries() async {
-    try {
-      final apiMaterials = await ApiService.fetchMaterials();
-
-      final List<EntryModel> validEntries = [];
-      for (var json in apiMaterials) {
-        try {
-          final rawType = (json['category'] ?? json['type'] ?? '').toString().toLowerCase();
-          EntryType parsedType = EntryType.material;
-          if (rawType.contains('labour') || rawType == 'wages') parsedType = EntryType.labour;
-          if (rawType.contains('equipment') || rawType == 'expense') parsedType = EntryType.equipment;
-
-          // Safe extraction of projectId from object or string
-          String pId = 'p1';
-          if (json['project'] is Map) {
-            pId = json['project']['_id']?.toString() ?? 'p1';
-          } else if (json['project'] != null) {
-            pId = json['project'].toString();
-          }
-
-          // Safe double parsing helper
-          double parseDouble(dynamic val) {
-            if (val == null) return 0.0;
-            if (val is num) return val.toDouble();
-            if (val is String) return double.tryParse(val) ?? 0.0;
-            return 0.0;
-          }
-
-          // Safe DateTime parsing helper
-          DateTime parseDateTime(dynamic val) {
-            if (val == null) return DateTime.now();
-            if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
-            return DateTime.now();
-          }
-
-          // Determine amount: prefer 'amount' (total cost spent) if present and > 0,
-          // otherwise closingStock, quantity, or fallback.
-          double parsedAmount = parseDouble(json['amount']);
-          if (parsedAmount <= 0) {
-            parsedAmount = parseDouble(json['closingStock'] ?? json['quantity'] ?? 0);
-          }
-
-          validEntries.add(EntryModel(
-            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: pId,
-            type: parsedType,
-            amount: parsedAmount,
-            date: json['date'] != null
-                ? parseDateTime(json['date'])
-                : (json['createdAt'] != null ? parseDateTime(json['createdAt']) : DateTime.now()),
-            description: json['title'] ?? json['materialName'] ?? 'Material Entry',
-            brand: json['brand'] ?? json['materialName'],
-            ratePerUnit: parseDouble(json['rate'] ?? 0),
-          ));
-        } catch (e, st) {
-          dev.log('CRASH parsing transaction item: $e', stackTrace: st);
-        }
-      }
-
-      _entries = validEntries;
-      await _persistEntries();
-      notifyListeners();
-    } catch (e) {
-      dev.log('refreshEntries failed: $e');
-      rethrow;
-    }
-  }
+      _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
 
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (s, e) => s + e.amount);
@@ -158,36 +91,147 @@ class ProjectProvider extends ChangeNotifier {
         _savePhases();
       }
 
-      // ── Projects — single source of truth is the API ──────────────
+      // ── Projects ──────────────────────────────────────────────────
+      List<ProjectModel> cachedProjects = [];
+      final rawProjects = prefs.getString('cached_projects');
+      if (rawProjects != null && rawProjects.isNotEmpty) {
+        try {
+          cachedProjects = ProjectModel.decodeList(rawProjects);
+        } catch (e) {
+          cachedProjects = [];
+        }
+      }
+
       try {
-        _projects = await ApiService.fetchProjects();
-        // Ensure every project has at least one floor
-        _projects = _projects.map((p) {
+        final serverProjects = await ApiService.fetchProjects();
+        final mappedServerProjects = serverProjects.map((p) {
           if (p.floors == null || p.floors!.isEmpty) {
             return p.copyWith(floors: ['Ground Floor']);
           }
           return p;
         }).toList();
+
+        // Merge projects by id
+        final Map<String, ProjectModel> projectMap = {};
+        for (final p in cachedProjects) {
+          projectMap[p.id.trim()] = p;
+        }
+        for (final p in mappedServerProjects) {
+          projectMap[p.id.trim()] = p;
+        }
+        _projects = projectMap.values.toList();
+        
+        // Persist to local storage
+        await prefs.setString('cached_projects', ProjectModel.encodeList(_projects));
       } catch (e) {
-        dev.log('API fetchProjects failed: $e');
-        _projects = [];
+        dev.log('API fetchProjects failed, falling back to local storage: $e');
+        if (cachedProjects.isNotEmpty) {
+          _projects = cachedProjects;
+        } else {
+          _projects = [];
+        }
       }
 
       // ── Entries (materials) ────────────────────────────────────────
+      List<EntryModel> cachedEntries = [];
+      final rawEntries = prefs.getString(_kEntriesKey);
+      if (rawEntries != null && rawEntries.isNotEmpty) {
+        try {
+          cachedEntries = EntryModel.decodeList(rawEntries);
+        } catch (e) {
+          cachedEntries = [];
+        }
+      }
+
       try {
-        await refreshEntries();
+        final response = await ApiService.get('/transactions');
+        if (response.statusCode != 200) {
+          throw Exception('Failed to fetch transactions from server: status ${response.statusCode}');
+        }
+        
+        final decoded = json.decode(response.body);
+        List<dynamic> apiMaterials = [];
+        if (decoded is List) {
+          apiMaterials = decoded;
+        } else if (decoded is Map) {
+          apiMaterials = (decoded['transactions'] ?? decoded['data'] ?? decoded['items'] ?? []) as List<dynamic>;
+        }
+
+        final serverEntries = apiMaterials.map<EntryModel>((json) {
+          EntryType parsedType = EntryType.material;
+          final String typeLower = (json['type'] ?? '').toString().trim().toLowerCase();
+          final String catLower = (json['category'] ?? '').toString().trim().toLowerCase();
+          
+          if (typeLower == 'labour' || typeLower == 'wages' || catLower == 'labour' || catLower.contains('labour')) {
+            parsedType = EntryType.labour;
+          } else if (typeLower == 'equipment' || typeLower == 'expense' || catLower == 'equipment') {
+            parsedType = EntryType.equipment;
+          }
+
+          // Safe extraction of projectId from object, string, or fallback projectId field
+          String pId = '';
+          if (json['project'] is Map) {
+            pId = json['project']['_id']?.toString() ?? '';
+          } else if (json['project'] != null) {
+            pId = json['project'].toString();
+          }
+          if (pId.isEmpty && json['projectId'] != null) {
+            if (json['projectId'] is Map) {
+              pId = json['projectId']['_id']?.toString() ?? '';
+            } else {
+              pId = json['projectId'].toString();
+            }
+          }
+          pId = pId.trim();
+          if (pId.isEmpty) {
+            pId = 'p1'; // ultimate fallback
+          }
+
+          return EntryModel(
+            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            projectId: pId,
+            type: parsedType,
+            amount: (json['quantity'] ?? json['closingStock'] ?? json['amount'] ?? 0).toDouble(),
+            date: json['date'] != null
+                ? DateTime.tryParse(json['date']) ?? DateTime.now()
+                : DateTime.now(),
+            description: json['title'] ?? json['materialName'] ?? 'Material Entry',
+            brand: json['brand'] ?? json['materialName'],
+            ratePerUnit: (json['rate'] ?? json['ratePerUnit'] ?? 0).toDouble(),
+          );
+        }).toList();
+
+        // Merge entries: cache + server
+        final Map<String, EntryModel> entryMap = {};
+        for (final entry in cachedEntries) {
+          entryMap[entry.id.trim()] = entry;
+        }
+        for (final entry in serverEntries) {
+          entryMap[entry.id.trim()] = entry;
+        }
+        _entries = entryMap.values.toList();
+        await _persistEntries();
       } catch (e) {
         dev.log('API fetch failed, falling back to local storage: $e');
-        final rawEntries = prefs.getString(_kEntriesKey);
-        if (rawEntries != null && rawEntries.isNotEmpty) {
-          _entries = EntryModel.decodeList(rawEntries);
+        if (cachedEntries.isNotEmpty) {
+          _entries = cachedEntries;
         } else {
           _entries = _seedEntries();
           await _persistEntries();
         }
       }
 
-      if (_projects.isNotEmpty) {
+      // Retain currently selected project if it still exists in the fetched list
+      if (_selectedProject != null) {
+        final existingIdx = _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
+        if (existingIdx != -1) {
+          _selectedProject = _projects[existingIdx];
+        } else if (_projects.isNotEmpty) {
+          _selectedProject = _projects.first;
+        } else {
+          _selectedProject = null;
+        }
+      } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
       }
       _error = '';
@@ -214,7 +258,6 @@ class ProjectProvider extends ChangeNotifier {
         _selectedProject = _projects.first;
       }
       _error = '';
-      await refreshEntries();
     } catch (e) {
       _error = 'Failed to fetch projects: $e';
       dev.log('fetchProjects error: $e');
@@ -373,14 +416,9 @@ class ProjectProvider extends ChangeNotifier {
     ProjectStage? phase,
   }) async {
     // --- HARSHINI'S INTEGRATION CODE FOR POSTING ---
-    String backendType = 'Materials';
-    if (entry.type.name == 'labour') backendType = 'Wages';
-    if (entry.type.name == 'equipment') backendType = 'Expense';
-
     final payload = {
       "title": entry.description,
-      "type": backendType,
-      "category": entry.type.name,
+      "type": entry.type.name,
       "project": entry.projectId,
       "quantity": entry.amount,
       "rate": ratePerUnit ?? entry.ratePerUnit ?? 0,

@@ -29,7 +29,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  String _activeFilter = 'Recently Updated';
+  String _activeFilter = 'Recently Added';
 
   String? _selectedProjectId;
   
@@ -408,18 +408,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: TextField(
-            controller: _searchCtrl,
-            // --- ADDED: Task 2 Debounce Timer Logic ---
             onChanged: (val) {
               setState(() => _searchQuery = val);
-              if (_debounce?.isActive ?? false) _debounce!.cancel();
-              _debounce = Timer(const Duration(milliseconds: 500), () {
-                String category = 'All';
-                if (_tabIndex == 0) category = 'Materials';
-                if (_tabIndex == 1) category = 'Labour';
-                if (_tabIndex == 2) category = 'Equipment';
-                context.read<InventoryProvider>().performSearch(val, category);
-              });
             },
             decoration: const InputDecoration(
               hintText: 'Search materials, SKU, or site log...',
@@ -514,6 +504,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final levelStr = isLow ? 'LOW' : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
       final color = isLow ? Colors.redAccent : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
 
+      int timestamp = 0;
+      if (item.id.length == 24) {
+        try {
+          timestamp = int.parse(item.id.substring(0, 8), radix: 16);
+        } catch (_) {}
+      }
+
       return {
         'name': item.name,
         'projectId': _selectedProjectId ?? 'p1', 
@@ -530,7 +527,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           type: 'material'
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1), 
-        'time': 1
+        'time': timestamp
       };
     }).toList();
 
@@ -665,6 +662,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final isLow = item.closingStock < item.threshold;
       final levelStr = isLow ? 'LOW' : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
       final color = isLow ? Colors.redAccent : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
+
+      int timestamp = 0;
+      if (item.id.length == 24) {
+        try {
+          timestamp = int.parse(item.id.substring(0, 8), radix: 16);
+        } catch (_) {}
+      }
+
       return {
         'name': item.name,
         'widget': _inventoryCard(
@@ -680,7 +685,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           type: 'labour',
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
-        'time': 1,
+        'time': timestamp,
       };
     }).toList();
     return _buildTab(items);
@@ -695,6 +700,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final isLow = item.closingStock < item.threshold;
       final levelStr = isLow ? 'LOW' : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
       final color = isLow ? Colors.redAccent : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
+
+      int timestamp = 0;
+      if (item.id.length == 24) {
+        try {
+          timestamp = int.parse(item.id.substring(0, 8), radix: 16);
+        } catch (_) {}
+      }
+
       return {
         'name': item.name,
         'widget': _inventoryCard(
@@ -710,24 +723,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
           type: 'equipment',
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
-        'time': 1,
+        'time': timestamp,
       };
     }).toList();
     return _buildTab(items);
   }
 
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
-    // ... (Your exact existing code)
-    // --- ADDED: We no longer filter locally using _matchSearch, because the backend handles it via searchMaterials ---
     var filtered = List<Map<String, dynamic>>.from(items);
-    
-    if (_activeFilter == 'Sort by Name (A-Z)') {
-      filtered.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-    } else if (_activeFilter == 'Show Low Stock First') {
-      filtered.sort((a, b) => (a['level'] as int).compareTo(b['level'] as int));
-    } else if (_activeFilter == 'Recently Updated') {
-      filtered.sort((a, b) => (a['time'] as num).compareTo(b['time'] as num));
+
+    if (_searchQuery.isNotEmpty) {
+      final queryLower = _searchQuery.toLowerCase().trim();
+      filtered = filtered.where((item) {
+        final name = (item['name'] as String? ?? '').toLowerCase();
+        return name.contains(queryLower);
+      }).toList();
     }
+    
+    if (_activeFilter == 'A → Z') {
+      filtered.sort((a, b) => (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase()));
+    } else if (_activeFilter == 'Low Stock') {
+      filtered.sort((a, b) => (a['level'] as int).compareTo(b['level'] as int));
+    } else if (_activeFilter == 'Recently Added') {
+      filtered.sort((a, b) => (b['time'] as num).compareTo(a['time'] as num));
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       child: Column(
@@ -748,7 +768,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showFilterOptions() {
-    // ... (Your exact existing code)
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -761,9 +780,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
           children: [
             const Text('Filter By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textDark)),
             const SizedBox(height: 20),
-            _filterTile(ctx, 'Sort by Name (A-Z)', Icons.sort_by_alpha),
-            _filterTile(ctx, 'Show Low Stock First', Icons.warning_amber_rounded),
-            _filterTile(ctx, 'Recently Updated', Icons.access_time),
+            _filterTile(ctx, 'A → Z', Icons.sort_by_alpha),
+            _filterTile(ctx, 'Recently Added', Icons.access_time),
+            _filterTile(ctx, 'Low Stock', Icons.warning_amber_rounded),
           ],
         ),
       ),
