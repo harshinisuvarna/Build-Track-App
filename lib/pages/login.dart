@@ -8,7 +8,7 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
-import 'package:buildtrack_mobile/services/user_session.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

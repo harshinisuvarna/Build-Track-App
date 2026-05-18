@@ -97,7 +97,7 @@ class ReportProvider extends ChangeNotifier {
         throw Exception("Login required");
       }
 
-      const baseUrl = 'http://localhost:5000';
+      const baseUrl = 'http://localhost:5001';
 
       final uri = Uri.parse(
         '$baseUrl/api/reports/financial?year=2026&month=4',
