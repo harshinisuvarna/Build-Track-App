@@ -35,29 +35,36 @@ class UserSession {
   // SAFE INIT FROM STORAGE
   // ----------------------------
   static Future<void> loadFromPrefs() async {
-    final roleStr = (await AuthService.getUserRole())?.toLowerCase();
+  final roleStr =
+      (await AuthService.getUserRole())?.toLowerCase();
 
-    switch (roleStr) {
-      case 'supervisor':
-        _role = UserRole.supervisor;
-        break;
-
-      case 'worker':
-      case 'mason':
-        _role = UserRole.mason;
-        break;
-
-      case 'admin':
-        _role = UserRole.admin;
-        break;
-
-      default:
-        _role = UserRole.admin;
-        break;
-    }
-
+  if (roleStr == null) {
+    _role = UserRole.admin;
     _initialized = true;
+    return;
   }
+
+  switch (roleStr) {
+    case 'supervisor':
+      _role = UserRole.supervisor;
+      break;
+
+    case 'worker':
+    case 'mason':
+      _role = UserRole.mason;
+      break;
+
+    case 'admin':
+      _role = UserRole.admin;
+      break;
+
+    default:
+      _role = UserRole.admin;
+      break;
+  }
+
+  _initialized = true;
+}
 
   static bool get isInitialized => _initialized;
 

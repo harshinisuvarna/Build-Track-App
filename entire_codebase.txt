@@ -8619,7 +8619,7 @@ class ReviewEquipmentEntryScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '"Hey SiteTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation."',
+          '"Hey BuildTrack, log equipment usage for North District. Excavator JCB 3CX unit 04 ran for 6 hours today. Rate is 85 rupees per hour. Fuel consumed was 42 liters. Total cost is 510 rupees. Log under earthworks and excavation."',
           style: TextStyle(
             fontSize: 14,
             color: textGray,
@@ -9035,7 +9035,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          '"Hey SiteTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 rupees per hour. Total comes to 144 rupees. Log this under structural block work."',
+          '"Hey BuildTrack, log a labour entry for North District Phase 2. Rajesh Kumar and his masonry team worked 8 hours today. Rate is 18 rupees per hour. Total comes to 144 rupees. Log this under structural block work."',
           style: TextStyle(
             fontSize: 14,
             color: textGray,
@@ -9435,7 +9435,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          '"Hey SiteTrack, record a material entry for North District. '
+          '"Hey BuildTrack, record a material entry for North District. '
           'We just received 12.5 cubic meters of C35 ready-mix concrete. '
           'Rate is fixed at 145 per unit. Confirming receipt for 1,812 '
           'rupees and 50 paise. Log this under structural foundations."',
@@ -16121,7 +16121,7 @@ class ProjectsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppTopBar(
-              title: 'SiteTrack',
+              title: 'BuildTrack',
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(

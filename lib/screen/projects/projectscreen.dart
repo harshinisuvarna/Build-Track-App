@@ -7,25 +7,140 @@ import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+// ── Project Status definitions ──────────────────────────────────────────────
+
+enum _ProjectStatus {
+  planning,
+  inProgress,
+  onHold,
+  completed,
+  cancelled;
+
+  static _ProjectStatus fromString(String? raw) {
+    switch ((raw ?? '').toLowerCase().replaceAll(' ', '').replaceAll('_', '')) {
+      case 'planning':
+        return _ProjectStatus.planning;
+      case 'inprogress':
+        return _ProjectStatus.inProgress;
+      case 'onhold':
+        return _ProjectStatus.onHold;
+      case 'completed':
+        return _ProjectStatus.completed;
+      case 'cancelled':
+        return _ProjectStatus.cancelled;
+      default:
+        return _ProjectStatus.inProgress;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case _ProjectStatus.planning:
+        return 'Planning';
+      case _ProjectStatus.inProgress:
+        return 'In Progress';
+      case _ProjectStatus.onHold:
+        return 'On Hold';
+      case _ProjectStatus.completed:
+        return 'Completed';
+      case _ProjectStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
+  Color get bg {
+    switch (this) {
+      case _ProjectStatus.planning:
+        return const Color(0xFFFFF8E1); // amber/yellow soft
+      case _ProjectStatus.inProgress:
+        return const Color(0xFFE8F0FE); // blue soft
+      case _ProjectStatus.onHold:
+        return const Color(0xFFFFF3E0); // orange soft
+      case _ProjectStatus.completed:
+        return const Color(0xFFE8F5E9); // green soft
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFFFEBEE); // red/pink soft
+    }
+  }
+
+  Color get border {
+    switch (this) {
+      case _ProjectStatus.planning:
+        return const Color(0xFFFFC107);
+      case _ProjectStatus.inProgress:
+        return const Color(0xFF4A6CF7);
+      case _ProjectStatus.onHold:
+        return const Color(0xFFFF9800);
+      case _ProjectStatus.completed:
+        return const Color(0xFF43A047);
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFE53935);
+    }
+  }
+
+  Color get text {
+    switch (this) {
+      case _ProjectStatus.planning:
+        return const Color(0xFFF57F17);
+      case _ProjectStatus.inProgress:
+        return const Color(0xFF3D5AFE);
+      case _ProjectStatus.onHold:
+        return const Color(0xFFE65100);
+      case _ProjectStatus.completed:
+        return const Color(0xFF2E7D32);
+      case _ProjectStatus.cancelled:
+        return const Color(0xFFC62828);
+    }
+  }
+}
+
+// ── Reusable ProjectStatusChip ───────────────────────────────────────────────
+
+class ProjectStatusChip extends StatelessWidget {
+  const ProjectStatusChip({super.key, required this.statusRaw});
+
+  final String? statusRaw;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _ProjectStatus.fromString(statusRaw);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: status.bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: status.border.withValues(alpha: 0.6),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        status.label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: status.text,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Projects Screen ──────────────────────────────────────────────────────────
+
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
+
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
-  static const _stageMeta = <ProjectStage, _StageStyle>{
-    ProjectStage.preConstruction: _StageStyle(Color(0xFFE8EAF6), Color(0xFF3949AB)),
-    ProjectStage.sitePreparation: _StageStyle(Color(0xFFFCE4EC), Color(0xFFC62828)),
-    ProjectStage.foundation:      _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC)),
-    ProjectStage.plinth:          _StageStyle(Color(0xFFE3F2FD), Color(0xFF1565C0)),
-    ProjectStage.superstructure:  _StageStyle(Color(0xFFF3E8FF), Color(0xFF9B59B6)),
-    ProjectStage.masonry:         _StageStyle(Color(0xFFFFF3E0), Color(0xFFE65100)),
-    ProjectStage.mep:             _StageStyle(Color(0xFFE0F7FA), Color(0xFF00838F)),
-    ProjectStage.plastering:      _StageStyle(Color(0xFFF9FBE7), Color(0xFF827717)),
-    ProjectStage.finishing:       _StageStyle(Color(0xFFE8F5E9), Color(0xFF2E7D32)),
-    ProjectStage.fixtures:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF9A825)),
-    ProjectStage.handover:        _StageStyle(Color(0xFFFFF8E1), Color(0xFFF57F17)),
-  };
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
@@ -46,25 +161,28 @@ class ProjectsScreen extends StatelessWidget {
         child: Column(
           children: [
             AppTopBar(
-              title: 'SiteTrack',
+              title: 'BuildTrack',
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
-            Expanded(
-              child: _buildBody(context, provider),
-            ),
+            Expanded(child: _buildBody(context, provider)),
           ],
         ),
       ),
       bottomNavigationBar: const AppBottomNav(),
     );
   }
+
   Widget _buildBody(BuildContext context, ProjectProvider provider) {
     if (provider.isLoading) {
       return const Center(
@@ -96,13 +214,12 @@ class ProjectsScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(
+              child: const Text(
                 'LIVE PIPELINE',
                 style: TextStyle(
                   color: primaryBlue,
@@ -117,7 +234,7 @@ class ProjectsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   'Active Builds',
                   style: TextStyle(
                     fontSize: 30,
@@ -128,14 +245,16 @@ class ProjectsScreen extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 7),
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEF0FF),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${provider.projects.length} Sites',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: primaryBlue,
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
@@ -145,19 +264,23 @@ class ProjectsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            ...provider.projects.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _projectCard(context, p, provider),
-                )),
+            ...provider.projects.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _projectCard(context, p, provider),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+
   Widget _projectCard(
-      BuildContext context, ProjectModel p, ProjectProvider provider) {
-    final style = _stageMeta[p.stage] ??
-        const _StageStyle(Color(0xFFEEEFFF), Color(0xFF4455CC));
+    BuildContext context,
+    ProjectModel p,
+    ProjectProvider provider,
+  ) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -182,14 +305,14 @@ class ProjectsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Name + stage badge
+              // ── Name + STATUS chip ────────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
                       p.name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: textDark,
@@ -199,40 +322,26 @@ class ProjectsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: style.bg,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      p.stage.label,
-                      style: TextStyle(
-                        color: style.fg,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
+                  ProjectStatusChip(statusRaw: p.projectStatus),
                 ],
               ),
               const SizedBox(height: 4),
-              // Location
+
+              // ── Location ──────────────────────────────────────────────
               Text(
                 p.location,
-                style: TextStyle(
+                style: const TextStyle(
                   color: textGray,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
-              // Budget summary
+
+              // ── Budget summary ────────────────────────────────────────
               Text(
                 '${p.formattedSpent} of ${p.formattedBudget}',
-                style: TextStyle(
+                style: const TextStyle(
                   color: primaryBlue,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -240,20 +349,26 @@ class ProjectsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // Progress bar
+              // ── Progress bar ──────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Overall Progress',
-                      style: TextStyle(
-                          color: textDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13)),
-                  Text('${(p.progress * 100).toStringAsFixed(0)}%',
-                      style: TextStyle(
-                          color: primaryBlue,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13)),
+                  const Text(
+                    'Overall Progress',
+                    style: TextStyle(
+                      color: textDark,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '${(p.progress * 100).toStringAsFixed(0)}%',
+                    style: const TextStyle(
+                      color: primaryBlue,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -262,8 +377,7 @@ class ProjectsScreen extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: p.progress,
                   backgroundColor: const Color(0xFFE8ECF8),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(primaryBlue),
+                  valueColor: const AlwaysStoppedAnimation<Color>(primaryBlue),
                   minHeight: 7,
                 ),
               ),
@@ -271,7 +385,7 @@ class ProjectsScreen extends StatelessWidget {
               const Divider(color: Color(0xFFEEF0F5), height: 1),
               const SizedBox(height: 12),
 
-              // View Details link
+              // ── View Details ──────────────────────────────────────────
               Align(
                 alignment: Alignment.centerRight,
                 child: InkWell(
@@ -282,8 +396,10 @@ class ProjectsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 8),
-                    child: Row(
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -294,9 +410,8 @@ class ProjectsScreen extends StatelessWidget {
                             fontSize: 14,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward,
-                            color: primaryBlue, size: 16),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, color: primaryBlue, size: 16),
                       ],
                     ),
                   ),
@@ -308,9 +423,4 @@ class ProjectsScreen extends StatelessWidget {
       ),
     );
   }
-}
-class _StageStyle {
-  const _StageStyle(this.bg, this.fg);
-  final Color bg;
-  final Color fg;
 }

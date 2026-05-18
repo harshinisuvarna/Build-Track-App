@@ -155,7 +155,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               fontWeight: FontWeight.w700,
               color: textDark,
             ),
-            items: enabled ? items : [],
+            items: enabled ? items : <DropdownMenuItem<T>>[],
             onChanged: enabled ? onChanged : null,
           ),
         ),
@@ -306,7 +306,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             value: _selectedProjectId,
             hint: 'Select project',
             items: projects
-                .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
+                .map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name)))
                 .toList(),
             onChanged: (val) => setState(() {
               _selectedProjectId = val;
@@ -327,7 +327,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             hint: _selectedProjectId == null ? 'Select project first' : 'Select floor or zone',
             enabled: _selectedProjectId != null,
             items: floors
-                .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                .map((f) => DropdownMenuItem<String>(value: f, child: Text(f)))
                 .toList(),
             onChanged: _selectedProjectId == null
                 ? null
@@ -346,7 +346,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
             enabled: _selectedFloor != null,
             items: phaseNames
-                .map((n) => DropdownMenuItem(value: n, child: Text(n)))
+                .map((n) => DropdownMenuItem<String>(value: n, child: Text(n)))
                 .toList(),
             onChanged: _selectedFloor == null
                 ? null
@@ -364,9 +364,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             hint: _selectedPhaseName == null ? 'Select phase first' : 'Select activity',
             enabled: _selectedPhaseName != null && activityNames.isNotEmpty,
             items: activityNames.isEmpty && _selectedPhaseName != null
-                ? [const DropdownMenuItem(value: '__none', child: Text('No activities configured'))]
+                ? [const DropdownMenuItem<String>(value: '__none', child: Text('No activities configured'))]
                 : activityNames
-                    .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                    .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
                     .toList(),
             onChanged: (_selectedPhaseName == null || activityNames.isEmpty)
                 ? null

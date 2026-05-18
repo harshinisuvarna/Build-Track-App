@@ -53,84 +53,86 @@ class AddEntryScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE0F0),
-                  borderRadius: BorderRadius.circular(16),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'How do you want to add?',
-                style: AppTheme.heading2.copyWith(color: textDark),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-                style: AppTheme.body.copyWith(color: textGray),
-              ),
-              const SizedBox(height: 20),
-              _bottomSheetOption(
-                icon: Icons.mic,
-                iconColor: primaryBlue,
-                iconBg: const Color(0xFFEEF0FF),
-                title: 'Use Voice',
-                subtitle: 'Speak and let AI capture the details',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final route = voiceRoutes[type];
-                  if (route != null) {
-                    Navigator.pushNamed(
-                      context,
-                      route,
-                      arguments: {'type': type},
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              _bottomSheetOption(
-                icon: Icons.edit_outlined,
-                iconColor: purple,
-                iconBg: const Color(0xFFF0EEFF),
-                title: 'Enter Manually',
-                subtitle: 'Fill the form manually',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final route = manualRoutes[type];
-                  if (route != null) {
-                    Navigator.pushNamed(
-                      context,
-                      route,
-                      arguments: {'type': type},
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () => Navigator.pop(ctx),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: textGray,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                const SizedBox(height: 20),
+                Text(
+                  'How do you want to add?',
+                  style: AppTheme.heading2.copyWith(color: textDark),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
+                  style: AppTheme.body.copyWith(color: textGray),
+                ),
+                const SizedBox(height: 20),
+                _bottomSheetOption(
+                  icon: Icons.mic,
+                  iconColor: primaryBlue,
+                  iconBg: const Color(0xFFEEF0FF),
+                  title: 'Use Voice',
+                  subtitle: 'Speak and let AI capture the details',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    final route = voiceRoutes[type];
+                    if (route != null) {
+                      Navigator.pushNamed(
+                        context,
+                        route,
+                        arguments: {'type': type},
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                _bottomSheetOption(
+                  icon: Icons.edit_outlined,
+                  iconColor: purple,
+                  iconBg: const Color(0xFFF0EEFF),
+                  title: 'Enter Manually',
+                  subtitle: 'Fill the form manually',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    final route = manualRoutes[type];
+                    if (route != null) {
+                      Navigator.pushNamed(
+                        context,
+                        route,
+                        arguments: {'type': type},
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () => Navigator.pop(ctx),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: textGray,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -245,7 +247,7 @@ class AddEntryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
-                    // â”€â”€ Entry Type Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Entry Type Cards ────────────────────────────────────
                     const AppSectionHeader(title: 'Entry Type'),
                     ...List.generate(
                       _entries.length,
@@ -254,7 +256,7 @@ class AddEntryScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // â”€â”€ Quick Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Quick Actions ───────────────────────────────────────
                     const AppSectionHeader(title: 'Quick Actions'),
                     AppCard(
                       onTap: () =>
@@ -314,8 +316,6 @@ class AddEntryScreen extends StatelessWidget {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
-
 
   Widget _entryCard(BuildContext context, int index) {
     final entry = _entries[index];

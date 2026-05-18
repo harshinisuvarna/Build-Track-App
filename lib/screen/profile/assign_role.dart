@@ -252,7 +252,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             value: _selectedRole,
             hint: 'Select role',
             items: _roles
-                .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                .map((r) => DropdownMenuItem<String>(value: r, child: Text(r)))
                 .toList(),
             onChanged: isAdmin ? (v) => setState(() => _selectedRole = v) : (_) {},
           ),
@@ -268,7 +268,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             value: _selectedProject,
             hint: 'Select project',
             items: _projects
-                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                .map((p) => DropdownMenuItem<String>(value: p, child: Text(p)))
                 .toList(),
             onChanged: isAdmin ? (v) => setState(() => _selectedProject = v) : (_) {},
           ),

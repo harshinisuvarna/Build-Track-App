@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
-import 'package:buildtrack_mobile/services/auth_service.dart';
-import 'package:provider/provider.dart';
+
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:buildtrack_mobile/services/auth_service.dart';
+import 'package:buildtrack_mobile/services/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -130,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         const SizedBox(height: 20),
 
-        // 🔥 RESTORED "CREATE WORKSPACE"
         Wrap(
           alignment: WrapAlignment.center,
           children: [
@@ -172,10 +173,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = await AuthService.login(email, password);
 
       if (data != null && data['token'] != null) {
-
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
-        // Save session properly
+
         UserSession.set(
           userId: data['userId'] ?? '',
           role: _parseRole(data['role']),
@@ -183,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           try {
-            context.read<ProjectProvider>().fetchProjects();
+            await context.read<ProjectProvider>().fetchProjects();
           } catch (_) {}
 
           Navigator.pushReplacementNamed(context, '/home');

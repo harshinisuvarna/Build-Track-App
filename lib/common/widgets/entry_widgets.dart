@@ -1,34 +1,14 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:buildtrack_mobile/models/phase_model.dart';
+import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
-const Map<String, List<String>> kPhaseActivities = {
-  'pre_construction':  ['Site Survey', 'Soil Testing', 'Design Approval', 'Permit Acquisition'],
-  'site_preparation':  ['Land Clearing', 'Levelling', 'Hoarding', 'Temporary Roads'],
-  'foundation':        ['Excavation', 'PCC', 'Reinforcement', 'Waterproofing', 'Pile Driving'],
-  'plinth':            ['Plinth Beam', 'Backfilling', 'Anti-Termite Treatment'],
-  'superstructure':    ['Column Casting', 'Beam Casting', 'Slab Casting', 'Shuttering'],
-  'masonry':           ['Brick Laying', 'Block Work', 'Parapet Wall'],
-  'mep':               ['Electrical Wiring', 'Pipe Laying', 'Drainage', 'HVAC', 'Fire Safety'],
-  'plastering':        ['Internal Plaster', 'External Plaster', 'Putty Application'],
-  'finishing':         ['Tiling', 'Painting', 'Waterproofing Treatment', 'False Ceiling'],
-  'fixtures':          ['Plumbing Fixtures', 'Electrical Fixtures', 'Carpentry', 'Glazing'],
-  'handover':          ['Snagging', 'Final Inspection', 'Documentation', 'Handover Keys'],
-};
-
-List<String> activitiesForPhase(PhaseModel? phase) {
-  if (phase == null) return [];
-  final key = phase.id.toLowerCase().replaceAll(' ', '_');
-  return kPhaseActivities[key] ??
-      kPhaseActivities[phase.name.toLowerCase().replaceAll(' ', '_')] ??
-      ['General Work', 'Site Activity', 'Miscellaneous'];
-}
 // ── Standardized inventory units ──────────────────────────────────────────
 const Map<String, List<String>> kInventoryUnits = {
   'Weight':  ['kg', 'ton', 'gram'],
@@ -36,6 +16,20 @@ const Map<String, List<String>> kInventoryUnits = {
   'Count':   ['pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets'],
   'Length':  ['ft', 'sq.ft', 'meter', 'rmt'],
   'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
+};
+
+// ── Labour-specific units ──────────────────────────────────────────────────
+const Map<String, List<String>> kLabourUnits = {
+  'Time Based': ['Day', 'Hour', 'Week', 'Month'],
+  'Area Based': ['Sq ft', 'Sq meter', 'Rmt'],
+  'Job Based':  ['Job Basis', 'Contract', 'Lump Sum'],
+};
+
+// ── Equipment-specific units ──────────────────────────────────────────────
+const Map<String, List<String>> kEquipmentUnits = {
+  'Time Based': ['Hour', 'Day', 'Week', 'Month'],
+  'Trip Based': ['Trip', 'Load', 'Shift'],
+  'Fixed':      ['Job Basis', 'Lump Sum'],
 };
 
 // Flat list of all canonical unit strings (for search / lookup)
@@ -298,7 +292,7 @@ class EntryDropdownField<T> extends StatelessWidget {
                     color: _kGray, fontSize: 15, fontWeight: FontWeight.w400)),
             style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w600, color: _kDark),
-            items: enabled ? items : [],
+            items: enabled ? items : <DropdownMenuItem<T>>[],
             onChanged: enabled ? onChanged : null,
           ),
         ),
@@ -307,18 +301,19 @@ class EntryDropdownField<T> extends StatelessWidget {
   }
 }
 
-// \u2500\u2500 Unit Selector Field \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-/// Tap-to-open bottom sheet unit selector with predefined categories,
-/// live search, and a "+ Add Custom Unit" escape hatch.
 class UnitSelectorField extends StatelessWidget {
   const UnitSelectorField({
     super.key,
     required this.value,
     required this.onChanged,
+    this.units,
+    this.hint = 'Select Unit',
   });
 
   final String? value;
   final ValueChanged<String?> onChanged;
+  final Map<String, List<String>>? units;  // null → defaults to kInventoryUnits
+  final String hint;
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +331,7 @@ class UnitSelectorField extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                hasValue ? value! : 'Select Unit',
+                hasValue ? value! : hint,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
@@ -367,6 +362,7 @@ class UnitSelectorField extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _UnitPickerSheet(
         currentValue: value,
+        units: units ?? kInventoryUnits,
         onSelected: (u) => onChanged(u),
       ),
     );
@@ -374,9 +370,14 @@ class UnitSelectorField extends StatelessWidget {
 }
 
 class _UnitPickerSheet extends StatefulWidget {
-  const _UnitPickerSheet({required this.currentValue, required this.onSelected});
+  const _UnitPickerSheet({
+    required this.currentValue,
+    required this.onSelected,
+    required this.units,
+  });
   final String? currentValue;
   final ValueChanged<String> onSelected;
+  final Map<String, List<String>> units;
 
   @override
   State<_UnitPickerSheet> createState() => _UnitPickerSheetState();
@@ -393,10 +394,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
   }
 
   Map<String, List<String>> get _filtered {
-    if (_query.isEmpty) return kInventoryUnits;
+    if (_query.isEmpty) return widget.units;
     final q = _query.toLowerCase();
     final result = <String, List<String>>{};
-    kInventoryUnits.forEach((cat, units) {
+    widget.units.forEach((cat, units) {
       final matched = units.where((u) => u.toLowerCase().contains(q)).toList();
       if (matched.isNotEmpty) result[cat] = matched;
     });
@@ -641,15 +642,69 @@ class ExecutionContextCard extends StatelessWidget {
           : projects.cast<ProjectModel?>().firstWhere(
               (p) => p?.id == selectedProjectId, orElse: () => null);
 
-      final List<String> floors =
-          (selProject?.floors != null && selProject!.floors!.isNotEmpty)
-              ? List<String>.from(selProject.floors!)
-              : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
+      // Floors: use project-configured floors, fall back to standard list
+      const List<String> defaultFloors = [
+        'Basement', 'Ground Floor', '1st Floor', '2nd Floor',
+        '3rd Floor', 'Terrace',
+      ];
+      final List<String> floors = (selProject?.floors?.isNotEmpty == true)
+          ? List<String>.from(selProject!.floors!)
+          : (selProject != null ? defaultFloors : <String>[]);
       if (selectedFloor != null && !floors.contains(selectedFloor)) {
         floors.insert(0, selectedFloor!);
       }
 
-      final activities = activitiesForPhase(selectedPhase as PhaseModel?);
+      // ── Phase & Activity — project-driven architecture ─────────────────────
+      // Resolve the selected phase name (always stored as String in dropdowns)
+      final String? selPhaseName = selectedPhase is String
+          ? selectedPhase as String
+          : null;
+
+      List<String> visiblePhaseNames;
+      List<String> activities;
+
+      final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
+      final bool hasNewWorkflow =
+          projectPhases != null && projectPhases.isNotEmpty;
+
+      if (hasNewWorkflow) {
+        // ── NEW: load directly from project.selectedPhases ────────────────
+        visiblePhaseNames = projectPhases
+            .where((p) => p.activities.isNotEmpty)   // never show empty phases
+            .map((p) => p.phaseName)
+            .toList();
+
+        // Activities: find the chosen phase inside selectedPhases
+        final ProjectPhase? selPhase = selPhaseName != null
+            ? projectPhases.cast<ProjectPhase?>().firstWhere(
+                (p) => p?.phaseName == selPhaseName, orElse: () => null)
+            : null;
+        activities = selPhase != null
+            ? selPhase.activities.map((a) => a.name).toList()
+            : <String>[];
+      } else {
+        // ── LEGACY: fall back to master list + selectedPhaseNames filter ──
+        final List<ConstructionPhase> allPhases = buildDefaultPhases();
+        final List<String>? legacyPhaseNames =
+            selProject?.selectedPhaseNames != null
+                ? List<String>.from(selProject!.selectedPhaseNames!)
+                : null;
+        final List<ConstructionPhase> visiblePhases =
+            (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
+                ? allPhases
+                : allPhases
+                    .where((p) => legacyPhaseNames.contains(p.name))
+                    .toList();
+        visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
+
+        final ConstructionPhase? selPhase = selPhaseName != null
+            ? allPhases.cast<ConstructionPhase?>().firstWhere(
+                (p) => p?.name == selPhaseName, orElse: () => null)
+            : null;
+        activities = selPhase != null
+            ? selPhase.allActivities.map<String>((a) => a.name).toList()
+            : <String>[];
+      }
 
       return EntrySectionCard(
         child: Column(
@@ -669,7 +724,7 @@ class ExecutionContextCard extends StatelessWidget {
               value: selectedProjectId,
               hint: 'Select project',
               items: projects
-                  .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
+                  .map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name)))
                   .toList(),
               onChanged: onProjectChanged,
             ),
@@ -680,20 +735,22 @@ class ExecutionContextCard extends StatelessWidget {
               value: selectedFloor,
               hint: selectedProjectId == null ? 'Select project first' : 'Select floor',
               enabled: selectedProjectId != null,
-              items: floors
-                  .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                  .toList(),
+              items: floors.map((f) => DropdownMenuItem<String>(value: f, child: Text(f))).toList(),
               onChanged: onFloorChanged,
             ),
             const SizedBox(height: 18),
             const EntryFieldLabel('Phase', required: true),
             const SizedBox(height: 8),
-            EntryDropdownField<dynamic>(
-              value: selectedPhase,
-              hint: selectedFloor == null ? 'Select floor first' : 'Select phase',
-              enabled: selectedFloor != null,
-              items: provider.phases
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+            EntryDropdownField<String>(
+              value: visiblePhaseNames.contains(selPhaseName) ? selPhaseName : null,
+              hint: selectedFloor == null
+                  ? 'Select floor first'
+                  : visiblePhaseNames.isEmpty
+                      ? 'No phases configured for this project'
+                      : 'Select phase',
+              enabled: selectedFloor != null && visiblePhaseNames.isNotEmpty,
+              items: visiblePhaseNames
+                  .map((n) => DropdownMenuItem<String>(value: n, child: Text(n)))
                   .toList(),
               onChanged: onPhaseChanged,
             ),
@@ -702,10 +759,14 @@ class ExecutionContextCard extends StatelessWidget {
             const SizedBox(height: 8),
             EntryDropdownField<String>(
               value: activities.contains(selectedActivity) ? selectedActivity : null,
-              hint: selectedPhase == null ? 'Select phase first' : 'Select activity',
-              enabled: selectedPhase != null,
+              hint: selPhaseName == null
+                  ? 'Select phase first'
+                  : activities.isEmpty
+                      ? 'No activities in this phase'
+                      : 'Select activity',
+              enabled: selPhaseName != null && activities.isNotEmpty,
               items: activities
-                  .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                  .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
                   .toList(),
               onChanged: onActivityChanged,
             ),
@@ -1604,8 +1665,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                           ),
                           const SizedBox(height: 16),
 
-                          // RECEIPT UPLOAD
-                          const _SheetSectionLabel('RECEIPT / BILL UPLOAD'),
+                          // PAYMENT RECEIPT UPLOAD
+                          const _SheetSectionLabel('PAYMENT RECEIPT'),
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () async {
@@ -1669,13 +1730,13 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                         const Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('Upload Receipt / Bill',
+                                            Text('Upload Payment Receipt',
                                                 style: TextStyle(
                                                     color: _kDark,
                                                     fontSize: 12.5,
                                                     fontWeight: FontWeight.w700)),
                                             SizedBox(height: 1),
-                                            Text('PNG, JPG, PDF supported',
+                                            Text('PNG, JPG, PDF — UPI / Bank / Cheque proof',
                                                 style: TextStyle(
                                                     color: _kGray,
                                                     fontSize: 10.5,
@@ -1925,4 +1986,350 @@ Widget _pMethodChip(
       ),
     ),
   );
+}
+
+// ── INVOICE ATTACHMENT CARD ───────────────────────────────────────────────
+class InvoiceAttachmentCard extends StatelessWidget {
+  final PickedAttachment? attachment;
+  final String? fileName;
+
+  const InvoiceAttachmentCard({
+    super.key,
+    this.attachment,
+    this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = attachment?.name ?? fileName;
+    final hasDoc = name != null && name.isNotEmpty;
+
+    if (!hasDoc) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F2FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.upload_file_outlined, color: AppColors.textLight, size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No document attached',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Upload invoice or bill to view',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Determine icon and color
+    IconData iconData = Icons.insert_drive_file_outlined;
+    Color iconColor = const Color(0xFF546E7A);
+    Color iconBg = const Color(0xFFECEFF1);
+    
+    final lowerName = name.toLowerCase();
+    if (attachment != null) {
+      iconData = attachment!.icon;
+      iconColor = attachment!.iconColor;
+      iconBg = attachment!.iconBg;
+    } else {
+      if (lowerName.endsWith('.pdf')) {
+        iconData = Icons.picture_as_pdf_outlined;
+        iconColor = const Color(0xFFE53935);
+        iconBg = const Color(0xFFFFEBEE);
+      } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+        iconData = Icons.image_outlined;
+        iconColor = const Color(0xFF4A6CF7);
+        iconBg = const Color(0xFFEEF0FF);
+      } else if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+        iconData = Icons.description_outlined;
+        iconColor = const Color(0xFF1565C0);
+        iconBg = const Color(0xFFE3F2FD);
+      } else if (lowerName.endsWith('.xls') || lowerName.endsWith('.xlsx')) {
+        iconData = Icons.table_chart_outlined;
+        iconColor = const Color(0xFF2E7D32);
+        iconBg = const Color(0xFFE8F5E9);
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (hasDoc) {
+          Navigator.pushNamed(context, '/receipt-viewer', arguments: {'receipt': name});
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconData, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green.shade600, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Successfully attached',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F7FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'View',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── PAYMENT RECEIPT CARD ─────────────────────────────────────────────────────
+/// Displays a payment receipt (UPI proof, bank transfer, cheque) uploaded
+/// during the Fulfillment & Payment flow. Separate from InvoiceAttachmentCard.
+class PaymentReceiptCard extends StatelessWidget {
+  /// File name of the uploaded payment receipt.
+  final String? fileName;
+
+  const PaymentReceiptCard({super.key, this.fileName});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDoc = fileName != null && fileName!.isNotEmpty;
+
+    if (!hasDoc) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FFF4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF6B7280), size: 22),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No payment receipt attached',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Receipt uploads via Fulfillment & Payment',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Determine icon based on file type
+    final lowerName = fileName!.toLowerCase();
+    IconData iconData = Icons.receipt_long_outlined;
+    Color iconColor = const Color(0xFF15803D);
+    Color iconBg = const Color(0xFFDCFCE7);
+
+    if (lowerName.endsWith('.pdf')) {
+      iconData = Icons.picture_as_pdf_outlined;
+      iconColor = const Color(0xFFE53935);
+      iconBg = const Color(0xFFFFEBEE);
+    } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+      iconData = Icons.image_outlined;
+      iconColor = const Color(0xFF15803D);
+      iconBg = const Color(0xFFDCFCE7);
+    }
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/receipt-viewer',
+          arguments: {'receipt': fileName}),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconData, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName!,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.verified, color: Colors.green.shade600, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Payment proof attached',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'View',
+                style: TextStyle(
+                  color: Colors.green.shade800,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

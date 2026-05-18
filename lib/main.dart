@@ -3,6 +3,8 @@ import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
+// --- ADDED YOUR NEW PROVIDER IMPORT HERE ---
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_entry.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_labour.dart';
@@ -43,13 +45,17 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => NavController()),
+        // We only need this one ProjectProvider (it has your loaded data)
         ChangeNotifierProvider.value(value: projectProvider),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        // --- ADDED YOUR INVENTORY PROVIDER ---
+        ChangeNotifierProvider(create: (_) => InventoryProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
