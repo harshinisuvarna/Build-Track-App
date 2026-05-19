@@ -256,17 +256,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'BuildTrack',
                 leftIcon: Icons.menu,
                 onLeftTap: () => Scaffold.of(ctx).openDrawer(),
-                rightWidget: GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/profile'),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey.shade800,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 18,
+                rightWidget: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/notifications'),
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.notifications_none_outlined,
+                          color: AppColors.primary,
+                          size: 19,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/profile'),
+                      child: CircleAvatar(
+                        radius: 17,
+                        backgroundColor: Colors.grey.shade800,
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 17,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             Expanded(
@@ -674,7 +695,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         AppSectionHeader(
           title: 'Recent Activity',
           actionLabel: 'View All',
-          onAction: () => Navigator.pushNamed(context, '/notifications'),
+          onAction: () => Navigator.pushNamed(context, '/logs'),
         ),
         const SizedBox(height: 8),
         _activityItem(

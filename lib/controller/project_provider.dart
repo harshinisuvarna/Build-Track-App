@@ -192,6 +192,7 @@ class ProjectProvider extends ChangeNotifier {
             description: json['title'] ?? json['materialName'] ?? 'Material Entry',
             brand: json['brand'] ?? json['materialName'],
             ratePerUnit: (json['rate'] ?? json['ratePerUnit'] ?? 0).toDouble(),
+            unit: json['unit']?.toString(),
           );
         }).toList();
 

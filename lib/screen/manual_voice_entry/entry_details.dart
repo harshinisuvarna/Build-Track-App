@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 
 class EntryDetailScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   PaymentStatus _payStatus   = PaymentStatus.pending;
   double       _billAmount   = 0;
   double       _paidAmount   = 0;
+  List<dynamic> _paymentHistory = [];
   String?      _paymentReceiptFile;
 
   @override
@@ -44,6 +46,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     _payStatus   = args['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
     _billAmount  = (args['billAmount']  as num?)?.toDouble() ?? 0;
     _paidAmount  = (args['paidAmount']  as num?)?.toDouble() ?? 0;
+    
+    final rawHistory = args['paymentHistory'];
+    if (rawHistory is List) {
+      _paymentHistory = List.from(rawHistory);
+    } else {
+      _paymentHistory = [];
+    }
   }
 
   // ── Static type helpers ──────────────────────────────────────────────────
@@ -262,6 +271,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
+                    // ── PAYMENT HISTORY ─────────────────────────────────────
+                    _buildPaymentHistoryCard(),
+                    if (_paymentHistory.isNotEmpty)
+                      const SizedBox(height: 14),
+
                     // ── INVOICE / BILL (uploaded at entry creation) ───────────
                     AppCard(
                       margin: EdgeInsets.zero,
@@ -297,6 +311,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     if (canSettle)
                       _buildRecordPaymentCTA(
                         context,
+                        id: args['id'] as String? ?? '',
                         title: title,
                         ref: ref,
                         supplier: supplier,
@@ -481,6 +496,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   // ── RECORD PAYMENT CTA ────────────────────────────────────────────────────
   Widget _buildRecordPaymentCTA(
     BuildContext context, {
+    required String id,
     required String title,
     required String ref,
     required String supplier,
@@ -500,17 +516,48 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           alreadyPaid: _paidAmount,
           vendorName:  supplier,
           category:    type,
-        ).then((result) {
+        ).then((result) async {
           if (result != null && mounted) {
             final paid         = result['amount'] as double? ?? 0;
             final newStatus    = result['status'] as PaymentStatus?;
             final receiptFile  = result['receipt'] as String?;
+
+            final totalPaid = _paidAmount + paid;
+            final newStatusVal = newStatus ??
+                (totalPaid >= _billAmount
+                    ? PaymentStatus.paid
+                    : PaymentStatus.partial);
+
+            // Map paymentStatus enum back to standard Mongoose backend strings
+            String newStatusStr = 'Pending';
+            if (newStatusVal == PaymentStatus.paid) {
+              newStatusStr = 'Paid';
+            } else if (newStatusVal == PaymentStatus.partial) {
+              newStatusStr = 'Partial';
+            }
+
+            // Sync payment update with the MongoDB database
+            if (id.isNotEmpty) {
+              await ApiService.updateTransactionPayment(
+                id,
+                {
+                  'paymentStatus': newStatusStr,
+                  'paidAmount': totalPaid,
+                  'paymentMode': result['method'] ?? '',
+                  'notes': result['note'] ?? '',
+                },
+              );
+            }
+
             setState(() {
-              _paidAmount += paid;
-              _payStatus  = newStatus ??
-                  (_paidAmount >= _billAmount
-                      ? PaymentStatus.paid
-                      : PaymentStatus.partial);
+              _paidAmount = totalPaid;
+              _payStatus  = newStatusVal;
+              _paymentHistory.add({
+                'date': DateTime.now().toIso8601String(),
+                'method': result['method'] ?? 'Cash',
+                'amount': paid,
+                'note': result['note'] ?? '',
+              });
               // Store payment receipt separately — never overwrites invoice
               if (receiptFile != null && receiptFile.isNotEmpty) {
                 _paymentReceiptFile = receiptFile;
@@ -572,6 +619,139 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentHistoryCard() {
+    if (_paymentHistory.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEF0F8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10, offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.history_rounded, color: textGray, size: 16),
+              SizedBox(width: 8),
+              Text(
+                'PAYMENT HISTORY',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: textGray,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _paymentHistory.length,
+            separatorBuilder: (_, __) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Divider(height: 1, color: Color(0xFFF0F0F8)),
+            ),
+            itemBuilder: (context, index) {
+              final item = _paymentHistory[index] ?? {};
+              
+              // Parse date
+              String formattedDate = 'Unknown Date';
+              final rawDate = item['date'];
+              if (rawDate != null) {
+                try {
+                  final dt = DateTime.parse(rawDate.toString());
+                  // Simple human readable format: e.g. "19 May 2026"
+                  final months = [
+                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                  ];
+                  formattedDate = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+                } catch (_) {
+                  formattedDate = rawDate.toString();
+                }
+              }
+              
+              final double amt = (item['amount'] as num?)?.toDouble() ?? 0;
+              final String method = item['method'] as String? ?? 'Cash';
+              final String note = item['note'] as String? ?? '';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            formattedDate,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF0FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              method.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: primaryBlue,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        formatCurrency(amt),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Note: $note',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: textGray,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),

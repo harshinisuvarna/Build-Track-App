@@ -525,6 +525,7 @@ class EntryModel {
     this.floor,
     this.phase,
     this.phaseId,
+    this.unit,
   });
   final String id;
   final String projectId;
@@ -537,6 +538,7 @@ class EntryModel {
   final String? floor;
   final ProjectStage? phase;
   final String? phaseId;
+  final String? unit;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -550,6 +552,7 @@ class EntryModel {
     if (floor != null) 'floor': floor,
     if (phase != null) 'phase': phase!.name,
     if (phaseId != null) 'phaseId': phaseId,
+    if (unit != null) 'unit': unit,
   };
 
   factory EntryModel.fromJson(Map<String, dynamic> j) => EntryModel(
@@ -572,6 +575,7 @@ class EntryModel {
           )
         : null,
     phaseId: j['phaseId'] as String?,
+    unit: j['unit'] as String?,
   );
 
   static String encodeList(List<EntryModel> list) =>

@@ -1401,6 +1401,55 @@ class _EntryTile extends StatelessWidget {
       case EntryType.equipment: return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
+
+  String _formatQuantity(EntryModel entry) {
+    final double qty = entry.amount;
+    final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+    final String rawUnit = (entry.unit ?? '').trim().toLowerCase();
+    
+    // Safety check: Filter out invalid material units for Labour/Equipment at runtime
+    final bool isInvalidUnit = const ['kg', 'bag', 'ton', 'mt', 'truck'].contains(rawUnit);
+    final String parsedUnit = (isInvalidUnit && (entry.type == EntryType.labour || entry.type == EntryType.equipment)) ? '' : rawUnit;
+    
+    if (entry.type == EntryType.labour) {
+      String unitLabel = 'workers';
+      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
+        unitLabel = qty == 1 ? 'hour' : 'hours';
+      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
+        unitLabel = qty == 1 ? 'day' : 'days';
+      } else if (parsedUnit == 'worker' || parsedUnit == 'workers' || parsedUnit.isEmpty) {
+        unitLabel = qty == 1 ? 'worker' : 'workers';
+      } else {
+        unitLabel = parsedUnit;
+      }
+      return '$qtyStr $unitLabel';
+    } else if (entry.type == EntryType.equipment) {
+      String unitLabel = 'units';
+      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
+        unitLabel = qty == 1 ? 'hour' : 'hours';
+      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
+        unitLabel = qty == 1 ? 'day' : 'days';
+      } else if (parsedUnit.isNotEmpty) {
+        unitLabel = parsedUnit;
+      }
+      return '$qtyStr $unitLabel';
+    } else {
+      // Material
+      if (rawUnit.isEmpty || rawUnit == 'unit' || rawUnit == 'units') {
+        return '$qtyStr units';
+      }
+      // Pluralize common units if qty > 1
+      String unitLabel = rawUnit;
+      if (qty > 1) {
+        if (rawUnit == 'bag') unitLabel = 'bags';
+        else if (rawUnit == 'ton') unitLabel = 'tons';
+        else if (rawUnit == 'truck') unitLabel = 'trucks';
+        else if (rawUnit == 'block') unitLabel = 'blocks';
+      }
+      return '$qtyStr $unitLabel';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _style(entry.type);
@@ -1429,8 +1478,8 @@ class _EntryTile extends StatelessWidget {
               style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w700, color: AppColors.textDark)),
           Text(dateStr, style: AppTheme.caption),
         ])),
-        Text(formatCurrency(entry.amount),
-            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
+        Text(_formatQuantity(entry),
+            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: color)),
       ])),
     );
   }

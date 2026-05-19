@@ -1,7 +1,8 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -79,6 +80,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: CircularProgressIndicator(color: primaryBlue),
                         ),
                       )
+                    else if (inventoryProvider.error.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Failed to load notifications",
+                                  style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              inventoryProvider.error,
+                              style: const TextStyle(color: textGray, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      )
                     else if (alerts.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
@@ -90,37 +115,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _dynamicInventoryWarningCard(
                           title: 'Low Stock: ${item.name}',
-                          body: 'Only ${item.closingStock} units remaining (Threshold: ${item.threshold}). Re-order is recommended to avoid site delays.',
+                          body: 'Only ${item.closingStock} ${item.unit} remaining (Threshold: ${item.threshold}). Re-order is recommended to avoid site delays.',
+                          onTap: () {
+                            final pId = context.read<ProjectProvider>().selectedProject?.id ?? '';
+                            Navigator.pushNamed(
+                              context,
+                              '/logs',
+                              arguments: {
+                                'type': item.category,
+                                'name': item.name,
+                                'projectId': pId,
+                              },
+                            );
+                          },
                         ),
                       )),
-
-                    const SizedBox(height: 12),
-                    _weeklyReportCard(),
-                    const SizedBox(height: 26),
-                    Text(
-                      'Yesterday',
-                      style: AppTheme.heading3.copyWith(color: textGray),
-                    ),
-                    const SizedBox(height: 12),
-                    _yesterdayCard(
-                      icon: Icons.check_circle_outline,
-                      iconBg: const Color(0xFFF0F2FF),
-                      iconColor: primaryBlue,
-                      title: 'Safety Audit Completed',
-                      body:
-                          "The site audit for 'South Wing' was successfully logged by inspector Miller.",
-                      time: '1d ago',
-                    ),
-                    const SizedBox(height: 12),
-                    _yesterdayCard(
-                      icon: Icons.schedule_outlined,
-                      iconBg: const Color(0xFFF5F5F5),
-                      iconColor: textGray,
-                      title: 'Schedule Update',
-                      body:
-                          'Arrival of electrical components moved from Tuesday to Wednesday 08:00 AM.',
-                      time: '1d ago',
-                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -132,21 +141,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _dynamicInventoryWarningCard({required String title, required String body}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border:
-            const Border(left: BorderSide(color: Colors.orange, width: 4)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.orange.withValues(alpha: 0.06), blurRadius: 12),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _dynamicInventoryWarningCard({
+    required String title,
+    required String body,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border:
+              const Border(left: BorderSide(color: Colors.orange, width: 4)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.06), blurRadius: 12),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -188,104 +204,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _weeklyReportCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: const Color(0xFFEEF0FF),
-                    borderRadius: BorderRadius.circular(11)),
-                child: const Icon(Icons.bar_chart, color: primaryBlue, size: 20),
-              ),
-              Text('5h ago',
-                  style: AppTheme.caption.copyWith(color: textGray)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text('WEEKLY REPORT',
-              style: AppTheme.label.copyWith(
-                  color: primaryBlue, fontSize: 10, letterSpacing: 0.9)),
-          const SizedBox(height: 7),
-          Text(
-            'Project Velocity Insight',
-            style: AppTheme.heading3.copyWith(color: textDark, fontSize: 18),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Efficiency on Sector 4 has increased by 12% following the new logistics deployment. View the full technical breakdown.',
-            style: AppTheme.body.copyWith(color: textGray, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _yesterdayCard({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String title,
-    required String body,
-    required String time,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-                color: iconBg, borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, color: iconColor, size: 19),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w700, color: textDark)),
-                const SizedBox(height: 3),
-                Text(body,
-                    style: AppTheme.caption.copyWith(
-                        color: textGray, height: 1.4, fontSize: 12.5)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(time, style: AppTheme.caption.copyWith(color: textGray)),
-        ],
-      ),
-    );
-  }
 }

@@ -230,6 +230,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'createdBy': t['createdBy'] ?? '',
             'id': tId,
             'category': category,
+            'unit': t['unit']?.toString(),
+            'paymentHistory': t['paymentHistory'],
           });
         }
 
@@ -601,6 +603,60 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     );
   }
 
+  String _formatLogAmount(Map<String, dynamic> log) {
+    final String amountStr = log['amount'] as String? ?? '';
+    if (amountStr.isEmpty) return '';
+    
+    final String sign = amountStr.startsWith('+') ? '+' : (amountStr.startsWith('-') ? '-' : '');
+    final String numStr = amountStr.replaceAll('+', '').replaceAll('-', '').trim();
+    final double qty = double.tryParse(numStr) ?? 0;
+    final String qtyFormatted = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+    
+    final String rawUnit = (log['unit'] ?? '').toString().trim().toLowerCase();
+    final String logCategory = log['category'] as String? ?? _itemType;
+    
+    // Safety check: Filter out legacy invalid weight/material units for Labour/Equipment
+    final bool isInvalidUnit = const ['kg', 'bag', 'ton', 'mt', 'truck'].contains(rawUnit);
+    final String parsedUnit = (isInvalidUnit && (logCategory == 'labour' || logCategory == 'equipment')) ? '' : rawUnit;
+    
+    if (logCategory == 'labour') {
+      String unitLabel = 'workers';
+      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
+        unitLabel = qty == 1 ? 'hour' : 'hours';
+      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
+        unitLabel = qty == 1 ? 'day' : 'days';
+      } else if (parsedUnit == 'worker' || parsedUnit == 'workers' || parsedUnit.isEmpty) {
+        unitLabel = qty == 1 ? 'worker' : 'workers';
+      } else {
+        unitLabel = parsedUnit;
+      }
+      return '$sign$qtyFormatted $unitLabel';
+    } else if (logCategory == 'equipment') {
+      String unitLabel = 'units';
+      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
+        unitLabel = qty == 1 ? 'hour' : 'hours';
+      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
+        unitLabel = qty == 1 ? 'day' : 'days';
+      } else if (parsedUnit.isNotEmpty) {
+        unitLabel = parsedUnit;
+      }
+      return '$sign$qtyFormatted $unitLabel';
+    } else {
+      // Material
+      if (parsedUnit.isEmpty || parsedUnit == 'unit' || parsedUnit == 'units') {
+        return '$sign$qtyFormatted units';
+      }
+      String unitLabel = parsedUnit;
+      if (qty > 1) {
+        if (parsedUnit == 'bag') unitLabel = 'bags';
+        else if (parsedUnit == 'ton') unitLabel = 'tons';
+        else if (parsedUnit == 'truck') unitLabel = 'trucks';
+        else if (parsedUnit == 'block') unitLabel = 'blocks';
+      }
+      return '$sign$qtyFormatted $unitLabel';
+    }
+  }
+
   Widget _logItem(BuildContext context, Map<String, dynamic> log) {
     final isPositive = log['isPositive'] as bool? ?? true;
     final receipt = log['receipt'] as String?;
@@ -625,6 +681,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           context,
           '/entry-detail',
           arguments: {
+            'id':            log['id'],
             'title':         log['title'],
             'ref':           log['ref'],
             'amount':        log['amount'],
@@ -644,8 +701,11 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'supplier':      log['supplier'] ?? '',
             'paymentMethod': log['method'] ?? '',
             'lastUpdated':   log['lastUpdated'] ?? log['date'] ?? '',
+            'paymentHistory': log['paymentHistory'],
           },
-        ),
+        ).then((_) {
+          _fetchRealLogs();
+        }),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -694,7 +754,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        log['amount'] as String? ?? '',
+                        _formatLogAmount(log),
                         style: TextStyle(
                             color: isPositive
                                 ? primaryBlue
