@@ -31,6 +31,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   String _error = '';
   List<Map<String, dynamic>> _allLogs = [];
   bool _isGeneral = false;
+  String? _filterProjectId;
+  bool _hasPassedProject = false;
 
   Color _getCategoryColor(String category) {
     switch (category) {
@@ -146,7 +148,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         }
 
         final projectProvider = context.read<ProjectProvider>();
-        final selectedProjId = projectProvider.selectedProject?.id;
+        final String? selectedProjId = _hasPassedProject
+            ? _filterProjectId
+            : projectProvider.selectedProject?.id;
 
         final List<Map<String, dynamic>> mappedList = [];
         for (final t in raw) {
@@ -278,6 +282,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       }
       if (type != null && type.isNotEmpty) {
         _itemType = type;
+      }
+      if (args.containsKey('projectId')) {
+        _filterProjectId = args['projectId'] as String?;
+        _hasPassedProject = true;
       }
     } else {
       _itemName = 'Project Logs';

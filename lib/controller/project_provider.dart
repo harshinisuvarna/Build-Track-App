@@ -111,17 +111,11 @@ class ProjectProvider extends ChangeNotifier {
           return p;
         }).toList();
 
-        // Merge projects by id
-        final Map<String, ProjectModel> projectMap = {};
-        for (final p in cachedProjects) {
-          projectMap[p.id.trim()] = p;
-        }
-        for (final p in mappedServerProjects) {
-          projectMap[p.id.trim()] = p;
-        }
-        _projects = projectMap.values.toList();
+        // When the server call is successful, it is the single source of truth.
+        // We only use cached projects if the API call fails.
+        _projects = mappedServerProjects;
         
-        // Persist to local storage
+        // Persist the clean list to local storage
         await prefs.setString('cached_projects', ProjectModel.encodeList(_projects));
       } catch (e) {
         dev.log('API fetchProjects failed, falling back to local storage: $e');

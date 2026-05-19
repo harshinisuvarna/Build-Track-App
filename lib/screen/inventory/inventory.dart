@@ -823,7 +823,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, '/logs',
-            arguments: {'type': type, 'name': name}),
+            arguments: {
+              'type': type,
+              'name': name,
+              'projectId': _selectedProjectId,
+            }),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
