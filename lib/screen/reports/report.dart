@@ -14,7 +14,7 @@ class ReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ReportProvider()..refresh(),
+      create: (_) => ReportProvider(),
       child: const _ReportsView(),
     );
   }
@@ -29,6 +29,18 @@ class _ReportsView extends StatefulWidget {
 
 class _ReportsViewState extends State<_ReportsView> {
   final _pageController = PageController();
+  bool _linked = false; // ← ADD THIS
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_linked) { // ← ADD THIS CHECK
+      _linked = true;
+      final projectProvider = context.read<ProjectProvider>();
+      context.read<ReportProvider>().linkProjectProvider(projectProvider);
+    }
+  }
+  // ... rest unchanged
 
   @override
   void dispose() {
@@ -37,16 +49,10 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final projectProvider = context.read<ProjectProvider>();
-    context.read<ReportProvider>().linkProjectProvider(projectProvider);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
+    // Watch project provider so widget rebuilds when entries/projects change
+    context.watch<ProjectProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -61,19 +67,16 @@ class _ReportsViewState extends State<_ReportsView> {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person,
-                      color: Colors.white, size: 18),
+                  child: const Icon(Icons.person, color: Colors.white, size: 18),
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: _PeriodTabs(
                 tabIndex: provider.tabIndex,
                 onTabChanged: (i) {
                   provider.selectTab(i);
-
                   if (_pageController.page?.round() != i) {
                     _pageController.animateToPage(
                       i,
@@ -84,7 +87,6 @@ class _ReportsViewState extends State<_ReportsView> {
                 },
               ),
             ),
-
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -93,7 +95,7 @@ class _ReportsViewState extends State<_ReportsView> {
                 itemBuilder: (context, index) => RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: provider.refresh,
-                  child: _buildPageContent(context, provider),
+                  child: _buildContent(context, provider),
                 ),
               ),
             ),
@@ -104,30 +106,8 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  Widget _buildPageContent(BuildContext context, ReportProvider provider) {
-    if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
-    }
-
-    if (provider.error != null) {
-      return AppEmptyState(
-        icon: Icons.cloud_off_outlined,
-        message: 'Failed to load report.\nPull down to retry.',
-        actionLabel: 'Retry',
-        onAction: provider.refresh,
-      );
-    }
-
-    if (!provider.hasData) {
-      return const AppEmptyState(
-        icon: Icons.bar_chart_outlined,
-        message: 'No report data available.',
-      );
-    }
-
-    final report = provider.report!;
+  Widget _buildContent(BuildContext context, ReportProvider provider) {
+    final report = provider.buildLiveReport();
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -139,31 +119,28 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Cost Summary'),
-          MetricGrid(report: report, period: provider.currentPeriod),
-
+          MetricGrid(report: report),
           const SizedBox(height: 14),
 
-          const AppSectionHeader(title: 'Cost per Unit'),
+          const AppSectionHeader(title: 'Budget vs Actual Chart'),
           ChartSection(report: report),
-
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Category Budget'),
-          CategoryBudgetSection(categoryBudget: report.categoryBudget),
-
+          CategoryBudgetSection(report: report),
           const SizedBox(height: 14),
 
           EfficiencyBanner(
             note: report.efficiencyNote,
-            selectedProjectName: provider.selectedProject,
+            isExceeded: report.isBudgetExceeded,
           ),
-
           const SizedBox(height: 8),
         ],
       ),
     );
   }
 }
+
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({
     required this.tabIndex,
@@ -186,7 +163,6 @@ class _PeriodTabs extends StatelessWidget {
       child: Row(
         children: List.generate(_tabs.length, (i) {
           final active = i == tabIndex;
-
           return Expanded(
             child: GestureDetector(
               onTap: () => onTabChanged(i),

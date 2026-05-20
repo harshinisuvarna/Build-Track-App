@@ -1,130 +1,155 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'report_model.dart';
 
 class ReportProvider extends ChangeNotifier {
   int _tabIndex = 0;
-  int _unitIndex = 0;
-  String _selectedProject = 'All Active Projects';
-
-  bool _isLoading = false;
-  ReportModel? _report;
-  Object? _error;
-
+  String _selectedProjectId = 'all';
   ProjectProvider? _projectProvider;
 
   int get tabIndex => _tabIndex;
-  int get unitIndex => _unitIndex;
-  String get selectedProject => _selectedProject;
+  String get selectedProjectId => _selectedProjectId;
 
-  bool get isLoading => _isLoading;
-  ReportModel? get report => _report;
-  Object? get error => _error;
-
-  bool get hasData => _report != null && !_isLoading;
-
-  String get currentPeriod {
-    const periods = ['daily', 'monthly', 'yearly'];
-    return periods[_tabIndex];
-  }
-
-  List<double> get activeChartData {
-    if (_report == null) return [0.0];
-
-    final data = _unitIndex == 0
-        ? _report!.costPerSqftData
-        : _report!.chartDataCuyd;
-
-    if (data.isEmpty) return [0.0];
-
-    return data;
-  }
-
-  List<String> get projectNames {
-    final real = _projectProvider?.projects ?? [];
-    return ['All Active Projects', ...real.map((p) => p.name)];
+  String get selectedProjectName {
+    if (_selectedProjectId == 'all') return 'All Active Projects';
+    final match = _projectProvider?.projects
+        .where((p) => p.id == _selectedProjectId)
+        .firstOrNull;
+    return match?.name ?? 'All Active Projects';
   }
 
   void linkProjectProvider(ProjectProvider provider) {
-    if (_projectProvider != provider) {
-      _projectProvider = provider;
-      Future.microtask(_load);
-    }
+    if (_projectProvider == provider) return;
+    _projectProvider?.removeListener(_onProjectDataChanged);
+    _projectProvider = provider;
+    provider.addListener(_onProjectDataChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+  }
+
+  void _onProjectDataChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _projectProvider?.removeListener(_onProjectDataChanged);
+    super.dispose();
   }
 
   void selectTab(int index) {
     if (_tabIndex == index) return;
     _tabIndex = index;
     notifyListeners();
-    _load();
   }
 
-  void selectUnit(int index) {
-    if (_unitIndex == index) return;
-    _unitIndex = index;
+  void selectProject(String projectId) {
+    if (_selectedProjectId == projectId) return;
+    _selectedProjectId = projectId;
     notifyListeners();
   }
 
-  void selectProject(String project) {
-    if (_selectedProject == project) return;
-    _selectedProject = project;
-    notifyListeners();
-    _load();
-  }
-
-  // ✅ FIXED REFRESH (THIS WAS YOUR ERROR)
   Future<void> refresh() async {
-    await _load();
-  }
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
-  Future<void> _load() async {
-    _isLoading = true;
-    _error = null;
+    await _projectProvider?.load();
     notifyListeners();
+  }
 
-    try {
-      final token = await _getToken();
+  ReportModel buildLiveReport() {
+  final provider = _projectProvider;
+  if (provider == null || provider.projects.isEmpty) {
+    return ReportModel.empty();
+  }
 
-      if (token == null || token.isEmpty) {
-        throw Exception("Login required");
+  final List<ProjectModel> targetProjects = _selectedProjectId == 'all'
+      ? provider.projects
+      : provider.projects.where((p) => p.id == _selectedProjectId).toList();
+
+  if (targetProjects.isEmpty) return ReportModel.empty();
+
+  double material = 0;
+  double labour = 0;
+  double equipment = 0;
+
+  for (final project in targetProjects) {
+    final entries = provider.entriesForProject(project.id);
+    
+    // Try entries first
+    double entryMaterial = 0, entryLabour = 0, entryEquipment = 0;
+    for (final entry in entries) {
+      switch (entry.type) {
+        case EntryType.material: entryMaterial += entry.amount; break;
+        case EntryType.labour:   entryLabour   += entry.amount; break;
+        case EntryType.equipment:entryEquipment+= entry.amount; break;
       }
-
-      const baseUrl = 'http://localhost:5001';
-
-      final uri = Uri.parse(
-        '$baseUrl/api/reports/financial?year=2026&month=4',
-      );
-
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        _report = ReportModel.fromJson(data);
-      } else {
-        _report = null;
-        throw Exception('Failed to load report');
-      }
-    } catch (e) {
-      _error = e;
-      _report = null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
+
+    final entryTotal = entryMaterial + entryLabour + entryEquipment;
+
+    if (entryTotal > 0) {
+      // ✅ Real entry data exists — use it
+      material  += entryMaterial;
+      labour    += entryLabour;
+      equipment += entryEquipment;
+    } else if (project.spentAmount > 0) {
+      // ✅ FALLBACK: distribute spentAmount by budget ratio
+      final bm = project.budgetMaterial  ?? 0;
+      final bl = project.budgetLabour    ?? 0;
+      final be = project.budgetEquipment ?? 0;
+      final bx = project.budgetMisc      ?? 0;
+      final bt = bm + bl + be + bx;
+
+      if (bt > 0) {
+        material  += project.spentAmount * (bm / bt);
+        labour    += project.spentAmount * (bl / bt);
+        equipment += project.spentAmount * (be / bt);
+      } else {
+        // No budget breakdown — put all in material
+        material += project.spentAmount;
+      }
+    }
+  }
+
+  // Target budgets
+  double targetMaterial = 0, targetLabour = 0,
+         targetEquipment = 0, targetMisc = 0;
+  for (final project in targetProjects) {
+    targetMaterial  += project.budgetMaterial  ?? 0;
+    targetLabour    += project.budgetLabour    ?? 0;
+    targetEquipment += project.budgetEquipment ?? 0;
+    targetMisc      += project.budgetMisc      ?? 0;
+  }
+
+  final total = material + labour + equipment;
+  final totalTarget = targetMaterial + targetLabour +
+                      targetEquipment + targetMisc;
+  final isOver = totalTarget > 0 && total > totalTarget;
+
+  return ReportModel(
+    totalCost:    total,
+    materialCost: material,
+    labourCost:   labour,
+    equipmentCost:equipment,
+    categoryBudget: {
+      'Material':  material,
+      'Labour':    labour,
+      'Equipment': equipment,
+    },
+    targetMaterial:  targetMaterial,
+    targetLabour:    targetLabour,
+    targetEquipment: targetEquipment,
+    targetMisc:      targetMisc,
+    efficiencyNote: isOver
+        ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
+        : 'Project is within budget',
+  );
+}
+
+  String _fmt(double v) {
+    if (v >= 10000000) return '${(v / 10000000).toStringAsFixed(1)}Cr';
+    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
+    return v.toStringAsFixed(0);
   }
 }

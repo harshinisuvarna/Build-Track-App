@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -7,9 +8,10 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/report_model.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:provider/provider.dart';
 
-/// -------------------- METRIC CARD --------------------
+// ─────────────────────────────────────────────
+// METRIC CARD
+// ─────────────────────────────────────────────
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
@@ -17,87 +19,100 @@ class MetricCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.change,
+    required this.actual,
+    required this.target,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final double change;
+  final double actual;
+  final double target;
 
   @override
   Widget build(BuildContext context) {
-    final isGood = change < 0;
-    final isNeutral = change == 0;
+    final isOver = target > 0 && actual > target;
+    final isOnTrack = target <= 0;
 
-    final color = isNeutral
+    final color = isOnTrack
         ? AppColors.textLight
-        : isGood
-            ? AppColors.success
-            : AppColors.error;
+        : isOver
+            ? AppColors.error
+            : AppColors.success;
 
-    final iconData = isNeutral
+    final iconData = isOnTrack
         ? Icons.remove
-        : isGood
-            ? Icons.trending_down
-            : Icons.trending_up;
+        : isOver
+            ? Icons.trending_up
+            : Icons.trending_down;
 
-    final text = isNeutral
-        ? 'On Track'
-        : isGood
-            ? '${change.abs().toStringAsFixed(0)}% Saving'
-            : '+${change.toStringAsFixed(0)}% Over';
+    final statusText = isOnTrack
+        ? 'No budget set'
+        : isOver
+            ? 'Over budget'
+            : 'Within budget';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
         border: Border.all(color: const Color(0xFFF0F1F5)),
       ),
+      // ✅ Use Column with mainAxisSize.min — never overflows
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 20),
+            child: Icon(icon, color: AppColors.primary, size: 16),
           ),
-          const SizedBox(height: 10),
-          Text(label,
-              style: AppTheme.label.copyWith(
-                fontSize: 11,
-                color: AppColors.textLight,
-                letterSpacing: 0.5,
-              )),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.textLight,
+              letterSpacing: 0.3,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: AppTheme.heading2.copyWith(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              )),
-          const SizedBox(height: 6),
           Row(
             children: [
-              Icon(iconData, size: 14, color: color),
-              const SizedBox(width: 4),
+              Icon(iconData, size: 12, color: color),
+              const SizedBox(width: 3),
               Flexible(
                 child: Text(
-                  text,
+                  statusText,
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: color,
                     fontWeight: FontWeight.w600,
                   ),
@@ -111,102 +126,110 @@ class MetricCard extends StatelessWidget {
   }
 }
 
-/// -------------------- METRIC GRID --------------------
+// ─────────────────────────────────────────────
+// METRIC GRID — fixed layout, no infinite height
+// ─────────────────────────────────────────────
 
 class MetricGrid extends StatelessWidget {
-  const MetricGrid({
-    super.key,
-    required this.report,
-    required this.period,
-  });
+  const MetricGrid({super.key, required this.report});
 
   final ReportModel report;
-  final String period;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: MetricCard(
-                icon: Icons.credit_card,
-                label: 'TOTAL COST',
-                value: report.formattedTotal,
-                change: 0,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: MetricCard(
-                icon: Icons.architecture,
-                label: 'MATERIAL',
-                value: report.formattedMaterial,
-                change: 0,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: MetricCard(
-                icon: Icons.people,
-                label: 'LABOUR',
-                value: report.formattedLabour,
-                change: 0,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: MetricCard(
-                icon: Icons.precision_manufacturing,
-                label: 'EQUIPMENT',
-                value: report.formattedEquipment,
-                change: 0,
-              ),
-            ),
-          ],
-        ),
-      ],
+    final cards = [
+      MetricCard(
+        icon: Icons.attach_money,
+        label: 'Total Cost',
+        value: report.formattedTotal,
+        actual: report.totalCost,
+        target: report.targetMaterial +
+            report.targetLabour +
+            report.targetEquipment +
+            report.targetMisc,
+      ),
+      MetricCard(
+        icon: Icons.category,
+        label: 'Material Cost',
+        value: report.formattedMaterial,
+        actual: report.materialCost,
+        target: report.targetMaterial,
+      ),
+      MetricCard(
+        icon: Icons.build,
+        label: 'Labour Cost',
+        value: report.formattedLabour,
+        actual: report.labourCost,
+        target: report.targetLabour,
+      ),
+      MetricCard(
+        icon: Icons.precision_manufacturing,
+        label: 'Equipment Cost',
+        value: report.formattedEquipment,
+        actual: report.equipmentCost,
+        target: report.targetEquipment,
+      ),
+    ];
+
+    const spacing = 12.0;
+
+    // ✅ Use Wrap instead of LayoutBuilder+Row to avoid infinite height
+    return Wrap(
+      spacing: spacing,
+      runSpacing: spacing,
+      children: cards.map((card) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Each card takes exactly half width minus spacing
+            final width = (MediaQuery.of(context).size.width - 32 - spacing) / 2;
+            return SizedBox(width: width, child: card);
+          },
+        );
+      }).toList(),
     );
   }
 }
 
-/// -------------------- CHART --------------------
+// ─────────────────────────────────────────────
+// CHART SECTION
+// ─────────────────────────────────────────────
 
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.report});
+
   final ReportModel report;
 
   @override
   Widget build(BuildContext context) {
-    final data = report.costPerSqftData;
+    final categories = [
+      {'name': 'Material', 'actual': report.materialCost, 'target': report.targetMaterial},
+      {'name': 'Labour',   'actual': report.labourCost,   'target': report.targetLabour},
+      {'name': 'Equipment','actual': report.equipmentCost,'target': report.targetEquipment},
+      {'name': 'Misc',     'actual': report.categoryBudget['Misc'] ?? 0.0, 'target': report.targetMisc},
+    ];
 
-    if (data.isEmpty) {
-      return const AppCard(
-        child: Center(child: Text("No data")),
-      );
-    }
-
-    const target = 1500.0;
-
-    final spots = List.generate(
-      data.length,
-      (i) => FlSpot(i.toDouble(), data[i]),
+    final actualSpots = List.generate(
+      categories.length,
+      (i) => FlSpot(i.toDouble(), (categories[i]['actual'] as double)),
     );
 
     final targetSpots = List.generate(
-      data.length,
-      (i) => FlSpot(i.toDouble(), target),
+      categories.length,
+      (i) => FlSpot(i.toDouble(), (categories[i]['target'] as double)),
     );
 
-    final minY = data.reduce((a, b) => a < b ? a : b) * 0.9;
-    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.15;
+    final allValues = [
+      ...categories.map((e) => e['actual'] as double),
+      ...categories.map((e) => e['target'] as double),
+    ];
 
-    final isExceeded = data.any((e) => e > target);
+    final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
+    final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
+
+    final isExceeded = categories.any(
+      (e) => (e['actual'] as double) > (e['target'] as double) &&
+             (e['target'] as double) > 0,
+    );
 
     return AppCard(
       margin: EdgeInsets.zero,
@@ -214,67 +237,44 @@ class ChartSection extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            /// ⭐ HEADER (ONLY ONCE - FIX DUPLICATE ISSUE)
             Text(
-              "Cost per Unit (SQFT)",
-              style: AppTheme.heading3.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              'Budget Analytics',
+              style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
             ),
-
             const SizedBox(height: 4),
-
             Text(
               isExceeded
-                  ? "⚠ Cost exceeded target in some stages"
-                  : "Cost within expected range",
+                  ? '⚠ Budget exceeded in one or more categories'
+                  : '✓ All categories within budget',
               style: TextStyle(
                 fontSize: 12,
                 color: isExceeded ? AppColors.error : AppColors.success,
                 fontWeight: FontWeight.w600,
               ),
             ),
-
             const SizedBox(height: 14),
-
-            /// ⭐ CHART
             SizedBox(
-              height: 220,
+              height: 200,
               child: LineChart(
                 LineChartData(
-                  minY: minY,
+                  minY: 0,
                   maxY: maxY,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                  ),
+                  gridData: const FlGridData(show: true, drawVerticalLine: false),
                   borderData: FlBorderData(show: false),
-
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         interval: 1,
                         getTitlesWidget: (value, meta) {
-                          const labels = [
-                            'Foundation',
-                            'Floor',
-                            'Slab',
-                            'Walls',
-                            'Roof',
-                            'Finish'
-                          ];
-
                           final i = value.toInt();
-                          if (i < 0 || i >= labels.length) {
-                            return const SizedBox();
-                          }
-
+                          if (i < 0 || i >= categories.length) return const SizedBox();
                           return Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                              labels[i],
+                              categories[i]['name'].toString(),
                               style: const TextStyle(fontSize: 10),
                             ),
                           );
@@ -282,7 +282,7 @@ class ChartSection extends StatelessWidget {
                       ),
                     ),
                     leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                      sideTitles: SideTitles(showTitles: true, reservedSize: 44),
                     ),
                     topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
@@ -291,14 +291,13 @@ class ChartSection extends StatelessWidget {
                       sideTitles: SideTitles(showTitles: false),
                     ),
                   ),
-
                   lineBarsData: [
                     LineChartBarData(
-                      spots: spots,
+                      spots: actualSpots,
                       isCurved: true,
                       barWidth: 3,
                       color: AppColors.primary,
-                      dotData: const FlDotData(show: false),
+                      dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
                         color: AppColors.primary.withOpacity(0.08),
@@ -308,7 +307,7 @@ class ChartSection extends StatelessWidget {
                       spots: targetSpots,
                       isCurved: false,
                       barWidth: 2,
-                      color: Colors.grey,
+                      color: Colors.red,
                       dashArray: [6, 4],
                       dotData: const FlDotData(show: false),
                     ),
@@ -316,27 +315,16 @@ class ChartSection extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
-
-            /// ⭐ LEGEND (RESTORED)
             Row(
               children: [
                 _dot(AppColors.primary),
                 const SizedBox(width: 6),
-                const Text("Actual"),
+                const Text('Actual Spent', style: TextStyle(fontSize: 12)),
                 const SizedBox(width: 16),
-                _dot(Colors.grey),
+                _dot(Colors.red),
                 const SizedBox(width: 6),
-                const Text("Target"),
-                const Spacer(),
-                Text(
-                  "Target: 1500",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
+                const Text('Target Budget', style: TextStyle(fontSize: 12)),
               ],
             ),
           ],
@@ -345,16 +333,116 @@ class ChartSection extends StatelessWidget {
     );
   }
 
-  Widget _dot(Color c) {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  Widget _dot(Color c) => Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      );
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY BUDGET SECTION
+// ─────────────────────────────────────────────
+
+class CategoryBudgetSection extends StatelessWidget {
+  const CategoryBudgetSection({super.key, required this.report});
+
+  final ReportModel report;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      {'label': 'Material',  'actual': report.materialCost,  'target': report.targetMaterial},
+      {'label': 'Labour',    'actual': report.labourCost,    'target': report.targetLabour},
+      {'label': 'Equipment', 'actual': report.equipmentCost, 'target': report.targetEquipment},
+      {'label': 'Misc',      'actual': report.categoryBudget['Misc'] ?? 0.0, 'target': report.targetMisc},
+    ];
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items.map((item) {
+          final actual = item['actual'] as double;
+          final target = item['target'] as double;
+          final hasTarget = target > 0;
+          final percent = hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
+          final isOver = hasTarget && actual > target;
+
+          final color = isOver
+              ? AppColors.error
+              : percent >= 0.75
+                  ? AppColors.warning
+                  : AppColors.primary;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item['label'].toString(),
+                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${actual.toStringAsFixed(0)} spent',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (hasTarget)
+                          Text(
+                            'of ₹${target.toStringAsFixed(0)} budget',
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: LinearProgressIndicator(
+                    value: hasTarget ? percent : 0,
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFFEFEFEF),
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
+                if (isOver)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Exceeded by ₹${(actual - target).toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }
 
-/// -------------------- PROJECT SELECTOR --------------------
+// ─────────────────────────────────────────────
+// PROJECT SELECTOR
+// ─────────────────────────────────────────────
 
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
@@ -368,13 +456,16 @@ class ProjectSelector extends StatelessWidget {
 
     return AppCard(
       margin: EdgeInsets.zero,
-      onTap: () => _showSheet(context, projects),
+      onTap: () => _showSheet(context, projects, provider),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            provider.selectedProject,
-            style: AppTheme.bodyLarge,
+          Expanded(
+            child: Text(
+              provider.selectedProjectName,
+              style: AppTheme.bodyLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const Icon(Icons.keyboard_arrow_down),
         ],
@@ -382,128 +473,63 @@ class ProjectSelector extends StatelessWidget {
     );
   }
 
-  void _showSheet(BuildContext context, List projects) {
-    final provider = context.read<ReportProvider>();
-
+  void _showSheet(BuildContext context, List projects, ReportProvider provider) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => ListView(
-        children: [
-          ListTile(
-            title: const Text('All Active Projects'),
-            onTap: () {
-              provider.selectProject('All Active Projects');
-              Navigator.pop(context);
-            },
-          ),
-          ...projects.map((p) => ListTile(
-                title: Text(p.name),
-                onTap: () {
-                  provider.selectProject(p.name);
-                  Navigator.pop(context);
-                },
-              )),
-        ],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-    );
-  }
-}
-
-/// -------------------- CATEGORY BUDGET --------------------
-
-class CategoryBudgetSection extends StatelessWidget {
-  const CategoryBudgetSection({super.key, required this.categoryBudget});
-
-  final Map<String, double> categoryBudget;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        children: categoryBudget.entries.map((e) {
-          final amount = e.value;
-
-          // FIX: treat value as AMOUNT, not percentage
-          const double target = 1500.0;
-
-          final percent = (amount / target).clamp(0.0, 1.0);
-
-          final color = percent >= 0.9
-              ? AppColors.error
-              : percent >= 0.7
-                  ? AppColors.warning
-                  : AppColors.primary;
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      e.key,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    // ✅ SHOW AMOUNT ONLY (NOT %)
-                    Text(
-                      '₹${amount.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: LinearProgressIndicator(
-                    value: percent,
-                    minHeight: 8,
-                    backgroundColor: const Color(0xFFEFEFEF),
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                ),
-              ],
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              title: const Text('All Active Projects'),
+              leading: const Icon(Icons.grid_view),
+              onTap: () {
+                provider.selectProject('all');
+                Navigator.pop(context);
+              },
             ),
-          );
-        }).toList(),
+            ...projects.map((p) => ListTile(
+                  title: Text(p.name),
+                  leading: const Icon(Icons.folder_outlined),
+                  onTap: () {
+                    provider.selectProject(p.id);
+                    Navigator.pop(context);
+                  },
+                )),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// -------------------- EFFICIENCY BANNER --------------------
+// ─────────────────────────────────────────────
+// EFFICIENCY BANNER
+// ─────────────────────────────────────────────
 
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
     required this.note,
-    required this.selectedProjectName,
+    required this.isExceeded,
   });
 
   final String note;
-  final String selectedProjectName;
+  final bool isExceeded;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity, // ✅ FIX: full width restored
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withOpacity(0.7),
-          ],
+          colors: isExceeded
+              ? [AppColors.error, AppColors.error.withOpacity(0.7)]
+              : [AppColors.primary, AppColors.primary.withOpacity(0.7)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -516,12 +542,13 @@ class EfficiencyBanner extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 15,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             note,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontSize: 13),
           ),
         ],
       ),

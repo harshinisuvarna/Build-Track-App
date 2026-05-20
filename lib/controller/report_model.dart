@@ -6,10 +6,12 @@ class ReportModel {
     required this.materialCost,
     required this.labourCost,
     required this.equipmentCost,
-    required this.costPerSqftData,
-    required this.chartDataCuyd,
     required this.categoryBudget,
     required this.efficiencyNote,
+    required this.targetMaterial,
+    required this.targetLabour,
+    required this.targetEquipment,
+    required this.targetMisc,
   });
 
   final double totalCost;
@@ -17,10 +19,15 @@ class ReportModel {
   final double labourCost;
   final double equipmentCost;
 
-  final List<double> costPerSqftData;
-  final List<double> chartDataCuyd;
-
+  // Actual spent per category (from entries)
   final Map<String, double> categoryBudget;
+
+  // Target budgets (from project budget breakdown)
+  final double targetMaterial;
+  final double targetLabour;
+  final double targetEquipment;
+  final double targetMisc;
+
   final String efficiencyNote;
 
   String get formattedTotal => formatCurrency(totalCost);
@@ -28,40 +35,21 @@ class ReportModel {
   String get formattedLabour => formatCurrency(labourCost);
   String get formattedEquipment => formatCurrency(equipmentCost);
 
-  factory ReportModel.fromJson(Map<String, dynamic> json) {
-    final analytics = json['analytics'] ?? {};
-
-    List<double> safeList(dynamic value) {
-      if (value is List) {
-        return value.map((e) => (e as num).toDouble()).toList();
-      }
-      return [0.0];
-    }
-
-    return ReportModel(
-      totalCost: (json['expenses'] ?? 0).toDouble(),
-
-      materialCost:
-          (json['categoryBreakdown']?['Materials'] ?? 0).toDouble(),
-
-      labourCost:
-          (json['categoryBreakdown']?['Labour'] ?? 0).toDouble(),
-
-      equipmentCost:
-          (json['categoryBreakdown']?['Equipment'] ?? 0).toDouble(),
-
-      costPerSqftData: safeList(analytics['costPerSqftData']),
-      chartDataCuyd: safeList(json['chartDataCuyd']),
-
-      categoryBudget: Map<String, double>.from(
-        (json['categoryBreakdown'] ?? {}).map(
-          (k, v) => MapEntry(k, (v as num).toDouble()),
-        ),
-      ),
-
-      efficiencyNote: (analytics['chartStatus'] == 'OVER_BUDGET')
-          ? 'Project exceeded budget'
-          : 'Project within budget',
-    );
+  bool get isBudgetExceeded {
+    final totalTarget = targetMaterial + targetLabour + targetEquipment + targetMisc;
+    return totalTarget > 0 && totalCost > totalTarget;
   }
+
+  factory ReportModel.empty() => const ReportModel(
+        totalCost: 0,
+        materialCost: 0,
+        labourCost: 0,
+        equipmentCost: 0,
+        categoryBudget: {},
+        efficiencyNote: 'No data available',
+        targetMaterial: 0,
+        targetLabour: 0,
+        targetEquipment: 0,
+        targetMisc: 0,
+      );
 }

@@ -157,50 +157,51 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    final email = _emailCtrl.text.trim();
-    final password = _passCtrl.text.trim();
+  final email = _emailCtrl.text.trim();
+  final password = _passCtrl.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter email and password')),
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Enter email and password')),
+    );
+    return;
+  }
+
+  setState(() => _loading = true);
+
+  try {
+    final data = await AuthService.login(email, password);
+
+    if (data != null && data['token'] != null) {
+      // 1. Save token FIRST
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', data['token']);
+
+      UserSession.set(
+        userId: data['userId'] ?? '',
+        role: _parseRole(data['role']),
       );
-      return;
-    }
 
-    setState(() => _loading = true);
-
-    try {
-      final data = await AuthService.login(email, password);
-
-      if (data != null && data['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', data['token']);
-
-        UserSession.set(
-          userId: data['userId'] ?? '',
-          role: _parseRole(data['role']),
-        );
-
-        if (mounted) {
-          try {
-            await context.read<ProjectProvider>().fetchProjects();
-          } catch (_) {}
-
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        throw Exception("Invalid login response");
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e')),
-      );
-    } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        // 2. Load ALL data (projects + entries) now that token is saved
+        await context.read<ProjectProvider>().load();
+
+        // 3. Navigate
+        Navigator.pushReplacementNamed(context, '/home');
       }
+    } else {
+      throw Exception("Invalid login response");
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Login failed: $e')),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _loading = false);
     }
   }
+}
 
   UserRole _parseRole(String? role) {
     switch (role?.toLowerCase()) {

@@ -142,14 +142,117 @@ class ProjectModel {
   final double? budgetMisc;
   final String? projectStatus;
 
-  // ── Computed ───────────────────────────────────────────────────────────────
+    // ── Computed ───────────────────────────────────────────────────────────────
+
   double get remainingBudget => totalBudget - spentAmount;
+
   double get budgetUtilization =>
       totalBudget > 0 ? spentAmount / totalBudget : 0.0;
+
   String get location => '$city • $sector';
+
   String get formattedBudget => formatCurrency(totalBudget);
+
   String get formattedSpent => formatCurrency(spentAmount);
+
   String get formattedRemaining => formatCurrency(remainingBudget);
+
+  // ── NEW REPORT ANALYTICS ──────────────────────────────────────────────────
+
+  double get materialCost => budgetMaterial ?? 0;
+
+  double get labourCost => budgetLabour ?? 0;
+
+  double get equipmentCost => budgetEquipment ?? 0;
+
+  double get miscCost => budgetMisc ?? 0;
+
+  double get totalCalculatedCost =>
+      materialCost +
+      labourCost +
+      equipmentCost +
+      miscCost;
+
+  // Cost per sqft / unit
+  double get costPerUnit {
+    final area = double.tryParse(landArea ?? '0') ?? 0;
+
+    if (area <= 0) return 0;
+
+    return spentAmount / area;
+  }
+
+  String get formattedCostPerUnit =>
+      '₹${costPerUnit.toStringAsFixed(2)}/sqft';
+
+  // Budget percentages
+  double get materialPercentage {
+    if (totalBudget <= 0) return 0;
+    return (materialCost / totalBudget) * 100;
+  }
+
+  double get labourPercentage {
+    if (totalBudget <= 0) return 0;
+    return (labourCost / totalBudget) * 100;
+  }
+
+  double get equipmentPercentage {
+    if (totalBudget <= 0) return 0;
+    return (equipmentCost / totalBudget) * 100;
+  }
+
+  double get miscPercentage {
+    if (totalBudget <= 0) return 0;
+    return (miscCost / totalBudget) * 100;
+  }
+
+  // Budget exceeded
+  bool get isBudgetExceeded => spentAmount > totalBudget;
+
+  double get exceededAmount {
+    if (!isBudgetExceeded) return 0;
+    return spentAmount - totalBudget;
+  }
+
+  String get formattedExceededAmount =>
+      formatCurrency(exceededAmount);
+
+  // Efficiency note
+  String get efficiencyNote {
+    if (isBudgetExceeded) {
+      return 'Budget exceeded by ${formattedExceededAmount}';
+    }
+
+    final utilization = budgetUtilization * 100;
+
+    if (utilization >= 90) {
+      return 'Budget utilization is very high';
+    } else if (utilization >= 70) {
+      return 'Project spending is on track';
+    } else if (utilization >= 40) {
+      return 'Budget usage is moderate';
+    } else {
+      return 'Project is under budget';
+    }
+  }
+
+  // Progress percentage display
+  String get progressPercent =>
+      '${(progress * 100).toStringAsFixed(0)}%';
+
+  // Total rooms
+  int get totalRooms =>
+      (room1BHK ?? 0) +
+      (room2BHK ?? 0) +
+      (room3BHK ?? 0) +
+      (roomCustom ?? 0);
+
+  // Total bathrooms
+  int get totalBathrooms =>
+      (bathWestern ?? 0) +
+      (bathIndian ?? 0) +
+      (bathCommon ?? 0) +
+      (bathAttached ?? 0);
 
   // ── copyWith ───────────────────────────────────────────────────────────────
   ProjectModel copyWith({

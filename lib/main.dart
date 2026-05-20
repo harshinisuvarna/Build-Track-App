@@ -3,7 +3,6 @@ import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
-// --- ADDED YOUR NEW PROVIDER IMPORT HERE ---
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_entry.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_equipment.dart';
@@ -35,36 +34,50 @@ import 'package:buildtrack_mobile/screen/manual_voice_entry/updated_progress.dar
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await UserSession.loadFromPrefs();
+
+  // ✅ Check if already logged in
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  final isLoggedIn = token != null && token.isNotEmpty;
+
   final projectProvider = ProjectProvider();
-  await projectProvider.load();
+
+  // ✅ Only load projects if already logged in (token exists)
+  if (isLoggedIn) {
+    await projectProvider.load();
+  }
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => NavController()),
-        // We only need this one ProjectProvider (it has your loaded data)
         ChangeNotifierProvider.value(value: projectProvider),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
-        // --- ADDED YOUR INVENTORY PROVIDER ---
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(isLoggedIn: isLoggedIn),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.isLoggedIn});
+
+  final bool isLoggedIn;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BuildTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/',
+      // ✅ Go to home if already logged in, login otherwise
+      initialRoute: isLoggedIn ? '/home' : '/',
       routes: {
         '/':                 (_) => const LoginScreen(),
         '/login':            (_) => const LoginScreen(),
