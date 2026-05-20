@@ -1,5 +1,4 @@
 import 'dart:developer' as dev;
-import 'dart:convert';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
@@ -7,7 +6,6 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// SharedPreferences key for entries only — project persistence is fully API-driven.
 const _kEntriesKey = 'buildtrack_entries_v1';
 
 class ProjectProvider extends ChangeNotifier {
@@ -33,8 +31,7 @@ class ProjectProvider extends ChangeNotifier {
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
       (e) =>
-          e.projectId.trim() == _selectedProject!.id.trim() &&
-          e.type == EntryType.material,
+          e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -49,202 +46,215 @@ class ProjectProvider extends ChangeNotifier {
       _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
 
   double totalSpentForProject(String projectId) =>
-      entriesForProject(projectId).fold(0.0, (s, e) => s + e.amount);
+      entriesForProject(projectId).fold(0.0, (sum, e) => sum + e.amount);
+
+  double getProjectSqftCost(ProjectModel project) {
+    final area = double.tryParse(project.landArea ?? '0') ?? 0;
+    if (area <= 0) return 0;
+    return project.spentAmount / area;
+  }
+
+  bool isProjectOverBudget(ProjectModel project) =>
+      project.spentAmount > project.totalBudget;
+
+  double budgetExceededAmount(ProjectModel project) {
+    if (!isProjectOverBudget(project)) return 0;
+    return project.spentAmount - project.totalBudget;
+  }
+
+  double budgetRemainingAmount(ProjectModel project) {
+    final remain = project.totalBudget - project.spentAmount;
+    return remain < 0 ? 0 : remain;
+  }
+
+  // =========================
+  // LOAD
+  // =========================
 
   Future<void> load() async {
     _setLoading(true);
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // ── Phases (still local) ──────────────────────────────────────
+      // ── Phases ──────────────────────────────────────────────────
       final phaseRaw = prefs.getString('phases');
-
       if (phaseRaw != null && phaseRaw.isNotEmpty) {
         try {
           _phases = PhaseModel.decodeList(phaseRaw);
-        } catch (e) {
+        } catch (_) {
           _phases = [];
         }
       }
-
       if (_phases.isEmpty || _phases.length < 11) {
-        final phaseNames = [
-          'Pre-Construction',
-          'Site Preparation',
-          'Foundation',
-          'Plinth',
-          'Superstructure',
-          'Masonry',
-          'MEP',
-          'Plastering',
-          'Finishing',
-          'Fixtures',
-          'Handover',
-        ];
-
-        _phases = phaseNames.asMap().entries.map((entry) {
-          return PhaseModel(
-            id: entry.value.toLowerCase().replaceAll(' ', '_'),
-            name: entry.value,
-            order: entry.key,
-          );
-        }).toList();
-
+        _phases =
+            [
+                  'Pre-Construction',
+                  'Site Preparation',
+                  'Foundation',
+                  'Plinth',
+                  'Superstructure',
+                  'Masonry',
+                  'MEP',
+                  'Plastering',
+                  'Finishing',
+                  'Fixtures',
+                  'Handover',
+                ]
+                .asMap()
+                .entries
+                .map(
+                  (e) => PhaseModel(
+                    id: e.value.toLowerCase().replaceAll(' ', '_'),
+                    name: e.value,
+                    order: e.key,
+                  ),
+                )
+                .toList();
         _savePhases();
       }
 
-      // ── Projects ──────────────────────────────────────────────────
-      List<ProjectModel> cachedProjects = [];
-      final rawProjects = prefs.getString('cached_projects');
-      if (rawProjects != null && rawProjects.isNotEmpty) {
-        try {
-          cachedProjects = ProjectModel.decodeList(rawProjects);
-        } catch (e) {
-          cachedProjects = [];
-        }
-      }
-
+      // ── Projects ────────────────────────────────────────────────
       try {
-        final serverProjects = await ApiService.fetchProjects();
-        final mappedServerProjects = serverProjects.map((p) {
-          if (p.floors == null || p.floors!.isEmpty) {
-            return p.copyWith(floors: ['Ground Floor']);
-          }
-          return p;
-        }).toList();
-
-        // When the server call is successful, it is the single source of truth.
-        // We only use cached projects if the API call fails.
-        _projects = mappedServerProjects;
-
-        // Persist the clean list to local storage
-        await prefs.setString(
-          'cached_projects',
-          ProjectModel.encodeList(_projects),
-        );
-      } catch (e) {
-        dev.log('API fetchProjects failed, falling back to local storage: $e');
-        if (cachedProjects.isNotEmpty) {
-          _projects = cachedProjects;
-        } else {
-          _projects = [];
-        }
-      }
-
-      // ── Entries (materials) ────────────────────────────────────────
-      List<EntryModel> cachedEntries = [];
-      final rawEntries = prefs.getString(_kEntriesKey);
-      if (rawEntries != null && rawEntries.isNotEmpty) {
-        try {
-          cachedEntries = EntryModel.decodeList(rawEntries);
-        } catch (e) {
-          cachedEntries = [];
-        }
-      }
-
-      // ── Entries (materials) ────────────────────────────────────────
-      try {
-        final response = await ApiService.get('/transactions');
-        if (response.statusCode != 200) {
-          throw Exception(
-            'Failed to fetch transactions from server: status ${response.statusCode}',
+        _projects = await ApiService.fetchProjects();
+        _projects = _projects
+            .map(
+              (p) => p.copyWith(
+                floors: (p.floors == null || p.floors!.isEmpty)
+                    ? ['Ground Floor']
+                    : p.floors,
+              ),
+            )
+            .toList();
+        debugPrint('Projects loaded: ${_projects.length}');
+        for (final p in _projects) {
+          debugPrint(
+            '  Project: "${p.name}" id=${p.id} '
+            'spentAmount=${p.spentAmount} '
+            'budgetMaterial=${p.budgetMaterial} '
+            'budgetLabour=${p.budgetLabour} '
+            'budgetEquipment=${p.budgetEquipment}',
           );
         }
+      } catch (e) {
+        dev.log('fetchProjects failed: $e');
+        _projects = [];
+      }
 
-        final decoded = json.decode(response.body);
-        List<dynamic> apiMaterials = [];
-        if (decoded is List) {
-          apiMaterials = decoded;
-        } else if (decoded is Map) {
-          apiMaterials =
-              (decoded['transactions'] ??
-                      decoded['data'] ??
-                      decoded['items'] ??
-                      [])
-                  as List<dynamic>;
+      // ── Entries ──────────────────────────────────────────────────
+      try {
+        final apiMaterials = await ApiService.fetchMaterials();
+        debugPrint('fetchMaterials: ${apiMaterials.length} items');
+
+        if (apiMaterials.isNotEmpty) {
+          debugPrint('=== RAW FIRST ENTRY FIELDS ===');
+          apiMaterials.first.forEach((key, value) {
+            debugPrint('  [$key] = $value  (${value?.runtimeType})');
+          });
+          debugPrint('==============================');
         }
 
-        final serverEntries = apiMaterials.map<EntryModel>((json) {
+        _entries = apiMaterials.map<EntryModel>((json) {
+          // --- Type ---
           EntryType parsedType = EntryType.material;
-          final String typeLower = (json['type'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
-          final String catLower = (json['category'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
-
-          if (typeLower == 'labour' ||
-              typeLower == 'wages' ||
-              catLower == 'labour' ||
-              catLower.contains('labour')) {
+          final rawType = (json['type'] ?? '').toString().toLowerCase();
+          if (rawType == 'labour') {
             parsedType = EntryType.labour;
-          } else if (typeLower == 'equipment' ||
-              typeLower == 'expense' ||
-              catLower == 'equipment') {
+          } else if (rawType == 'equipment')
             parsedType = EntryType.equipment;
+
+          // --- ProjectId ---
+          String projectId = '';
+          if (json['project'] is Map) {
+            projectId = json['project']['_id']?.toString() ?? '';
+          } else if (json['project'] != null) {
+            projectId = json['project'].toString();
           }
 
-          // Safe extraction of projectId from object, string, or fallback projectId field
-          String pId = '';
-          if (json['project'] is Map) {
-            pId = json['project']['_id']?.toString() ?? '';
-          } else if (json['project'] != null) {
-            pId = json['project'].toString();
-          }
-          if (pId.isEmpty && json['projectId'] != null) {
-            if (json['projectId'] is Map) {
-              pId = json['projectId']['_id']?.toString() ?? '';
-            } else {
-              pId = json['projectId'].toString();
+          // --- Amount: payment fields first, then regular fields ---
+          double amount = 0;
+          final fieldsToTry = [
+            'paidAmount',
+            'amountPaid',
+            'paymentAmount',
+            'paid',
+            'totalPaid',
+            'amount',
+            'totalCost',
+            'total',
+            'cost',
+            'closingStock',
+            'totalAmount',
+            'price',
+          ];
+          for (final field in fieldsToTry) {
+            final v = json[field];
+            if (v != null && v is num && v > 0) {
+              amount = v.toDouble();
+              break;
             }
           }
-          pId = pId.trim();
-          if (pId.isEmpty) {
-            pId = 'p1'; // ultimate fallback
+          // quantity * rate fallback
+          if (amount == 0) {
+            final qty = json['quantity'];
+            final rate = json['rate'];
+            if (qty is num && qty > 0) {
+              amount = rate is num && rate > 0
+                  ? (qty * rate).toDouble()
+                  : qty.toDouble();
+            }
+          }
+          if (projectId.isEmpty && json['projectId'] != null) {
+            if (json['projectId'] is Map) {
+              projectId = json['projectId']['_id']?.toString() ?? '';
+            } else {
+              projectId = json['projectId'].toString();
+            }
+          }
+          projectId = projectId.trim();
+          if (projectId.isEmpty) {
+            projectId = 'p1'; // ultimate fallback
           }
 
           return EntryModel(
             id:
                 json['_id']?.toString() ??
                 DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: pId,
+            projectId: projectId,
             type: parsedType,
-            amount:
-                (json['quantity'] ??
-                        json['closingStock'] ??
-                        json['amount'] ??
-                        0)
-                    .toDouble(),
+            amount: amount, // Your robust pre-calculated amount
             date: json['date'] != null
-                ? DateTime.tryParse(json['date']) ?? DateTime.now()
+                ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
                 : DateTime.now(),
             description:
-                json['title'] ?? json['materialName'] ?? 'Material Entry',
-            brand: json['brand'] ?? json['materialName'],
-            ratePerUnit: (json['rate'] ?? json['ratePerUnit'] ?? 0).toDouble(),
-            unit: json['unit']?.toString(),
+                json['materialName'] ??
+                json['title'] ??
+                json['description'] ??
+                json['name'] ??
+                'Entry',
+            brand: json['materialName'] ?? json['brand'] ?? json['name'],
+            ratePerUnit: (json['rate'] is num)
+                ? (json['rate'] as num).toDouble()
+                : 0,
+            unit: json['unit']?.toString(), // SALVAGED FROM MUNESHA'S MAIN
           );
         }).toList();
 
-        // Merge entries: cache + server
-        final Map<String, EntryModel> entryMap = {};
-        for (final entry in cachedEntries) {
-          entryMap[entry.id.trim()] = entry;
+        debugPrint('--- MATCH CHECK ---');
+        for (final p in _projects) {
+          final matched = _entries.where((e) => e.projectId == p.id).toList();
+          final total = matched.fold(0.0, (s, e) => s + e.amount);
+          debugPrint('  "${p.name}" → ${matched.length} entries, ₹$total');
         }
-        for (final entry in serverEntries) {
-          entryMap[entry.id.trim()] = entry;
-        }
-        _entries = entryMap.values.toList();
+        debugPrint('-------------------');
+
         await _persistEntries();
-      } catch (e) {
-        dev.log('API fetch failed, falling back to local storage: $e');
-        if (cachedEntries.isNotEmpty) {
-          _entries = cachedEntries;
+      } catch (e, st) {
+        debugPrint('fetchMaterials failed: $e\n$st');
+        final rawEntries = prefs.getString(_kEntriesKey);
+        if (rawEntries != null && rawEntries.isNotEmpty) {
+          _entries = EntryModel.decodeList(rawEntries);
         } else {
-          _entries = _seedEntries();
-          await _persistEntries();
+          _entries = [];
         }
       }
 
@@ -268,24 +278,30 @@ class ProjectProvider extends ChangeNotifier {
       }
       _error = '';
     } catch (e, st) {
-      _error = 'Failed to load data: $e';
+      _error = 'Failed to load: $e';
       dev.log('ProjectProvider.load error', error: e, stackTrace: st);
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Re-fetch the project list from the API and refresh the UI.
+  // =========================
+  // FETCH PROJECTS
+  // =========================
+
   Future<void> fetchProjects() async {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
-      _projects = _projects.map((p) {
-        if (p.floors == null || p.floors!.isEmpty) {
-          return p.copyWith(floors: ['Ground Floor']);
-        }
-        return p;
-      }).toList();
+      _projects = _projects
+          .map(
+            (p) => p.copyWith(
+              floors: (p.floors == null || p.floors!.isEmpty)
+                  ? ['Ground Floor']
+                  : p.floors,
+            ),
+          )
+          .toList();
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
       }
@@ -301,7 +317,10 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  /// Persist project to the backend first; only add to local list on success.
+  // =========================
+  // ADD PROJECT
+  // =========================
+
   Future<void> addProject(
     ProjectModel project, {
     String? clientName,
@@ -318,15 +337,11 @@ class ProjectProvider extends ChangeNotifier {
       expectedEndDate: expectedEndDate,
       floors: finalFloors,
     );
-
-    // POST to backend — do NOT add locally if this fails.
     final saved = await ApiService.addProject(updatedProject.toJson());
     if (saved == null) {
-      dev.log('addProject: API call failed — project not added locally.');
-      throw Exception('Failed to save project to server.');
+      dev.log('addProject failed');
+      throw Exception('Failed to save project');
     }
-
-    // Use the server-returned model (has real _id, etc.)
     _projects.add(saved);
     _selectedProject = saved;
     UserSession.projectId = saved.id;
@@ -339,6 +354,10 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // =========================
+  // UPDATE PROGRESS
+  // =========================
+
   Future<void> updateProjectProgress(String id, double progress) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
@@ -346,18 +365,18 @@ class ProjectProvider extends ChangeNotifier {
       progress: progress.clamp(0.0, 1.0),
     );
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
-
-    // --- API SYNC: Save progress update ---
     try {
       await ApiService.put('/projects/$id', _projects[idx].toJson());
     } catch (e) {
       dev.log('Failed to persist progress: $e');
     }
-
     notifyListeners();
   }
 
-  // --- MERGED ACTIVITY COMPLETION FEATURE ---
+  // =========================
+  // TOGGLE ACTIVITY
+  // =========================
+
   Future<void> toggleActivityCompletion(
     String projectId,
     String activityId, {
@@ -366,26 +385,20 @@ class ProjectProvider extends ChangeNotifier {
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
     final project = _projects[idx];
-
-    // Keep a copy of the completed keys so we can send it to the backend
     List<String> updatedCompletedKeys = List.from(
       project.completedActivityKeys ?? [],
     );
 
-    // ── New path: project has selectedPhases ───────────────────────
     if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
       final updatedPhases = project.selectedPhases!.map((phase) {
         final updatedActivities = phase.activities.map((act) {
           if (act.id == activityId) {
             final isNowCompleted = !act.completed;
-
-            // Sync with the master completedActivityKeys array for the backend
             if (isNowCompleted && !updatedCompletedKeys.contains(activityId)) {
               updatedCompletedKeys.add(activityId);
             } else if (!isNowCompleted) {
               updatedCompletedKeys.remove(activityId);
             }
-
             return act.copyWith(completed: isNowCompleted);
           }
           return act;
@@ -393,57 +406,49 @@ class ProjectProvider extends ChangeNotifier {
         return phase.copyWith(activities: updatedActivities);
       }).toList();
 
-      final total = updatedPhases.fold<int>(0, (sum, p) => sum + p.totalCount);
-      final done = updatedPhases.fold<int>(
-        0,
-        (sum, p) => sum + p.completedCount,
-      );
-      final newProgress = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
-
+      final total = updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
+      final done = updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
       _projects[idx] = project.copyWith(
         selectedPhases: updatedPhases,
         completedActivityKeys: updatedCompletedKeys,
-        progress: newProgress,
+        progress: total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0,
       );
     } else {
-      // ── Legacy path: use completedActivityKeys list ──────────────
       if (updatedCompletedKeys.contains(activityId)) {
         updatedCompletedKeys.remove(activityId);
       } else {
         updatedCompletedKeys.add(activityId);
       }
-
       final totalToUse = legacyTotalActivities ?? 161;
-      final newProgress = totalToUse > 0
-          ? (updatedCompletedKeys.length / totalToUse).clamp(0.0, 1.0)
-          : 0.0;
-
       _projects[idx] = project.copyWith(
         completedActivityKeys: updatedCompletedKeys,
-        progress: newProgress,
+        progress: totalToUse > 0
+            ? (updatedCompletedKeys.length / totalToUse).clamp(0.0, 1.0)
+            : 0.0,
       );
     }
 
-    if (_selectedProject?.id == projectId) _selectedProject = _projects[idx];
-
-    // Instantly update the UI
+    if (_selectedProject?.id == projectId) {
+      _selectedProject = _projects[idx];
+    }
     notifyListeners();
 
-    // ── THE FIX: Fire the network call to save to MongoDB ──────────
     try {
       final response = await ApiService.put(
         '/projects/$projectId',
         _projects[idx].toJson(),
       );
       if (response.statusCode != 200) {
-        dev.log(
-          'WARNING: Failed to save activity state to server: ${response.statusCode}',
-        );
+        dev.log('Failed saving activity: ${response.statusCode}');
       }
     } catch (e) {
-      dev.log('ERROR: Network exception saving activity state: $e');
+      dev.log('Network error saving activity: $e');
     }
   }
+
+  // =========================
+  // ADD ENTRY
+  // =========================
 
   Future<void> addEntry(
     EntryModel entry, {
@@ -452,23 +457,21 @@ class ProjectProvider extends ChangeNotifier {
     String? floor,
     ProjectStage? phase,
   }) async {
-    // --- HARSHINI'S INTEGRATION CODE FOR POSTING ---
     final payload = {
       "title": entry.description,
       "type": entry.type.name,
       "project": entry.projectId,
+      "amount": entry.amount,
       "quantity": entry.amount,
-      "rate": ratePerUnit ?? entry.ratePerUnit ?? 0,
+      "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
       "brand": brand ?? entry.brand,
     };
 
     final success = await ApiService.addMaterial(payload);
-
     if (!success) {
-      dev.log("Failed to save entry to backend!");
+      dev.log("Failed to save entry to backend");
       return;
     }
-    // --------------------------------------------
 
     final updatedEntry = EntryModel(
       id: entry.id,
@@ -482,16 +485,27 @@ class ProjectProvider extends ChangeNotifier {
       floor: floor ?? entry.floor,
       phase: phase ?? entry.phase,
     );
+
     _entries.add(updatedEntry);
 
     final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
-      final newSpent = _projects[idx].spentAmount + updatedEntry.amount;
-      _projects[idx] = _projects[idx].copyWith(spentAmount: newSpent);
+      final oldProject = _projects[idx];
+      final newSpent = oldProject.spentAmount + updatedEntry.amount;
+      _projects[idx] = oldProject.copyWith(spentAmount: newSpent);
       if (_selectedProject?.id == updatedEntry.projectId) {
         _selectedProject = _projects[idx];
       }
+      try {
+        await ApiService.put(
+          '/projects/${oldProject.id}',
+          _projects[idx].toJson(),
+        );
+      } catch (e) {
+        dev.log('Failed updating project spent: $e');
+      }
     }
+
     await _persistEntries();
     notifyListeners();
   }
@@ -531,11 +545,10 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  void _setLoading(bool v) {
-    _isLoading = v;
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
 
-  // --- SEED FALLBACK DATA ---
   List<EntryModel> _seedEntries() => [];
 }

@@ -1,23 +1,24 @@
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
-import 'package:buildtrack_mobile/common/themes/app_theme.dart';
-import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:buildtrack_mobile/controller/report_model.dart';
-import 'package:buildtrack_mobile/controller/report_provider.dart';
-import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/material.dart';
 
+import '../../common/themes/app_theme.dart';
+import '../../common/themes/app_colors.dart';
+import '../../common/themes/app_gradients.dart';
+import '../../common/widgets/app_widgets.dart';
+import '../../controller/report_model.dart';
+import '../../controller/project_provider.dart';
+import '../../models/project_model.dart';
+import '../../controller/report_provider.dart';
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
     required this.icon,
     required this.label,
     required this.value,
-    required this.change, // positive = over-budget (bad), negative = saving
+    required this.change,
   });
+
   final IconData icon;
   final String label;
   final String value;
@@ -42,27 +43,30 @@ class MetricCard extends StatelessWidget {
         ? '${change.abs().toStringAsFixed(0)}% Saving'
         : '+${change.toStringAsFixed(0)}% Over';
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
+        border: Border.all(color: const Color(0xFFF0F1F5)),
       ),
+      // ✅ Use Column with mainAxisSize.min — never overflows
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.primary.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 19),
+            child: Icon(icon, color: AppColors.primary, size: 16),
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           Text(
             label,
             style: AppTheme.label.copyWith(
@@ -70,28 +74,27 @@ class MetricCard extends StatelessWidget {
               fontSize: 10,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: AppTheme.heading2.copyWith(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textDark,
-            ),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(subIcon, size: 13, color: subColor),
-              const SizedBox(width: 4),
+              Icon(subIcon, size: 12, color: subColor),
+              const SizedBox(width: 3),
               Flexible(
                 child: Text(
                   subText,
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                   style: TextStyle(
                     fontSize: 11,
                     color: subColor,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -105,6 +108,7 @@ class MetricCard extends StatelessWidget {
 
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
+
   final ReportModel report;
   final String period;
   @override
@@ -374,7 +378,7 @@ class ChartSection extends StatelessWidget {
               _legendDot(const Color(0xFFBBC0D0)),
               const SizedBox(width: 6),
               Text(
-                'Target: ₹1500/SQFT',
+                'Target: ₹${targetVal.toInt()}/SQFT',
                 style: AppTheme.caption.copyWith(color: AppColors.textLight),
               ),
             ],
@@ -392,37 +396,114 @@ class ChartSection extends StatelessWidget {
 }
 
 class _UnitToggle extends StatelessWidget {
-  const _UnitToggle({required this.unitIndex, required this.onChanged});
+  const _UnitToggle({required this.unitIndex, required this.onChanged, required this.report});
   final int unitIndex;
   final void Function(int) onChanged;
+  final ReportModel report;
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDE0F0)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: ['SQFT', 'CUYD'].asMap().entries.map((e) {
-          final sel = e.key == unitIndex;
-          return InkWell(
-            onTap: () => onChanged(e.key),
-            borderRadius: BorderRadius.circular(6),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: sel ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                e.value,
-                style: TextStyle(
-                  color: sel ? Colors.white : AppColors.textLight,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+    final items = [
+      {
+        'label': 'Material',
+        'actual': report.materialCost,
+        'target': report.targetMaterial,
+      },
+      {
+        'label': 'Labour',
+        'actual': report.labourCost,
+        'target': report.targetLabour,
+      },
+      {
+        'label': 'Equipment',
+        'actual': report.equipmentCost,
+        'target': report.targetEquipment,
+      },
+      {
+        'label': 'Misc',
+        'actual': report.categoryBudget['Misc'] ?? 0.0,
+        'target': report.targetMisc,
+      },
+    ];
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items.map((item) {
+          final actual = item['actual'] as double;
+          final target = item['target'] as double;
+          final hasTarget = target > 0;
+          final percent = hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
+          final isOver = hasTarget && actual > target;
+
+          final color = isOver
+              ? AppColors.error
+              : percent >= 0.75
+              ? AppColors.warning
+              : AppColors.primary;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item['label'].toString(),
+                      style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${actual.toStringAsFixed(0)} spent',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (hasTarget)
+                          Text(
+                            'of ₹${target.toStringAsFixed(0)} budget',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: LinearProgressIndicator(
+                    value: hasTarget ? percent : 0,
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFFEFEFEF),
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
+                if (isOver)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Exceeded by ₹${(actual - target).toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           );
         }).toList(),
@@ -433,24 +514,25 @@ class _UnitToggle extends StatelessWidget {
 
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
+
   final ReportProvider provider;
+
   @override
   Widget build(BuildContext context) {
+    final projectProvider = context.watch<ProjectProvider>();
+    final projects = projectProvider.projects;
+
     return AppCard(
       margin: EdgeInsets.zero,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       onTap: () => _showSheet(context),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(
+          Expanded(
             child: Text(
-              provider.selectedProject,
+              provider.selectedProjectName,
+              style: AppTheme.bodyLarge,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-              ),
             ),
           ),
           const Icon(
@@ -468,8 +550,6 @@ class ProjectSelector extends StatelessWidget {
     final realProjects = projectProvider.projects;
     showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -485,8 +565,6 @@ class _ProjectPickerSheet extends StatelessWidget {
   final List<ProjectModel> projects;
   @override
   Widget build(BuildContext context) {
-    final allOption = 'All Active Projects';
-    final items = [allOption, ...projects.map((p) => p.name)];
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -494,32 +572,22 @@ class _ProjectPickerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE0F0),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+            ListTile(
+              title: const Text('All Active Projects'),
+              leading: const Icon(Icons.grid_view),
+              onTap: () {
+                provider.selectProject('all');
+                Navigator.pop(context);
+              },
             ),
             Text('Select Project', style: AppTheme.heading3),
             const SizedBox(height: 12),
-            ...items.map((p) {
-              final selected = p == provider.selectedProject;
+            ...projects.map((p) {
+              final selected = p.id == provider.selectedProjectId;
               return InkWell(
                 onTap: () {
-                  provider.selectProject(p);
-                  if (p != allOption) {
-                    final match = projects.firstWhere(
-                      (proj) => proj.name == p,
-                      orElse: () => projects.first,
-                    );
-                    context.read<ProjectProvider>().selectProject(match);
-                  }
+                  provider.selectProject(p.id);
+                  context.read<ProjectProvider>().selectProject(p);
                   Navigator.pop(context);
                 },
                 borderRadius: BorderRadius.circular(12),
@@ -554,7 +622,7 @@ class _ProjectPickerSheet extends StatelessWidget {
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(
-                          p,
+                          p.name,
                           style: AppTheme.bodyLarge.copyWith(
                             color: selected
                                 ? AppColors.primary
@@ -678,28 +746,28 @@ class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
     required this.note,
-    required this.selectedProjectName,
+    required this.isExceeded,
   });
 
   final String note;
-  final String selectedProjectName;
+  final bool isExceeded;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: AppGradients.primaryButton,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withValues(alpha: 0.35),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        gradient: LinearGradient(
+          colors: isExceeded
+              ? [AppColors.error, AppColors.error.withOpacity(0.7)]
+              : [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+        ),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -731,6 +799,7 @@ class EfficiencyBanner extends StatelessWidget {
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
+              final selectedProjectName = context.read<ReportProvider>().selectedProjectName;
               Navigator.pushNamed(
                 context,
                 '/report-insights',
@@ -763,6 +832,8 @@ class EfficiencyBanner extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 6),
+          Text(note, style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
