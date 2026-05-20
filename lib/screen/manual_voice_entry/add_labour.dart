@@ -28,11 +28,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   // ── Resource detail controllers ──────────────────────────────────────────
   final _nameCtrl     = TextEditingController(); // Worker / Team Name
   final _workTypeCtrl = TextEditingController(); // Work Type
-  final _categoryCtrl = TextEditingController(); // Subcontractor info / Group type
-  final _qtyCtrl      = TextEditingController(); // Wage hours / Days count
-  String? _selectedUnit;
-  final _rateCtrl     = TextEditingController(); // Base Wage structure
-  final _notesCtrl    = TextEditingController();
+  final _categoryCtrl = TextEditingController(); // Labour Category
+  final _qtyCtrl      = TextEditingController(); // Quantity (hours/days/sqft etc)
+  final _rateCtrl     = TextEditingController(); // Rate / Unit
+  final _overtimeCtrl = TextEditingController(); // Overtime (optional)
+  final _notesCtrl    = TextEditingController(); // Notes
+  String? _selectedUnit;                         // Labour unit
 
   // ── UI states ────────────────────────────────────────────────────────────
   bool _isSaving    = false;
@@ -96,29 +97,27 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     _categoryCtrl.dispose();
     _qtyCtrl.dispose();
     _rateCtrl.dispose();
+    _overtimeCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
   double _totalCost() {
-    final q = double.tryParse(_qtyCtrl.text) ?? 0;
-    final r = double.tryParse(_rateCtrl.text) ?? 0;
-    return q * r;
+    final qty      = double.tryParse(_qtyCtrl.text) ?? 0;
+    final rate     = double.tryParse(_rateCtrl.text)  ?? 0;
+    final overtime = double.tryParse(_overtimeCtrl.text) ?? 0;
+    return (qty * rate) + overtime;
   }
 
   bool _validate() {
     bool ok = true;
     setState(() {
-      _nameError = _nameCtrl.text.trim().isEmpty ? 'Labour Name / Crew identifier is required' : null;
-      _workTypeError = _workTypeCtrl.text.trim().isEmpty ? 'Trade classification required' : null;
-      
+      _nameError  = _nameCtrl.text.trim().isEmpty ? 'Worker / team name is required' : null;
       final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantitative metric > 0' : null;
-
-      final rate = double.tryParse(_rateCtrl.text);
-      _rateError = (rate == null || rate <= 0) ? 'Specify base payroll wage valuation > 0' : null;
-
-      ok = _nameError == null && _workTypeError == null && _qtyError == null && _rateError == null;
+      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
+      final rate  = double.tryParse(_rateCtrl.text);
+      _rateError  = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
+      ok = _nameError == null && _qtyError == null && _rateError == null;
     });
     return ok;
   }
@@ -261,12 +260,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Effort Quantity', required: true),
+                                    const EntryFieldLabel('Work Quantity', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller:   _qtyCtrl,
-                                      hint:         '0',
-                                      suffix:       _selectedUnit ?? 'units',
+                                      controller: _qtyCtrl,
+                                      hint: '0',
+                                      suffix: _selectedUnit ?? 'Unit',
                                       keyboardType: TextInputType.number,
                                       onChanged:    (_) => setState(() {}),
                                     ),
@@ -279,7 +278,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Wage / Rate per unit', required: true),
+                                    const EntryFieldLabel('Rate / Unit', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller:   _rateCtrl,
@@ -296,12 +295,26 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel('Metric Framework Unit'),
+                          // Unit selector
+                          const EntryFieldLabel('Unit', required: false),
                           const SizedBox(height: 8),
                           UnitSelectorField(
-                            value:     _selectedUnit,
+                            value: _selectedUnit,
+                            units: kLabourUnits,
+                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
                             onChanged: (u) => setState(() => _selectedUnit = u),
-                            units:     kLabourUnits,
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Overtime
+                          const EntryFieldLabel('Overtime Amount (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _overtimeCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
                           ),
                           const SizedBox(height: 18),
 
@@ -317,8 +330,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       totalAmount: _totalCost(),
                       label:       'Calculated Operational Labor Budget',
                       subtotals: [
-                        ('Quantified Base Presence', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
-                        ('Assigned Payroll Wage Rate', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Qty × Rate', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Overtime', '₹ ${_overtimeCtrl.text.isEmpty ? "0" : _overtimeCtrl.text}'),
                       ],
                     ),
 

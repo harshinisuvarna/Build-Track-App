@@ -216,11 +216,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
     // --- HARSHINI'S SUBSCRIPTION CHECK ---
     final projectProvider = context.read<ProjectProvider>();
-    // final subProvider = context.read<SubscriptionProvider>();
-    // if (!subProvider.canAddProject(projectProvider.projectCount)) {
-    //   _showUpgradeDialog();
-    //   return;
-    // }
+    final subProvider = context.read<SubscriptionProvider>();
+    if (!subProvider.canAddProject(projectProvider.projectCount)) {
+      _showUpgradeDialog();
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -1335,6 +1335,27 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _saving
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : const Text('Add Project', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3)),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1607,6 +1628,158 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10, offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: primaryBlue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFEEF0F5)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _label(String text, {IconData? icon, bool uppercase = false}) {
+    final textWidget = Text(
+      uppercase ? text.toUpperCase() : text,
+      style: TextStyle(
+        fontSize: uppercase ? 12 : 13,
+        fontWeight: FontWeight.w800,
+        color: uppercase ? textDark.withValues(alpha: 0.5) : textGray,
+        letterSpacing: uppercase ? 1.2 : 0.3,
+      ),
+    );
+
+    if (icon == null) return textWidget;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: primaryBlue),
+        const SizedBox(width: 6),
+        textWidget,
+      ],
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String hint,
+    IconData? icon,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      validator: validator,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textDark),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: textGray.withValues(alpha: 0.5), fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: icon != null ? Icon(icon, size: 18, color: textGray) : null,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryBlue, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red.shade300, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String? value,
+    required String hint,
+    required List<String> items,
+    ValueChanged<String?>? onChanged,
+  }) {
+    final bool disabled = onChanged == null;
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: disabled ? const Color(0xFFF5F5F8) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          hint: Text(
+            hint,
+            style: TextStyle(
+              color: disabled
+                  ? textGray.withValues(alpha: 0.3)
+                  : textGray.withValues(alpha: 0.5),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: disabled ? textGray.withValues(alpha: 0.3) : textGray),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark),
+          items: items.map((e) => DropdownMenuItem<String>(value: e, child: Text(e))).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectableChip({required String label, required bool isSelected, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1991,11 +2164,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   Expanded(
                     child: Text(
                       phase.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: textDark,
-                      ),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textDark),
                     ),
                   ),
                   AnimatedRotation(
@@ -2062,6 +2231,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         color: primaryBlue,
                       ),
                     ),
+                    child: const Text('+ Add Custom Activity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryBlue)),
                   ),
                 ),
               ],

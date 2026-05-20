@@ -254,7 +254,9 @@ class ProjectModel {
     String mappedStatus = 'Active'; // Default fallback
     final rawStatus = (projectStatus ?? '').toLowerCase();
 
-    if (rawStatus.contains('progress') || rawStatus.contains('active') || rawStatus.contains('plan')) {
+    if (rawStatus.contains('progress') ||
+        rawStatus.contains('active') ||
+        rawStatus.contains('plan')) {
       mappedStatus = 'Active';
     } else if (rawStatus.contains('hold') || rawStatus.contains('cancel')) {
       mappedStatus = 'On Hold';

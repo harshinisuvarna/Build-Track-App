@@ -31,6 +31,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _typeCtrl     = TextEditingController(); // Machinery Class / SubType
   final _operatorCtrl = TextEditingController(); // Operator identifier info
   final _qtyCtrl      = TextEditingController(); // Usage duration metrics
+  final _fuelCtrl     = TextEditingController(); // Fuel Usage
   String? _selectedUnit;
   final _rateCtrl     = TextEditingController(); // Runtime hourly / rental baseline rate
   final _notesCtrl    = TextEditingController();
@@ -41,7 +42,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _argsLoaded  = false;
   PickedAttachment? _attachment;
 
-  // ── Local validation structures ──────────────────────────────────────────
+  // ── GST state ──────────────────────────────────────────────────
+  bool _isWithGst = false;
+  final _gstCtrl  = TextEditingController();
+
+  // ── Validation ────────────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
@@ -99,16 +104,27 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _typeCtrl.dispose();
     _operatorCtrl.dispose();
     _qtyCtrl.dispose();
+    _fuelCtrl.dispose();
     _rateCtrl.dispose();
     _notesCtrl.dispose();
+    _gstCtrl.dispose();
     super.dispose();
   }
 
-  double _totalCalculatedCost() {
+  // ── GST Calculation Helpers ─────────────────────────────────────
+  double _subtotal() {
     final qty  = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     return qty * rate;
   }
+
+  double _gstAmount() {
+    if (!_isWithGst) return 0;
+    final gstPct = double.tryParse(_gstCtrl.text) ?? 0;
+    return _subtotal() * gstPct / 100;
+  }
+
+  double _finalTotal() => _subtotal() + _gstAmount();
 
   bool _validate() {
     bool ok = true;
@@ -172,6 +188,26 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Widget _calcRow(String label, String value, {bool muted = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: TextStyle(
+              color: muted ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            )),
+        Text(value,
+            style: TextStyle(
+              color: muted ? const Color(0xFF6B7280) : const Color(0xFF111827),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            )),
+      ],
     );
   }
 
@@ -263,12 +299,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Runtime Volume', required: true),
+                                    const EntryFieldLabel('Usage Quantity', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller:   _qtyCtrl,
-                                      hint:         '0',
-                                      suffix:       _selectedUnit ?? 'units',
+                                      controller: _hoursCtrl,
+                                      hint: '0',
+                                      suffix: _selectedUnit ?? 'Unit',
                                       keyboardType: TextInputType.number,
                                       onChanged:    (_) => setState(() {}),
                                     ),
@@ -281,7 +317,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel('Billing Unit Rate', required: true),
+                                    const EntryFieldLabel('Rate / Unit', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
                                       controller:   _rateCtrl,
@@ -298,12 +334,185 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel('Log Operational Framework Unit'),
+                          // Unit selector
+                          const EntryFieldLabel('Unit'),
                           const SizedBox(height: 8),
                           UnitSelectorField(
-                            value:     _selectedUnit,
+                            value: _selectedUnit,
+                            units: kEquipmentUnits,
+                            hint: 'Select unit (e.g. Hour, Day, Trip)',
                             onChanged: (u) => setState(() => _selectedUnit = u),
-                            units:     kEquipmentUnits,
+                          ),
+                          const SizedBox(height: 22),
+
+                          // ── GST PRICING MODULE ───────────────────────────
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7F8FF),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFDDE0F8), width: 1.2),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 28, height: 28,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEEEFFF),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.percent_rounded,
+                                          color: Color(0xFF173EEA), size: 15),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('GST Configuration',
+                                        style: TextStyle(
+                                          color: Color(0xFF1E1E2E),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.2,
+                                        )),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Refined segmented toggle
+                                Container(
+                                  height: 40,
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECEDF8),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFD5D7EF), width: 1),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setState(() {
+                                            _isWithGst = false;
+                                            _gstCtrl.clear();
+                                          }),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeInOut,
+                                            decoration: BoxDecoration(
+                                              color: !_isWithGst ? const Color(0xFF173EEA) : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(9),
+                                              boxShadow: !_isWithGst
+                                                  ? [BoxShadow(color: const Color(0xFF173EEA).withValues(alpha: 0.22), blurRadius: 6, offset: const Offset(0, 2))]
+                                                  : [],
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text('Without GST',
+                                                style: TextStyle(
+                                                  color: !_isWithGst ? Colors.white : const Color(0xFF6B7280),
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                )),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setState(() => _isWithGst = true),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeInOut,
+                                            decoration: BoxDecoration(
+                                              color: _isWithGst ? const Color(0xFF173EEA) : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(9),
+                                              boxShadow: _isWithGst
+                                                  ? [BoxShadow(color: const Color(0xFF173EEA).withValues(alpha: 0.22), blurRadius: 6, offset: const Offset(0, 2))]
+                                                  : [],
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text('With GST',
+                                                style: TextStyle(
+                                                  color: _isWithGst ? Colors.white : const Color(0xFF6B7280),
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                )),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // GST % field
+                                if (_isWithGst) ...[
+                                  const SizedBox(height: 14),
+                                  const Text('GST Percentage',
+                                      style: TextStyle(
+                                        color: Color(0xFF6B7280),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.3,
+                                      )),
+                                  const SizedBox(height: 6),
+                                  EntryUnderlineField(
+                                    controller: _gstCtrl,
+                                    hint: 'e.g. 18',
+                                    suffix: '%',
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ],
+
+                                // Live cost breakdown
+                                const SizedBox(height: 14),
+                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
+                                const SizedBox(height: 10),
+                                _calcRow('Subtotal', formatCurrency(_subtotal()), muted: true),
+                                if (_isWithGst) ...[
+                                  const SizedBox(height: 6),
+                                  _calcRow(
+                                      'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
+                                      '+ ${formatCurrency(_gstAmount())}',
+                                      muted: true),
+                                ],
+                                const SizedBox(height: 8),
+                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _isWithGst ? 'Final Total (incl. GST)' : 'Total',
+                                      style: const TextStyle(
+                                        color: Color(0xFF173EEA),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    Text(
+                                      formatCurrency(_finalTotal()),
+                                      style: const TextStyle(
+                                        color: Color(0xFF173EEA),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Fuel Usage
+                          const EntryFieldLabel('Fuel Usage (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _fuelCtrl,
+                            hint: 'e.g. 50',
+                            suffix: 'L',
+                            keyboardType: TextInputType.number,
                           ),
                           const SizedBox(height: 18),
 
@@ -316,11 +525,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
                     // ── MATRIX SUMMARY ANALYSIS ────────────────────────────
                     CostSummaryCard(
-                      totalAmount: _totalCalculatedCost(),
-                      label:       'Calculated Mechanical Rental Valuation',
+                      totalAmount: _finalTotal(),
+                      label: _isWithGst ? 'Equipment Cost (incl. GST)' : 'Equipment Usage Cost',
                       subtotals: [
-                        ('Quantified Active Logs', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
-                        ('Rental Pricing Baseline Index', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Usage × Rate', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
+                        ('Fuel Used',   '${_fuelCtrl.text.isEmpty ? "—" : _fuelCtrl.text} L'),
+                        ('Subtotal', formatCurrency(_subtotal())),
+                        if (_isWithGst) ...[
+                          ('GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
+                           '+ ${formatCurrency(_gstAmount())}'),
+                        ],
                       ],
                     ),
 

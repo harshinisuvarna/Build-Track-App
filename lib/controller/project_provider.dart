@@ -33,7 +33,8 @@ class ProjectProvider extends ChangeNotifier {
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
       (e) =>
-          e.projectId.trim() == _selectedProject!.id.trim() && e.type == EntryType.material,
+          e.projectId.trim() == _selectedProject!.id.trim() &&
+          e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -115,9 +116,12 @@ class ProjectProvider extends ChangeNotifier {
         // When the server call is successful, it is the single source of truth.
         // We only use cached projects if the API call fails.
         _projects = mappedServerProjects;
-        
+
         // Persist the clean list to local storage
-        await prefs.setString('cached_projects', ProjectModel.encodeList(_projects));
+        await prefs.setString(
+          'cached_projects',
+          ProjectModel.encodeList(_projects),
+        );
       } catch (e) {
         dev.log('API fetchProjects failed, falling back to local storage: $e');
         if (cachedProjects.isNotEmpty) {
@@ -141,25 +145,43 @@ class ProjectProvider extends ChangeNotifier {
       try {
         final response = await ApiService.get('/transactions');
         if (response.statusCode != 200) {
-          throw Exception('Failed to fetch transactions from server: status ${response.statusCode}');
+          throw Exception(
+            'Failed to fetch transactions from server: status ${response.statusCode}',
+          );
         }
-        
+
         final decoded = json.decode(response.body);
         List<dynamic> apiMaterials = [];
         if (decoded is List) {
           apiMaterials = decoded;
         } else if (decoded is Map) {
-          apiMaterials = (decoded['transactions'] ?? decoded['data'] ?? decoded['items'] ?? []) as List<dynamic>;
+          apiMaterials =
+              (decoded['transactions'] ??
+                      decoded['data'] ??
+                      decoded['items'] ??
+                      [])
+                  as List<dynamic>;
         }
 
         final serverEntries = apiMaterials.map<EntryModel>((json) {
           EntryType parsedType = EntryType.material;
-          final String typeLower = (json['type'] ?? '').toString().trim().toLowerCase();
-          final String catLower = (json['category'] ?? '').toString().trim().toLowerCase();
-          
-          if (typeLower == 'labour' || typeLower == 'wages' || catLower == 'labour' || catLower.contains('labour')) {
+          final String typeLower = (json['type'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
+          final String catLower = (json['category'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
+
+          if (typeLower == 'labour' ||
+              typeLower == 'wages' ||
+              catLower == 'labour' ||
+              catLower.contains('labour')) {
             parsedType = EntryType.labour;
-          } else if (typeLower == 'equipment' || typeLower == 'expense' || catLower == 'equipment') {
+          } else if (typeLower == 'equipment' ||
+              typeLower == 'expense' ||
+              catLower == 'equipment') {
             parsedType = EntryType.equipment;
           }
 
@@ -183,14 +205,22 @@ class ProjectProvider extends ChangeNotifier {
           }
 
           return EntryModel(
-            id: json['_id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            id:
+                json['_id']?.toString() ??
+                DateTime.now().millisecondsSinceEpoch.toString(),
             projectId: pId,
             type: parsedType,
-            amount: (json['quantity'] ?? json['closingStock'] ?? json['amount'] ?? 0).toDouble(),
+            amount:
+                (json['quantity'] ??
+                        json['closingStock'] ??
+                        json['amount'] ??
+                        0)
+                    .toDouble(),
             date: json['date'] != null
                 ? DateTime.tryParse(json['date']) ?? DateTime.now()
                 : DateTime.now(),
-            description: json['title'] ?? json['materialName'] ?? 'Material Entry',
+            description:
+                json['title'] ?? json['materialName'] ?? 'Material Entry',
             brand: json['brand'] ?? json['materialName'],
             ratePerUnit: (json['rate'] ?? json['ratePerUnit'] ?? 0).toDouble(),
             unit: json['unit']?.toString(),
@@ -219,7 +249,9 @@ class ProjectProvider extends ChangeNotifier {
 
       // Retain currently selected project if it still exists in the fetched list
       if (_selectedProject != null) {
-        final existingIdx = _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
+        final existingIdx = _projects.indexWhere(
+          (p) => p.id.trim() == _selectedProject!.id.trim(),
+        );
         if (existingIdx != -1) {
           _selectedProject = _projects[existingIdx];
         } else if (_projects.isNotEmpty) {
