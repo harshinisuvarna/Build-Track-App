@@ -77,6 +77,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
         _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final String rawUnit = (args['unit'] ?? '').toString().trim().toLowerCase();
+        if (rawUnit == 'bag' || rawUnit == 'bags') {
+          _selectedUnit = 'bag';
+        } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+          _selectedUnit = 'Sq.ft';
+        } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+          _selectedUnit = 'ton';
+        } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+          _selectedUnit = 'kg';
+        } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+          _selectedUnit = 'unit';
+        } else if (rawUnit.isNotEmpty) {
+          _selectedUnit = rawUnit;
+        }
       } else {
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;

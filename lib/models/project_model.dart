@@ -250,20 +250,18 @@ class ProjectModel {
     }
 
     // 2. Map the UI status to the exact backend enum values (Title Case)
-    //    Backend enum: ["Planning", "In Progress", "On Hold", "Completed", "Cancelled"]
-    String mappedStatus = 'Planning'; // Default fallback
+    //    Backend enum: ["Active", "Completed", "On Hold", "Review Needed"]
+    String mappedStatus = 'Active'; // Default fallback
     final rawStatus = (projectStatus ?? '').toLowerCase();
 
-    if (rawStatus.contains('progress') || rawStatus.contains('active')) {
-      mappedStatus = 'In Progress';
-    } else if (rawStatus.contains('hold')) {
+    if (rawStatus.contains('progress') || rawStatus.contains('active') || rawStatus.contains('plan')) {
+      mappedStatus = 'Active';
+    } else if (rawStatus.contains('hold') || rawStatus.contains('cancel')) {
       mappedStatus = 'On Hold';
     } else if (rawStatus.contains('complet')) {
       mappedStatus = 'Completed';
-    } else if (rawStatus.contains('cancel')) {
-      mappedStatus = 'Cancelled';
-    } else if (rawStatus.contains('plan')) {
-      mappedStatus = 'Planning';
+    } else if (rawStatus.contains('review')) {
+      mappedStatus = 'Review Needed';
     }
 
     return {
@@ -279,6 +277,11 @@ class ProjectModel {
       'clientName': clientName ?? 'Internal Client',
       'projectCode':
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
+
+      // Flat budget fields extracted by backend controller
+      'budgetMaterials': budgetMaterial ?? 0,
+      'budgetLabour': budgetLabour ?? 0,
+      'budgetEquipment': budgetEquipment ?? 0,
 
       // Nested buildingType object required by validation
       'buildingType': {'mainType': mainType, 'subType': subType},

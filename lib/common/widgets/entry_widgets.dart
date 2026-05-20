@@ -1325,9 +1325,9 @@ Future<Map<String, dynamic>?> showPaymentSheet(
 
         String helperText;
         if (selectedStatus == PaymentStatus.paid) {
-          helperText = 'Full settlement — ${formatCurrency(totalAmount)}';
-          if (amountCtrl.text.isEmpty) {
-            amountCtrl.text = totalAmount.toStringAsFixed(0);
+          helperText = 'Full settlement — ${formatCurrency(outstanding)}';
+          if (amountCtrl.text.isEmpty || amountCtrl.text == '0') {
+            amountCtrl.text = outstanding.toStringAsFixed(0);
           }
         } else if (selectedStatus == PaymentStatus.pending) {
           helperText = 'No payment recorded';
@@ -1812,7 +1812,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                   }
                                 }
                                 final amount = selectedStatus == PaymentStatus.paid
-                                    ? totalAmount
+                                    ? outstanding
                                     : selectedStatus == PaymentStatus.pending
                                         ? 0.0
                                         : (double.tryParse(amountCtrl.text.trim()) ?? 0);

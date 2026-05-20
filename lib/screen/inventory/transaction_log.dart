@@ -180,6 +180,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             }
           }
           pId = pId.trim();
+          if (pId.isEmpty) {
+            pId = 'p1';
+          }
 
           if (selectedProjId != null && selectedProjId.isNotEmpty) {
             if (pId != selectedProjId) continue;
@@ -819,12 +822,17 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                                   ? 'Partial'
                                   : 'Pending';
 
+                          String apiPaymentMode = result['method'] ?? '';
+                          if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
+                            apiPaymentMode = 'Bank';
+                          }
+
                           final success = await ApiService.updateTransactionPayment(
                             log['id'] as String? ?? '',
                             {
                               'paymentStatus': newStatusStr,
                               'paidAmount': totalPaid,
-                              'paymentMode': result['method'] ?? '',
+                              'paymentMode': apiPaymentMode,
                               'notes': result['note'] ?? '',
                             },
                           );

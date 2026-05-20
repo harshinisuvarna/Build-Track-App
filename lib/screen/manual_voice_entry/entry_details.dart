@@ -120,8 +120,29 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String createdBy   = args['createdBy']    as String? ?? '';
     final String projectId   = args['projectId']    as String? ?? '';
     final String supplier    = args['supplier']     as String? ?? '';
-    final String method      = args['paymentMethod'] as String? ?? '';
-    final String lastUpdated = args['lastUpdated']  as String? ?? date;
+    final String initialMethod = args['paymentMethod'] as String? ?? '';
+    final String initialLastUpdated = args['lastUpdated']  as String? ?? date;
+
+    final String method = _paymentHistory.isNotEmpty
+        ? (_paymentHistory.last['method'] ?? _paymentHistory.last['paymentMode'] ?? initialMethod)
+        : initialMethod;
+
+    final String lastUpdated = _paymentHistory.isNotEmpty
+        ? (_paymentHistory.last['date'] != null 
+            ? (() {
+                try {
+                  final dt = DateTime.parse(_paymentHistory.last['date'].toString());
+                  final months = [
+                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                  ];
+                  return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+                } catch (_) {
+                  return _paymentHistory.last['date'].toString();
+                }
+              })()
+            : initialLastUpdated)
+        : initialLastUpdated;
 
     final bool canEdit   = EntryPermissions.canEdit(
         status: _entryStatus.name, createdBy: createdBy, projectId: projectId);
@@ -538,12 +559,17 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
             // Sync payment update with the MongoDB database
             if (id.isNotEmpty) {
+              String apiPaymentMode = result['method'] ?? '';
+              if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
+                apiPaymentMode = 'Bank';
+              }
+
               await ApiService.updateTransactionPayment(
                 id,
                 {
                   'paymentStatus': newStatusStr,
                   'paidAmount': totalPaid,
-                  'paymentMode': result['method'] ?? '',
+                  'paymentMode': apiPaymentMode,
                   'notes': result['note'] ?? '',
                 },
               );

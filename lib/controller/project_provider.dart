@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -229,6 +230,9 @@ class ProjectProvider extends ChangeNotifier {
       } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
       }
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
+      }
       _error = '';
     } catch (e, st) {
       _error = 'Failed to load data: $e';
@@ -251,6 +255,9 @@ class ProjectProvider extends ChangeNotifier {
       }).toList();
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
+      }
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
       }
       _error = '';
     } catch (e) {
@@ -289,11 +296,13 @@ class ProjectProvider extends ChangeNotifier {
     // Use the server-returned model (has real _id, etc.)
     _projects.add(saved);
     _selectedProject = saved;
+    UserSession.projectId = saved.id;
     notifyListeners();
   }
 
   void selectProject(ProjectModel project) {
     _selectedProject = project;
+    UserSession.projectId = project.id;
     notifyListeners();
   }
 

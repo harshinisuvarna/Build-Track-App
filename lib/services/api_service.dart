@@ -187,6 +187,23 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> addTransaction(Map<String, dynamic> payload) async {
+    try {
+      final response = await post('/transactions', payload);
+      print('=== SERVER RESPONSE DEBUG ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('=============================');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('POST Error: $e');
+      return null;
+    }
+  }
+
   // Update transaction payment (e.g. Record Payment)
   static Future<bool> updateTransactionPayment(String id, Map<String, dynamic> payload) async {
     try {

@@ -70,6 +70,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _nameCtrl.text = args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
         _qtyCtrl.text   = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final String rawUnit = (args['unit'] ?? '').toString().trim().toLowerCase();
+        if (rawUnit == 'day' || rawUnit == 'days') {
+          _selectedUnit = 'Day';
+        } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+          _selectedUnit = 'Hour';
+        } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
+          _selectedUnit = 'Sq.ft';
+        } else if (rawUnit.isNotEmpty) {
+          _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+        }
       } else {
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
