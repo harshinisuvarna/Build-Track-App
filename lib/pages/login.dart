@@ -1,33 +1,24 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
-
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-
   bool _obscurePass = true;
-  final bool _rememberMe = false;
-  bool _loading = false;
-
+  bool _rememberMe = false;
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -38,7 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
     return Scaffold(
       backgroundColor: _bgColor,
       resizeToAvoidBottomInset: false,
@@ -79,11 +69,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildHeader() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('BuildTrack', style: AppTheme.heading1.copyWith(fontSize: 30)),
+        Text(
+          'BuildTrack',
+          style: AppTheme.heading1.copyWith(fontSize: 30, letterSpacing: -0.8),
+        ),
         const SizedBox(height: 6),
         Text(
           'Manage your construction smarter',
+          textAlign: TextAlign.center,
           style: AppTheme.body.copyWith(color: AppColors.textLight),
         ),
       ],
@@ -92,12 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildForm() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppTextField(
           label: 'Email Address',
           controller: _emailCtrl,
           hint: 'name@company.com',
           prefixIcon: Icons.mail_outline,
+          keyboardType: TextInputType.emailAddress,
         ),
         AppTextField(
           label: 'Password',
@@ -108,11 +106,51 @@ class _LoginScreenState extends State<LoginScreen> {
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePass
-                  ? Icons.visibility_outlined
+                  ? Icons.remove_red_eye_outlined
                   : Icons.visibility_off_outlined,
+              color: AppColors.textLight,
+              size: 20,
             ),
             onPressed: () => setState(() => _obscurePass = !_obscurePass),
           ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/forgot-password'),
+            child: Text(
+              'Forgot Password?',
+              style: AppTheme.body.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        Row(
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: Checkbox(
+                value: _rememberMe,
+                onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                side: const BorderSide(color: Color(0xFFCBCFE8), width: 1.5),
+                activeColor: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Remember me for 30 days',
+                style: AppTheme.body.copyWith(color: AppColors.textDark),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -120,14 +158,48 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildActions() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         AppButton(
-          label: _loading ? 'Signing in...' : 'Sign In',
-          onPressed: _loading ? null : _login,
+          label: 'Sign In',
+          onPressed: () async {
+            final email = _emailCtrl.text.trim();
+            final password = _passCtrl.text.trim();
+
+            if (email.isEmpty || password.isEmpty) return;
+
+            final success = await AuthService.login(email, password);
+
+            if (success) {
+              if (mounted) {
+                // 1. Wait for token to write to disk
+                await Future.delayed(const Duration(milliseconds: 200));
+
+                // 2. FORCE THE PROVIDER TO RE-FETCH WITH THE NEW TOKEN
+                // Note: Change 'fetchProjects()' to whatever the actual load method
+                // is named inside your ProjectProvider class if it's different.
+                // You may need to import 'package:provider/provider.dart'; at the top.
+                context.read<ProjectProvider>().fetchProjects();
+
+                // 3. Now go to the dashboard
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              }
+            } else {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Login failed. Please check your credentials.',
+                    ),
+                  ),
+                );
+              }
+            }
+          },
         ),
-
         const SizedBox(height: 20),
-
         Wrap(
           alignment: WrapAlignment.center,
           children: [
@@ -151,66 +223,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _login() async {
-    final email = _emailCtrl.text.trim();
-    final password = _passCtrl.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter email and password')));
-      return;
-    }
-
-    setState(() => _loading = true);
-
-    try {
-      final data = await AuthService.login(email, password);
-
-      if (data != null && data['token'] != null) {
-        // 1. Save token FIRST
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', data['token']);
-
-        UserSession.set(
-          userId: data['userId'] ?? '',
-          role: _parseRole(data['role']),
-        );
-
-        if (mounted) {
-          // 2. Load ALL data (projects + entries) now that token is saved
-          await context.read<ProjectProvider>().load();
-
-          // 3. Navigate
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        throw Exception("Invalid login response");
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
-    }
-  }
-
-  UserRole _parseRole(String? role) {
-    switch (role?.toLowerCase()) {
-      case 'supervisor':
-        return UserRole.supervisor;
-      case 'mason':
-      case 'worker':
-        return UserRole.mason;
-      default:
-        return UserRole.admin;
-    }
-  }
-
   Widget _buildFooter() {
-    return Text('Privacy Policy • Terms of Service', style: AppTheme.caption);
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      children: [
+        Text(
+          'Privacy Policy',
+          style: AppTheme.caption.copyWith(fontWeight: FontWeight.w500),
+        ),
+        Container(
+          width: 4,
+          height: 4,
+          decoration: const BoxDecoration(
+            color: AppColors.textLight,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Text(
+          'Terms of Service',
+          style: AppTheme.caption.copyWith(fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
   }
 }

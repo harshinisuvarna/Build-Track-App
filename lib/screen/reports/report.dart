@@ -29,19 +29,6 @@ class _ReportsView extends StatefulWidget {
 
 class _ReportsViewState extends State<_ReportsView> {
   final _pageController = PageController();
-  bool _linked = false; // ← ADD THIS
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_linked) {
-      // ← ADD THIS CHECK
-      _linked = true;
-      final projectProvider = context.read<ProjectProvider>();
-      context.read<ReportProvider>().linkProjectProvider(projectProvider);
-    }
-  }
-  // ... rest unchanged
 
   @override
   void dispose() {
@@ -50,10 +37,16 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final projectProvider = context.read<ProjectProvider>();
+    context.read<ReportProvider>().linkProjectProvider(projectProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-    // Watch project provider so widget rebuilds when entries/projects change
-    context.watch<ProjectProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -137,7 +130,7 @@ class _ReportsViewState extends State<_ReportsView> {
       );
     }
 
-    final report = provider.report;
+    final report = provider.report!;
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -167,7 +160,7 @@ class _ReportsViewState extends State<_ReportsView> {
 
           EfficiencyBanner(
             note: report.efficiencyNote,
-            isExceeded: report.isBudgetExceeded,
+            selectedProjectName: provider.selectedProject,
           ),
 
           const SizedBox(height: 8),
@@ -193,7 +186,10 @@ class _PeriodTabs extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+          ),
         ],
       ),
       child: Row(
@@ -201,12 +197,15 @@ class _PeriodTabs extends StatelessWidget {
           final active = i == tabIndex;
 
           return Expanded(
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => onTabChanged(i),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+              borderRadius: BorderRadius.circular(26),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  gradient: active ? AppGradients.primaryButton : null,
+                  gradient:
+                      active ? AppGradients.primaryButton : null,
                   color: active ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
                 ),
@@ -215,7 +214,8 @@ class _PeriodTabs extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: active ? Colors.white : AppColors.textLight,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
               ),

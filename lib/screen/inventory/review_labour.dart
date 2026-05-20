@@ -222,9 +222,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     final response = await ApiService.addTransaction({
       "title": _nameCtrl.text.trim(),
       "type": "Wages",
-      "category": _categoryCtrl.text.trim().isEmpty
-          ? "General Labour"
-          : _categoryCtrl.text.trim(),
+      "category": _categoryCtrl.text.trim().isEmpty ? "General Labour" : _categoryCtrl.text.trim(),
       "quantity": qty,
       "rate": rate,
       "unit": "day",
@@ -279,9 +277,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               createdBy: UserSession.userId,
             ).toMap()..addAll({
               'title': _nameCtrl.text,
-              'ref': entryId.length > 4
-                  ? '#${entryId.substring(entryId.length - 4)}'
-                  : '#$entryId',
+              'ref': entryId.length > 4 ? '#${entryId.substring(entryId.length - 4)}' : '#$entryId',
               'amount': '+$qty',
               'date': 'Today',
               'isPositive': true,

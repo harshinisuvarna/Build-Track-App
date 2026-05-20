@@ -5,22 +5,21 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 
 class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
-  // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
-  static const String baseUrl = 'http://localhost:5001/api';
+  // Change to 'http://10.0.2.2:5000/api' if testing on an Android Emulator.
+  static const String baseUrl = 'http://localhost:5000/api';
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
   // ==========================================
   static Future<Map<String, String>> _getHeaders() async {
-  final prefs = await SharedPreferences.getInstance();
-  // ✅ Try 'token' first, fall back to 'jwt_token'
-  final token = prefs.getString('token') ?? prefs.getString('jwt_token');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
 
-  return {
-    'Content-Type': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
-}
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
@@ -175,7 +174,7 @@ class ApiService {
     try {
       // 🌟 CHANGED PATH URL: From '/inventory' to '/transactions' to resolve your 404 Route Not Found error
       final response = await post('/transactions', payload);
-
+      
       print('=== SERVER RESPONSE DEBUG ===');
       print('Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
@@ -188,9 +187,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> addTransaction(
-    Map<String, dynamic> payload,
-  ) async {
+  static Future<Map<String, dynamic>?> addTransaction(Map<String, dynamic> payload) async {
     try {
       final response = await post('/transactions', payload);
       print('=== SERVER RESPONSE DEBUG ===');
@@ -208,10 +205,7 @@ class ApiService {
   }
 
   // Update transaction payment (e.g. Record Payment)
-  static Future<bool> updateTransactionPayment(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  static Future<bool> updateTransactionPayment(String id, Map<String, dynamic> payload) async {
     try {
       final response = await put('/transactions/$id', payload);
       print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
@@ -227,92 +221,66 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      // YOUR FIX: Using the correct /inventory endpoint from main
-      String endpoint = '/inventory';
-      if (projectId.isNotEmpty) endpoint += '?project=$projectId';
+      String endpoint = '/transactions';
+      if (projectId.isNotEmpty) endpoint += '?project=' + projectId;
 
       final response = await get(endpoint);
 
-      print('fetchInventory status: ${response.statusCode}');
-      print('fetchInventory body: ${response.body}');
+      print('fetchInventory status: ' + response.statusCode.toString());
+      print('fetchInventory body: ' + response.body);
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
 
-        // ROSELIN'S LOGIC: Preserving her list extraction
         List<dynamic> raw = [];
         if (decoded is List) {
           raw = decoded;
         } else if (decoded is Map) {
-          raw =
-              (decoded['inventory'] ??
-                      decoded['data'] ??
-                      decoded['items'] ??
-                      [])
-                  as List<dynamic>;
+          raw = (decoded['transactions'] ?? decoded['data'] ?? decoded['items'] ?? []) as List<dynamic>;
         }
 
-        // ROSELIN'S LOGIC: Preserving her complex grouping algorithm
         final Map<String, Map<String, dynamic>> grouped = {};
         for (final t in raw) {
-          final String title = (t['title'] ?? t['materialName'] ?? 'Unknown')
-              .toString();
-
-          final String rawCat = (t['category'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
-          final String rawType = (t['type'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
-
+          final String title = (t['title'] ?? t['materialName'] ?? 'Unknown').toString();
+          
+          final String rawCat = (t['category'] ?? '').toString().trim().toLowerCase();
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          
           String category = 'material';
-          if (rawCat == 'labour' ||
-              rawCat == 'wages' ||
-              rawCat == 'labor' ||
-              rawCat.contains('labour') ||
-              rawType == 'wages' ||
-              rawType == 'labour') {
+          if (rawCat == 'labour' || rawCat == 'wages' || rawCat == 'labor' || rawCat.contains('labour') || rawType == 'wages' || rawType == 'labour') {
             category = 'labour';
-          } else if (rawCat == 'equipment' ||
-              rawCat == 'machinery' ||
-              rawCat == 'expense' ||
-              rawType == 'expense' ||
-              rawType == 'equipment') {
+          } else if (rawCat == 'equipment' || rawCat == 'machinery' || rawCat == 'expense' || rawType == 'expense' || rawType == 'equipment') {
             category = 'equipment';
           }
 
-          final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-          final String unit = (t['unit'] ?? 'units').toString();
-          final String key = '$title||$category';
+          final double qty      = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+          final String unit     = (t['unit'] ?? 'units').toString();
+          final String key      = title + '||' + category;
 
           if (grouped.containsKey(key)) {
-            grouped[key]!['purchased'] =
-                (grouped[key]!['purchased'] as double) + qty;
-            grouped[key]!['closingStock'] =
-                (grouped[key]!['closingStock'] as double) + qty;
+            grouped[key]!['purchased']    = (grouped[key]!['purchased']    as double) + qty;
+            grouped[key]!['closingStock'] = (grouped[key]!['closingStock'] as double) + qty;
           } else {
             grouped[key] = {
-              '_id': t['_id'] ?? key,
+              '_id':          t['_id'] ?? key,
               'materialName': title,
-              'category': category,
-              'purchased': qty,
-              'used': 0.0,
+              'category':     category,
+              'purchased':    qty,
+              'used':         0.0,
               'closingStock': qty,
-              'threshold': 10.0,
-              'unit': unit,
+              'threshold':    10.0,
+              'unit':         unit,
             };
           }
         }
-        print('fetchInventory grouped items: ${grouped.length}');
+        print('fetchInventory grouped items: ' + grouped.length.toString());
         return grouped.values.toList();
       } else {
-        print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        print('fetchInventory failed: ' + response.statusCode.toString() + ' ' + response.body);
         return [];
       }
     } catch (e, stack) {
-      print('Inventory GET Error: $e');
+      print('Inventory GET Error: ' + e.toString());
       print(stack.toString());
       return [];
     }
@@ -322,7 +290,7 @@ class ApiService {
   static Future<bool> resetPassword(String email) async {
     try {
       // Using your existing 'post' helper!
-      // baseUrl is already 'http://localhost:5001/api', so we just add the endpoint.
+      // baseUrl is already 'http://localhost:5000/api', so we just add the endpoint.
       final response = await post('/auth/reset-password', {'email': email});
 
       // Return true if 200 OK or 201 Created
@@ -343,7 +311,7 @@ class ApiService {
   }) async {
     try {
       // Build the query string dynamically
-      String endpoint = '/inventory?';
+      String endpoint = '/transactions?';
       if (query != null && query.isNotEmpty) endpoint += 'search=$query&';
       if (category != null && category.isNotEmpty && category != 'All') {
         endpoint += 'category=${category.toLowerCase()}';
@@ -384,7 +352,6 @@ class ApiService {
       return []; // Return empty list on error to prevent UI crash
     }
   }
-
   static Future<void> addInventoryItem({
     required String materialName,
     required double purchased,
@@ -403,9 +370,7 @@ class ApiService {
         'threshold': threshold,
       });
       if (response.statusCode != 200 && response.statusCode != 201) {
-        print(
-          'addInventoryItem failed (${response.statusCode}): ${response.body}',
-        );
+        print('addInventoryItem failed (${response.statusCode}): ${response.body}');
         throw Exception('Failed to add inventory item');
       }
     } catch (e) {
