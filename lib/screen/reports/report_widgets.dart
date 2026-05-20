@@ -9,7 +9,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
-import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -19,38 +19,35 @@ class MetricCard extends StatelessWidget {
     required this.change, // positive = over-budget (bad), negative = saving
   });
   final IconData icon;
-  final String   label;
-  final String   value;
-  final double   change;
+  final String label;
+  final String value;
+  final double change;
   @override
   Widget build(BuildContext context) {
     final isNeutral = change == 0.0;
-    final isGood    = change < 0.0;
+    final isGood = change < 0.0;
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
-            ? AppColors.success
-            : AppColors.error;
+        ? AppColors.success
+        : AppColors.error;
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
-            ? Icons.trending_down
-            : Icons.trending_up;
+        ? Icons.trending_down
+        : Icons.trending_up;
     final subText = isNeutral
         ? 'On Track'
         : isGood
-            ? '${change.abs().toStringAsFixed(0)}% Saving'
-            : '+${change.toStringAsFixed(0)}% Over';
+        ? '${change.abs().toStringAsFixed(0)}% Saving'
+        : '+${change.toStringAsFixed(0)}% Over';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -68,7 +65,10 @@ class MetricCard extends StatelessWidget {
           const SizedBox(height: 9),
           Text(
             label,
-            style: AppTheme.label.copyWith(color: AppColors.textLight, fontSize: 10),
+            style: AppTheme.label.copyWith(
+              color: AppColors.textLight,
+              fontSize: 10,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -102,243 +102,280 @@ class MetricCard extends StatelessWidget {
     );
   }
 }
+
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
   final ReportModel report;
-  final String      period;
+  final String period;
   @override
   Widget build(BuildContext context) {
     final metrics = [
-      _M(Icons.credit_card_outlined,  'TOTAL COST', report.formattedTotal,
-          ReportModel.mockChange('total',     period)),
-      _M(Icons.architecture,           'MATERIAL',   report.formattedMaterial,
-          ReportModel.mockChange('material',  period)),
-      _M(Icons.people_outline,         'LABOUR',     report.formattedLabour,
-          ReportModel.mockChange('labour',    period)),
-      _M(Icons.precision_manufacturing_outlined,  'EQUIPMENT',  report.formattedEquipment,
-          ReportModel.mockChange('equipment', period)),
+      _M(
+        Icons.credit_card_outlined,
+        'TOTAL COST',
+        report.formattedTotal,
+        ReportModel.mockChange('total', period),
+      ),
+      _M(
+        Icons.architecture,
+        'MATERIAL',
+        report.formattedMaterial,
+        ReportModel.mockChange('material', period),
+      ),
+      _M(
+        Icons.people_outline,
+        'LABOUR',
+        report.formattedLabour,
+        ReportModel.mockChange('labour', period),
+      ),
+      _M(
+        Icons.precision_manufacturing_outlined,
+        'EQUIPMENT',
+        report.formattedEquipment,
+        ReportModel.mockChange('equipment', period),
+      ),
     ];
     return Column(
       children: [
-        Row(children: [
-          Expanded(child: MetricCard(icon: metrics[0].icon, label: metrics[0].label, value: metrics[0].value, change: metrics[0].change)),
-          const SizedBox(width: 12),
-          Expanded(child: MetricCard(icon: metrics[1].icon, label: metrics[1].label, value: metrics[1].value, change: metrics[1].change)),
-        ]),
+        Row(
+          children: [
+            Expanded(
+              child: MetricCard(
+                icon: metrics[0].icon,
+                label: metrics[0].label,
+                value: metrics[0].value,
+                change: metrics[0].change,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MetricCard(
+                icon: metrics[1].icon,
+                label: metrics[1].label,
+                value: metrics[1].value,
+                change: metrics[1].change,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: MetricCard(icon: metrics[2].icon, label: metrics[2].label, value: metrics[2].value, change: metrics[2].change)),
-          const SizedBox(width: 12),
-          Expanded(child: MetricCard(icon: metrics[3].icon, label: metrics[3].label, value: metrics[3].value, change: metrics[3].change)),
-        ]),
+        Row(
+          children: [
+            Expanded(
+              child: MetricCard(
+                icon: metrics[2].icon,
+                label: metrics[2].label,
+                value: metrics[2].value,
+                change: metrics[2].change,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MetricCard(
+                icon: metrics[3].icon,
+                label: metrics[3].label,
+                value: metrics[3].value,
+                change: metrics[3].change,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 }
+
 class _M {
   const _M(this.icon, this.label, this.value, this.change);
   final IconData icon;
-  final String   label;
-  final String   value;
-  final double   change;
+  final String label;
+  final String value;
+  final double change;
 }
+
 class ChartSection extends StatelessWidget {
-  const ChartSection({super.key, required this.provider});
-  final ReportProvider provider;
+  const ChartSection({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final data      = provider.activeChartData;
-    final unitIndex = provider.unitIndex;
-    final target    = data.map((v) => v * 0.93).toList();
-    final unit      = unitIndex == 0 ? 'SQFT' : 'CUYD';
+    // 📊 MOCK DATA (TASK REQUIREMENT)
+    final List<double> data = [12, 1350, 100, 1650, 1580, 1720];
+
+    const double targetCost = 1500;
+
+    final List<String> phases = [
+      'Foundation',
+      'Plinth',
+      'Slab',
+      'Walls',
+      'Roof',
+      'Finishing',
+    ];
+
     final actualVal = data.isNotEmpty ? data.last : 0.0;
-    final targetVal = target.isNotEmpty ? target.last : 0.0;
-    final actualSpots = [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])];
-    final targetSpots = [for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])];
-    final minY = data.isEmpty ? 0.0
-        : (data.reduce((a, b) => a < b ? a : b) * 0.92);
-    final maxY = data.isEmpty ? 30.0
-        : (data.reduce((a, b) => a > b ? a : b) * 1.05);
+    final targetVal = targetCost;
+
+    final actualSpots = List.generate(
+      data.length,
+      (i) => FlSpot(i.toDouble(), data[i]),
+    );
+
+    final targetSpots = List.generate(
+      data.length,
+      (i) => FlSpot(i.toDouble(), targetCost),
+    );
+
+    final minY = data.reduce((a, b) => a < b ? a : b) * 0.9;
+    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.1;
+
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header + unit toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // 📌 HEADER
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Cost per $unit',
-                        style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
-                    const SizedBox(height: 3),
-                    Text('Concrete pouring efficiency vs target',
-                        style: AppTheme.caption
-                            .copyWith(color: AppColors.textLight, height: 1.4)),
-                  ],
+              Text(
+                'Cost per SQFT',
+                style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Construction cost vs efficiency benchmark',
+                style: AppTheme.caption.copyWith(
+                  color: AppColors.textLight,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(width: 12),
-              _UnitToggle(unitIndex: unitIndex, onChanged: provider.selectUnit),
             ],
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 140,
-            child: data.isEmpty
-                ? const Center(child: Text('No chart data'))
-                : LineChart(
-                    key: ValueKey('$unit-${provider.tabIndex}'),
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOut,
-                    LineChartData(
-                      minY: minY,
-                      maxY: maxY,
-                      clipData: const FlClipData.all(),
-                      lineTouchData: LineTouchData(
-                        handleBuiltInTouches: true,
-                        getTouchedSpotIndicator: (barData, spotIndexes) =>
-                            spotIndexes.map((i) => TouchedSpotIndicatorData(
-                                  // Zero-width line = no stick
-                                  const FlLine(strokeWidth: 0),
-                                  FlDotData(
-                                    getDotPainter: (spot, percent, barData, index) =>
-                                        FlDotCirclePainter(
-                                      radius: 6,
-                                      color: AppColors.primary,
-                                      strokeWidth: 2.5,
-                                      strokeColor: Colors.white,
-                                    ),
-                                  ),
-                                )).toList(),
-                        touchTooltipData: LineTouchTooltipData(
-                          getTooltipColor: (_) => const Color(0xFF1A1D3A),
-                          tooltipRoundedRadius: 12,
-                          tooltipPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          getTooltipItems: (spots) => spots.map((s) {
-                            final isActual = s.barIndex == 0;
-                            if (!isActual) return null;
-                            final val = formatCurrency(s.y);
-                            return LineTooltipItem(
-                              '$val/$unit',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.2,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: (maxY - minY) / 3,
-                        getDrawingHorizontalLine: (_) => FlLine(
-                          color: const Color(0xFFEEF0F8),
-                          strokeWidth: 1,
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            interval: (maxY - minY) / 3,
-                            getTitlesWidget: (v, _) => Text(
-                              formatCurrency(v),
-                              style: AppTheme.caption.copyWith(
-                                  fontSize: 9, color: AppColors.textLight),
-                            ),
-                          ),
-                        ),
-                      ),
 
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: actualSpots,
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primary.withValues(alpha: 0.70),
-                            ],
+          const SizedBox(height: 20),
+
+          // 📊 CHART
+          SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                minY: minY,
+                maxY: maxY,
+                clipData: const FlClipData.all(),
+
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (maxY - minY) / 3,
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: const Color(0xFFEEF0F8), strokeWidth: 1),
+                ),
+
+                borderData: FlBorderData(show: false),
+
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        int i = value.toInt();
+                        if (i < 0 || i >= phases.length) {
+                          return const SizedBox();
+                        }
+                        return Text(
+                          phases[i],
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 10,
+                            color: AppColors.textLight,
                           ),
-                          dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primary.withValues(alpha: 0.22),
-                                AppColors.primary.withValues(alpha: 0.0),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                        ),
-                        LineChartBarData(
-                          spots: targetSpots,
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          color: const Color(0xFFBBC0D0),
-                          barWidth: 1.8,
-                          dashArray: [6, 4],
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(show: false),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: (maxY - minY) / 3,
+                      reservedSize: 40,
+                      getTitlesWidget: (v, _) => Text(
+                        '₹${v.toInt()}',
+                        style: AppTheme.caption.copyWith(
+                          fontSize: 9,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                lineBarsData: [
+                  // 📈 ACTUAL COST LINE
+                  LineChartBarData(
+                    spots: actualSpots,
+                    isCurved: true,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withValues(alpha: 0.6),
+                      ],
+                    ),
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.2),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+
+                  // 📉 TARGET LINE (DASHED)
+                  LineChartBarData(
+                    spots: targetSpots,
+                    isCurved: false,
+                    barWidth: 2,
+                    color: const Color(0xFFBBC0D0),
+                    dashArray: [6, 4],
+                    dotData: const FlDotData(show: false),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['WK 12', 'WK 13', 'WK 14', 'WK 15', 'WK 16', 'WK 17']
-                .map((w) => Text(w,
-                    style:
-                        AppTheme.caption.copyWith(color: AppColors.textLight)))
-                .toList(),
-          ),
+
           const SizedBox(height: 14),
+
+          // 📌 LEGEND
           Row(
             children: [
               _legendDot(AppColors.primary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  'Actual: ${formatCurrency(actualVal)}/$unit',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(
-                      color: AppColors.textDark, fontWeight: FontWeight.w700),
+              const SizedBox(width: 6),
+              Text(
+                'Actual: ₹${actualVal.toInt()}/SQFT',
+                style: AppTheme.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               _legendDot(const Color(0xFFBBC0D0)),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  'Target: ${formatCurrency(targetVal)}/$unit',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
-                ),
+              const SizedBox(width: 6),
+              Text(
+                'Target: ₹1500/SQFT',
+                style: AppTheme.caption.copyWith(color: AppColors.textLight),
               ),
             ],
           ),
@@ -346,11 +383,14 @@ class ChartSection extends StatelessWidget {
       ),
     );
   }
-  Widget _legendDot(Color c) => Container(
-        width: 10, height: 10,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle));
 
+  Widget _legendDot(Color c) => Container(
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
 }
+
 class _UnitToggle extends StatelessWidget {
   const _UnitToggle({required this.unitIndex, required this.onChanged});
   final int unitIndex;
@@ -390,6 +430,7 @@ class _UnitToggle extends StatelessWidget {
     );
   }
 }
+
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
   final ReportProvider provider;
@@ -412,11 +453,16 @@ class ProjectSelector extends StatelessWidget {
               ),
             ),
           ),
-          const Icon(Icons.keyboard_arrow_down, color: AppColors.textLight, size: 22),
+          const Icon(
+            Icons.keyboard_arrow_down,
+            color: AppColors.textLight,
+            size: 22,
+          ),
         ],
       ),
     );
   }
+
   void _showSheet(BuildContext context) {
     final projectProvider = context.read<ProjectProvider>();
     final realProjects = projectProvider.projects;
@@ -427,10 +473,8 @@ class ProjectSelector extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _ProjectPickerSheet(
-        provider: provider,
-        projects: realProjects,
-      ),
+      builder: (_) =>
+          _ProjectPickerSheet(provider: provider, projects: realProjects),
     );
   }
 }
@@ -481,7 +525,10 @@ class _ProjectPickerSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   margin: const EdgeInsets.only(bottom: 6),
                   decoration: BoxDecoration(
                     color: selected
@@ -496,17 +543,25 @@ class _ProjectPickerSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                        selected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
                         size: 18,
-                        color: selected ? AppColors.primary : AppColors.textLight,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.textLight,
                       ),
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(
                           p,
                           style: AppTheme.bodyLarge.copyWith(
-                            color: selected ? AppColors.primary : AppColors.textDark,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.textDark,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                       ),
@@ -521,6 +576,7 @@ class _ProjectPickerSheet extends StatelessWidget {
     );
   }
 }
+
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
   final Map<String, double> categoryBudget;
@@ -531,18 +587,20 @@ class CategoryBudgetSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Budget Usage by Category',
-              style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
+          Text(
+            'Budget Usage by Category',
+            style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+          ),
           const SizedBox(height: 16),
-          ...categoryBudget.entries.map((e) => _BudgetBar(
-                label: e.key,
-                value: e.value,
-              )),
+          ...categoryBudget.entries.map(
+            (e) => _BudgetBar(label: e.key, value: e.value),
+          ),
         ],
       ),
     );
   }
 }
+
 class _BudgetBar extends StatelessWidget {
   const _BudgetBar({required this.label, required this.value});
   final String label;
@@ -552,8 +610,8 @@ class _BudgetBar extends StatelessWidget {
     final Color color = value >= 0.90
         ? AppColors.error
         : value >= 0.70
-            ? AppColors.warning
-            : AppColors.primary;
+        ? AppColors.warning
+        : AppColors.primary;
 
     final String pct = '${(value * 100).round()}%';
     return Padding(
@@ -563,12 +621,22 @@ class _BudgetBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: AppTheme.label.copyWith(
-                      color: AppColors.textDark, fontSize: 12, letterSpacing: 0.4)),
-              Text(pct,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 13, color: color)),
+              Text(
+                label,
+                style: AppTheme.label.copyWith(
+                  color: AppColors.textDark,
+                  fontSize: 12,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              Text(
+                pct,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: color,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 7),
@@ -588,7 +656,9 @@ class _BudgetBar extends StatelessWidget {
                     widthFactor: value.clamp(0.0, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: (value < 0.70) ? AppGradients.progressBar : null,
+                        gradient: (value < 0.70)
+                            ? AppGradients.progressBar
+                            : null,
                         color: (value >= 0.70) ? color : null,
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -603,6 +673,7 @@ class _BudgetBar extends StatelessWidget {
     );
   }
 }
+
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
@@ -639,16 +710,24 @@ class EfficiencyBanner extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.bar_chart, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.bar_chart,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              Text('Efficiency Report',
-                  style: AppTheme.heading3.copyWith(color: Colors.white)),
+              Text(
+                'Efficiency Report',
+                style: AppTheme.heading3.copyWith(color: Colors.white),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(note,
-              style: AppTheme.body.copyWith(color: Colors.white70, height: 1.4)),
+          Text(
+            note,
+            style: AppTheme.body.copyWith(color: Colors.white70, height: 1.4),
+          ),
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
@@ -675,7 +754,11 @@ class EfficiencyBanner extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.arrow_forward, size: 16, color: Colors.white),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ],
               ),
             ),

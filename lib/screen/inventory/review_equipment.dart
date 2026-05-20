@@ -5,10 +5,12 @@ import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_review_widgets.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/models/phase_model.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -226,21 +228,52 @@ class _ReviewEquipmentEntryScreenState
     }
 
     setState(() => _isConfirming = true);
-    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
-    final entryId = 'VOICE-EQP-${DateTime.now().millisecondsSinceEpoch}';
+    String entryId = 'VOICE-EQP-${DateTime.now().millisecondsSinceEpoch}';
+    final double qty = double.tryParse(_hoursCtrl.text) ?? 0.0;
+    final double rate = double.tryParse(_rateCtrl.text) ?? 0.0;
+
+    final response = await ApiService.addTransaction({
+      "title": _nameCtrl.text.trim(),
+      "type": "Expense",
+      "category": "Equipment",
+      "quantity": qty,
+      "rate": rate,
+      "unit": "day",
+      "project": _selectedProjectId!,
+    });
+
+    if (response != null && response['transaction'] != null) {
+      final serverTx = response['transaction'];
+      final sId = serverTx['_id']?.toString();
+      if (sId != null && sId.isNotEmpty) {
+        entryId = sId;
+      }
+    }
+
+    // Save to inventory so the Inventory screen updates
+    await ctx.read<InventoryProvider>().addToInventory(
+      materialName: _nameCtrl.text.trim(),
+      quantity: qty,
+      unit: 'day',
+      projectId: _selectedProjectId!,
+      category: 'equipment',
+    );
+
+    if (!mounted) return;
     ctx.read<ProjectProvider>().addEntry(
       EntryModel(
         id: entryId,
         projectId: _selectedProjectId!,
         type: EntryType.equipment,
-        amount: double.tryParse(_hoursCtrl.text) ?? 0.0,
+        amount: qty,
         date: DateTime.now(),
         description: _nameCtrl.text,
-        ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
+        ratePerUnit: rate,
         floor: _selectedFloor!,
         phaseId: (_selectedPhase as PhaseModel?)?.id,
+        unit: 'day',
       ),
     );
 
@@ -258,13 +291,21 @@ class _ReviewEquipmentEntryScreenState
               createdBy: UserSession.userId,
             ).toMap()..addAll({
               'title': _nameCtrl.text,
-              'ref': '#$entryId',
-              'amount': '+${_hoursCtrl.text} hrs',
+              'ref': entryId.length > 4
+                  ? '#${entryId.substring(entryId.length - 4)}'
+                  : '#$entryId',
+              'amount': '+$qty',
               'date': 'Today',
               'isPositive': true,
               'icon': Icons.precision_manufacturing_outlined,
               'attachment': _attachment,
               'receipt': _attachment?.name,
+              'unit': 'day',
+              'category': 'equipment',
+              'billAmount': qty * rate,
+              'paidAmount': 0.0,
+              'paymentStatus': 'Pending',
+              'paymentHistory': [],
             }),
       },
     );

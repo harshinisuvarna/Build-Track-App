@@ -7,6 +7,9 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -74,6 +77,24 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
         _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
+
+        final String rawUnit = (args['unit'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (rawUnit == 'bag' || rawUnit == 'bags') {
+          _selectedUnit = 'bag';
+        } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+          _selectedUnit = 'Sq.ft';
+        } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+          _selectedUnit = 'ton';
+        } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+          _selectedUnit = 'kg';
+        } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+          _selectedUnit = 'unit';
+        } else if (rawUnit.isNotEmpty) {
+          _selectedUnit = rawUnit;
+        }
       } else {
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
@@ -154,26 +175,47 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
     setState(() => _isSaving = true);
 
-    // 1. Build the correct payload matching the Node.js backend
+    // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Node.js Mongoose Transaction Schema exactly
     final payload = {
-      "project": _selectedProjectId,
-      "materialName": _nameCtrl.text,
+      "title": _nameCtrl.text.trim(),
+      "type": "Materials",
+      "subType": "Purchase",
+      "category": _categoryCtrl.text.trim().isEmpty
+          ? "General"
+          : _categoryCtrl.text.trim(),
       "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
-      "unit": _selectedUnit ?? "units",
-      "type": "material",
+      "unit": _selectedUnit == null
+          ? "unit"
+          : _selectedUnit == "bags" || _selectedUnit == "bag"
+          ? "bag"
+          : _selectedUnit == "sq.ft" ||
+                _selectedUnit == "sqft" ||
+                _selectedUnit == "Sq.ft"
+          ? "sqft"
+          : _selectedUnit == "ton" || _selectedUnit == "tons"
+          ? "ton"
+          : _selectedUnit == "kg" || _selectedUnit == "kgs"
+          ? "kg"
+          : _selectedUnit == "pcs" || _selectedUnit == "unit"
+          ? "unit"
+          : "unit",
+      "project": _selectedProjectId,
+      "notes": _notesCtrl.text.trim(),
     };
 
-    // 2. Call the REAL backend route we just built
     final success = await ApiService.addMaterial(payload);
 
     if (!mounted) return;
 
     if (success) {
-      // 3. Only navigate if the database actually saved it!
-      _snack('Material logged to database!');
-      Navigator.maybePop(context); // Go back to inventory list
+      // 🌟 THE REFRESH FIX: Triggers the app's provider to get fresh database changes
+      context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
+      context.read<ProjectProvider>().load();
+
+      _snack('Material logged and inventory stock synchronized!');
+      Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
     }

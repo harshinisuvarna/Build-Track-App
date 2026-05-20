@@ -5,6 +5,7 @@ import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_review_widgets.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -245,6 +246,17 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     if (!mounted) return;
 
     final entryId = 'VOICE-MAT-${DateTime.now().millisecondsSinceEpoch}';
+
+    // Save to inventory so the Inventory screen updates
+    await ctx.read<InventoryProvider>().addToInventory(
+      materialName: _nameCtrl.text.trim(),
+      quantity: double.tryParse(_qtyCtrl.text) ?? 0.0,
+      unit: _selectedUnit ?? 'units',
+      projectId: _selectedProjectId!,
+      category: 'material',
+    );
+
+    if (!mounted) return;
     ctx.read<ProjectProvider>().addEntry(
       EntryModel(
         id: entryId,

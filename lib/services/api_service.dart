@@ -169,10 +169,17 @@ class ApiService {
     }
   }
 
-  // 2. HTTP POST: Add New Material
+  // 2. HTTP POST: Add New Entry (Redirected to the correct transactional router context)
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
-      final response = await post('/inventory', payload);
+      // 🌟 CHANGED PATH URL: From '/inventory' to '/transactions' to resolve your 404 Route Not Found error
+      final response = await post('/transactions', payload);
+
+      print('=== SERVER RESPONSE DEBUG ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('=============================');
+
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print('POST Error: $e');
@@ -180,27 +187,132 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> addTransaction(
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await post('/transactions', payload);
+      print('=== SERVER RESPONSE DEBUG ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('=============================');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('POST Error: $e');
+      return null;
+    }
+  }
+
+  // Update transaction payment (e.g. Record Payment)
+  static Future<bool> updateTransactionPayment(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await put('/transactions/$id', payload);
+      print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('=============================');
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('PUT /transactions/$id Error: $e');
+      return false;
+    }
+  }
+
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      final response = await get('/inventory');
+      // YOUR FIX: Using the correct /inventory endpoint from main
+      String endpoint = '/inventory';
+      if (projectId.isNotEmpty) endpoint += '?project=$projectId';
+
+      final response = await get(endpoint);
+
+      print('fetchInventory status: ${response.statusCode}');
+      print('fetchInventory body: ${response.body}');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
 
+        // ROSELIN'S LOGIC: Preserving her list extraction
+        List<dynamic> raw = [];
         if (decoded is List) {
-          return decoded;
+          raw = decoded;
         } else if (decoded is Map) {
-          return decoded['inventory'] ??
-              decoded['data'] ??
-              decoded['items'] ??
-              [];
+          raw =
+              (decoded['inventory'] ??
+                      decoded['data'] ??
+                      decoded['items'] ??
+                      [])
+                  as List<dynamic>;
         }
-        return [];
+
+        // ROSELIN'S LOGIC: Preserving her complex grouping algorithm
+        final Map<String, Map<String, dynamic>> grouped = {};
+        for (final t in raw) {
+          final String title = (t['title'] ?? t['materialName'] ?? 'Unknown')
+              .toString();
+
+          final String rawCat = (t['category'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
+          final String rawType = (t['type'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
+
+          String category = 'material';
+          if (rawCat == 'labour' ||
+              rawCat == 'wages' ||
+              rawCat == 'labor' ||
+              rawCat.contains('labour') ||
+              rawType == 'wages' ||
+              rawType == 'labour') {
+            category = 'labour';
+          } else if (rawCat == 'equipment' ||
+              rawCat == 'machinery' ||
+              rawCat == 'expense' ||
+              rawType == 'expense' ||
+              rawType == 'equipment') {
+            category = 'equipment';
+          }
+
+          final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+          final String unit = (t['unit'] ?? 'units').toString();
+          final String key = '$title||$category';
+
+          if (grouped.containsKey(key)) {
+            grouped[key]!['purchased'] =
+                (grouped[key]!['purchased'] as double) + qty;
+            grouped[key]!['closingStock'] =
+                (grouped[key]!['closingStock'] as double) + qty;
+          } else {
+            grouped[key] = {
+              '_id': t['_id'] ?? key,
+              'materialName': title,
+              'category': category,
+              'purchased': qty,
+              'used': 0.0,
+              'closingStock': qty,
+              'threshold': 10.0,
+              'unit': unit,
+            };
+          }
+        }
+        print('fetchInventory grouped items: ${grouped.length}');
+        return grouped.values.toList();
       } else {
-        throw Exception('Failed to load live inventory');
+        print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        return [];
       }
-    } catch (e) {
+    } catch (e, stack) {
       print('Inventory GET Error: $e');
+      print(stack.toString());
       return [];
     }
   }
@@ -269,6 +381,35 @@ class ApiService {
     } catch (e) {
       print('Tasks API Error: $e');
       return []; // Return empty list on error to prevent UI crash
+    }
+  }
+
+  static Future<void> addInventoryItem({
+    required String materialName,
+    required double purchased,
+    required String unit,
+    required String projectId,
+    required String category,
+    double threshold = 10,
+  }) async {
+    try {
+      final response = await post('/inventory/add', {
+        'materialName': materialName,
+        'purchased': purchased,
+        'unit': unit,
+        'project': projectId,
+        'category': category,
+        'threshold': threshold,
+      });
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        print(
+          'addInventoryItem failed (${response.statusCode}): ${response.body}',
+        );
+        throw Exception('Failed to add inventory item');
+      }
+    } catch (e) {
+      print('addInventoryItem Error: $e');
+      rethrow;
     }
   }
 }

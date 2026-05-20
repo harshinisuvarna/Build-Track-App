@@ -40,6 +40,7 @@ class UserSession {
   static String get userId => _userId;
   static UserRole get role => _role;
   static String get projectId => _projectId;
+  static set projectId(String value) => _projectId = value;
   static String get roleLabel {
     switch (_role) {
       case UserRole.admin:
