@@ -228,12 +228,12 @@ class ApiService {
     try {
       // YOUR FIX: Using the correct /inventory endpoint from main
       String endpoint = '/inventory';
-      if (projectId.isNotEmpty) endpoint += '?project=' + projectId;
+      if (projectId.isNotEmpty) endpoint += '?project=$projectId';
 
       final response = await get(endpoint);
 
-      print('fetchInventory status: ' + response.statusCode.toString());
-      print('fetchInventory body: ' + response.body);
+      print('fetchInventory status: ${response.statusCode}');
+      print('fetchInventory body: ${response.body}');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -284,7 +284,7 @@ class ApiService {
 
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
           final String unit = (t['unit'] ?? 'units').toString();
-          final String key = title + '||' + category;
+          final String key = '$title||$category';
 
           if (grouped.containsKey(key)) {
             grouped[key]!['purchased'] =
@@ -304,19 +304,14 @@ class ApiService {
             };
           }
         }
-        print('fetchInventory grouped items: ' + grouped.length.toString());
+        print('fetchInventory grouped items: ${grouped.length}');
         return grouped.values.toList();
       } else {
-        print(
-          'fetchInventory failed: ' +
-              response.statusCode.toString() +
-              ' ' +
-              response.body,
-        );
+        print('fetchInventory failed: ${response.statusCode} ${response.body}');
         return [];
       }
     } catch (e, stack) {
-      print('Inventory GET Error: ' + e.toString());
+      print('Inventory GET Error: $e');
       print(stack.toString());
       return [];
     }

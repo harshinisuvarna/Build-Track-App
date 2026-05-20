@@ -11,10 +11,10 @@ import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
 // ── Standardized inventory units ──────────────────────────────────────────
 const Map<String, List<String>> kInventoryUnits = {
-  'Weight':  ['kg', 'ton', 'gram'],
-  'Volume':  ['litre', 'm³', 'cum'],
-  'Count':   ['pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets'],
-  'Length':  ['ft', 'sq.ft', 'meter', 'rmt'],
+  'Weight': ['kg', 'ton', 'gram'],
+  'Volume': ['litre', 'm³', 'cum'],
+  'Count': ['pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets'],
+  'Length': ['ft', 'sq.ft', 'meter', 'rmt'],
   'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
 };
 
@@ -22,23 +22,39 @@ const Map<String, List<String>> kInventoryUnits = {
 const Map<String, List<String>> kLabourUnits = {
   'Time Based': ['Day', 'Hour', 'Week', 'Month'],
   'Area Based': ['Sq ft', 'Sq meter', 'Rmt'],
-  'Job Based':  ['Job Basis', 'Contract', 'Lump Sum'],
+  'Job Based': ['Job Basis', 'Contract', 'Lump Sum'],
 };
 
 // ── Equipment-specific units ──────────────────────────────────────────────
 const Map<String, List<String>> kEquipmentUnits = {
   'Time Based': ['Hour', 'Day', 'Week', 'Month'],
   'Trip Based': ['Trip', 'Load', 'Shift'],
-  'Fixed':      ['Job Basis', 'Lump Sum'],
+  'Fixed': ['Job Basis', 'Lump Sum'],
 };
 
 // Flat list of all canonical unit strings (for search / lookup)
 const List<String> kAllInventoryUnits = [
-  'kg', 'ton', 'gram',
-  'litre', 'm³', 'cum',
-  'pcs', 'nos', 'bags', 'boxes', 'rolls', 'sheets',
-  'ft', 'sq.ft', 'meter', 'rmt',
-  'bundle', 'drum', 'pallet', 'set', 'coil',
+  'kg',
+  'ton',
+  'gram',
+  'litre',
+  'm³',
+  'cum',
+  'pcs',
+  'nos',
+  'bags',
+  'boxes',
+  'rolls',
+  'sheets',
+  'ft',
+  'sq.ft',
+  'meter',
+  'rmt',
+  'bundle',
+  'drum',
+  'pallet',
+  'set',
+  'coil',
 ];
 
 /// Normalizes free-text unit strings to a canonical form.
@@ -46,28 +62,60 @@ const List<String> kAllInventoryUnits = [
 String normalizeUnit(String raw) {
   final s = raw.trim().toLowerCase();
   const aliases = <String, String>{
-    'kgs': 'kg', 'kilo': 'kg', 'kilos': 'kg',
-    'kilogram': 'kg', 'kilograms': 'kg',
-    'tons': 'ton', 'tonne': 'ton', 'tonnes': 'ton',
-    'grams': 'gram', 'gm': 'gram',
-    'ltr': 'litre', 'lts': 'litre', 'litres': 'litre', 'liter': 'litre', 'liters': 'litre',
-    'cbm': 'm³', 'cu.m': 'm³', 'cu m': 'm³', 'cum': 'cum',
-    'piece': 'pcs', 'pieces': 'pcs', 'pc': 'pcs',
-    'number': 'nos', 'numbers': 'nos', 'no': 'nos',
-    'bag': 'bags', 'box': 'boxes', 'roll': 'rolls', 'sheet': 'sheets',
-    'feet': 'ft', 'foot': 'ft',
-    'sqft': 'sq.ft', 'sq ft': 'sq.ft', 'sft': 'sq.ft',
-    'mtr': 'meter', 'meters': 'meter', 'metres': 'meter', 'metre': 'meter',
-    'rm': 'rmt', 'running meter': 'rmt',
-    'bundles': 'bundle', 'drums': 'drum', 'pallets': 'pallet', 'sets': 'set', 'coils': 'coil',
+    'kgs': 'kg',
+    'kilo': 'kg',
+    'kilos': 'kg',
+    'kilogram': 'kg',
+    'kilograms': 'kg',
+    'tons': 'ton',
+    'tonne': 'ton',
+    'tonnes': 'ton',
+    'grams': 'gram',
+    'gm': 'gram',
+    'ltr': 'litre',
+    'lts': 'litre',
+    'litres': 'litre',
+    'liter': 'litre',
+    'liters': 'litre',
+    'cbm': 'm³',
+    'cu.m': 'm³',
+    'cu m': 'm³',
+    'cum': 'cum',
+    'piece': 'pcs',
+    'pieces': 'pcs',
+    'pc': 'pcs',
+    'number': 'nos',
+    'numbers': 'nos',
+    'no': 'nos',
+    'bag': 'bags',
+    'box': 'boxes',
+    'roll': 'rolls',
+    'sheet': 'sheets',
+    'feet': 'ft',
+    'foot': 'ft',
+    'sqft': 'sq.ft',
+    'sq ft': 'sq.ft',
+    'sft': 'sq.ft',
+    'mtr': 'meter',
+    'meters': 'meter',
+    'metres': 'meter',
+    'metre': 'meter',
+    'rm': 'rmt',
+    'running meter': 'rmt',
+    'bundles': 'bundle',
+    'drums': 'drum',
+    'pallets': 'pallet',
+    'sets': 'set',
+    'coils': 'coil',
   };
   return aliases[s] ?? s;
 }
 
-const _kBlue   = AppColors.primary;
-const _kGray   = AppColors.textLight;
-const _kDark   = AppColors.textDark;
-const _kRed    = AppColors.error;
+const _kBlue = AppColors.primary;
+const _kGray = AppColors.textLight;
+const _kDark = AppColors.textDark;
+const _kRed = AppColors.error;
+
 class EntrySectionCard extends StatelessWidget {
   const EntrySectionCard({
     super.key,
@@ -100,8 +148,14 @@ class EntrySectionCard extends StatelessWidget {
     );
   }
 }
+
 class EntryCardHeader extends StatelessWidget {
-  const EntryCardHeader({super.key, required this.icon, required this.title, required this.subtitle});
+  const EntryCardHeader({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
   final IconData icon;
   final String title;
   final String subtitle;
@@ -123,11 +177,20 @@ class EntryCardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w800, color: _kDark, letterSpacing: -0.2)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: _kDark,
+                  letterSpacing: -0.2,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: _kGray)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: _kGray),
+              ),
             ],
           ),
         ),
@@ -135,6 +198,7 @@ class EntryCardHeader extends StatelessWidget {
     );
   }
 }
+
 class EntryFieldLabel extends StatelessWidget {
   const EntryFieldLabel(this.label, {super.key, this.required = false});
   final String label;
@@ -145,16 +209,25 @@ class EntryFieldLabel extends StatelessWidget {
       text: TextSpan(
         text: label,
         style: const TextStyle(
-          color: _kBlue, fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: 0.4,
+          color: _kBlue,
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
+          letterSpacing: 0.4,
           fontFamily: 'Roboto',
         ),
         children: required
-            ? [const TextSpan(text: ' *', style: TextStyle(color: _kRed))]
+            ? [
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: _kRed),
+                ),
+              ]
             : [],
       ),
     );
   }
 }
+
 class EntryUnderlineField extends StatelessWidget {
   const EntryUnderlineField({
     super.key,
@@ -187,8 +260,14 @@ class EntryUnderlineField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (prefix != null) ...[
-            Text(prefix!,
-                style: const TextStyle(color: _kGray, fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(
+              prefix!,
+              style: const TextStyle(
+                color: _kGray,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(width: 4),
           ],
           Expanded(
@@ -208,19 +287,29 @@ class EntryUnderlineField extends StatelessWidget {
                 isDense: true,
               ),
               style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: _kDark),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _kDark,
+              ),
             ),
           ),
           if (suffix != null) ...[
             const SizedBox(width: 4),
-            Text(suffix!,
-                style: const TextStyle(color: _kGray, fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              suffix!,
+              style: const TextStyle(
+                color: _kGray,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ],
       ),
     );
   }
 }
+
 class EntryNotesField extends StatelessWidget {
   const EntryNotesField({super.key, required this.controller, this.hint});
   final TextEditingController controller;
@@ -246,11 +335,16 @@ class EntryNotesField extends StatelessWidget {
           hintStyle: const TextStyle(color: _kGray, fontSize: 13.5),
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kDark),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: _kDark,
+        ),
       ),
     );
   }
 }
+
 class EntryDropdownField<T> extends StatelessWidget {
   const EntryDropdownField({
     super.key,
@@ -285,13 +379,23 @@ class EntryDropdownField<T> extends StatelessWidget {
           child: DropdownButton<T>(
             value: safeValue,
             isExpanded: true,
-            icon: Icon(Icons.keyboard_arrow_down_rounded,
-                color: enabled ? _kBlue : _kGray),
-            hint: Text(hint,
-                style: const TextStyle(
-                    color: _kGray, fontSize: 15, fontWeight: FontWeight.w400)),
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: enabled ? _kBlue : _kGray,
+            ),
+            hint: Text(
+              hint,
+              style: const TextStyle(
+                color: _kGray,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: _kDark),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: _kDark,
+            ),
             items: enabled ? items : <DropdownMenuItem<T>>[],
             onChanged: enabled ? onChanged : null,
           ),
@@ -312,7 +416,7 @@ class UnitSelectorField extends StatelessWidget {
 
   final String? value;
   final ValueChanged<String?> onChanged;
-  final Map<String, List<String>>? units;  // null → defaults to kInventoryUnits
+  final Map<String, List<String>>? units; // null → defaults to kInventoryUnits
   final String hint;
 
   @override
@@ -323,9 +427,7 @@ class UnitSelectorField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: _kBlue, width: 2),
-          ),
+          border: Border(bottom: BorderSide(color: _kBlue, width: 2)),
         ),
         child: Row(
           children: [
@@ -348,7 +450,11 @@ class UnitSelectorField extends StatelessWidget {
                 ),
               )
             else
-              const Icon(Icons.keyboard_arrow_down_rounded, color: _kBlue, size: 22),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _kBlue,
+                size: 22,
+              ),
           ],
         ),
       ),
@@ -415,8 +521,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
       context: ctx,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Custom Unit',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+        title: const Text(
+          'Add Custom Unit',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -428,12 +536,15 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _kBlue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Add', style: TextStyle(color: Colors.white)),
@@ -467,7 +578,8 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
             const SizedBox(height: 10),
             Center(
               child: Container(
-                width: 38, height: 4,
+                width: 38,
+                height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFBDBEE8),
                   borderRadius: BorderRadius.circular(16),
@@ -494,9 +606,19 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                   ),
                   TextButton.icon(
                     onPressed: () => _addCustom(context),
-                    icon: const Icon(Icons.add_circle_outline, size: 18, color: _kBlue),
-                    label: const Text('Custom',
-                        style: TextStyle(color: _kBlue, fontWeight: FontWeight.w700, fontSize: 13)),
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      size: 18,
+                      color: _kBlue,
+                    ),
+                    label: const Text(
+                      'Custom',
+                      style: TextStyle(
+                        color: _kBlue,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -514,7 +636,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                   prefixIcon: const Icon(Icons.search, color: _kGray, size: 20),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -533,14 +658,25 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                         children: [
                           const Icon(Icons.search_off, color: _kGray, size: 36),
                           const SizedBox(height: 8),
-                          const Text('No matching unit found.',
-                              style: TextStyle(color: _kGray)),
+                          const Text(
+                            'No matching unit found.',
+                            style: TextStyle(color: _kGray),
+                          ),
                           const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () => _addCustom(context),
-                            icon: const Icon(Icons.add, color: _kBlue, size: 18),
-                            label: const Text('Add Custom Unit',
-                                style: TextStyle(color: _kBlue, fontWeight: FontWeight.w700)),
+                            icon: const Icon(
+                              Icons.add,
+                              color: _kBlue,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Add Custom Unit',
+                              style: TextStyle(
+                                color: _kBlue,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -572,11 +708,11 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? _kBlue
-                                        : Colors.white,
+                                    color: isSelected ? _kBlue : Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: isSelected
@@ -633,149 +769,181 @@ class ExecutionContextCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(builder: (ctx) {
-      final provider = ctx.watch<ProjectProvider>();
-      final projects = provider.projects;
+    return Builder(
+      builder: (ctx) {
+        final provider = ctx.watch<ProjectProvider>();
+        final projects = provider.projects;
 
-      final ProjectModel? selProject = selectedProjectId == null
-          ? null
-          : projects.cast<ProjectModel?>().firstWhere(
-              (p) => p?.id == selectedProjectId, orElse: () => null);
+        final ProjectModel? selProject = selectedProjectId == null
+            ? null
+            : projects.cast<ProjectModel?>().firstWhere(
+                (p) => p?.id == selectedProjectId,
+                orElse: () => null,
+              );
 
-      // Floors: use project-configured floors, fall back to standard list
-      const List<String> defaultFloors = [
-        'Basement', 'Ground Floor', '1st Floor', '2nd Floor',
-        '3rd Floor', 'Terrace',
-      ];
-      final List<String> floors = (selProject?.floors?.isNotEmpty == true)
-          ? List<String>.from(selProject!.floors!)
-          : (selProject != null ? defaultFloors : <String>[]);
-      if (selectedFloor != null && !floors.contains(selectedFloor)) {
-        floors.insert(0, selectedFloor!);
-      }
+        // Floors: use project-configured floors, fall back to standard list
+        const List<String> defaultFloors = [
+          'Basement',
+          'Ground Floor',
+          '1st Floor',
+          '2nd Floor',
+          '3rd Floor',
+          'Terrace',
+        ];
+        final List<String> floors = (selProject?.floors?.isNotEmpty == true)
+            ? List<String>.from(selProject!.floors!)
+            : (selProject != null ? defaultFloors : <String>[]);
+        if (selectedFloor != null && !floors.contains(selectedFloor)) {
+          floors.insert(0, selectedFloor!);
+        }
 
-      // ── Phase & Activity — project-driven architecture ─────────────────────
-      // Resolve the selected phase name (always stored as String in dropdowns)
-      final String? selPhaseName = selectedPhase is String
-          ? selectedPhase as String
-          : null;
-
-      List<String> visiblePhaseNames;
-      List<String> activities;
-
-      final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
-      final bool hasNewWorkflow =
-          projectPhases != null && projectPhases.isNotEmpty;
-
-      if (hasNewWorkflow) {
-        // ── NEW: load directly from project.selectedPhases ────────────────
-        visiblePhaseNames = projectPhases
-            .where((p) => p.activities.isNotEmpty)   // never show empty phases
-            .map((p) => p.phaseName)
-            .toList();
-
-        // Activities: find the chosen phase inside selectedPhases
-        final ProjectPhase? selPhase = selPhaseName != null
-            ? projectPhases.cast<ProjectPhase?>().firstWhere(
-                (p) => p?.phaseName == selPhaseName, orElse: () => null)
+        // ── Phase & Activity — project-driven architecture ─────────────────────
+        // Resolve the selected phase name (always stored as String in dropdowns)
+        final String? selPhaseName = selectedPhase is String
+            ? selectedPhase as String
             : null;
-        activities = selPhase != null
-            ? selPhase.activities.map((a) => a.name).toList()
-            : <String>[];
-      } else {
-        // ── LEGACY: fall back to master list + selectedPhaseNames filter ──
-        final List<ConstructionPhase> allPhases = buildDefaultPhases();
-        final List<String>? legacyPhaseNames =
-            selProject?.selectedPhaseNames != null
-                ? List<String>.from(selProject!.selectedPhaseNames!)
-                : null;
-        final List<ConstructionPhase> visiblePhases =
-            (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
-                ? allPhases
-                : allPhases
+
+        List<String> visiblePhaseNames;
+        List<String> activities;
+
+        final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
+        final bool hasNewWorkflow =
+            projectPhases != null && projectPhases.isNotEmpty;
+
+        if (hasNewWorkflow) {
+          // ── NEW: load directly from project.selectedPhases ────────────────
+          visiblePhaseNames = projectPhases
+              .where((p) => p.activities.isNotEmpty) // never show empty phases
+              .map((p) => p.phaseName)
+              .toList();
+
+          // Activities: find the chosen phase inside selectedPhases
+          final ProjectPhase? selPhase = selPhaseName != null
+              ? projectPhases.cast<ProjectPhase?>().firstWhere(
+                  (p) => p?.phaseName == selPhaseName,
+                  orElse: () => null,
+                )
+              : null;
+          activities = selPhase != null
+              ? selPhase.activities.map((a) => a.name).toList()
+              : <String>[];
+        } else {
+          // ── LEGACY: fall back to master list + selectedPhaseNames filter ──
+          final List<ConstructionPhase> allPhases = buildDefaultPhases();
+          final List<String>? legacyPhaseNames =
+              selProject?.selectedPhaseNames != null
+              ? List<String>.from(selProject!.selectedPhaseNames!)
+              : null;
+          final List<ConstructionPhase> visiblePhases =
+              (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
+              ? allPhases
+              : allPhases
                     .where((p) => legacyPhaseNames.contains(p.name))
                     .toList();
-        visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
+          visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
 
-        final ConstructionPhase? selPhase = selPhaseName != null
-            ? allPhases.cast<ConstructionPhase?>().firstWhere(
-                (p) => p?.name == selPhaseName, orElse: () => null)
-            : null;
-        activities = selPhase != null
-            ? selPhase.allActivities.map<String>((a) => a.name).toList()
-            : <String>[];
-      }
+          final ConstructionPhase? selPhase = selPhaseName != null
+              ? allPhases.cast<ConstructionPhase?>().firstWhere(
+                  (p) => p?.name == selPhaseName,
+                  orElse: () => null,
+                )
+              : null;
+          activities = selPhase != null
+              ? selPhase.allActivities.map<String>((a) => a.name).toList()
+              : <String>[];
+        }
 
-      return EntrySectionCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EntryCardHeader(
-              icon: Icons.location_on_outlined,
-              title: 'Execution Context',
-              subtitle: 'Where is this work happening?',
-            ),
-            const SizedBox(height: 20),
-            const Divider(color: Color(0xFFF0EEF8), thickness: 1),
-            const SizedBox(height: 16),
-            const EntryFieldLabel('Project', required: true),
-            const SizedBox(height: 8),
-            EntryDropdownField<String>(
-              value: selectedProjectId,
-              hint: 'Select project',
-              items: projects
-                  .map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name)))
-                  .toList(),
-              onChanged: onProjectChanged,
-            ),
-            const SizedBox(height: 18),
-            const EntryFieldLabel('Floor / Zone', required: true),
-            const SizedBox(height: 8),
-            EntryDropdownField<String>(
-              value: selectedFloor,
-              hint: selectedProjectId == null ? 'Select project first' : 'Select floor',
-              enabled: selectedProjectId != null,
-              items: floors.map((f) => DropdownMenuItem<String>(value: f, child: Text(f))).toList(),
-              onChanged: onFloorChanged,
-            ),
-            const SizedBox(height: 18),
-            const EntryFieldLabel('Phase', required: true),
-            const SizedBox(height: 8),
-            EntryDropdownField<String>(
-              value: visiblePhaseNames.contains(selPhaseName) ? selPhaseName : null,
-              hint: selectedFloor == null
-                  ? 'Select floor first'
-                  : visiblePhaseNames.isEmpty
-                      ? 'No phases configured for this project'
-                      : 'Select phase',
-              enabled: selectedFloor != null && visiblePhaseNames.isNotEmpty,
-              items: visiblePhaseNames
-                  .map((n) => DropdownMenuItem<String>(value: n, child: Text(n)))
-                  .toList(),
-              onChanged: onPhaseChanged,
-            ),
-            const SizedBox(height: 18),
-            const EntryFieldLabel('Activity', required: true),
-            const SizedBox(height: 8),
-            EntryDropdownField<String>(
-              value: activities.contains(selectedActivity) ? selectedActivity : null,
-              hint: selPhaseName == null
-                  ? 'Select phase first'
-                  : activities.isEmpty
-                      ? 'No activities in this phase'
-                      : 'Select activity',
-              enabled: selPhaseName != null && activities.isNotEmpty,
-              items: activities
-                  .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
-                  .toList(),
-              onChanged: onActivityChanged,
-            ),
-          ],
-        ),
-      );
-    });
+        return EntrySectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const EntryCardHeader(
+                icon: Icons.location_on_outlined,
+                title: 'Execution Context',
+                subtitle: 'Where is this work happening?',
+              ),
+              const SizedBox(height: 20),
+              const Divider(color: Color(0xFFF0EEF8), thickness: 1),
+              const SizedBox(height: 16),
+              const EntryFieldLabel('Project', required: true),
+              const SizedBox(height: 8),
+              EntryDropdownField<String>(
+                value: selectedProjectId,
+                hint: 'Select project',
+                items: projects
+                    .map(
+                      (p) => DropdownMenuItem<String>(
+                        value: p.id,
+                        child: Text(p.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: onProjectChanged,
+              ),
+              const SizedBox(height: 18),
+              const EntryFieldLabel('Floor / Zone', required: true),
+              const SizedBox(height: 8),
+              EntryDropdownField<String>(
+                value: selectedFloor,
+                hint: selectedProjectId == null
+                    ? 'Select project first'
+                    : 'Select floor',
+                enabled: selectedProjectId != null,
+                items: floors
+                    .map(
+                      (f) => DropdownMenuItem<String>(value: f, child: Text(f)),
+                    )
+                    .toList(),
+                onChanged: onFloorChanged,
+              ),
+              const SizedBox(height: 18),
+              const EntryFieldLabel('Phase', required: true),
+              const SizedBox(height: 8),
+              EntryDropdownField<String>(
+                value: visiblePhaseNames.contains(selPhaseName)
+                    ? selPhaseName
+                    : null,
+                hint: selectedFloor == null
+                    ? 'Select floor first'
+                    : visiblePhaseNames.isEmpty
+                    ? 'No phases configured for this project'
+                    : 'Select phase',
+                enabled: selectedFloor != null && visiblePhaseNames.isNotEmpty,
+                items: visiblePhaseNames
+                    .map(
+                      (n) => DropdownMenuItem<String>(value: n, child: Text(n)),
+                    )
+                    .toList(),
+                onChanged: onPhaseChanged,
+              ),
+              const SizedBox(height: 18),
+              const EntryFieldLabel('Activity', required: true),
+              const SizedBox(height: 8),
+              EntryDropdownField<String>(
+                value: activities.contains(selectedActivity)
+                    ? selectedActivity
+                    : null,
+                hint: selPhaseName == null
+                    ? 'Select phase first'
+                    : activities.isEmpty
+                    ? 'No activities in this phase'
+                    : 'Select activity',
+                enabled: selPhaseName != null && activities.isNotEmpty,
+                items: activities
+                    .map(
+                      (a) => DropdownMenuItem<String>(value: a, child: Text(a)),
+                    )
+                    .toList(),
+                onChanged: onActivityChanged,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
+
 class CostSummaryCard extends StatelessWidget {
   const CostSummaryCard({
     super.key,
@@ -802,20 +970,32 @@ class CostSummaryCard extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(color: Color(0xFFF0EEF8), thickness: 1),
           const SizedBox(height: 16),
-          ...subtotals.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(entry.$1,
-                        style: const TextStyle(
-                            fontSize: 13, color: _kGray, fontWeight: FontWeight.w500)),
-                    Text(entry.$2,
-                        style: const TextStyle(
-                            fontSize: 13, color: _kDark, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              )),
+          ...subtotals.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    entry.$1,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: _kGray,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    entry.$2,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: _kDark,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           const SizedBox(height: 6),
           const Divider(color: Color(0xFFF0EEF8), thickness: 1),
@@ -833,7 +1013,9 @@ class CostSummaryCard extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                  color: _kBlue.withValues(alpha: 0.15), width: 1.5),
+                color: _kBlue.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -844,15 +1026,21 @@ class CostSummaryCard extends StatelessWidget {
                     Text(
                       label.toUpperCase(),
                       style: const TextStyle(
-                          color: _kGray, fontSize: 10, fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8),
+                        color: _kGray,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       formatCurrency(totalAmount),
                       style: const TextStyle(
-                          color: _kBlue, fontSize: 26,
-                          fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                        color: _kBlue,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ],
                 ),
@@ -863,7 +1051,11 @@ class CostSummaryCard extends StatelessWidget {
                     color: _kBlue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.calculate_outlined, color: _kBlue, size: 22),
+                  child: const Icon(
+                    Icons.calculate_outlined,
+                    color: _kBlue,
+                    size: 22,
+                  ),
                 ),
               ],
             ),
@@ -873,6 +1065,7 @@ class CostSummaryCard extends StatelessWidget {
     );
   }
 }
+
 class VoiceParseCard extends StatelessWidget {
   const VoiceParseCard({
     super.key,
@@ -913,9 +1106,14 @@ class VoiceParseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Parsed from Voice',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w800, color: _kBlue)),
+                    const Text(
+                      'Parsed from Voice',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: _kBlue,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       'Confidence: ${confidence.toStringAsFixed(1)}%  â€¢  $ts',
@@ -925,7 +1123,10 @@ class VoiceParseCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE6F9F0),
                   borderRadius: BorderRadius.circular(20),
@@ -933,16 +1134,20 @@ class VoiceParseCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_outline,
-                        color: Color(0xFF15803D), size: 13),
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: Color(0xFF15803D),
+                      size: 13,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       entryTypeLabel.toUpperCase(),
                       style: const TextStyle(
-                          color: Color(0xFF15803D),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8),
+                        color: Color(0xFF15803D),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
                     ),
                   ],
                 ),
@@ -956,10 +1161,15 @@ class VoiceParseCard extends StatelessWidget {
             children: [
               const Icon(Icons.format_align_left, color: _kBlue, size: 14),
               const SizedBox(width: 6),
-              const Text('VOICE TRANSCRIPT',
-                  style: TextStyle(
-                      color: _kBlue, fontSize: 10,
-                      fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+              const Text(
+                'VOICE TRANSCRIPT',
+                style: TextStyle(
+                  color: _kBlue,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -973,8 +1183,11 @@ class VoiceParseCard extends StatelessWidget {
             child: Text(
               '"$transcript"',
               style: const TextStyle(
-                  color: _kDark, fontSize: 13.5,
-                  fontStyle: FontStyle.italic, height: 1.65),
+                color: _kDark,
+                fontSize: 13.5,
+                fontStyle: FontStyle.italic,
+                height: 1.65,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -995,6 +1208,7 @@ class VoiceParseCard extends StatelessWidget {
     );
   }
 }
+
 class EntrySubmitButton extends StatelessWidget {
   const EntrySubmitButton({
     super.key,
@@ -1036,17 +1250,22 @@ class EntrySubmitButton extends StatelessWidget {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
                   ),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Icon(icon, color: Colors.white, size: 20),
                   ],
@@ -1056,6 +1275,7 @@ class EntrySubmitButton extends StatelessWidget {
     );
   }
 }
+
 class EntryErrorText extends StatelessWidget {
   const EntryErrorText(this.message, {super.key});
   final String message;
@@ -1064,12 +1284,18 @@ class EntryErrorText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Text(message,
-          style: const TextStyle(
-              color: _kRed, fontSize: 11.5, fontStyle: FontStyle.italic)),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: _kRed,
+          fontSize: 11.5,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
     );
   }
 }
+
 enum PaymentStatus { paid, partial, pending, overdue }
 
 class PaymentStatusChip extends StatelessWidget {
@@ -1078,37 +1304,53 @@ class PaymentStatusChip extends StatelessWidget {
 
   String get _label {
     switch (status) {
-      case PaymentStatus.paid:    return 'PAID';
-      case PaymentStatus.partial: return 'PARTIAL';
-      case PaymentStatus.pending: return 'PENDING';
-      case PaymentStatus.overdue: return 'OVERDUE';
+      case PaymentStatus.paid:
+        return 'PAID';
+      case PaymentStatus.partial:
+        return 'PARTIAL';
+      case PaymentStatus.pending:
+        return 'PENDING';
+      case PaymentStatus.overdue:
+        return 'OVERDUE';
     }
   }
 
   Color get _fg {
     switch (status) {
-      case PaymentStatus.paid:    return const Color(0xFF15803D);
-      case PaymentStatus.partial: return const Color(0xFF7C3AED);
-      case PaymentStatus.pending: return const Color(0xFFD97706);
-      case PaymentStatus.overdue: return const Color(0xFFDC2626);
+      case PaymentStatus.paid:
+        return const Color(0xFF15803D);
+      case PaymentStatus.partial:
+        return const Color(0xFF7C3AED);
+      case PaymentStatus.pending:
+        return const Color(0xFFD97706);
+      case PaymentStatus.overdue:
+        return const Color(0xFFDC2626);
     }
   }
 
   Color get _bg {
     switch (status) {
-      case PaymentStatus.paid:    return const Color(0xFFDCFCE7);
-      case PaymentStatus.partial: return const Color(0xFFF3E8FF);
-      case PaymentStatus.pending: return const Color(0xFFFEF3C7);
-      case PaymentStatus.overdue: return const Color(0xFFFEE2E2);
+      case PaymentStatus.paid:
+        return const Color(0xFFDCFCE7);
+      case PaymentStatus.partial:
+        return const Color(0xFFF3E8FF);
+      case PaymentStatus.pending:
+        return const Color(0xFFFEF3C7);
+      case PaymentStatus.overdue:
+        return const Color(0xFFFEE2E2);
     }
   }
 
   IconData get _icon {
     switch (status) {
-      case PaymentStatus.paid:    return Icons.check_circle_outline;
-      case PaymentStatus.partial: return Icons.pie_chart_outline;
-      case PaymentStatus.pending: return Icons.hourglass_empty_outlined;
-      case PaymentStatus.overdue: return Icons.warning_amber_outlined;
+      case PaymentStatus.paid:
+        return Icons.check_circle_outline;
+      case PaymentStatus.partial:
+        return Icons.pie_chart_outline;
+      case PaymentStatus.pending:
+        return Icons.hourglass_empty_outlined;
+      case PaymentStatus.overdue:
+        return Icons.warning_amber_outlined;
     }
   }
 
@@ -1117,20 +1359,30 @@ class PaymentStatusChip extends StatelessWidget {
     return Container(
       height: 22,
       padding: const EdgeInsets.symmetric(horizontal: 9),
-      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(11)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(_icon, color: _fg, size: 11),
-        const SizedBox(width: 4),
-        Text(_label,
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_icon, color: _fg, size: 11),
+          const SizedBox(width: 4),
+          Text(
+            _label,
             style: TextStyle(
-                color: _fg, fontSize: 10, fontWeight: FontWeight.w800,
-                letterSpacing: 0.5, height: 1)),
-      ]),
+              color: _fg,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-
-
 
 class PaymentSummaryBanner extends StatelessWidget {
   const PaymentSummaryBanner({
@@ -1149,7 +1401,9 @@ class PaymentSummaryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outstanding = (totalBilled - totalPaid).clamp(0.0, double.infinity);
-    final paidRatio = totalBilled > 0 ? (totalPaid / totalBilled).clamp(0.0, 1.0) : 0.0;
+    final paidRatio = totalBilled > 0
+        ? (totalPaid / totalBilled).clamp(0.0, 1.0)
+        : 0.0;
     final pctLabel = '${(paidRatio * 100).toStringAsFixed(0)}%';
 
     return Container(
@@ -1183,28 +1437,31 @@ class PaymentSummaryBanner extends StatelessWidget {
                     const Text(
                       'PAYMENT OVERVIEW',
                       style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.4),
+                        color: Colors.white60,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       formatCurrency(totalPaid),
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          height: 1.1),
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'of ${formatCurrency(totalBilled)} billed · $pctLabel settled',
                       style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500),
+                        color: Colors.white60,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -1213,22 +1470,34 @@ class PaymentSummaryBanner extends StatelessWidget {
               GestureDetector(
                 onTap: onSettle,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.payment_outlined, color: Colors.white, size: 14),
+                      Icon(
+                        Icons.payment_outlined,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                       SizedBox(width: 6),
-                      Text('Settle',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12.5)),
+                      Text(
+                        'Settle',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1246,12 +1515,15 @@ class PaymentSummaryBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-      
+
           Row(
             children: [
               _chip(Icons.check_circle_outline, '$pctLabel paid'),
               const SizedBox(width: 8),
-              _chip(Icons.schedule_outlined, '${formatCurrency(outstanding)} due'),
+              _chip(
+                Icons.schedule_outlined,
+                '${formatCurrency(outstanding)} due',
+              ),
               if (pendingCount > 0) ...[
                 const SizedBox(width: 8),
                 _chip(Icons.receipt_outlined, '$pendingCount pending'),
@@ -1271,13 +1543,22 @@ class PaymentSummaryBanner extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Colors.white, size: 10),
-        const SizedBox(width: 4),
-        Text(label,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 10),
+          const SizedBox(width: 4),
+          Text(
+            label,
             style: const TextStyle(
-                color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700, height: 1)),
-      ]),
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1294,7 +1575,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String category = '',
 }) {
   final amountCtrl = TextEditingController();
-  final noteCtrl   = TextEditingController();
+  final noteCtrl = TextEditingController();
   final outstanding = (totalAmount - alreadyPaid).clamp(0.0, double.infinity);
 
   PaymentStatus selectedStatus = outstanding > 0
@@ -1304,13 +1585,12 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String? amountError;
   String? uploadedReceipt;
 
-
   const pMethods = [
-    {'label': 'UPI',           'icon': Icons.phone_android_outlined},
-    {'label': 'Cash',          'icon': Icons.money_outlined},
+    {'label': 'UPI', 'icon': Icons.phone_android_outlined},
+    {'label': 'Cash', 'icon': Icons.money_outlined},
     {'label': 'Bank Transfer', 'icon': Icons.account_balance_outlined},
-    {'label': 'Card',          'icon': Icons.credit_card_outlined},
-    {'label': 'Cheque',        'icon': Icons.description_outlined},
+    {'label': 'Card', 'icon': Icons.credit_card_outlined},
+    {'label': 'Cheque', 'icon': Icons.description_outlined},
   ];
 
   return showModalBottomSheet<Map<String, dynamic>>(
@@ -1320,7 +1600,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
     enableDrag: true,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, ss) {
-        final inset  = MediaQuery.of(ctx).viewInsets.bottom;
+        final inset = MediaQuery.of(ctx).viewInsets.bottom;
         final botPad = MediaQuery.of(ctx).padding.bottom;
 
         String helperText;
@@ -1343,8 +1623,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
         return LayoutBuilder(
           builder: (ctx, constraints) {
             final parentW = constraints.maxWidth;
-            final chipW = (parentW - 40) / 2; // Subtract horizontal padding (16*2=32) and horizontal spacing (8)
-            final fullW = parentW - 32;       // Subtract horizontal padding (16*2=32)
+            final chipW =
+                (parentW - 40) /
+                2; // Subtract horizontal padding (16*2=32) and horizontal spacing (8)
+            final fullW = parentW - 32; // Subtract horizontal padding (16*2=32)
 
             return Padding(
               padding: EdgeInsets.only(bottom: inset),
@@ -1358,12 +1640,12 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-
                       // HANDLE
                       const SizedBox(height: 12),
                       Center(
                         child: Container(
-                          width: 38, height: 4,
+                          width: 38,
+                          height: 4,
                           decoration: BoxDecoration(
                             color: const Color(0xFFBDBEE8),
                             borderRadius: BorderRadius.circular(16),
@@ -1380,7 +1662,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                             GestureDetector(
                               onTap: () => Navigator.pop(ctx),
                               child: Container(
-                                width: 34, height: 34,
+                                width: 34,
+                                height: 34,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEEEFFF),
                                   borderRadius: BorderRadius.circular(10),
@@ -1449,7 +1732,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       height: 1.2,
                                     ),
                                   ),
-                                  if (category.isNotEmpty || vendorName.isNotEmpty)
+                                  if (category.isNotEmpty ||
+                                      vendorName.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 2),
                                       child: Text(
@@ -1481,7 +1765,9 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  formatCurrency(outstanding > 0 ? outstanding : totalAmount),
+                                  formatCurrency(
+                                    outstanding > 0 ? outstanding : totalAmount,
+                                  ),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 20,
@@ -1508,54 +1794,71 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                       Flexible(
                         child: SingleChildScrollView(
                           physics: const ClampingScrollPhysics(),
-                          padding: EdgeInsets.fromLTRB(16, 16, 16, botPad > 0 ? 8 : 12),
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            16,
+                            16,
+                            botPad > 0 ? 8 : 12,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-
                               // PAYMENT STATUS
                               const _SheetSectionLabel('PAYMENT STATUS'),
                               const SizedBox(height: 8),
-                              Row(children: [
-                                _pStatusCard(
-                                  ss, selectedStatus, PaymentStatus.paid,
-                                  'Fully Paid',
-                                  const Color(0xFF15803D),
-                                  const Color(0xFFDCFCE7),
-                                  (v) => ss(() { 
-                                    selectedStatus = v; 
-                                    amountError = null; 
-                                    amountCtrl.text = outstanding > 0 ? outstanding.toStringAsFixed(0) : totalAmount.toStringAsFixed(0);
-                                  }),
-                                ),
-                                const SizedBox(width: 8),
-                                _pStatusCard(
-                                  ss, selectedStatus, PaymentStatus.partial,
-                                  'Partial',
-                                  const Color(0xFFB45309),
-                                  const Color(0xFFFEF3C7),
-                                  (v) => ss(() { 
-                                    selectedStatus = v; 
-                                    amountError = null; 
-                                    final tText = outstanding > 0 ? outstanding.toStringAsFixed(0) : totalAmount.toStringAsFixed(0);
-                                    if (amountCtrl.text == '0' || amountCtrl.text == tText) {
-                                      amountCtrl.clear();
-                                    }
-                                  }),
-                                ),
-                                const SizedBox(width: 8),
-                                _pStatusCard(
-                                  ss, selectedStatus, PaymentStatus.pending,
-                                  'Not Paid',
-                                  const Color(0xFFDC2626),
-                                  const Color(0xFFFEE2E2),
-                                  (v) => ss(() { 
-                                    selectedStatus = v; 
-                                    amountError = null; 
-                                    amountCtrl.text = '0';
-                                  }),
-                                ),
-                              ]),
+                              Row(
+                                children: [
+                                  _pStatusCard(
+                                    ss,
+                                    selectedStatus,
+                                    PaymentStatus.paid,
+                                    'Fully Paid',
+                                    const Color(0xFF15803D),
+                                    const Color(0xFFDCFCE7),
+                                    (v) => ss(() {
+                                      selectedStatus = v;
+                                      amountError = null;
+                                      amountCtrl.text = outstanding > 0
+                                          ? outstanding.toStringAsFixed(0)
+                                          : totalAmount.toStringAsFixed(0);
+                                    }),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _pStatusCard(
+                                    ss,
+                                    selectedStatus,
+                                    PaymentStatus.partial,
+                                    'Partial',
+                                    const Color(0xFFB45309),
+                                    const Color(0xFFFEF3C7),
+                                    (v) => ss(() {
+                                      selectedStatus = v;
+                                      amountError = null;
+                                      final tText = outstanding > 0
+                                          ? outstanding.toStringAsFixed(0)
+                                          : totalAmount.toStringAsFixed(0);
+                                      if (amountCtrl.text == '0' ||
+                                          amountCtrl.text == tText) {
+                                        amountCtrl.clear();
+                                      }
+                                    }),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _pStatusCard(
+                                    ss,
+                                    selectedStatus,
+                                    PaymentStatus.pending,
+                                    'Not Paid',
+                                    const Color(0xFFDC2626),
+                                    const Color(0xFFFEE2E2),
+                                    (v) => ss(() {
+                                      selectedStatus = v;
+                                      amountError = null;
+                                      amountCtrl.text = '0';
+                                    }),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 16),
 
                               // PAYMENT METHOD — 4 in 2x2 + Cheque full-width
@@ -1567,45 +1870,70 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                 children: [
                                   ...pMethods.take(4).map((m) {
                                     final lbl = m['label'] as String;
-                                    final ico = m['icon']  as IconData;
+                                    final ico = m['icon'] as IconData;
                                     final sel = selectedMethod == lbl;
-                                    return _pMethodChip(lbl, ico, sel, chipW, 46,
-                                        () => ss(() => selectedMethod = lbl));
+                                    return _pMethodChip(
+                                      lbl,
+                                      ico,
+                                      sel,
+                                      chipW,
+                                      46,
+                                      () => ss(() => selectedMethod = lbl),
+                                    );
                                   }),
-                                  Builder(builder: (_) {
-                                    const lbl = 'Cheque';
-                                    const ico = Icons.description_outlined;
-                                    final sel = selectedMethod == lbl;
-                                    return _pMethodChip(lbl, ico, sel, fullW, 46,
-                                        () => ss(() => selectedMethod = lbl));
-                                  }),
+                                  Builder(
+                                    builder: (_) {
+                                      const lbl = 'Cheque';
+                                      const ico = Icons.description_outlined;
+                                      final sel = selectedMethod == lbl;
+                                      return _pMethodChip(
+                                        lbl,
+                                        ico,
+                                        sel,
+                                        fullW,
+                                        46,
+                                        () => ss(() => selectedMethod = lbl),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
 
                               // AMOUNT FIELD
-                              const _SheetSectionLabel('ACTUAL AMOUNT PAID (₹)'),
+                              const _SheetSectionLabel(
+                                'ACTUAL AMOUNT PAID (₹)',
+                              ),
                               const SizedBox(height: 8),
                               AnimatedOpacity(
-                                opacity: selectedStatus == PaymentStatus.pending ? 0.4 : 1.0,
+                                opacity: selectedStatus == PaymentStatus.pending
+                                    ? 0.4
+                                    : 1.0,
                                 duration: const Duration(milliseconds: 180),
                                 child: SizedBox(
                                   height: 60,
                                   child: TextField(
                                     controller: amountCtrl,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
                                     onChanged: (val) {
                                       ss(() {
                                         amountError = null;
                                         final amt = double.tryParse(val);
                                         if (amt == null || amt == 0) {
-                                          selectedStatus = PaymentStatus.pending;
-                                        } else if (outstanding > 0 && amt >= outstanding) {
+                                          selectedStatus =
+                                              PaymentStatus.pending;
+                                        } else if (outstanding > 0 &&
+                                            amt >= outstanding) {
                                           selectedStatus = PaymentStatus.paid;
-                                        } else if (outstanding == 0 && amt >= totalAmount) {
+                                        } else if (outstanding == 0 &&
+                                            amt >= totalAmount) {
                                           selectedStatus = PaymentStatus.paid;
                                         } else {
-                                          selectedStatus = PaymentStatus.partial;
+                                          selectedStatus =
+                                              PaymentStatus.partial;
                                         }
                                       });
                                     },
@@ -1621,10 +1949,11 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       hintStyle: const TextStyle(color: _kGray),
                                       filled: true,
                                       fillColor: Colors.white,
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 14,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide(
@@ -1645,9 +1974,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ),
                                     ),
                                     style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        color: _kDark),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: _kDark,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1674,18 +2004,30 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final result = await FilePicker.platform.pickFiles(
-                                    type: FileType.custom,
-                                    allowedExtensions: ['jpg', 'png', 'pdf'],
-                                  );
-                                  if (result != null && result.files.isNotEmpty) {
-                                    ss(() => uploadedReceipt = result.files.first.name);
+                                  final result = await FilePicker.platform
+                                      .pickFiles(
+                                        type: FileType.custom,
+                                        allowedExtensions: [
+                                          'jpg',
+                                          'png',
+                                          'pdf',
+                                        ],
+                                      );
+                                  if (result != null &&
+                                      result.files.isNotEmpty) {
+                                    ss(
+                                      () => uploadedReceipt =
+                                          result.files.first.name,
+                                    );
                                   }
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
                                   width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 13,
+                                    horizontal: 16,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: uploadedReceipt != null
                                         ? const Color(0xFFF0FDF4)
@@ -1699,52 +2041,78 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                     ),
                                   ),
                                   child: uploadedReceipt != null
-                                      ? Row(children: [
-                                          const Icon(Icons.check_circle_outline,
-                                              color: Color(0xFF15803D), size: 18),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(uploadedReceipt!,
+                                      ? Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.check_circle_outline,
+                                              color: Color(0xFF15803D),
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                uploadedReceipt!,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
-                                                    color: Color(0xFF15803D),
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w700)),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          GestureDetector(
-                                            onTap: () => ss(() => uploadedReceipt = null),
-                                            child: const Icon(Icons.close,
-                                                color: Color(0xFF6B7280), size: 15),
-                                          ),
-                                        ])
+                                                  color: Color(0xFF15803D),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () => ss(
+                                                () => uploadedReceipt = null,
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Color(0xFF6B7280),
+                                                size: 15,
+                                              ),
+                                            ),
+                                          ],
+                                        )
                                       : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Container(
-                                              width: 34, height: 34,
+                                              width: 34,
+                                              height: 34,
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFEEEFFF),
-                                                borderRadius: BorderRadius.circular(9),
+                                                borderRadius:
+                                                    BorderRadius.circular(9),
                                               ),
-                                              child: const Icon(Icons.upload_outlined,
-                                                  color: Color(0xFF173EEA), size: 17),
+                                              child: const Icon(
+                                                Icons.upload_outlined,
+                                                color: Color(0xFF173EEA),
+                                                size: 17,
+                                              ),
                                             ),
                                             const SizedBox(width: 10),
                                             const Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Text('Upload Payment Receipt',
-                                                    style: TextStyle(
-                                                        color: _kDark,
-                                                        fontSize: 12.5,
-                                                        fontWeight: FontWeight.w700)),
+                                                Text(
+                                                  'Upload Payment Receipt',
+                                                  style: TextStyle(
+                                                    color: _kDark,
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
                                                 SizedBox(height: 1),
-                                                Text('PNG, JPG, PDF — UPI / Bank / Cheque proof',
-                                                    style: TextStyle(
-                                                        color: _kGray,
-                                                        fontSize: 10.5,
-                                                        fontWeight: FontWeight.w500)),
+                                                Text(
+                                                  'PNG, JPG, PDF — UPI / Bank / Cheque proof',
+                                                  style: TextStyle(
+                                                    color: _kGray,
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ],
@@ -1754,7 +2122,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               const SizedBox(height: 12),
                               EntryNotesField(
                                 controller: noteCtrl,
-                                hint: 'Transaction ID, cheque number, or remarks…',
+                                hint:
+                                    'Transaction ID, cheque number, or remarks…',
                               ),
                               const SizedBox(height: 6),
                             ],
@@ -1764,108 +2133,138 @@ Future<Map<String, dynamic>?> showPaymentSheet(
 
                       // STICKY BOTTOM CTA
                       Container(
-                        padding: EdgeInsets.fromLTRB(16, 12, 16, botPad > 0 ? botPad : 18),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          12,
+                          16,
+                          botPad > 0 ? botPad : 18,
+                        ),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           border: Border(
-                              top: BorderSide(color: Color(0xFFE8EAFF), width: 1)),
-                        ),
-                        child: Row(children: [
-                          Expanded(
-                            flex: 2,
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(ctx),
-                              child: Container(
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(11),
-                                  border: Border.all(
-                                      color: const Color(0xFFDDE0F0), width: 1.5),
-                                ),
-                                child: const Center(
-                                  child: Text('Cancel',
-                                      style: TextStyle(
-                                          color: _kGray,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13)),
-                                ),
-                              ),
-                            ),
+                            top: BorderSide(color: Color(0xFFE8EAFF), width: 1),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 5,
-                            child: GestureDetector(
-                              onTap: () {
-                                if (selectedStatus == PaymentStatus.partial) {
-                                  final raw = amountCtrl.text.trim();
-                                  final amt = double.tryParse(raw);
-                                  if (raw.isEmpty || amt == null || amt <= 0) {
-                                    ss(() => amountError = 'Enter a valid amount paid');
-                                    return;
-                                  }
-                                  if (outstanding > 0 && amt > outstanding + 0.01) {
-                                    ss(() => amountError =
-                                        'Exceeds outstanding ${formatCurrency(outstanding)}');
-                                    return;
-                                  }
-                                }
-                                final amount = selectedStatus == PaymentStatus.paid
-                                    ? outstanding
-                                    : selectedStatus == PaymentStatus.pending
-                                        ? 0.0
-                                        : (double.tryParse(amountCtrl.text.trim()) ?? 0);
-                                Navigator.pop(ctx, {
-                                  'amount': amount,
-                                  'method': selectedMethod,
-                                  'note': noteCtrl.text.trim(),
-                                  'status': selectedStatus,
-                                  'receipt': uploadedReceipt,
-                                });
-                              },
-                              child: Container(
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [
-                                    Color(0xFF173EEA),
-                                    Color(0xFF6B2FD9),
-                                  ]),
-                                  borderRadius: BorderRadius.circular(11),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF173EEA)
-                                          .withOpacity(0.25),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: GestureDetector(
+                                onTap: () => Navigator.pop(ctx),
+                                child: Container(
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(11),
+                                    border: Border.all(
+                                      color: const Color(0xFFDDE0F0),
+                                      width: 1.5,
                                     ),
-                                  ],
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.check_circle_outline,
-                                        color: Colors.white, size: 16),
-                                    SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        'Confirm Payment & Update Inventory',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 12,
-                                        ),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: _kGray,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ]),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 5,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (selectedStatus == PaymentStatus.partial) {
+                                    final raw = amountCtrl.text.trim();
+                                    final amt = double.tryParse(raw);
+                                    if (raw.isEmpty ||
+                                        amt == null ||
+                                        amt <= 0) {
+                                      ss(
+                                        () => amountError =
+                                            'Enter a valid amount paid',
+                                      );
+                                      return;
+                                    }
+                                    if (outstanding > 0 &&
+                                        amt > outstanding + 0.01) {
+                                      ss(
+                                        () => amountError =
+                                            'Exceeds outstanding ${formatCurrency(outstanding)}',
+                                      );
+                                      return;
+                                    }
+                                  }
+                                  final amount =
+                                      selectedStatus == PaymentStatus.paid
+                                      ? outstanding
+                                      : selectedStatus == PaymentStatus.pending
+                                      ? 0.0
+                                      : (double.tryParse(
+                                              amountCtrl.text.trim(),
+                                            ) ??
+                                            0);
+                                  Navigator.pop(ctx, {
+                                    'amount': amount,
+                                    'method': selectedMethod,
+                                    'note': noteCtrl.text.trim(),
+                                    'status': selectedStatus,
+                                    'receipt': uploadedReceipt,
+                                  });
+                                },
+                                child: Container(
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF173EEA),
+                                        Color(0xFF6B2FD9),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF173EEA,
+                                        ).withOpacity(0.25),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_outline,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          'Confirm Payment & Update Inventory',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-
                     ],
                   ),
                 ),
@@ -1885,14 +2284,14 @@ class _SheetSectionLabel extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) => Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF6B7280),
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
-        ),
-      );
+    label,
+    style: const TextStyle(
+      color: Color(0xFF6B7280),
+      fontSize: 10,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.1,
+    ),
+  );
 }
 
 Widget _pStatusCard(
@@ -1923,8 +2322,12 @@ Widget _pStatusCard(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 7, height: 7,
-              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 5),
             Text(
@@ -1969,16 +2372,18 @@ Widget _pMethodChip(
                   color: const Color(0xFF173EEA).withOpacity(0.18),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
-                )
+                ),
               ]
             : [],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon,
-              color: selected ? Colors.white : const Color(0xFF6B7280),
-              size: 16),
+          Icon(
+            icon,
+            color: selected ? Colors.white : const Color(0xFF6B7280),
+            size: 16,
+          ),
           const SizedBox(width: 6),
           Text(
             label,
@@ -1999,11 +2404,7 @@ class InvoiceAttachmentCard extends StatelessWidget {
   final PickedAttachment? attachment;
   final String? fileName;
 
-  const InvoiceAttachmentCard({
-    super.key,
-    this.attachment,
-    this.fileName,
-  });
+  const InvoiceAttachmentCard({super.key, this.attachment, this.fileName});
 
   @override
   Widget build(BuildContext context) {
@@ -2028,7 +2429,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
                 color: const Color(0xFFF0F2FF),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.upload_file_outlined, color: AppColors.textLight, size: 22),
+              child: const Icon(
+                Icons.upload_file_outlined,
+                color: AppColors.textLight,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -2064,7 +2469,7 @@ class InvoiceAttachmentCard extends StatelessWidget {
     IconData iconData = Icons.insert_drive_file_outlined;
     Color iconColor = const Color(0xFF546E7A);
     Color iconBg = const Color(0xFFECEFF1);
-    
+
     final lowerName = name.toLowerCase();
     if (attachment != null) {
       iconData = attachment!.icon;
@@ -2075,7 +2480,9 @@ class InvoiceAttachmentCard extends StatelessWidget {
         iconData = Icons.picture_as_pdf_outlined;
         iconColor = const Color(0xFFE53935);
         iconBg = const Color(0xFFFFEBEE);
-      } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+      } else if (lowerName.endsWith('.jpg') ||
+          lowerName.endsWith('.jpeg') ||
+          lowerName.endsWith('.png')) {
         iconData = Icons.image_outlined;
         iconColor = const Color(0xFF4A6CF7);
         iconBg = const Color(0xFFEEF0FF);
@@ -2093,7 +2500,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
-          Navigator.pushNamed(context, '/receipt-viewer', arguments: {'receipt': name});
+          Navigator.pushNamed(
+            context,
+            '/receipt-viewer',
+            arguments: {'receipt': name},
+          );
         }
       },
       child: Container(
@@ -2140,7 +2551,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade600, size: 12),
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green.shade600,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Successfully attached',
@@ -2208,7 +2623,11 @@ class PaymentReceiptCard extends StatelessWidget {
                 color: const Color(0xFFF0FFF4),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF6B7280), size: 22),
+              child: const Icon(
+                Icons.receipt_long_outlined,
+                color: Color(0xFF6B7280),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -2250,15 +2669,20 @@ class PaymentReceiptCard extends StatelessWidget {
       iconData = Icons.picture_as_pdf_outlined;
       iconColor = const Color(0xFFE53935);
       iconBg = const Color(0xFFFFEBEE);
-    } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+    } else if (lowerName.endsWith('.jpg') ||
+        lowerName.endsWith('.jpeg') ||
+        lowerName.endsWith('.png')) {
       iconData = Icons.image_outlined;
       iconColor = const Color(0xFF15803D);
       iconBg = const Color(0xFFDCFCE7);
     }
 
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/receipt-viewer',
-          arguments: {'receipt': fileName}),
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/receipt-viewer',
+        arguments: {'receipt': fileName},
+      ),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
@@ -2303,7 +2727,11 @@ class PaymentReceiptCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.verified, color: Colors.green.shade600, size: 12),
+                      Icon(
+                        Icons.verified,
+                        color: Colors.green.shade600,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Payment proof attached',

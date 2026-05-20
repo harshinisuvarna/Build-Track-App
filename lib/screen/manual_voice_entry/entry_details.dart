@@ -18,18 +18,18 @@ class EntryDetailScreen extends StatefulWidget {
 
 class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   // ── State loaded from route args ─────────────────────────────────────────
-  bool         _argsLoaded   = false;
-  EntryStatus  _entryStatus  = EntryStatus.pending;
-  PaymentStatus _payStatus   = PaymentStatus.pending;
-  double       _billAmount   = 0;
-  double       _paidAmount   = 0;
+  bool _argsLoaded = false;
+  EntryStatus _entryStatus = EntryStatus.pending;
+  PaymentStatus _payStatus = PaymentStatus.pending;
+  double _billAmount = 0;
+  double _paidAmount = 0;
   List<dynamic> _paymentHistory = [];
-  String?      _paymentReceiptFile;
+  String? _paymentReceiptFile;
 
   @override
   void didChangeDependencies() {
@@ -43,10 +43,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       (e) => e.name == statusStr,
       orElse: () => EntryStatus.pending,
     );
-    _payStatus   = args['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
-    _billAmount  = (args['billAmount']  as num?)?.toDouble() ?? 0;
-    _paidAmount  = (args['paidAmount']  as num?)?.toDouble() ?? 0;
-    
+    _payStatus =
+        args['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
+    _billAmount = (args['billAmount'] as num?)?.toDouble() ?? 0;
+    _paidAmount = (args['paidAmount'] as num?)?.toDouble() ?? 0;
+
     final rawHistory = args['paymentHistory'];
     if (rawHistory is List) {
       _paymentHistory = List.from(rawHistory);
@@ -59,46 +60,60 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
   static Color _typeColor(String type) {
     switch (type) {
-      case 'labour':    return const Color(0xFF2E7D32);
-      case 'equipment': return const Color(0xFFE65100);
-      default:          return primaryBlue;
+      case 'labour':
+        return const Color(0xFF2E7D32);
+      case 'equipment':
+        return const Color(0xFFE65100);
+      default:
+        return primaryBlue;
     }
   }
 
   static Color _typeBg(String type) {
     switch (type) {
-      case 'labour':    return const Color(0xFFE8F5E9);
-      case 'equipment': return const Color(0xFFFFF3E0);
-      default:          return const Color(0xFFEEF0FF);
+      case 'labour':
+        return const Color(0xFFE8F5E9);
+      case 'equipment':
+        return const Color(0xFFFFF3E0);
+      default:
+        return const Color(0xFFEEF0FF);
     }
   }
 
   static IconData _typeIcon(String type) {
     switch (type) {
-      case 'labour':    return Icons.people_outline;
-      case 'equipment': return Icons.construction_outlined;
-      default:          return Icons.inventory_2_outlined;
+      case 'labour':
+        return Icons.people_outline;
+      case 'equipment':
+        return Icons.construction_outlined;
+      default:
+        return Icons.inventory_2_outlined;
     }
   }
 
   static String _typeLabel(String type) {
     switch (type) {
-      case 'labour':    return 'LABOUR';
-      case 'equipment': return 'EQUIPMENT';
-      default:          return 'MATERIAL';
+      case 'labour':
+        return 'LABOUR';
+      case 'equipment':
+        return 'EQUIPMENT';
+      default:
+        return 'MATERIAL';
     }
   }
 
   static String _editRoute(String type) {
     switch (type) {
-      case 'labour':    return '/add-labour';
-      case 'equipment': return '/add-equipment';
-      default:          return '/add-material';
+      case 'labour':
+        return '/add-labour';
+      case 'equipment':
+        return '/add-equipment';
+      default:
+        return '/add-material';
     }
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────
-
 
   Widget _fieldLabel(String t) =>
       Text(t, style: AppTheme.label.copyWith(color: textGray));
@@ -107,52 +122,74 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args        = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final String title       = args['title']        as String? ?? 'Stock Entry';
-    final String ref         = args['ref']          as String? ?? '#INV-0000';
-    final String amount      = args['amount']       as String? ?? '+0';
-    final String date        = args['date']         as String? ?? 'Unknown date';
-    final String type        = args['type']         as String? ?? 'material';
-    final String name        = args['name']         as String? ?? 'Item';
-    final bool   isPositive  = args['isPositive']   as bool?   ?? true;
-    final String? receipt    = args['receipt']      as String?;
-    final PickedAttachment? attachment = args['attachment'] as PickedAttachment?;
-    final String createdBy   = args['createdBy']    as String? ?? '';
-    final String projectId   = args['projectId']    as String? ?? '';
-    final String supplier    = args['supplier']     as String? ?? '';
+    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    final String title = args['title'] as String? ?? 'Stock Entry';
+    final String ref = args['ref'] as String? ?? '#INV-0000';
+    final String amount = args['amount'] as String? ?? '+0';
+    final String date = args['date'] as String? ?? 'Unknown date';
+    final String type = args['type'] as String? ?? 'material';
+    final String name = args['name'] as String? ?? 'Item';
+    final bool isPositive = args['isPositive'] as bool? ?? true;
+    final String? receipt = args['receipt'] as String?;
+    final PickedAttachment? attachment =
+        args['attachment'] as PickedAttachment?;
+    final String createdBy = args['createdBy'] as String? ?? '';
+    final String projectId = args['projectId'] as String? ?? '';
+    final String supplier = args['supplier'] as String? ?? '';
     final String initialMethod = args['paymentMethod'] as String? ?? '';
-    final String initialLastUpdated = args['lastUpdated']  as String? ?? date;
+    final String initialLastUpdated = args['lastUpdated'] as String? ?? date;
 
     final String method = _paymentHistory.isNotEmpty
-        ? (_paymentHistory.last['method'] ?? _paymentHistory.last['paymentMode'] ?? initialMethod)
+        ? (_paymentHistory.last['method'] ??
+              _paymentHistory.last['paymentMode'] ??
+              initialMethod)
         : initialMethod;
 
     final String lastUpdated = _paymentHistory.isNotEmpty
-        ? (_paymentHistory.last['date'] != null 
-            ? (() {
-                try {
-                  final dt = DateTime.parse(_paymentHistory.last['date'].toString());
-                  final months = [
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-                  ];
-                  return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-                } catch (_) {
-                  return _paymentHistory.last['date'].toString();
-                }
-              })()
-            : initialLastUpdated)
+        ? (_paymentHistory.last['date'] != null
+              ? (() {
+                  try {
+                    final dt = DateTime.parse(
+                      _paymentHistory.last['date'].toString(),
+                    );
+                    final months = [
+                      'Jan',
+                      'Feb',
+                      'Mar',
+                      'Apr',
+                      'May',
+                      'Jun',
+                      'Jul',
+                      'Aug',
+                      'Sep',
+                      'Oct',
+                      'Nov',
+                      'Dec',
+                    ];
+                    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+                  } catch (_) {
+                    return _paymentHistory.last['date'].toString();
+                  }
+                })()
+              : initialLastUpdated)
         : initialLastUpdated;
 
-    final bool canEdit   = EntryPermissions.canEdit(
-        status: _entryStatus.name, createdBy: createdBy, projectId: projectId);
+    final bool canEdit = EntryPermissions.canEdit(
+      status: _entryStatus.name,
+      createdBy: createdBy,
+      projectId: projectId,
+    );
     final bool canDelete = EntryPermissions.canDelete(
-        status: _entryStatus.name, createdBy: createdBy, projectId: projectId);
+      status: _entryStatus.name,
+      createdBy: createdBy,
+      projectId: projectId,
+    );
 
     final double due = (_billAmount - _paidAmount).clamp(0.0, double.infinity);
-    final bool canSettle = _payStatus == PaymentStatus.pending  ||
-                           _payStatus == PaymentStatus.partial  ||
-                           _payStatus == PaymentStatus.overdue;
+    final bool canSettle =
+        _payStatus == PaymentStatus.pending ||
+        _payStatus == PaymentStatus.partial ||
+        _payStatus == PaymentStatus.overdue;
     final bool isSettled = _payStatus == PaymentStatus.paid;
 
     return Scaffold(
@@ -170,7 +207,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     // ── TYPE BADGE + PAYMENT STATUS ─────────────────────────
                     Row(
                       children: [
@@ -192,22 +228,32 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           Text(
                             name,
                             style: AppTheme.heading2.copyWith(
-                              fontSize: 20, color: textDark, height: 1.3),
+                              fontSize: 20,
+                              color: textDark,
+                              height: 1.3,
+                            ),
                           ),
                           const SizedBox(height: 4),
-                          Text(title,
-                              style: AppTheme.body.copyWith(color: textGray)),
+                          Text(
+                            title,
+                            style: AppTheme.body.copyWith(color: textGray),
+                          ),
                           if (supplier.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.storefront_outlined,
-                                    color: textGray, size: 13),
+                                const Icon(
+                                  Icons.storefront_outlined,
+                                  color: textGray,
+                                  size: 13,
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   supplier,
-                                  style: AppTheme.caption
-                                      .copyWith(color: textGray, fontWeight: FontWeight.w600),
+                                  style: AppTheme.caption.copyWith(
+                                    color: textGray,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),
@@ -267,13 +313,18 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(Icons.calendar_today_outlined,
-                                  color: _typeColor(type), size: 14),
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                color: _typeColor(type),
+                                size: 14,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 date,
                                 style: AppTheme.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600, color: textDark),
+                                  fontWeight: FontWeight.w600,
+                                  color: textDark,
+                                ),
                               ),
                             ],
                           ),
@@ -294,8 +345,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
                     // ── PAYMENT HISTORY ─────────────────────────────────────
                     _buildPaymentHistoryCard(),
-                    if (_paymentHistory.isNotEmpty)
-                      const SizedBox(height: 14),
+                    if (_paymentHistory.isNotEmpty) const SizedBox(height: 14),
 
                     // ── INVOICE / BILL (uploaded at entry creation) ───────────
                     AppCard(
@@ -340,11 +390,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
 
                     // ── SETTLED CONFIRMATION ────────────────────────────────
-                    if (isSettled)
-                      _buildSettledBadge(),
+                    if (isSettled) _buildSettledBadge(),
 
                     // ── DELETE ENTRY — secondary destructive action ──────────
-                    if (canDelete) ...[  
+                    if (canDelete) ...[
                       const SizedBox(height: 16),
                       _buildDeleteAction(context),
                     ],
@@ -361,8 +410,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── TOP BAR ───────────────────────────────────────────────────────────────
-  Widget _buildTopBar(BuildContext context, String type, Map args,
-      bool canEdit, bool canDelete) {
+  Widget _buildTopBar(
+    BuildContext context,
+    String type,
+    Map args,
+    bool canEdit,
+    bool canDelete,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
       child: Row(
@@ -370,7 +424,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F2FF),
                 borderRadius: BorderRadius.circular(16),
@@ -380,26 +435,39 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Entry Detail',
-                style: AppTheme.heading3.copyWith(color: textDark)),
+            child: Text(
+              'Entry Detail',
+              style: AppTheme.heading3.copyWith(color: textDark),
+            ),
           ),
           if (canEdit)
             TextButton(
               onPressed: () => Navigator.pushNamed(
                 context,
                 _editRoute(type),
-                arguments: {...args, 'isEditing': true, 'status': _entryStatus.name},
+                arguments: {
+                  ...args,
+                  'isEditing': true,
+                  'status': _entryStatus.name,
+                },
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 backgroundColor: const Color(0xFFEEF0FF),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
                 'Edit',
                 style: TextStyle(
-                    color: primaryBlue, fontWeight: FontWeight.w700, fontSize: 14),
+                  color: primaryBlue,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
             ),
         ],
@@ -412,7 +480,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _typeBg(type), borderRadius: BorderRadius.circular(20)),
+        color: _typeBg(type),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -447,7 +517,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10, offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -464,15 +535,24 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _settlementRow('Bill Amount',  formatCurrency(_billAmount),
-              color: textDark),
+          _settlementRow(
+            'Bill Amount',
+            formatCurrency(_billAmount),
+            color: textDark,
+          ),
           const SizedBox(height: 10),
-          _settlementRow('Paid Amount',  formatCurrency(_paidAmount),
-              color: const Color(0xFF15803D)),
+          _settlementRow(
+            'Paid Amount',
+            formatCurrency(_paidAmount),
+            color: const Color(0xFF15803D),
+          ),
           const SizedBox(height: 10),
-          _settlementRow('Due Amount',   formatCurrency(due),
-              color: due > 0 ? const Color(0xFFD97706) : const Color(0xFF15803D),
-              bold: true),
+          _settlementRow(
+            'Due Amount',
+            formatCurrency(due),
+            color: due > 0 ? const Color(0xFFD97706) : const Color(0xFF15803D),
+            bold: true,
+          ),
           if (method.isNotEmpty || lastUpdated.isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -490,15 +570,22 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
-  Widget _settlementRow(String label, String value,
-      {Color color = textDark, bool bold = false}) {
+  Widget _settlementRow(
+    String label,
+    String value, {
+    Color color = textDark,
+    bool bold = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600, color: textGray),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: textGray,
+          ),
         ),
         Text(
           value,
@@ -511,8 +598,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ],
     );
   }
-
-
 
   // ── RECORD PAYMENT CTA ────────────────────────────────────────────────────
   Widget _buildRecordPaymentCTA(
@@ -531,20 +616,21 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       onTap: () {
         showPaymentSheet(
           context,
-          entryTitle:  title,
-          entryRef:    ref,
+          entryTitle: title,
+          entryRef: ref,
           totalAmount: _billAmount,
           alreadyPaid: _paidAmount,
-          vendorName:  supplier,
-          category:    type,
+          vendorName: supplier,
+          category: type,
         ).then((result) async {
           if (result != null && mounted) {
-            final paid         = result['amount'] as double? ?? 0;
-            final newStatus    = result['status'] as PaymentStatus?;
-            final receiptFile  = result['receipt'] as String?;
+            final paid = result['amount'] as double? ?? 0;
+            final newStatus = result['status'] as PaymentStatus?;
+            final receiptFile = result['receipt'] as String?;
 
             final totalPaid = _paidAmount + paid;
-            final newStatusVal = newStatus ??
+            final newStatusVal =
+                newStatus ??
                 (totalPaid >= _billAmount
                     ? PaymentStatus.paid
                     : PaymentStatus.partial);
@@ -560,24 +646,22 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             // Sync payment update with the MongoDB database
             if (id.isNotEmpty) {
               String apiPaymentMode = result['method'] ?? '';
-              if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
+              if (apiPaymentMode == 'Bank Transfer' ||
+                  apiPaymentMode == 'Card') {
                 apiPaymentMode = 'Bank';
               }
 
-              await ApiService.updateTransactionPayment(
-                id,
-                {
-                  'paymentStatus': newStatusStr,
-                  'paidAmount': totalPaid,
-                  'paymentMode': apiPaymentMode,
-                  'notes': result['note'] ?? '',
-                },
-              );
+              await ApiService.updateTransactionPayment(id, {
+                'paymentStatus': newStatusStr,
+                'paidAmount': totalPaid,
+                'paymentMode': apiPaymentMode,
+                'notes': result['note'] ?? '',
+              });
             }
 
             setState(() {
               _paidAmount = totalPaid;
-              _payStatus  = newStatusVal;
+              _payStatus = newStatusVal;
               _paymentHistory.add({
                 'date': DateTime.now().toIso8601String(),
                 'method': result['method'] ?? 'Cash',
@@ -603,7 +687,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           boxShadow: [
             BoxShadow(
               color: primaryBlue.withValues(alpha: 0.35),
-              blurRadius: 14, offset: const Offset(0, 5),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -615,7 +700,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             Text(
               label,
               style: const TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
@@ -663,7 +751,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10, offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -690,13 +779,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _paymentHistory.length,
-            separatorBuilder: (_, __) => const Padding(
+            separatorBuilder: (_, _) => const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Color(0xFFF0F0F8)),
             ),
             itemBuilder: (context, index) {
               final item = _paymentHistory[index] ?? {};
-              
+
               // Parse date
               String formattedDate = 'Unknown Date';
               final rawDate = item['date'];
@@ -705,15 +794,26 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                   final dt = DateTime.parse(rawDate.toString());
                   // Simple human readable format: e.g. "19 May 2026"
                   final months = [
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                    'Jan',
+                    'Feb',
+                    'Mar',
+                    'Apr',
+                    'May',
+                    'Jun',
+                    'Jul',
+                    'Aug',
+                    'Sep',
+                    'Oct',
+                    'Nov',
+                    'Dec',
                   ];
-                  formattedDate = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+                  formattedDate =
+                      '${dt.day} ${months[dt.month - 1]} ${dt.year}';
                 } catch (_) {
                   formattedDate = rawDate.toString();
                 }
               }
-              
+
               final double amt = (item['amount'] as num?)?.toDouble() ?? 0;
               final String method = item['method'] as String? ?? 'Cash';
               final String note = item['note'] as String? ?? '';
@@ -737,7 +837,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           ),
                           const SizedBox(height: 3),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEEF0FF),
                               borderRadius: BorderRadius.circular(12),
@@ -820,15 +923,20 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Entry?',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Delete Entry?',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text(
-            'This action cannot be undone. The entry will be permanently removed.'),
+          'This action cannot be undone. The entry will be permanently removed.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: textGray, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: textGray, fontWeight: FontWeight.w600),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -838,12 +946,17 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
