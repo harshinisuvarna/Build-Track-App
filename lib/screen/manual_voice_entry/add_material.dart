@@ -7,9 +7,12 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+=======
+>>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -155,11 +158,27 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (_selectedProjectId == null) {
       _snack('Please select a project');
       return;
+<<<<<<< HEAD
+=======
+    }
+    if (_selectedFloor == null) {
+      _snack('Please select a floor / zone');
+      return;
+    }
+    if (_selectedPhase == null) {
+      _snack('Please select a phase');
+      return;
+    }
+    if (_selectedActivity == null) {
+      _snack('Please select an activity');
+      return;
+>>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
     }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
 
+<<<<<<< HEAD
     // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Node.js Mongoose Transaction Schema exactly
     final payload = {
       "title": _nameCtrl.text.trim(),
@@ -186,17 +205,37 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "notes": _notesCtrl.text.trim(),
     };
 
+=======
+    // 1. Build the correct payload matching the Node.js backend
+    final payload = {
+      "project": _selectedProjectId,
+      "materialName": _nameCtrl.text,
+      "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
+      "rate": double.tryParse(_rateCtrl.text) ?? 0,
+      "unit": _selectedUnit ?? "units",
+      "type": "material",
+    };
+
+    // 2. Call the REAL backend route we just built
+>>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
     final success = await ApiService.addMaterial(payload);
 
     if (!mounted) return;
 
     if (success) {
+<<<<<<< HEAD
       // 🌟 THE REFRESH FIX: Triggers the app's provider to get fresh database changes
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
       _snack('Material logged and inventory stock synchronized!');
       Navigator.maybePop(context); 
+=======
+      // 3. Only navigate if the database actually saved it!
+      _snack('Material logged to database!');
+      Navigator.maybePop(context); // Go back to inventory list
+>>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
     } else {
       _snack('Error saving to server. Please try again.');
     }
@@ -559,22 +598,28 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      width: 28, height: 28,
+                                      width: 28,
+                                      height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.percent_rounded,
-                                          color: Color(0xFF173EEA), size: 15),
+                                      child: const Icon(
+                                        Icons.percent_rounded,
+                                        color: Color(0xFF173EEA),
+                                        size: 15,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text('GST Configuration',
-                                        style: TextStyle(
-                                          color: Color(0xFF1E1E2E),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.2,
-                                        )),
+                                    const Text(
+                                      'GST Configuration',
+                                      style: TextStyle(
+                                        color: Color(0xFF1E1E2E),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -586,7 +631,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFECEDF8),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFD5D7EF), width: 1),
+                                    border: Border.all(
+                                      color: const Color(0xFFD5D7EF),
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
@@ -597,59 +645,92 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                             _gstCtrl.clear();
                                           }),
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: !_isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                               boxShadow: !_isWithGst
-                                                  ? [BoxShadow(
-                                                      color: const Color(0xFF173EEA).withValues(alpha: 0.22),
-                                                      blurRadius: 6,
-                                                      offset: const Offset(0, 2))]
+                                                  ? [
+                                                      BoxShadow(
+                                                        color:
+                                                            const Color(
+                                                              0xFF173EEA,
+                                                            ).withValues(
+                                                              alpha: 0.22,
+                                                            ),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text('Without GST',
-                                                style: TextStyle(
-                                                  color: !_isWithGst
-                                                      ? Colors.white
-                                                      : const Color(0xFF6B7280),
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                )),
+                                            child: Text(
+                                              'Without GST',
+                                              style: TextStyle(
+                                                color: !_isWithGst
+                                                    ? Colors.white
+                                                    : const Color(0xFF6B7280),
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () => setState(() => _isWithGst = true),
+                                          onTap: () =>
+                                              setState(() => _isWithGst = true),
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: _isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(9),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
                                               boxShadow: _isWithGst
-                                                  ? [BoxShadow(
-                                                      color: const Color(0xFF173EEA).withValues(alpha: 0.22),
-                                                      blurRadius: 6,
-                                                      offset: const Offset(0, 2))]
+                                                  ? [
+                                                      BoxShadow(
+                                                        color:
+                                                            const Color(
+                                                              0xFF173EEA,
+                                                            ).withValues(
+                                                              alpha: 0.22,
+                                                            ),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text('With GST',
-                                                style: TextStyle(
-                                                  color: _isWithGst
-                                                      ? Colors.white
-                                                      : const Color(0xFF6B7280),
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                )),
+                                            child: Text(
+                                              'With GST',
+                                              style: TextStyle(
+                                                color: _isWithGst
+                                                    ? Colors.white
+                                                    : const Color(0xFF6B7280),
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -660,13 +741,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 // GST % field (only when With GST)
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
-                                  const Text('GST Percentage',
-                                      style: TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.3,
-                                      )),
+                                  const Text(
+                                    'GST Percentage',
+                                    style: TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
                                   const SizedBox(height: 6),
                                   EntryUnderlineField(
                                     controller: _gstCtrl,

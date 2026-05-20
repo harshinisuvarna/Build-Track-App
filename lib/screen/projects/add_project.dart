@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
@@ -216,11 +215,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
     // --- HARSHINI'S SUBSCRIPTION CHECK ---
     final projectProvider = context.read<ProjectProvider>();
-    final subProvider = context.read<SubscriptionProvider>();
-    if (!subProvider.canAddProject(projectProvider.projectCount)) {
-      _showUpgradeDialog();
-      return;
-    }
+    // final subProvider = context.read<SubscriptionProvider>();
+    // if (!subProvider.canAddProject(projectProvider.projectCount)) {
+    //   _showUpgradeDialog();
+    //   return;
+    // }
 
     setState(() => _saving = true);
 

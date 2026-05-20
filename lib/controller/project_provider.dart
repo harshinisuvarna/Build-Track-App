@@ -142,6 +142,7 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
+      // ── Entries (materials) ────────────────────────────────────────
       try {
         final response = await ApiService.get('/transactions');
         if (response.statusCode != 200) {
