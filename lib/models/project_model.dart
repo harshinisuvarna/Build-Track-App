@@ -375,7 +375,7 @@ class ProjectModel {
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
 
       // Flat budget fields extracted by backend controller
-      'budgetMaterials': budgetMaterial ?? 0,
+      'budgetMaterial': budgetMaterial ?? 0,
       'budgetLabour': budgetLabour ?? 0,
       'budgetEquipment': budgetEquipment ?? 0,
 

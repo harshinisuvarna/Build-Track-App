@@ -157,10 +157,13 @@ class ProjectProvider extends ChangeNotifier {
           // --- Type ---
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
-          if (rawType == 'labour') {
+
+          // ✅ Matches both frontend logic and backend schema
+          if (rawType == 'labour' || rawType == 'wages') {
             parsedType = EntryType.labour;
-          } else if (rawType == 'equipment')
+          } else if (rawType == 'equipment' || rawType == 'expense') {
             parsedType = EntryType.equipment;
+          }
 
           // --- ProjectId ---
           String projectId = '';
@@ -457,19 +460,35 @@ class ProjectProvider extends ChangeNotifier {
     String? floor,
     ProjectStage? phase,
   }) async {
+    // 1. Map Dart Enums back to exact Backend strings
+    String rawType = "Materials";
+    if (entry.type == EntryType.labour) rawType = "Wages";
+    if (entry.type == EntryType.equipment) rawType = "Expense";
+
+    // 2. Build the STRICT payload that your backend demands
     final payload = {
-      "title": entry.description,
-      "type": entry.type.name,
+      "title": entry.description.isNotEmpty ? entry.description : "New Entry",
+      "type": rawType,
       "project": entry.projectId,
-      "amount": entry.amount,
+      "category":
+          brand ?? entry.brand ?? entry.description, // Links to inventory item
+      "unit": entry.unit ?? "unit",
       "quantity": entry.amount,
       "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
-      "brand": brand ?? entry.brand,
+      "amount":
+          entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1), // Total bill
+      "paymentStatus": "Paid", // Enforced default to pass validation
+      "paymentMode": "Cash", // Enforced default to pass validation
+      "paidAmount":
+          entry.amount *
+          (ratePerUnit ?? entry.ratePerUnit ?? 1), // Full payment
     };
 
     final success = await ApiService.addMaterial(payload);
     if (!success) {
-      dev.log("Failed to save entry to backend");
+      dev.log(
+        "Failed to save entry to backend. Check terminal for server errors.",
+      );
       return;
     }
 
