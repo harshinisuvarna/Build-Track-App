@@ -291,9 +291,7 @@ class _ReviewEquipmentEntryScreenState
               createdBy: UserSession.userId,
             ).toMap()..addAll({
               'title': _nameCtrl.text,
-              'ref': entryId.length > 4
-                  ? '#${entryId.substring(entryId.length - 4)}'
-                  : '#$entryId',
+              'ref': entryId.length > 4 ? '#${entryId.substring(entryId.length - 4)}' : '#$entryId',
               'amount': '+$qty',
               'date': 'Today',
               'isPositive': true,

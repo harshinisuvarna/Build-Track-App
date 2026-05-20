@@ -3,8 +3,10 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/controller/entry_model.dart' as em;
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
@@ -24,19 +26,18 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   String? _selectedActivity;
 
   // ── Resource detail controllers ──────────────────────────────────────────
-  final _nameCtrl = TextEditingController(); // Worker / Team Name
+  final _nameCtrl     = TextEditingController(); // Worker / Team Name
   final _workTypeCtrl = TextEditingController(); // Work Type
-  final _categoryCtrl = TextEditingController(); // Labour Category
-  final _qtyCtrl = TextEditingController(); // Quantity (hours/days/sqft etc)
-  final _rateCtrl = TextEditingController(); // Rate / Unit
-  final _overtimeCtrl = TextEditingController(); // Overtime (optional)
-  final _notesCtrl = TextEditingController(); // Notes
-  String? _selectedUnit; // Labour unit
+  final _categoryCtrl = TextEditingController(); // Subcontractor info / Group type
+  final _qtyCtrl      = TextEditingController(); // Wage hours / Days count
+  String? _selectedUnit;
+  final _rateCtrl     = TextEditingController(); // Base Wage structure
+  final _notesCtrl    = TextEditingController();
 
   // ── UI states ────────────────────────────────────────────────────────────
-  bool _isSaving = false;
-  bool _isEditing = false;
-  bool _argsLoaded = false;
+  bool _isSaving    = false;
+  bool _isEditing   = false;
+  bool _argsLoaded  = false;
   PickedAttachment? _attachment;
 
   // ── Validation flags ─────────────────────────────────────────────────────
@@ -66,22 +67,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       }
 
       if (_isEditing) {
-        _nameCtrl.text =
-            args['title'] as String? ?? args['name'] as String? ?? '';
+        _nameCtrl.text = args['title'] as String? ?? args['name'] as String? ?? '';
         final rawAmount = args['amount']?.toString() ?? '';
-        _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
-
-        final String rawUnit = (args['unit'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
+        _qtyCtrl.text   = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final String rawUnit = (args['unit'] ?? '').toString().trim().toLowerCase();
         if (rawUnit == 'day' || rawUnit == 'days') {
           _selectedUnit = 'Day';
         } else if (rawUnit == 'hour' || rawUnit == 'hours') {
           _selectedUnit = 'Hour';
-        } else if (rawUnit == 'sqft' ||
-            rawUnit == 'sq.ft' ||
-            rawUnit == 'sq ft') {
+        } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
           _selectedUnit = 'Sq.ft';
         } else if (rawUnit.isNotEmpty) {
           _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
@@ -101,38 +96,35 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     _categoryCtrl.dispose();
     _qtyCtrl.dispose();
     _rateCtrl.dispose();
-    _overtimeCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
   double _totalCost() {
-    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
-    final rate = double.tryParse(_rateCtrl.text) ?? 0;
-    final overtime = double.tryParse(_overtimeCtrl.text) ?? 0;
-    return (qty * rate) + overtime;
+    final q = double.tryParse(_qtyCtrl.text) ?? 0;
+    final r = double.tryParse(_rateCtrl.text) ?? 0;
+    return q * r;
   }
 
   bool _validate() {
     bool ok = true;
     setState(() {
-      _nameError = _nameCtrl.text.trim().isEmpty
-          ? 'Worker / team name is required'
-          : null;
+      _nameError = _nameCtrl.text.trim().isEmpty ? 'Labour Name / Crew identifier is required' : null;
+      _workTypeError = _workTypeCtrl.text.trim().isEmpty ? 'Trade classification required' : null;
+      
       final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
+      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantitative metric > 0' : null;
+
       final rate = double.tryParse(_rateCtrl.text);
-      _rateError = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
-      ok = _nameError == null && _qtyError == null && _rateError == null;
+      _rateError = (rate == null || rate <= 0) ? 'Specify base payroll wage valuation > 0' : null;
+
+      ok = _nameError == null && _workTypeError == null && _qtyError == null && _rateError == null;
     });
     return ok;
   }
 
   Future<void> _save(BuildContext ctx) async {
-    if (_selectedProjectId == null) {
-      _snack('Please pick target working site execution context');
-      return;
-    }
+    if (_selectedProjectId == null) { _snack('Please pick target working site execution context'); return; }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -140,23 +132,19 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Mongoose schema for Expenses/Labour
     final payload = {
       "title": _nameCtrl.text.trim(),
-      "type": "Wages",
-      "category": _categoryCtrl.text.trim().isEmpty
-          ? "General Labour"
-          : _categoryCtrl.text.trim(),
+      "type": "Wages", 
+      "category": _categoryCtrl.text.trim().isEmpty ? "General Labour" : _categoryCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
       "unit": _selectedUnit == null
           ? "hour"
           : _selectedUnit == "Day" || _selectedUnit == "day"
-          ? "day"
-          : _selectedUnit == "Hour" || _selectedUnit == "hour"
-          ? "hour"
-          : _selectedUnit == "Sq ft" ||
-                _selectedUnit == "sqft" ||
-                _selectedUnit == "Sq.ft"
-          ? "sqft"
-          : "unit",
+              ? "day"
+              : _selectedUnit == "Hour" || _selectedUnit == "hour"
+                  ? "hour"
+                  : _selectedUnit == "Sq ft" || _selectedUnit == "sqft" || _selectedUnit == "Sq.ft"
+                      ? "sqft"
+                      : "unit",
       "project": _selectedProjectId,
     };
 
@@ -170,7 +158,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       context.read<ProjectProvider>().load();
 
       _snack('Labour entry logged to database!');
-      Navigator.maybePop(context);
+      Navigator.maybePop(context); 
     } else {
       _snack('Error saving to server. Please try again.');
     }
@@ -209,26 +197,13 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                     // ── EXECUTION CONTEXT ─────────────────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
-                      selectedFloor: _selectedFloor,
-                      selectedPhase: _selectedPhase,
-                      selectedActivity: _selectedActivity,
-                      onProjectChanged: (v) => setState(() {
-                        _selectedProjectId = v;
-                        _selectedFloor = null;
-                        _selectedPhase = null;
-                        _selectedActivity = null;
-                      }),
-                      onFloorChanged: (v) => setState(() {
-                        _selectedFloor = v;
-                        _selectedPhase = null;
-                        _selectedActivity = null;
-                      }),
-                      onPhaseChanged: (v) => setState(() {
-                        _selectedPhase = v;
-                        _selectedActivity = null;
-                      }),
-                      onActivityChanged: (v) =>
-                          setState(() => _selectedActivity = v),
+                      selectedFloor:     _selectedFloor,
+                      selectedPhase:     _selectedPhase,
+                      selectedActivity:  _selectedActivity,
+                      onProjectChanged:  (v) => setState(() { _selectedProjectId = v; _selectedFloor = null; _selectedPhase = null; _selectedActivity = null; }),
+                      onFloorChanged:    (v) => setState(() { _selectedFloor = v; _selectedPhase = null; _selectedActivity = null; }),
+                      onPhaseChanged:    (v) => setState(() { _selectedPhase = v; _selectedActivity = null; }),
+                      onActivityChanged: (v) => setState(() => _selectedActivity = v),
                     ),
 
                     // ── RESOURCE DETAIL PROFILE ────────────────────────────
@@ -237,48 +212,29 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
-                            icon: Icons.people_outline,
-                            title: 'Labour Allocation Details',
-                            subtitle:
-                                'Define working crew parameters or workforce units',
+                            icon:     Icons.people_outline,
+                            title:    'Labour Allocation Details',
+                            subtitle: 'Define working crew parameters or workforce units',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Labour / Crew Name',
-                            required: true,
-                          ),
+                          const EntryFieldLabel('Labour / Crew Name', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _nameCtrl,
-                            hint: 'e.g. Rajesh Kumar Team, Steel Fixers Crew',
-                          ),
+                          EntryUnderlineField(controller: _nameCtrl, hint: 'e.g. Rajesh Kumar Team, Steel Fixers Crew'),
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel(
-                            'Trade Classification',
-                            required: true,
-                          ),
+                          const EntryFieldLabel('Trade Classification', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _workTypeCtrl,
-                            hint: 'e.g. Masonry, Barbending, Concrete Crew',
-                          ),
-                          if (_workTypeError != null)
-                            EntryErrorText(_workTypeError!),
+                          EntryUnderlineField(controller: _workTypeCtrl, hint: 'e.g. Masonry, Barbending, Concrete Crew'),
+                          if (_workTypeError != null) EntryErrorText(_workTypeError!),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel(
-                            'Subcontractor / Sub-Group Tag (Optional)',
-                          ),
+                          const EntryFieldLabel('Subcontractor / Sub-Group Tag (Optional)'),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _categoryCtrl,
-                            hint: 'e.g. Vertex Infra Contractors',
-                          ),
+                          EntryUnderlineField(controller: _categoryCtrl, hint: 'e.g. Vertex Infra Contractors'),
                           const SizedBox(height: 18),
                         ],
                       ),
@@ -290,10 +246,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
-                            icon: Icons.timer_outlined,
-                            title: 'Quantified Effort & Wages',
-                            subtitle:
-                                'Calculate deployment financials via timeline logs',
+                            icon:     Icons.timer_outlined,
+                            title:    'Quantified Effort & Wages',
+                            subtitle: 'Calculate deployment financials via timeline logs',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
@@ -306,20 +261,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel(
-                                      'Work Quantity',
-                                      required: true,
-                                    ),
+                                    const EntryFieldLabel('Effort Quantity', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller: _qtyCtrl,
-                                      hint: '0',
-                                      suffix: _selectedUnit ?? 'Unit',
+                                      controller:   _qtyCtrl,
+                                      hint:         '0',
+                                      suffix:       _selectedUnit ?? 'units',
                                       keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
+                                      onChanged:    (_) => setState(() {}),
                                     ),
-                                    if (_qtyError != null)
-                                      EntryErrorText(_qtyError!),
+                                    if (_qtyError != null) EntryErrorText(_qtyError!),
                                   ],
                                 ),
                               ),
@@ -328,20 +279,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
+                                    const EntryFieldLabel('Wage / Rate per unit', required: true),
                                     const SizedBox(height: 8),
                                     EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
+                                      controller:   _rateCtrl,
+                                      hint:         '0',
+                                      prefix:       '₹',
                                       keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
+                                      onChanged:    (_) => setState(() {}),
                                     ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
+                                    if (_rateError != null) EntryErrorText(_rateError!),
                                   ],
                                 ),
                               ),
@@ -349,32 +296,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Unit selector
-                          const EntryFieldLabel('Unit', required: false),
+                          const EntryFieldLabel('Metric Framework Unit'),
                           const SizedBox(height: 8),
                           UnitSelectorField(
-                            value: _selectedUnit,
-                            units: kLabourUnits,
-                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
+                            value:     _selectedUnit,
                             onChanged: (u) => setState(() => _selectedUnit = u),
+                            units:     kLabourUnits,
                           ),
                           const SizedBox(height: 18),
 
-                          // Overtime
-                          const EntryFieldLabel('Overtime Amount (Optional)'),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _overtimeCtrl,
-                            hint: '0',
-                            prefix: '₹',
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Operational Activity Notes (Optional)',
-                          ),
+                          const EntryFieldLabel('Operational Activity Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
                         ],
@@ -384,16 +315,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                     // ── METRIC COST EVALUATION MATRIX ──────────────────────
                     CostSummaryCard(
                       totalAmount: _totalCost(),
-                      label: 'Calculated Operational Labor Budget',
+                      label:       'Calculated Operational Labor Budget',
                       subtotals: [
-                        (
-                          'Qty × Rate',
-                          '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}',
-                        ),
-                        (
-                          'Overtime',
-                          '₹ ${_overtimeCtrl.text.isEmpty ? "0" : _overtimeCtrl.text}',
-                        ),
+                        ('Quantified Base Presence', '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "units"}'),
+                        ('Assigned Payroll Wage Rate', '₹ ${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}'),
                       ],
                     ),
 
@@ -403,17 +328,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'Invoice / Bill',
-                            subtitle:
-                                'Attach invoice, bill, or supporting document (optional)',
+                            icon:     Icons.receipt_long_outlined,
+                            title:    'Invoice / Bill',
+                            subtitle: 'Attach invoice, bill, or supporting document (optional)',
                           ),
                           const SizedBox(height: 16),
                           UploadBox(
                             attachment: _attachment,
                             emptyLabel: 'Tap to upload invoice / bill',
                             onPicked: (a) => setState(() => _attachment = a),
-                            onRemove: () => setState(() => _attachment = null),
+                            onRemove:  () => setState(() => _attachment = null),
                           ),
                         ],
                       ),
@@ -422,10 +346,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                     // ── SUBMIT ─────────────────────────────────────────────
                     const SizedBox(height: 4),
                     EntrySubmitButton(
-                      label: 'Save Labour Entry',
-                      icon: Icons.check_circle,
+                      label:     'Save Labour Entry',
+                      icon:      Icons.check_circle,
                       isLoading: _isSaving,
-                      onTap: () => _save(context),
+                      onTap:     () => _save(context),
                     ),
                     const SizedBox(height: 24),
                   ],

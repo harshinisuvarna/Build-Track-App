@@ -1,169 +1,150 @@
-import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:flutter/material.dart';
 import 'report_model.dart';
-
 class ReportProvider extends ChangeNotifier {
-  int _tabIndex = 0;
-  String _selectedProjectId = 'all';
+  int    _tabIndex        = 0;
+  int    _unitIndex       = 0;
+  String _selectedProject = 'All Active Projects';
+  bool   _isLoading       = false;
+  ReportModel? _report;
+  Object? _error;
   ProjectProvider? _projectProvider;
+  int          get tabIndex        => _tabIndex;
+  int          get unitIndex       => _unitIndex;
+  String       get selectedProject => _selectedProject;
+  bool         get isLoading       => _isLoading;
+  ReportModel? get report          => _report;
+  Object?      get error           => _error;
+  bool         get hasData         => _report != null && !_isLoading;
 
-  int get tabIndex => _tabIndex;
-  String get selectedProjectId => _selectedProjectId;
-
-  String get selectedProjectName {
-    if (_selectedProjectId == 'all') return 'All Active Projects';
-    final match = _projectProvider?.projects
-        .where((p) => p.id == _selectedProjectId)
-        .firstOrNull;
-    return match?.name ?? 'All Active Projects';
-  }
-
-  bool get isLoading => _projectProvider?.isLoading ?? false;
-  String? get error => _projectProvider?.error;
-  bool get hasData => _projectProvider?.hasProjects ?? false;
-  ReportModel get report => buildLiveReport();
-  
   String get currentPeriod {
-    switch (_tabIndex) {
-      case 0: return 'month';
-      case 1: return 'quarter';
-      case 2: return 'year';
-      default: return 'month';
+    const periods = ['daily', 'monthly', 'yearly'];
+    return periods[_tabIndex];
+  }
+  List<double> get activeChartData {
+    if (_report == null) return [];
+    return _unitIndex == 0
+        ? _report!.chartDataSqft
+        : _report!.chartDataCuyd;
+  }
+  List<String> get projectNames {
+    final real = _projectProvider?.projects ?? [];
+    return ['All Active Projects', ...real.map((p) => p.name)];
+  }
+  void linkProjectProvider(ProjectProvider provider) {
+    if (_projectProvider != provider) {
+      _projectProvider = provider;
+      if (_report == null) Future.microtask(_load);
     }
   }
-
-  void linkProjectProvider(ProjectProvider provider) {
-    if (_projectProvider == provider) return;
-    _projectProvider?.removeListener(_onProjectDataChanged);
-    _projectProvider = provider;
-    provider.addListener(_onProjectDataChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();
-    });
-  }
-
-  void _onProjectDataChanged() {
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _projectProvider?.removeListener(_onProjectDataChanged);
-    super.dispose();
-  }
-
   void selectTab(int index) {
     if (_tabIndex == index) return;
     _tabIndex = index;
     notifyListeners();
+    _load();
   }
-
-  void selectProject(String projectId) {
-    if (_selectedProjectId == projectId) return;
-    _selectedProjectId = projectId;
+  void selectUnit(int index) {
+    if (_unitIndex == index) return;
+    _unitIndex = index;
     notifyListeners();
   }
-
-  Future<void> refresh() async {
-    await _projectProvider?.load();
+  void selectProject(String project) {
+    if (_selectedProject == project) return;
+    _selectedProject = project;
     notifyListeners();
+    _load();
   }
+  Future<void> refresh() => _load();
+  Future<void> _load() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
 
-  ReportModel buildLiveReport() {
-  final provider = _projectProvider;
-  if (provider == null || provider.projects.isEmpty) {
-    return ReportModel.empty();
-  }
-
-  final List<ProjectModel> targetProjects = _selectedProjectId == 'all'
-      ? provider.projects
-      : provider.projects.where((p) => p.id == _selectedProjectId).toList();
-
-  if (targetProjects.isEmpty) return ReportModel.empty();
-
-  double material = 0;
-  double labour = 0;
-  double equipment = 0;
-
-  for (final project in targetProjects) {
-    final entries = provider.entriesForProject(project.id);
-    
-    // Try entries first
-    double entryMaterial = 0, entryLabour = 0, entryEquipment = 0;
-    for (final entry in entries) {
-      switch (entry.type) {
-        case EntryType.material: entryMaterial += entry.amount; break;
-        case EntryType.labour:   entryLabour   += entry.amount; break;
-        case EntryType.equipment:entryEquipment+= entry.amount; break;
-      }
-    }
-
-    final entryTotal = entryMaterial + entryLabour + entryEquipment;
-
-    if (entryTotal > 0) {
-      // ✅ Real entry data exists — use it
-      material  += entryMaterial;
-      labour    += entryLabour;
-      equipment += entryEquipment;
-    } else if (project.spentAmount > 0) {
-      // ✅ FALLBACK: distribute spentAmount by budget ratio
-      final bm = project.budgetMaterial  ?? 0;
-      final bl = project.budgetLabour    ?? 0;
-      final be = project.budgetEquipment ?? 0;
-      final bx = project.budgetMisc      ?? 0;
-      final bt = bm + bl + be + bx;
-
-      if (bt > 0) {
-        material  += project.spentAmount * (bm / bt);
-        labour    += project.spentAmount * (bl / bt);
-        equipment += project.spentAmount * (be / bt);
+      final pp = _projectProvider;
+      if (pp == null) {
+        _report = _emptyReport();
       } else {
-        // No budget breakdown — put all in material
-        material += project.spentAmount;
+        _report = _buildReport(pp);
       }
+    } catch (e) {
+      _error = e;
+      _report = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
-
-  // Target budgets
-  double targetMaterial = 0, targetLabour = 0,
-         targetEquipment = 0, targetMisc = 0;
-  for (final project in targetProjects) {
-    targetMaterial  += project.budgetMaterial  ?? 0;
-    targetLabour    += project.budgetLabour    ?? 0;
-    targetEquipment += project.budgetEquipment ?? 0;
-    targetMisc      += project.budgetMisc      ?? 0;
+  ReportModel _buildReport(ProjectProvider pp) {
+    final isAll = _selectedProject == 'All Active Projects';
+    List<EntryModel> scopedEntries;
+    double totalBudget;
+    if (isAll) {
+      scopedEntries = List.of(pp.entries);
+      totalBudget = pp.projects.fold(0.0, (s, p) => s + p.totalBudget);
+    } else {
+      final project = pp.projects.firstWhere(
+        (p) => p.name == _selectedProject,
+        orElse: () => pp.projects.first,
+      );
+      scopedEntries = pp.entriesForProject(project.id);
+      totalBudget = project.totalBudget;
+    }
+    final matCost = scopedEntries
+        .where((e) => e.type == EntryType.material)
+        .fold(0.0, (s, e) => s + e.amount);
+    final labCost = scopedEntries
+        .where((e) => e.type == EntryType.labour)
+        .fold(0.0, (s, e) => s + e.amount);
+    final eqCost = scopedEntries
+        .where((e) => e.type == EntryType.equipment)
+        .fold(0.0, (s, e) => s + e.amount);
+    final total = matCost + labCost + eqCost;
+    final periodMultiplier = _tabIndex == 0 ? (1.0 / 30.0) : _tabIndex == 1 ? 1.0 : 12.0;
+    final periodTotal = total * periodMultiplier;
+    final periodMat   = matCost * periodMultiplier;
+    final periodLab   = labCost * periodMultiplier;
+    final periodEq    = eqCost * periodMultiplier;
+    final base = total > 0 ? total / 1000 : 50.0;
+    final sqft = [
+      base * 0.60, base * 0.68, base * 0.75,
+      base * 0.82, base * 0.91, base,
+    ];
+    final cuyd = sqft.map((v) => v * 27.0).toList(); // 1 cuyd ≈ 27 sqft
+    final budgetFraction = totalBudget > 0 ? total / totalBudget : 0.0;
+    final matFrac = totalBudget > 0 ? matCost / (totalBudget * 0.40) : 0.0;
+    final labFrac = totalBudget > 0 ? labCost / (totalBudget * 0.35) : 0.0;
+    final eqFrac  = totalBudget > 0 ? eqCost  / (totalBudget * 0.15) : 0.0;
+    String note;
+    if (budgetFraction < 0.6) {
+      note = 'Spending is well within budget at ${(budgetFraction * 100).toStringAsFixed(0)}%. Great cost control.';
+    } else if (budgetFraction < 0.9) {
+      note = 'Budget utilisation at ${(budgetFraction * 100).toStringAsFixed(0)}%. Monitor upcoming expenses closely.';
+    } else {
+      note = 'Budget usage at ${(budgetFraction * 100).toStringAsFixed(0)}%. Immediate cost review needed.';
+    }
+    return ReportModel(
+      totalCost:     periodTotal,
+      materialCost:  periodMat,
+      labourCost:    periodLab,
+      equipmentCost: periodEq,
+      chartDataSqft: sqft,
+      chartDataCuyd: cuyd,
+      categoryBudget: {
+        'MATERIAL':    matFrac.clamp(0.0, 1.0),
+        'LABOUR':      labFrac.clamp(0.0, 1.0),
+        'EQUIPMENT':   eqFrac.clamp(0.0, 1.0),
+      },
+      efficiencyNote: note,
+    );
   }
-
-  final total = material + labour + equipment;
-  final totalTarget = targetMaterial + targetLabour +
-                      targetEquipment + targetMisc;
-  final isOver = totalTarget > 0 && total > totalTarget;
-
-  return ReportModel(
-    totalCost:    total,
-    materialCost: material,
-    labourCost:   labour,
-    equipmentCost:equipment,
-    categoryBudget: {
-      'Material':  material,
-      'Labour':    labour,
-      'Equipment': equipment,
-    },
-    targetMaterial:  targetMaterial,
-    targetLabour:    targetLabour,
-    targetEquipment: targetEquipment,
-    targetMisc:      targetMisc,
-    efficiencyNote: isOver
-        ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
-        : 'Project is within budget',
+  ReportModel _emptyReport() => const ReportModel(
+    totalCost: 0, materialCost: 0, labourCost: 0, equipmentCost: 0,
+    chartDataSqft: [0, 0, 0, 0, 0, 0],
+    chartDataCuyd: [0, 0, 0, 0, 0, 0],
+    categoryBudget: {},
+    efficiencyNote: 'No data available.',
   );
-}
-
-  String _fmt(double v) {
-    if (v >= 10000000) return '${(v / 10000000).toStringAsFixed(1)}Cr';
-    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-    return v.toStringAsFixed(0);
-  }
 }

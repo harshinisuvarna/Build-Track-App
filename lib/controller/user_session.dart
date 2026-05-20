@@ -6,13 +6,9 @@ enum UserRole { admin, supervisor, mason }
 
 class UserSession {
   UserSession._();
-
   static String _userId = '';
   static UserRole _role = UserRole.admin;
   static String _projectId = '';
-
-  static bool _initialized = false;
-
   static void set({
     required String userId,
     required UserRole role,
@@ -21,51 +17,25 @@ class UserSession {
     _userId = userId;
     _role = role;
     _projectId = projectId;
-    _initialized = true;
   }
 
   static void clear() {
     _userId = '';
     _role = UserRole.admin;
     _projectId = '';
-    _initialized = false;
   }
 
-  // ----------------------------
-  // SAFE INIT FROM STORAGE
-  // ----------------------------
   static Future<void> loadFromPrefs() async {
-    final roleStr = (await AuthService.getUserRole())?.toLowerCase();
-
-    if (roleStr == null) {
-      _role = UserRole.admin;
-      _initialized = true;
-      return;
-    }
-
-    switch (roleStr) {
-      case 'supervisor':
+    final roleStr = await AuthService.getUserRole();
+    if (roleStr != null) {
+      if (roleStr == 'supervisor') {
         _role = UserRole.supervisor;
-        break;
-
-      case 'worker':
-      case 'mason':
+      } else if (roleStr == 'worker' || roleStr == 'mason')
         _role = UserRole.mason;
-        break;
-
-      case 'admin':
+      else
         _role = UserRole.admin;
-        break;
-
-      default:
-        _role = UserRole.admin;
-        break;
     }
-
-    _initialized = true;
   }
-
-  static bool get isInitialized => _initialized;
 
   static String get userId => _userId;
   static UserRole get role => _role;
@@ -85,16 +55,10 @@ class UserSession {
   static bool get isAdmin => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
   static bool get isMason => _role == UserRole.mason;
-
-  // ----------------------------
-  // DEBUG HELPERS
-  // ----------------------------
   static void simulateAdmin() =>
       set(userId: 'sim_admin', role: UserRole.admin, projectId: 'proj_001');
-
   static void simulateSupervisor() =>
       set(userId: 'sim_sup', role: UserRole.supervisor, projectId: 'proj_001');
-
   static void simulateMason() =>
       set(userId: 'sim_mason', role: UserRole.mason, projectId: 'proj_001');
 }

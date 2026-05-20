@@ -4,12 +4,7 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-
-  // ✅ NOW RETURNS FULL JSON MAP (NOT bool)
-  static Future<Map<String, dynamic>?> login(
-      String email,
-      String password,
-  ) async {
+  static Future<bool> login(String email, String password) async {
     try {
       final response = await ApiService.post('/auth/login', {
         'email': email,
@@ -18,60 +13,50 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final token = data['token'];
-        final user = data['user'];
+        final user = data['user']; 
 
-        if (token == null) return null;
+        if (token != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('jwt_token', token);
 
-        final prefs = await SharedPreferences.getInstance();
+          // Update UserSession
+          UserRole role = UserRole.admin;
+          String savedRole = 'admin';
+          if (user != null && user['role'] != null) {
+            final roleStr = user['role'].toString().toLowerCase();
+            savedRole = roleStr;
+            if (roleStr == 'supervisor') role = UserRole.supervisor;
+            if (roleStr == 'worker' || roleStr == 'mason') role = UserRole.mason;
+          }
 
-        // ✅ SINGLE TOKEN KEY (use only ONE in app)
-        await prefs.setString('token', token);
+          await prefs.setString('user_role', savedRole);
 
-        // optional backup
-        await prefs.setString('jwt_token', token);
+          UserSession.set(
+            userId: user?['_id'] ?? user?['id'] ?? '',
+            role: role,
+            projectId: user?['projectId'] ?? '',
+          );
 
-        // save role
-        String role = user?['role'] ?? 'worker';
-        await prefs.setString('user_role', role);
-
-        // session
-        UserSession.set(
-          userId: user?['_id'] ?? '',
-          role: role == 'admin'
-              ? UserRole.admin
-              : role == 'supervisor'
-                  ? UserRole.supervisor
-                  : UserRole.mason,
-          projectId: user?['projectId'] ?? '',
-        );
-
-        return data; // ✅ IMPORTANT
+          return true;
+        }
       }
-
-      return null;
+      return false;
     } catch (e) {
-      print("Login error: $e");
-      return null;
+      print('Login error: $e');
+      return false;
     }
   }
-
+  
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
     await prefs.remove('jwt_token');
     await prefs.remove('user_role');
     UserSession.clear();
   }
 
-  static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
   static Future<String?> getUserRole() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('user_role');
-}
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_role');
+  }
 }
