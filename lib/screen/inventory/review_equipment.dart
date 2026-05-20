@@ -267,7 +267,6 @@ class _ReviewEquipmentEntryScreenState
         id: entryId,
         projectId: _selectedProjectId!,
         type: EntryType.equipment,
-<<<<<<< HEAD
         amount: qty,
         date: DateTime.now(),
         description: _nameCtrl.text,
@@ -275,14 +274,6 @@ class _ReviewEquipmentEntryScreenState
         floor: _selectedFloor!,
         phaseId: (_selectedPhase as PhaseModel?)?.id,
         unit: 'day',
-=======
-        amount: double.tryParse(_hoursCtrl.text) ?? 0.0,
-        date: DateTime.now(),
-        description: _nameCtrl.text,
-        ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
-        floor: _selectedFloor!,
-        phaseId: (_selectedPhase as PhaseModel?)?.id,
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
       ),
     );
 
@@ -300,27 +291,21 @@ class _ReviewEquipmentEntryScreenState
               createdBy: UserSession.userId,
             ).toMap()..addAll({
               'title': _nameCtrl.text,
-<<<<<<< HEAD
-              'ref': entryId.length > 4 ? '#${entryId.substring(entryId.length - 4)}' : '#$entryId',
+              'ref': entryId.length > 4
+                  ? '#${entryId.substring(entryId.length - 4)}'
+                  : '#$entryId',
               'amount': '+$qty',
-=======
-              'ref': '#$entryId',
-              'amount': '+${_hoursCtrl.text} hrs',
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
               'date': 'Today',
               'isPositive': true,
               'icon': Icons.precision_manufacturing_outlined,
               'attachment': _attachment,
               'receipt': _attachment?.name,
-<<<<<<< HEAD
               'unit': 'day',
               'category': 'equipment',
               'billAmount': qty * rate,
               'paidAmount': 0.0,
               'paymentStatus': 'Pending',
               'paymentHistory': [],
-=======
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
             }),
       },
     );

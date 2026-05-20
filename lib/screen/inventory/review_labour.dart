@@ -222,7 +222,9 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     final response = await ApiService.addTransaction({
       "title": _nameCtrl.text.trim(),
       "type": "Wages",
-      "category": _categoryCtrl.text.trim().isEmpty ? "General Labour" : _categoryCtrl.text.trim(),
+      "category": _categoryCtrl.text.trim().isEmpty
+          ? "General Labour"
+          : _categoryCtrl.text.trim(),
       "quantity": qty,
       "rate": rate,
       "unit": "day",
@@ -252,7 +254,6 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         id: entryId,
         projectId: _selectedProjectId!,
         type: EntryType.labour,
-<<<<<<< HEAD
         amount: qty,
         date: DateTime.now(),
         description: _nameCtrl.text,
@@ -260,14 +261,6 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
         floor: _selectedFloor!,
         phaseId: (_selectedPhase as PhaseModel?)?.id,
         unit: 'day',
-=======
-        amount: double.tryParse(_hoursCtrl.text) ?? 0.0,
-        date: DateTime.now(),
-        description: _nameCtrl.text,
-        ratePerUnit: double.tryParse(_rateCtrl.text) ?? 0.0,
-        floor: _selectedFloor!,
-        phaseId: (_selectedPhase as PhaseModel?)?.id,
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
       ),
     );
 
@@ -286,27 +279,21 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
               createdBy: UserSession.userId,
             ).toMap()..addAll({
               'title': _nameCtrl.text,
-<<<<<<< HEAD
-              'ref': entryId.length > 4 ? '#${entryId.substring(entryId.length - 4)}' : '#$entryId',
+              'ref': entryId.length > 4
+                  ? '#${entryId.substring(entryId.length - 4)}'
+                  : '#$entryId',
               'amount': '+$qty',
-=======
-              'ref': '#$entryId',
-              'amount': '+${_hoursCtrl.text} hrs',
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
               'date': 'Today',
               'isPositive': true,
               'icon': Icons.people_outline,
               'attachment': _attachment,
               'receipt': _attachment?.name,
-<<<<<<< HEAD
               'unit': 'day',
               'category': 'labour',
               'billAmount': qty * rate,
               'paidAmount': 0.0,
               'paymentStatus': 'Pending',
               'paymentHistory': [],
-=======
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
             }),
       },
     );

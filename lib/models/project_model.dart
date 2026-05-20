@@ -250,7 +250,6 @@ class ProjectModel {
     }
 
     // 2. Map the UI status to the exact backend enum values (Title Case)
-<<<<<<< HEAD
     //    Backend enum: ["Active", "Completed", "On Hold", "Review Needed"]
     String mappedStatus = 'Active'; // Default fallback
     final rawStatus = (projectStatus ?? '').toLowerCase();
@@ -265,22 +264,6 @@ class ProjectModel {
       mappedStatus = 'Completed';
     } else if (rawStatus.contains('review')) {
       mappedStatus = 'Review Needed';
-=======
-    //    Backend enum: ["Planning", "In Progress", "On Hold", "Completed", "Cancelled"]
-    String mappedStatus = 'Planning'; // Default fallback
-    final rawStatus = (projectStatus ?? '').toLowerCase();
-
-    if (rawStatus.contains('progress') || rawStatus.contains('active')) {
-      mappedStatus = 'In Progress';
-    } else if (rawStatus.contains('hold')) {
-      mappedStatus = 'On Hold';
-    } else if (rawStatus.contains('complet')) {
-      mappedStatus = 'Completed';
-    } else if (rawStatus.contains('cancel')) {
-      mappedStatus = 'Cancelled';
-    } else if (rawStatus.contains('plan')) {
-      mappedStatus = 'Planning';
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
     }
 
     return {
@@ -297,14 +280,11 @@ class ProjectModel {
       'projectCode':
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
 
-<<<<<<< HEAD
       // Flat budget fields extracted by backend controller
       'budgetMaterials': budgetMaterial ?? 0,
       'budgetLabour': budgetLabour ?? 0,
       'budgetEquipment': budgetEquipment ?? 0,
 
-=======
->>>>>>> 210b248948505ce230acf897c474ba4e1ac761f9
       // Nested buildingType object required by validation
       'buildingType': {'mainType': mainType, 'subType': subType},
 
