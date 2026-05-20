@@ -7,7 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # We have to install Java 17 on the cloud server!
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -17,6 +16,9 @@ jobs:
         with:
           channel: 'stable'
           
+      # This line violently spams 'y' to accept all Android NDK licenses
+      - run: yes | flutter doctor --android-licenses
+      
       - run: flutter pub get
       - run: flutter build apk --release
       
