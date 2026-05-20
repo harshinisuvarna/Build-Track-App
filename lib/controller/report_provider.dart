@@ -19,6 +19,20 @@ class ReportProvider extends ChangeNotifier {
     return match?.name ?? 'All Active Projects';
   }
 
+  bool get isLoading => _projectProvider?.isLoading ?? false;
+  String? get error => _projectProvider?.error;
+  bool get hasData => _projectProvider?.hasProjects ?? false;
+  ReportModel get report => buildLiveReport();
+  
+  String get currentPeriod {
+    switch (_tabIndex) {
+      case 0: return 'month';
+      case 1: return 'quarter';
+      case 2: return 'year';
+      default: return 'month';
+    }
+  }
+
   void linkProjectProvider(ProjectProvider provider) {
     if (_projectProvider == provider) return;
     _projectProvider?.removeListener(_onProjectDataChanged);

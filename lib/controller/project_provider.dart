@@ -2,6 +2,7 @@ import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,8 +30,8 @@ class ProjectProvider extends ChangeNotifier {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
-      (e) => e.projectId == _selectedProject!.id &&
-             e.type == EntryType.material,
+      (e) =>
+          e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -42,7 +43,7 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   List<EntryModel> entriesForProject(String projectId) =>
-      _entries.where((e) => e.projectId == projectId).toList();
+      _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
 
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (sum, e) => sum + e.amount);
@@ -85,33 +86,54 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
       if (_phases.isEmpty || _phases.length < 11) {
-        _phases = [
-          'Pre-Construction', 'Site Preparation', 'Foundation', 'Plinth',
-          'Superstructure', 'Masonry', 'MEP', 'Plastering',
-          'Finishing', 'Fixtures', 'Handover',
-        ].asMap().entries.map((e) => PhaseModel(
-          id: e.value.toLowerCase().replaceAll(' ', '_'),
-          name: e.value,
-          order: e.key,
-        )).toList();
+        _phases =
+            [
+                  'Pre-Construction',
+                  'Site Preparation',
+                  'Foundation',
+                  'Plinth',
+                  'Superstructure',
+                  'Masonry',
+                  'MEP',
+                  'Plastering',
+                  'Finishing',
+                  'Fixtures',
+                  'Handover',
+                ]
+                .asMap()
+                .entries
+                .map(
+                  (e) => PhaseModel(
+                    id: e.value.toLowerCase().replaceAll(' ', '_'),
+                    name: e.value,
+                    order: e.key,
+                  ),
+                )
+                .toList();
         _savePhases();
       }
 
       // ── Projects ────────────────────────────────────────────────
       try {
         _projects = await ApiService.fetchProjects();
-        _projects = _projects.map((p) => p.copyWith(
-          floors: (p.floors == null || p.floors!.isEmpty)
-              ? ['Ground Floor']
-              : p.floors,
-        )).toList();
+        _projects = _projects
+            .map(
+              (p) => p.copyWith(
+                floors: (p.floors == null || p.floors!.isEmpty)
+                    ? ['Ground Floor']
+                    : p.floors,
+              ),
+            )
+            .toList();
         debugPrint('Projects loaded: ${_projects.length}');
         for (final p in _projects) {
-          debugPrint('  Project: "${p.name}" id=${p.id} '
-              'spentAmount=${p.spentAmount} '
-              'budgetMaterial=${p.budgetMaterial} '
-              'budgetLabour=${p.budgetLabour} '
-              'budgetEquipment=${p.budgetEquipment}');
+          debugPrint(
+            '  Project: "${p.name}" id=${p.id} '
+            'spentAmount=${p.spentAmount} '
+            'budgetMaterial=${p.budgetMaterial} '
+            'budgetLabour=${p.budgetLabour} '
+            'budgetEquipment=${p.budgetEquipment}',
+          );
         }
       } catch (e) {
         dev.log('fetchProjects failed: $e');
@@ -135,8 +157,10 @@ class ProjectProvider extends ChangeNotifier {
           // --- Type ---
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
-          if (rawType == 'labour') parsedType = EntryType.labour;
-          else if (rawType == 'equipment') parsedType = EntryType.equipment;
+          if (rawType == 'labour') {
+            parsedType = EntryType.labour;
+          } else if (rawType == 'equipment')
+            parsedType = EntryType.equipment;
 
           // --- ProjectId ---
           String projectId = '';
@@ -149,10 +173,18 @@ class ProjectProvider extends ChangeNotifier {
           // --- Amount: payment fields first, then regular fields ---
           double amount = 0;
           final fieldsToTry = [
-            'paidAmount', 'amountPaid', 'paymentAmount',
-            'paid', 'totalPaid',
-            'amount', 'totalCost', 'total', 'cost',
-            'closingStock', 'totalAmount', 'price',
+            'paidAmount',
+            'amountPaid',
+            'paymentAmount',
+            'paid',
+            'totalPaid',
+            'amount',
+            'totalCost',
+            'total',
+            'cost',
+            'closingStock',
+            'totalAmount',
+            'price',
           ];
           for (final field in fieldsToTry) {
             final v = json[field];
@@ -171,34 +203,47 @@ class ProjectProvider extends ChangeNotifier {
                   : qty.toDouble();
             }
           }
+          if (projectId.isEmpty && json['projectId'] != null) {
+            if (json['projectId'] is Map) {
+              projectId = json['projectId']['_id']?.toString() ?? '';
+            } else {
+              projectId = json['projectId'].toString();
+            }
+          }
+          projectId = projectId.trim();
+          if (projectId.isEmpty) {
+            projectId = 'p1'; // ultimate fallback
+          }
 
           return EntryModel(
-            id: json['_id']?.toString() ??
+            id:
+                json['_id']?.toString() ??
                 DateTime.now().millisecondsSinceEpoch.toString(),
             projectId: projectId,
             type: parsedType,
-            amount: amount,
+            amount: amount, // Your robust pre-calculated amount
             date: json['date'] != null
                 ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
                 : DateTime.now(),
-            description: json['materialName'] ?? json['title'] ??
-                json['description'] ?? json['name'] ?? 'Entry',
+            description:
+                json['materialName'] ??
+                json['title'] ??
+                json['description'] ??
+                json['name'] ??
+                'Entry',
             brand: json['materialName'] ?? json['brand'] ?? json['name'],
             ratePerUnit: (json['rate'] is num)
                 ? (json['rate'] as num).toDouble()
                 : 0,
+            unit: json['unit']?.toString(), // SALVAGED FROM MUNESHA'S MAIN
           );
         }).toList();
 
         debugPrint('--- MATCH CHECK ---');
         for (final p in _projects) {
-          final matched = _entries
-              .where((e) => e.projectId == p.id)
-              .toList();
+          final matched = _entries.where((e) => e.projectId == p.id).toList();
           final total = matched.fold(0.0, (s, e) => s + e.amount);
-          debugPrint(
-            '  "${p.name}" → ${matched.length} entries, ₹$total'
-          );
+          debugPrint('  "${p.name}" → ${matched.length} entries, ₹$total');
         }
         debugPrint('-------------------');
 
@@ -213,8 +258,23 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      if (_projects.isNotEmpty) {
+      // Retain currently selected project if it still exists in the fetched list
+      if (_selectedProject != null) {
+        final existingIdx = _projects.indexWhere(
+          (p) => p.id.trim() == _selectedProject!.id.trim(),
+        );
+        if (existingIdx != -1) {
+          _selectedProject = _projects[existingIdx];
+        } else if (_projects.isNotEmpty) {
+          _selectedProject = _projects.first;
+        } else {
+          _selectedProject = null;
+        }
+      } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
+      }
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
       }
       _error = '';
     } catch (e, st) {
@@ -233,13 +293,20 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
-      _projects = _projects.map((p) => p.copyWith(
-        floors: (p.floors == null || p.floors!.isEmpty)
-            ? ['Ground Floor']
-            : p.floors,
-      )).toList();
+      _projects = _projects
+          .map(
+            (p) => p.copyWith(
+              floors: (p.floors == null || p.floors!.isEmpty)
+                  ? ['Ground Floor']
+                  : p.floors,
+            ),
+          )
+          .toList();
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
+      }
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
       }
       _error = '';
     } catch (e) {
@@ -277,11 +344,13 @@ class ProjectProvider extends ChangeNotifier {
     }
     _projects.add(saved);
     _selectedProject = saved;
+    UserSession.projectId = saved.id;
     notifyListeners();
   }
 
   void selectProject(ProjectModel project) {
     _selectedProject = project;
+    UserSession.projectId = project.id;
     notifyListeners();
   }
 
@@ -293,7 +362,8 @@ class ProjectProvider extends ChangeNotifier {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
     _projects[idx] = _projects[idx].copyWith(
-        progress: progress.clamp(0.0, 1.0));
+      progress: progress.clamp(0.0, 1.0),
+    );
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
       await ApiService.put('/projects/$id', _projects[idx].toJson());
@@ -315,17 +385,16 @@ class ProjectProvider extends ChangeNotifier {
     final idx = _projects.indexWhere((p) => p.id == projectId);
     if (idx == -1) return;
     final project = _projects[idx];
-    List<String> updatedCompletedKeys =
-        List.from(project.completedActivityKeys ?? []);
+    List<String> updatedCompletedKeys = List.from(
+      project.completedActivityKeys ?? [],
+    );
 
-    if (project.selectedPhases != null &&
-        project.selectedPhases!.isNotEmpty) {
+    if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
       final updatedPhases = project.selectedPhases!.map((phase) {
         final updatedActivities = phase.activities.map((act) {
           if (act.id == activityId) {
             final isNowCompleted = !act.completed;
-            if (isNowCompleted &&
-                !updatedCompletedKeys.contains(activityId)) {
+            if (isNowCompleted && !updatedCompletedKeys.contains(activityId)) {
               updatedCompletedKeys.add(activityId);
             } else if (!isNowCompleted) {
               updatedCompletedKeys.remove(activityId);
@@ -337,10 +406,8 @@ class ProjectProvider extends ChangeNotifier {
         return phase.copyWith(activities: updatedActivities);
       }).toList();
 
-      final total =
-          updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
-      final done =
-          updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
+      final total = updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
+      final done = updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
       _projects[idx] = project.copyWith(
         selectedPhases: updatedPhases,
         completedActivityKeys: updatedCompletedKeys,
@@ -368,7 +435,9 @@ class ProjectProvider extends ChangeNotifier {
 
     try {
       final response = await ApiService.put(
-          '/projects/$projectId', _projects[idx].toJson());
+        '/projects/$projectId',
+        _projects[idx].toJson(),
+      );
       if (response.statusCode != 200) {
         dev.log('Failed saving activity: ${response.statusCode}');
       }
@@ -419,8 +488,7 @@ class ProjectProvider extends ChangeNotifier {
 
     _entries.add(updatedEntry);
 
-    final idx =
-        _projects.indexWhere((p) => p.id == updatedEntry.projectId);
+    final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
       final oldProject = _projects[idx];
       final newSpent = oldProject.spentAmount + updatedEntry.amount;
@@ -430,7 +498,9 @@ class ProjectProvider extends ChangeNotifier {
       }
       try {
         await ApiService.put(
-            '/projects/${oldProject.id}', _projects[idx].toJson());
+          '/projects/${oldProject.id}',
+          _projects[idx].toJson(),
+        );
       } catch (e) {
         dev.log('Failed updating project spent: $e');
       }
@@ -451,11 +521,13 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   void addPhase(String name) {
-    _phases.add(PhaseModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      order: _phases.length,
-    ));
+    _phases.add(
+      PhaseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        order: _phases.length,
+      ),
+    );
     _savePhases();
     notifyListeners();
   }
@@ -464,9 +536,10 @@ class ProjectProvider extends ChangeNotifier {
     final index = _phases.indexWhere((p) => p.id == id);
     if (index != -1) {
       _phases[index] = PhaseModel(
-          id: _phases[index].id,
-          name: newName,
-          order: _phases[index].order);
+        id: _phases[index].id,
+        name: newName,
+        order: _phases[index].order,
+      );
       _savePhases();
       notifyListeners();
     }

@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
 
   bool _obscurePass = true;
-  bool _rememberMe = false;
+  final bool _rememberMe = false;
   bool _loading = false;
 
   @override
@@ -80,10 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHeader() {
     return Column(
       children: [
-        Text(
-          'BuildTrack',
-          style: AppTheme.heading1.copyWith(fontSize: 30),
-        ),
+        Text('BuildTrack', style: AppTheme.heading1.copyWith(fontSize: 30)),
         const SizedBox(height: 6),
         Text(
           'Manage your construction smarter',
@@ -114,8 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
             ),
-            onPressed: () =>
-                setState(() => _obscurePass = !_obscurePass),
+            onPressed: () => setState(() => _obscurePass = !_obscurePass),
           ),
         ),
       ],
@@ -140,8 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: AppTheme.body.copyWith(color: AppColors.textLight),
             ),
             GestureDetector(
-              onTap: () =>
-                  Navigator.pushNamed(context, '/create-workspace'),
+              onTap: () => Navigator.pushNamed(context, '/create-workspace'),
               child: Text(
                 'Create account',
                 style: AppTheme.body.copyWith(
@@ -157,51 +152,51 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-  final email = _emailCtrl.text.trim();
-  final password = _passCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text.trim();
 
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Enter email and password')),
-    );
-    return;
-  }
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter email and password')));
+      return;
+    }
 
-  setState(() => _loading = true);
+    setState(() => _loading = true);
 
-  try {
-    final data = await AuthService.login(email, password);
+    try {
+      final data = await AuthService.login(email, password);
 
-    if (data != null && data['token'] != null) {
-      // 1. Save token FIRST
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', data['token']);
+      if (data != null && data['token'] != null) {
+        // 1. Save token FIRST
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', data['token']);
 
-      UserSession.set(
-        userId: data['userId'] ?? '',
-        role: _parseRole(data['role']),
-      );
+        UserSession.set(
+          userId: data['userId'] ?? '',
+          role: _parseRole(data['role']),
+        );
 
-      if (mounted) {
-        // 2. Load ALL data (projects + entries) now that token is saved
-        await context.read<ProjectProvider>().load();
+        if (mounted) {
+          // 2. Load ALL data (projects + entries) now that token is saved
+          await context.read<ProjectProvider>().load();
 
-        // 3. Navigate
-        Navigator.pushReplacementNamed(context, '/home');
+          // 3. Navigate
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        throw Exception("Invalid login response");
       }
-    } else {
-      throw Exception("Invalid login response");
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Login failed: $e')),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => _loading = false);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
-}
 
   UserRole _parseRole(String? role) {
     switch (role?.toLowerCase()) {
@@ -216,9 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildFooter() {
-    return Text(
-      'Privacy Policy • Terms of Service',
-      style: AppTheme.caption,
-    );
+    return Text('Privacy Policy • Terms of Service', style: AppTheme.caption);
   }
 }

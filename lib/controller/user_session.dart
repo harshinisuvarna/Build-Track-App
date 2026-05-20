@@ -35,43 +35,42 @@ class UserSession {
   // SAFE INIT FROM STORAGE
   // ----------------------------
   static Future<void> loadFromPrefs() async {
-  final roleStr =
-      (await AuthService.getUserRole())?.toLowerCase();
+    final roleStr = (await AuthService.getUserRole())?.toLowerCase();
 
-  if (roleStr == null) {
-    _role = UserRole.admin;
+    if (roleStr == null) {
+      _role = UserRole.admin;
+      _initialized = true;
+      return;
+    }
+
+    switch (roleStr) {
+      case 'supervisor':
+        _role = UserRole.supervisor;
+        break;
+
+      case 'worker':
+      case 'mason':
+        _role = UserRole.mason;
+        break;
+
+      case 'admin':
+        _role = UserRole.admin;
+        break;
+
+      default:
+        _role = UserRole.admin;
+        break;
+    }
+
     _initialized = true;
-    return;
   }
-
-  switch (roleStr) {
-    case 'supervisor':
-      _role = UserRole.supervisor;
-      break;
-
-    case 'worker':
-    case 'mason':
-      _role = UserRole.mason;
-      break;
-
-    case 'admin':
-      _role = UserRole.admin;
-      break;
-
-    default:
-      _role = UserRole.admin;
-      break;
-  }
-
-  _initialized = true;
-}
 
   static bool get isInitialized => _initialized;
 
   static String get userId => _userId;
   static UserRole get role => _role;
   static String get projectId => _projectId;
-
+  static set projectId(String value) => _projectId = value;
   static String get roleLabel {
     switch (_role) {
       case UserRole.admin:

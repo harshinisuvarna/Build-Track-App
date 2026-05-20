@@ -14,7 +14,7 @@ class ReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ReportProvider(),
+      create: (_) => ReportProvider()..refresh(),
       child: const _ReportsView(),
     );
   }
@@ -34,7 +34,8 @@ class _ReportsViewState extends State<_ReportsView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_linked) { // ← ADD THIS CHECK
+    if (!_linked) {
+      // ← ADD THIS CHECK
       _linked = true;
       final projectProvider = context.read<ProjectProvider>();
       context.read<ReportProvider>().linkProjectProvider(projectProvider);
@@ -67,16 +68,22 @@ class _ReportsViewState extends State<_ReportsView> {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.grey.shade800,
-                  child: const Icon(Icons.person, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: _PeriodTabs(
                 tabIndex: provider.tabIndex,
                 onTabChanged: (i) {
                   provider.selectTab(i);
+
                   if (_pageController.page?.round() != i) {
                     _pageController.animateToPage(
                       i,
@@ -87,6 +94,7 @@ class _ReportsViewState extends State<_ReportsView> {
                 },
               ),
             ),
+
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -95,7 +103,7 @@ class _ReportsViewState extends State<_ReportsView> {
                 itemBuilder: (context, index) => RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: provider.refresh,
-                  child: _buildContent(context, provider),
+                  child: _buildPageContent(context, provider),
                 ),
               ),
             ),
@@ -106,8 +114,30 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  Widget _buildContent(BuildContext context, ReportProvider provider) {
-    final report = provider.buildLiveReport();
+  Widget _buildPageContent(BuildContext context, ReportProvider provider) {
+    if (provider.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (provider.error != null) {
+      return AppEmptyState(
+        icon: Icons.cloud_off_outlined,
+        message: 'Failed to load report.\nPull down to retry.',
+        actionLabel: 'Retry',
+        onAction: provider.refresh,
+      );
+    }
+
+    if (!provider.hasData) {
+      return const AppEmptyState(
+        icon: Icons.bar_chart_outlined,
+        message: 'No report data available.',
+      );
+    }
+
+    final report = provider.report;
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -119,21 +149,27 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Cost Summary'),
-          MetricGrid(report: report),
+          MetricGrid(report: report, period: provider.currentPeriod),
+
           const SizedBox(height: 14),
 
-          const AppSectionHeader(title: 'Budget vs Actual Chart'),
-          ChartSection(report: report),
+          const AppSectionHeader(title: 'Cost per Unit'),
+
+          // ✅ FIXED LINE (IMPORTANT)
+          const ChartSection(),
+
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Category Budget'),
-          CategoryBudgetSection(report: report),
+          CategoryBudgetSection(categoryBudget: report.categoryBudget),
+
           const SizedBox(height: 14),
 
           EfficiencyBanner(
             note: report.efficiencyNote,
             isExceeded: report.isBudgetExceeded,
           ),
+
           const SizedBox(height: 8),
         ],
       ),
@@ -142,10 +178,7 @@ class _ReportsViewState extends State<_ReportsView> {
 }
 
 class _PeriodTabs extends StatelessWidget {
-  const _PeriodTabs({
-    required this.tabIndex,
-    required this.onTabChanged,
-  });
+  const _PeriodTabs({required this.tabIndex, required this.onTabChanged});
 
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
@@ -159,17 +192,22 @@ class _PeriodTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
+        ],
       ),
       child: Row(
         children: List.generate(_tabs.length, (i) {
           final active = i == tabIndex;
+
           return Expanded(
             child: GestureDetector(
               onTap: () => onTabChanged(i),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: active ? AppColors.primary : Colors.transparent,
+                  gradient: active ? AppGradients.primaryButton : null,
+                  color: active ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Text(
