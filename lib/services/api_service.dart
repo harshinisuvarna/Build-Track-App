@@ -6,21 +6,22 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
   // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
-  static const String baseUrl = 'http://localhost:5001/api';
+  // static const String baseUrl = 'http://localhost:5001/api';
+  static const String baseUrl = 'https://jargon-tit-stained.ngrok-free.dev/api';
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
   // ==========================================
   static Future<Map<String, String>> _getHeaders() async {
-  final prefs = await SharedPreferences.getInstance();
-  // ✅ Try 'token' first, fall back to 'jwt_token'
-  final token = prefs.getString('token') ?? prefs.getString('jwt_token');
+    final prefs = await SharedPreferences.getInstance();
+    // ✅ Try 'token' first, fall back to 'jwt_token'
+    final token = prefs.getString('token') ?? prefs.getString('jwt_token');
 
-  return {
-    'Content-Type': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
-}
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
