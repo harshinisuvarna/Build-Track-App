@@ -114,6 +114,8 @@ class MetricCard extends StatelessWidget {
   }
 }
 
+// ── Replace MetricGrid ──────────────────────────────────────────────────────
+
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
 
@@ -122,75 +124,51 @@ class MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metrics = [
-      _M(
-        Icons.credit_card_outlined,
-        'TOTAL COST',
-        report.formattedTotal,
-        ReportModel.mockChange('total', period),
-      ),
-      _M(
-        Icons.architecture,
-        'MATERIAL',
-        report.formattedMaterial,
-        ReportModel.mockChange('material', period),
-      ),
-      _M(
-        Icons.people_outline,
-        'LABOUR',
-        report.formattedLabour,
-        ReportModel.mockChange('labour', period),
-      ),
-      _M(
-        Icons.precision_manufacturing_outlined,
-        'EQUIPMENT',
-        report.formattedEquipment,
-        ReportModel.mockChange('equipment', period),
-      ),
+    // ✅ Show actual spent vs target — no mock percentages
+    final totalTarget = report.targetMaterial +
+        report.targetLabour +
+        report.targetEquipment +
+        report.targetMisc;
+
+    double _pct(double actual, double target) {
+      if (target <= 0) return 0;
+      return ((actual / target) - 1) * 100; // negative = saving, positive = over
+    }
+
+    final cards = [
+      _M(Icons.credit_card_outlined, 'TOTAL COST',
+          report.formattedTotal, _pct(report.totalCost, totalTarget)),
+      _M(Icons.architecture, 'MATERIAL',
+          report.formattedMaterial, _pct(report.materialCost, report.targetMaterial)),
+      _M(Icons.people_outline, 'LABOUR',
+          report.formattedLabour, _pct(report.labourCost, report.targetLabour)),
+      _M(Icons.precision_manufacturing_outlined, 'EQUIPMENT',
+          report.formattedEquipment, _pct(report.equipmentCost, report.targetEquipment)),
     ];
+
     return Column(
       children: [
         Row(
           children: [
-            Expanded(
-              child: MetricCard(
-                icon: metrics[0].icon,
-                label: metrics[0].label,
-                value: metrics[0].value,
-                change: metrics[0].change,
-              ),
-            ),
+            Expanded(child: MetricCard(
+              icon: cards[0].icon, label: cards[0].label,
+              value: cards[0].value, change: cards[0].change)),
             const SizedBox(width: 12),
-            Expanded(
-              child: MetricCard(
-                icon: metrics[1].icon,
-                label: metrics[1].label,
-                value: metrics[1].value,
-                change: metrics[1].change,
-              ),
-            ),
+            Expanded(child: MetricCard(
+              icon: cards[1].icon, label: cards[1].label,
+              value: cards[1].value, change: cards[1].change)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: MetricCard(
-                icon: metrics[2].icon,
-                label: metrics[2].label,
-                value: metrics[2].value,
-                change: metrics[2].change,
-              ),
-            ),
+            Expanded(child: MetricCard(
+              icon: cards[2].icon, label: cards[2].label,
+              value: cards[2].value, change: cards[2].change)),
             const SizedBox(width: 12),
-            Expanded(
-              child: MetricCard(
-                icon: metrics[3].icon,
-                label: metrics[3].label,
-                value: metrics[3].value,
-                change: metrics[3].change,
-              ),
-            ),
+            Expanded(child: MetricCard(
+              icon: cards[3].icon, label: cards[3].label,
+              value: cards[3].value, change: cards[3].change)),
           ],
         ),
       ],
@@ -206,6 +184,8 @@ class _M {
   final double change;
 }
 
+// ── Replace ChartSection ────────────────────────────────────────────────────
+
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.report});
 
@@ -213,7 +193,6 @@ class ChartSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Munesha's Dynamic Wiring (with NaN protection)
     final categories = [
       {
         'name': 'Material',
@@ -241,20 +220,17 @@ class ChartSection extends StatelessWidget {
 
     final actualSpots = List.generate(
       categories.length,
-      (i) => FlSpot(i.toDouble(), (categories[i]['actual'] as double)),
+      (i) => FlSpot(i.toDouble(), categories[i]['actual'] as double),
     );
-
     final targetSpots = List.generate(
       categories.length,
-      (i) => FlSpot(i.toDouble(), (categories[i]['target'] as double)),
+      (i) => FlSpot(i.toDouble(), categories[i]['target'] as double),
     );
 
     final allValues = [
       ...categories.map((e) => e['actual'] as double),
       ...categories.map((e) => e['target'] as double),
     ];
-
-    // 2. Safely calculate the Y-Axis maximum
     final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
     final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
 
@@ -272,10 +248,8 @@ class ChartSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Budget Analytics',
-              style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
-            ),
+            Text('Budget Analytics',
+                style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(
               isExceeded
@@ -290,77 +264,67 @@ class ChartSection extends StatelessWidget {
             const SizedBox(height: 14),
             SizedBox(
               height: 200,
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: maxY,
-                  gridData: const FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                  ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        getTitlesWidget: (value, meta) {
-                          final i = value.toInt();
-                          if (i < 0 || i >= categories.length)
-                            return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              categories[i]['name'].toString(),
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 44,
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+              child: LineChart(LineChartData(
+                minY: 0,
+                maxY: maxY,
+                gridData: const FlGridData(show: true, drawVerticalLine: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= categories.length)
+                          return const SizedBox();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(categories[i]['name'].toString(),
+                              style: const TextStyle(fontSize: 10)),
+                        );
+                      },
                     ),
                   ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: actualSpots,
-                      isCurved: true,
-                      barWidth: 3,
-                      color: AppColors.primary,
-                      dotData: const FlDotData(show: true),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: AppColors.primary.withOpacity(0.08),
-                      ),
-                    ),
-                    LineChartBarData(
-                      spots: targetSpots,
-                      isCurved: false,
-                      barWidth: 2,
-                      color: Colors.red,
-                      dashArray: [6, 4],
-                      dotData: const FlDotData(show: false),
-                    ),
-                  ],
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 44),
+                  ),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
-              ),
+                lineBarsData: [
+                  // ✅ Blue solid = actual paid amount spent
+                  LineChartBarData(
+                    spots: actualSpots,
+                    isCurved: true,
+                    barWidth: 3,
+                    color: AppColors.primary,
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: AppColors.primary.withOpacity(0.08),
+                    ),
+                  ),
+                  // ✅ Red dashed = target budget
+                  LineChartBarData(
+                    spots: targetSpots,
+                    isCurved: false,
+                    barWidth: 2,
+                    color: Colors.red,
+                    dashArray: [6, 4],
+                    dotData: const FlDotData(show: false),
+                  ),
+                ],
+              )),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
                 _dot(AppColors.primary),
                 const SizedBox(width: 6),
-                const Text('Actual Spent', style: TextStyle(fontSize: 12)),
+                const Text('Actual Paid', style: TextStyle(fontSize: 12)),
                 const SizedBox(width: 16),
                 _dot(Colors.red),
                 const SizedBox(width: 6),
@@ -374,10 +338,10 @@ class ChartSection extends StatelessWidget {
   }
 
   Widget _dot(Color c) => Container(
-    width: 10,
-    height: 10,
-    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-  );
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      );
 }
 
 class _UnitToggle extends StatelessWidget {
@@ -646,6 +610,9 @@ class _ProjectPickerSheet extends StatelessWidget {
   }
 }
 
+// ── Replace CategoryBudgetSection ───────────────────────────────────────────
+// Shows actual ₹ spent vs ₹ budget — no percentages, blue progress bar
+
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
 
@@ -653,6 +620,34 @@ class CategoryBudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // categoryBudget keys are actual spent amounts
+    // We need targets from the report — get them from ReportProvider
+    final report = context.read<ReportProvider>().buildLiveReport();
+
+    final items = [
+      {
+        'label': 'Material',
+        'actual': report.materialCost,
+        'target': report.targetMaterial,
+      },
+      {
+        'label': 'Labour',
+        'actual': report.labourCost,
+        'target': report.targetLabour,
+      },
+      {
+        'label': 'Equipment',
+        'actual': report.equipmentCost,
+        'target': report.targetEquipment,
+      },
+      if (report.targetMisc > 0 || (report.categoryBudget['Misc'] ?? 0) > 0)
+        {
+          'label': 'Misc',
+          'actual': report.categoryBudget['Misc'] ?? 0.0,
+          'target': report.targetMisc,
+        },
+    ];
+
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -663,9 +658,91 @@ class CategoryBudgetSection extends StatelessWidget {
             style: AppTheme.heading3.copyWith(color: AppColors.textDark),
           ),
           const SizedBox(height: 16),
-          ...categoryBudget.entries.map(
-            (e) => _BudgetBar(label: e.key, value: e.value),
-          ),
+          ...items.map((item) {
+            final actual = (item['actual'] as double).isNaN
+                ? 0.0
+                : (item['actual'] as double);
+            final target = (item['target'] as double).isNaN
+                ? 0.0
+                : (item['target'] as double);
+            final hasTarget = target > 0;
+            final percent =
+                hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
+            final isOver = hasTarget && actual > target;
+
+            final color = isOver
+                ? AppColors.error
+                : percent >= 0.75
+                    ? AppColors.warning
+                    : AppColors.primary;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        item['label'].toString(),
+                        style: AppTheme.label.copyWith(
+                          color: AppColors.textDark,
+                          fontSize: 12,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // ✅ Show actual ₹ amount, not percentage
+                          Text(
+                            '₹${actual.toStringAsFixed(0)} spent',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: color,
+                            ),
+                          ),
+                          if (hasTarget)
+                            Text(
+                              'of ₹${target.toStringAsFixed(0)} budget',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: LinearProgressIndicator(
+                      // ✅ Blue progress bar showing spent/budget ratio
+                      value: hasTarget ? percent : 0,
+                      minHeight: 8,
+                      backgroundColor: const Color(0xFFEEF0F8),
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
+                  ),
+                  if (isOver)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Exceeded by ₹${(actual - target).toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

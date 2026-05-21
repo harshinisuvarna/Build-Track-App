@@ -157,8 +157,6 @@ class ProjectProvider extends ChangeNotifier {
           // --- Type ---
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
-
-          // ✅ Matches both frontend logic and backend schema
           if (rawType == 'labour' || rawType == 'wages') {
             parsedType = EntryType.labour;
           } else if (rawType == 'equipment' || rawType == 'expense') {
@@ -172,40 +170,6 @@ class ProjectProvider extends ChangeNotifier {
           } else if (json['project'] != null) {
             projectId = json['project'].toString();
           }
-
-          // --- Amount: payment fields first, then regular fields ---
-          double amount = 0;
-          final fieldsToTry = [
-            'paidAmount',
-            'amountPaid',
-            'paymentAmount',
-            'paid',
-            'totalPaid',
-            'amount',
-            'totalCost',
-            'total',
-            'cost',
-            'closingStock',
-            'totalAmount',
-            'price',
-          ];
-          for (final field in fieldsToTry) {
-            final v = json[field];
-            if (v != null && v is num && v > 0) {
-              amount = v.toDouble();
-              break;
-            }
-          }
-          // quantity * rate fallback
-          if (amount == 0) {
-            final qty = json['quantity'];
-            final rate = json['rate'];
-            if (qty is num && qty > 0) {
-              amount = rate is num && rate > 0
-                  ? (qty * rate).toDouble()
-                  : qty.toDouble();
-            }
-          }
           if (projectId.isEmpty && json['projectId'] != null) {
             if (json['projectId'] is Map) {
               projectId = json['projectId']['_id']?.toString() ?? '';
@@ -214,37 +178,67 @@ class ProjectProvider extends ChangeNotifier {
             }
           }
           projectId = projectId.trim();
-          if (projectId.isEmpty) {
-            projectId = 'p1'; // ultimate fallback
+          if (projectId.isEmpty) projectId = 'p1';
+
+          // ✅ Amount: paidAmount first (actual paid), then full amount
+          double amount = 0;
+          final paid = json['paidAmount'];
+          if (paid != null && paid is num && paid > 0) {
+            amount = paid.toDouble();
+          } else {
+            final fieldsToTry = [
+              'amount', 'totalCost', 'total', 'cost',
+              'closingStock', 'totalAmount', 'price',
+            ];
+            for (final field in fieldsToTry) {
+              final v = json[field];
+              if (v != null && v is num && v > 0) {
+                amount = v.toDouble();
+                break;
+              }
+            }
+            if (amount == 0) {
+              final qty = json['quantity'];
+              final rate = json['rate'];
+              if (qty is num && qty > 0) {
+                amount = rate is num && rate > 0
+                    ? (qty * rate).toDouble()
+                    : qty.toDouble();
+              }
+            }
           }
 
+          debugPrint(
+            'Entry → type=$rawType projectId=$projectId '
+            'paidAmount=${json['paidAmount']} amount=${json['amount']} '
+            'using=$amount',
+          );
+
           return EntryModel(
-            id:
-                json['_id']?.toString() ??
+            id: json['_id']?.toString() ??
                 DateTime.now().millisecondsSinceEpoch.toString(),
             projectId: projectId,
             type: parsedType,
-            amount: amount, // Your robust pre-calculated amount
+            amount: amount,
             date: json['date'] != null
                 ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
                 : DateTime.now(),
-            description:
-                json['materialName'] ??
+            description: json['materialName'] ??
                 json['title'] ??
                 json['description'] ??
                 json['name'] ??
                 'Entry',
             brand: json['materialName'] ?? json['brand'] ?? json['name'],
-            ratePerUnit: (json['rate'] is num)
-                ? (json['rate'] as num).toDouble()
-                : 0,
-            unit: json['unit']?.toString(), // SALVAGED FROM MUNESHA'S MAIN
+            ratePerUnit:
+                (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
+            unit: json['unit']?.toString(),
           );
         }).toList();
 
         debugPrint('--- MATCH CHECK ---');
         for (final p in _projects) {
-          final matched = _entries.where((e) => e.projectId == p.id).toList();
+          final matched =
+              _entries.where((e) => e.projectId == p.id).toList();
           final total = matched.fold(0.0, (s, e) => s + e.amount);
           debugPrint('  "${p.name}" → ${matched.length} entries, ₹$total');
         }
