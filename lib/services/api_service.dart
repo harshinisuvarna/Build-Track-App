@@ -6,7 +6,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
   // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
-  static const String baseUrl = 'http://localhost:5001/api';
+  static const String baseUrl = 'http://localhost:5000/api';
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
