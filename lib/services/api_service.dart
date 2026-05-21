@@ -135,7 +135,7 @@ class ApiService {
   // 1. HTTP GET: Fetch Materials
   static Future<List<dynamic>> fetchMaterials() async {
     try {
-      final response = await get('/inventory');
+      final response = await get('/transactions');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -144,11 +144,7 @@ class ApiService {
         if (decoded is List) {
           return decoded;
         } else if (decoded is Map) {
-          return decoded['materials'] ??
-              decoded['inventory'] ??
-              decoded['data'] ??
-              decoded['items'] ??
-              [];
+          return decoded['transactions'] ?? decoded['data'] ?? [];
         }
         return [];
       } else if (response.statusCode == 401) {
@@ -159,10 +155,10 @@ class ApiService {
         throw Exception('Unauthorized – please log in again');
       } else {
         print(
-          'GET /inventory failed with status ${response.statusCode}: ${response.body}',
+          'GET /transactions failed with status ${response.statusCode}: ${response.body}',
         );
         throw Exception(
-          'Failed to load materials (HTTP ${response.statusCode})',
+          'Failed to load transactions (HTTP ${response.statusCode})',
         );
       }
     } catch (e) {

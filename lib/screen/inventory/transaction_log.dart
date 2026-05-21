@@ -238,7 +238,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
           if (!_isGeneral) {
             if (category != _itemType) continue;
-            if (title.trim().toLowerCase() != _itemName.trim().toLowerCase()) {
+            if (rawCat != _itemName.trim().toLowerCase()) {
               continue;
             }
           }

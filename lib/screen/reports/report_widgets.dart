@@ -10,6 +10,7 @@ import '../../controller/report_model.dart';
 import '../../controller/project_provider.dart';
 import '../../models/project_model.dart';
 import '../../controller/report_provider.dart';
+
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -23,25 +24,33 @@ class MetricCard extends StatelessWidget {
   final String label;
   final String value;
   final double change;
+
   @override
   Widget build(BuildContext context) {
-    final isNeutral = change == 0.0;
-    final isGood = change < 0.0;
+    // 🛡️ SAFETY NET: Prevent NaN and Infinity from crashing the UI
+    final safeChange = (change.isNaN || change.isInfinite) ? 0.0 : change;
+
+    final isNeutral = safeChange == 0.0;
+    final isGood = safeChange < 0.0;
+
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
         ? AppColors.success
         : AppColors.error;
+
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
         ? Icons.trending_down
         : Icons.trending_up;
+
     final subText = isNeutral
         ? 'On Track'
         : isGood
-        ? '${change.abs().toStringAsFixed(0)}% Saving'
-        : '+${change.toStringAsFixed(0)}% Over';
+        ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
+        : '+${safeChange.toStringAsFixed(0)}% Over';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -52,7 +61,6 @@ class MetricCard extends StatelessWidget {
         ],
         border: Border.all(color: const Color(0xFFF0F1F5)),
       ),
-      // ✅ Use Column with mainAxisSize.min — never overflows
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -111,6 +119,7 @@ class MetricGrid extends StatelessWidget {
 
   final ReportModel report;
   final String period;
+
   @override
   Widget build(BuildContext context) {
     final metrics = [
@@ -198,197 +207,173 @@ class _M {
 }
 
 class ChartSection extends StatelessWidget {
-  const ChartSection({super.key});
+  const ChartSection({super.key, required this.report});
+
+  final ReportModel report;
 
   @override
   Widget build(BuildContext context) {
-    // 📊 MOCK DATA (TASK REQUIREMENT)
-    final List<double> data = [12, 1350, 100, 1650, 1580, 1720];
-
-    const double targetCost = 1500;
-
-    final List<String> phases = [
-      'Foundation',
-      'Plinth',
-      'Slab',
-      'Walls',
-      'Roof',
-      'Finishing',
+    // 1. Munesha's Dynamic Wiring (with NaN protection)
+    final categories = [
+      {
+        'name': 'Material',
+        'actual': report.materialCost.isNaN ? 0.0 : report.materialCost,
+        'target': report.targetMaterial.isNaN ? 0.0 : report.targetMaterial,
+      },
+      {
+        'name': 'Labour',
+        'actual': report.labourCost.isNaN ? 0.0 : report.labourCost,
+        'target': report.targetLabour.isNaN ? 0.0 : report.targetLabour,
+      },
+      {
+        'name': 'Equipment',
+        'actual': report.equipmentCost.isNaN ? 0.0 : report.equipmentCost,
+        'target': report.targetEquipment.isNaN ? 0.0 : report.targetEquipment,
+      },
+      {
+        'name': 'Misc',
+        'actual': (report.categoryBudget['Misc'] ?? 0.0).isNaN
+            ? 0.0
+            : (report.categoryBudget['Misc'] ?? 0.0),
+        'target': report.targetMisc.isNaN ? 0.0 : report.targetMisc,
+      },
     ];
 
-    final actualVal = data.isNotEmpty ? data.last : 0.0;
-    final targetVal = targetCost;
-
     final actualSpots = List.generate(
-      data.length,
-      (i) => FlSpot(i.toDouble(), data[i]),
+      categories.length,
+      (i) => FlSpot(i.toDouble(), (categories[i]['actual'] as double)),
     );
 
     final targetSpots = List.generate(
-      data.length,
-      (i) => FlSpot(i.toDouble(), targetCost),
+      categories.length,
+      (i) => FlSpot(i.toDouble(), (categories[i]['target'] as double)),
     );
 
-    final minY = data.reduce((a, b) => a < b ? a : b) * 0.9;
-    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.1;
+    final allValues = [
+      ...categories.map((e) => e['actual'] as double),
+      ...categories.map((e) => e['target'] as double),
+    ];
+
+    // 2. Safely calculate the Y-Axis maximum
+    final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
+    final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
+
+    final isExceeded = categories.any(
+      (e) =>
+          (e['actual'] as double) > (e['target'] as double) &&
+          (e['target'] as double) > 0,
+    );
 
     return AppCard(
       margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 📌 HEADER
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Cost per SQFT',
-                style: AppTheme.heading3.copyWith(color: AppColors.textDark),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                'Construction cost vs efficiency benchmark',
-                style: AppTheme.caption.copyWith(
-                  color: AppColors.textLight,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // 📊 CHART
-          SizedBox(
-            height: 180,
-            child: LineChart(
-              LineChartData(
-                minY: minY,
-                maxY: maxY,
-                clipData: const FlClipData.all(),
-
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: (maxY - minY) / 3,
-                  getDrawingHorizontalLine: (_) =>
-                      FlLine(color: const Color(0xFFEEF0F8), strokeWidth: 1),
-                ),
-
-                borderData: FlBorderData(show: false),
-
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        int i = value.toInt();
-                        if (i < 0 || i >= phases.length) {
-                          return const SizedBox();
-                        }
-                        return Text(
-                          phases[i],
-                          style: AppTheme.caption.copyWith(
-                            fontSize: 10,
-                            color: AppColors.textLight,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: (maxY - minY) / 3,
-                      reservedSize: 40,
-                      getTitlesWidget: (v, _) => Text(
-                        '₹${v.toInt()}',
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 9,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                lineBarsData: [
-                  // 📈 ACTUAL COST LINE
-                  LineChartBarData(
-                    spots: actualSpots,
-                    isCurved: true,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primary.withValues(alpha: 0.6),
-                      ],
-                    ),
-                    dotData: const FlDotData(show: true),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.2),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-
-                  // 📉 TARGET LINE (DASHED)
-                  LineChartBarData(
-                    spots: targetSpots,
-                    isCurved: false,
-                    barWidth: 2,
-                    color: const Color(0xFFBBC0D0),
-                    dashArray: [6, 4],
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Budget Analytics',
+              style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isExceeded
+                  ? '⚠ Budget exceeded in one or more categories'
+                  : '✓ All categories within budget',
+              style: TextStyle(
+                fontSize: 12,
+                color: isExceeded ? AppColors.error : AppColors.success,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // 📌 LEGEND
-          Row(
-            children: [
-              _legendDot(AppColors.primary),
-              const SizedBox(width: 6),
-              Text(
-                'Actual: ₹${actualVal.toInt()}/SQFT',
-                style: AppTheme.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: maxY,
+                  gridData: const FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= categories.length)
+                            return const SizedBox();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              categories[i]['name'].toString(),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 44,
+                      ),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: actualSpots,
+                      isCurved: true,
+                      barWidth: 3,
+                      color: AppColors.primary,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: AppColors.primary.withOpacity(0.08),
+                      ),
+                    ),
+                    LineChartBarData(
+                      spots: targetSpots,
+                      isCurved: false,
+                      barWidth: 2,
+                      color: Colors.red,
+                      dashArray: [6, 4],
+                      dotData: const FlDotData(show: false),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              _legendDot(const Color(0xFFBBC0D0)),
-              const SizedBox(width: 6),
-              Text(
-                'Target: ₹${targetVal.toInt()}/SQFT',
-                style: AppTheme.caption.copyWith(color: AppColors.textLight),
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _dot(AppColors.primary),
+                const SizedBox(width: 6),
+                const Text('Actual Spent', style: TextStyle(fontSize: 12)),
+                const SizedBox(width: 16),
+                _dot(Colors.red),
+                const SizedBox(width: 6),
+                const Text('Target Budget', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _legendDot(Color c) => Container(
+  Widget _dot(Color c) => Container(
     width: 10,
     height: 10,
     decoration: BoxDecoration(color: c, shape: BoxShape.circle),
@@ -396,10 +381,15 @@ class ChartSection extends StatelessWidget {
 }
 
 class _UnitToggle extends StatelessWidget {
-  const _UnitToggle({required this.unitIndex, required this.onChanged, required this.report});
+  const _UnitToggle({
+    required this.unitIndex,
+    required this.onChanged,
+    required this.report,
+  });
   final int unitIndex;
   final void Function(int) onChanged;
   final ReportModel report;
+
   @override
   Widget build(BuildContext context) {
     final items = [
@@ -431,8 +421,17 @@ class _UnitToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: items.map((item) {
-          final actual = item['actual'] as double;
-          final target = item['target'] as double;
+          final actualRaw = item['actual'] as double;
+          final targetRaw = item['target'] as double;
+
+          // 🛡️ SAFETY NET: Prevent NaN crashes
+          final actual = (actualRaw.isNaN || actualRaw.isInfinite)
+              ? 0.0
+              : actualRaw;
+          final target = (targetRaw.isNaN || targetRaw.isInfinite)
+              ? 0.0
+              : targetRaw;
+
           final hasTarget = target > 0;
           final percent = hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
           final isOver = hasTarget && actual > target;
@@ -561,8 +560,10 @@ class ProjectSelector extends StatelessWidget {
 
 class _ProjectPickerSheet extends StatelessWidget {
   const _ProjectPickerSheet({required this.provider, required this.projects});
+
   final ReportProvider provider;
   final List<ProjectModel> projects;
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -647,7 +648,9 @@ class _ProjectPickerSheet extends StatelessWidget {
 
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
+
   final Map<String, double> categoryBudget;
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -671,17 +674,23 @@ class CategoryBudgetSection extends StatelessWidget {
 
 class _BudgetBar extends StatelessWidget {
   const _BudgetBar({required this.label, required this.value});
+
   final String label;
-  final double value; // 0.0â€“1.0
+  final double value;
+
   @override
   Widget build(BuildContext context) {
-    final Color color = value >= 0.90
+    // 🛡️ SAFETY NET: Stop FractionallySizedBox & .round() from crashing on NaN
+    final safeValue = (value.isNaN || value.isInfinite) ? 0.0 : value;
+
+    final Color color = safeValue >= 0.90
         ? AppColors.error
-        : value >= 0.70
+        : safeValue >= 0.70
         ? AppColors.warning
         : AppColors.primary;
 
-    final String pct = '${(value * 100).round()}%';
+    final String pct = '${(safeValue * 100).round()}%';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -721,13 +730,13 @@ class _BudgetBar extends StatelessWidget {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: value.clamp(0.0, 1.0),
+                    widthFactor: safeValue.clamp(0.0, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: (value < 0.70)
+                        gradient: (safeValue < 0.70)
                             ? AppGradients.progressBar
                             : null,
-                        color: (value >= 0.70) ? color : null,
+                        color: (safeValue >= 0.70) ? color : null,
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
@@ -799,7 +808,9 @@ class EfficiencyBanner extends StatelessWidget {
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
-              final selectedProjectName = context.read<ReportProvider>().selectedProjectName;
+              final selectedProjectName = context
+                  .read<ReportProvider>()
+                  .selectedProjectName;
               Navigator.pushNamed(
                 context,
                 '/report-insights',
@@ -832,8 +843,6 @@ class EfficiencyBanner extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(note, style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
