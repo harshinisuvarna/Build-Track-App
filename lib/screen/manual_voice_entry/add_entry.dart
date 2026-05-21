@@ -211,6 +211,8 @@ class AddEntryScreen extends StatelessWidget {
           children: [
             AppTopBar(
               title: 'Add Entry',
+              leftIcon: Navigator.canPop(context) ? Icons.arrow_back : null,
+              onLeftTap: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(

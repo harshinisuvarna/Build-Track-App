@@ -173,21 +173,21 @@ class ProjectProvider extends ChangeNotifier {
             projectId = json['project'].toString();
           }
 
-          // --- Amount: payment fields first, then regular fields ---
+          // --- Amount: total cost fields first, then payment details ---
           double amount = 0;
           final fieldsToTry = [
+            'amount',
+            'totalCost',
+            'totalAmount',
+            'total',
+            'cost',
+            'price',
             'paidAmount',
             'amountPaid',
             'paymentAmount',
             'paid',
             'totalPaid',
-            'amount',
-            'totalCost',
-            'total',
-            'cost',
             'closingStock',
-            'totalAmount',
-            'price',
           ];
           for (final field in fieldsToTry) {
             final v = json[field];

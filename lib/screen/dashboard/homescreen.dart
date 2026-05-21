@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // --- TASK 3: Imported API Service ---
 import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -690,136 +691,172 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 
   Widget _buildRecentActivity(BuildContext context) {
+    final provider = context.watch<ProjectProvider>();
+    final allEntries = provider.entries.toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final recent = allEntries.take(5).toList();
+
     return Column(
       children: [
         AppSectionHeader(
           title: 'Recent Activity',
           actionLabel: 'View All',
-          onAction: () => Navigator.pushNamed(context, '/logs'),
+          onAction: () => Navigator.pushNamed(context, '/logs', arguments: {'projectId': null}),
         ),
         const SizedBox(height: 8),
-        _activityItem(
-          context,
-          Icons.local_shipping_outlined,
-          'Concrete Delivery Confirmed',
-          'Section 4A • 10:45 AM',
-          'On-Site',
-          const Color(0xFFE8F5E9),
-          const Color(0xFF2E7D32),
-          type: 'material',
-          name: 'Concrete',
-        ),
-        const SizedBox(height: 8),
-        _activityItem(
-          context,
-          Icons.check_circle_outline,
-          'Safety Audit Passed',
-          'External Inspector • 09:12 AM',
-          'Cleared',
-          const Color(0xFFF3E8FF),
-          purple,
-          type: 'material',
-          name: 'Safety Audit',
-        ),
-        const SizedBox(height: 8),
-        _activityItem(
-          context,
-          Icons.warning_amber_outlined,
-          'Weather Alert: High Winds',
-          'Crane operations suspended • 08:30 AM',
-          'Alert',
-          const Color(0xFFFFF3E0),
-          Colors.orange,
-          type: 'equipment',
-          name: 'Crane',
-        ),
+        if (recent.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.inbox_outlined, size: 36, color: textGray),
+                const SizedBox(height: 8),
+                Text(
+                  'No recent activity',
+                  style: TextStyle(
+                    color: textGray,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...recent.map((entry) => _activityTile(context, entry)),
       ],
     );
   }
 
-  Widget _activityItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String subtitle,
-    String badge,
-    Color badgeBg,
-    Color badgeColor, {
-    required String type,
-    required String name,
-  }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(
-          context,
-          '/logs',
-          arguments: {'type': type, 'name': name},
-        ),
+  Widget _activityTile(BuildContext context, EntryModel entry) {
+    // Icon & colors by type
+    final IconData icon;
+    final Color badgeBg;
+    final Color badgeColor;
+    final String badgeLabel;
+
+    switch (entry.type) {
+      case EntryType.labour:
+        icon = Icons.people_outlined;
+        badgeBg = const Color(0xFFE8F5E9);
+        badgeColor = const Color(0xFF2E7D32);
+        badgeLabel = 'Labour';
+        break;
+      case EntryType.equipment:
+        icon = Icons.precision_manufacturing_outlined;
+        badgeBg = const Color(0xFFFFF3E0);
+        badgeColor = Colors.orange;
+        badgeLabel = 'Equipment';
+        break;
+      case EntryType.material:
+        icon = Icons.category_outlined;
+        badgeBg = const Color(0xFFEEF0FF);
+        badgeColor = primaryBlue;
+        badgeLabel = 'Material';
+        break;
+    }
+
+    // Format date/time
+    final now = DateTime.now();
+    final diff = now.difference(entry.date);
+    final String timeLabel;
+    if (diff.inMinutes < 60) {
+      timeLabel = '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      timeLabel = '${diff.inHours}h ago';
+    } else if (diff.inDays == 1) {
+      timeLabel = 'Yesterday';
+    } else {
+      timeLabel = '${diff.inDays}d ago';
+    }
+
+    final title = entry.description.isNotEmpty ? entry.description : badgeLabel;
+    final subtitle = '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F2FF),
-                  borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, '/logs'),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
                 ),
-                child: Icon(icon, color: primaryBlue, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                        color: textDark,
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F2FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: primaryBlue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: textDark,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 12.5, color: textGray),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  badge,
-                  style: TextStyle(
-                    color: badgeColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12.5, color: textGray),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
