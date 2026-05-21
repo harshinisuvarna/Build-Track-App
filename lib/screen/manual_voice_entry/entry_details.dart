@@ -30,6 +30,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   double _paidAmount = 0;
   List<dynamic> _paymentHistory = [];
   String? _paymentReceiptFile;
+  bool _viewAllPayments = false;
 
   @override
   void didChangeDependencies() {
@@ -742,6 +743,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   Widget _buildPaymentHistoryCard() {
     if (_paymentHistory.isEmpty) return const SizedBox.shrink();
 
+    final reversedHistory = List.from(_paymentHistory.reversed);
+    final displayedHistory = _viewAllPayments ? reversedHistory : [reversedHistory.first];
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -759,32 +763,53 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.history_rounded, color: textGray, size: 16),
-              SizedBox(width: 8),
-              Text(
-                'PAYMENT HISTORY',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: textGray,
-                  letterSpacing: 1.0,
-                ),
+              const Row(
+                children: [
+                  Icon(Icons.history_rounded, color: textGray, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'PAYMENT HISTORY',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: textGray,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
               ),
+              if (_paymentHistory.length > 1)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _viewAllPayments = !_viewAllPayments;
+                    });
+                  },
+                  child: Text(
+                    _viewAllPayments ? 'View Less' : 'View All (${_paymentHistory.length})',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: primaryBlue,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 14),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _paymentHistory.length,
+            itemCount: displayedHistory.length,
             separatorBuilder: (_, _) => const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Color(0xFFF0F0F8)),
             ),
             itemBuilder: (context, index) {
-              final item = _paymentHistory[index] ?? {};
+              final item = displayedHistory[index] ?? {};
 
               // Parse date
               String formattedDate = 'Unknown Date';
