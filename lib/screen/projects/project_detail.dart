@@ -8,6 +8,9 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'dart:convert';
+import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
@@ -2153,7 +2156,17 @@ class _RecentEntriesSection extends StatelessWidget {
         AppSectionHeader(
           title: 'Recent Entries',
           actionLabel: entries.isEmpty ? null : 'View All',
-          onAction: () => Navigator.pushNamed(context, '/logs'),
+          onAction: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => _AllProjectEntriesScreen(
+                  project: project,
+                  provider: provider,
+                ),
+              ),
+            );
+          },
         ),
         if (entries.isEmpty)
           const AppEmptyState(
@@ -2196,73 +2209,6 @@ class _EntryTile extends StatelessWidget {
     }
   }
 
-  String _formatQuantity(EntryModel entry) {
-    final double qty = entry.amount;
-    final String qtyStr = qty % 1 == 0
-        ? qty.toInt().toString()
-        : qty.toString();
-    final String rawUnit = (entry.unit ?? '').trim().toLowerCase();
-
-    // Safety check: Filter out invalid material units for Labour/Equipment at runtime
-    final bool isInvalidUnit = const [
-      'kg',
-      'bag',
-      'ton',
-      'mt',
-      'truck',
-    ].contains(rawUnit);
-    final String parsedUnit =
-        (isInvalidUnit &&
-            (entry.type == EntryType.labour ||
-                entry.type == EntryType.equipment))
-        ? ''
-        : rawUnit;
-
-    if (entry.type == EntryType.labour) {
-      String unitLabel = 'workers';
-      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
-        unitLabel = qty == 1 ? 'hour' : 'hours';
-      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
-        unitLabel = qty == 1 ? 'day' : 'days';
-      } else if (parsedUnit == 'worker' ||
-          parsedUnit == 'workers' ||
-          parsedUnit.isEmpty) {
-        unitLabel = qty == 1 ? 'worker' : 'workers';
-      } else {
-        unitLabel = parsedUnit;
-      }
-      return '$qtyStr $unitLabel';
-    } else if (entry.type == EntryType.equipment) {
-      String unitLabel = 'units';
-      if (parsedUnit == 'hour' || parsedUnit == 'hours') {
-        unitLabel = qty == 1 ? 'hour' : 'hours';
-      } else if (parsedUnit == 'day' || parsedUnit == 'days') {
-        unitLabel = qty == 1 ? 'day' : 'days';
-      } else if (parsedUnit.isNotEmpty) {
-        unitLabel = parsedUnit;
-      }
-      return '$qtyStr $unitLabel';
-    } else {
-      // Material
-      if (rawUnit.isEmpty || rawUnit == 'unit' || rawUnit == 'units') {
-        return '$qtyStr units';
-      }
-      // Pluralize common units if qty > 1
-      String unitLabel = rawUnit;
-      if (qty > 1) {
-        if (rawUnit == 'bag') {
-          unitLabel = 'bags';
-        } else if (rawUnit == 'ton')
-          unitLabel = 'tons';
-        else if (rawUnit == 'truck')
-          unitLabel = 'trucks';
-        else if (rawUnit == 'block')
-          unitLabel = 'blocks';
-      }
-      return '$qtyStr $unitLabel';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _style(entry.type);
@@ -2270,15 +2216,11 @@ class _EntryTile extends StatelessWidget {
     final dateStr = '${d.day} ${_months[d.month - 1]} ${d.year}';
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/logs',
-          arguments: {
-            'name': entry.description.isEmpty
-                ? entry.type.label
-                : entry.description,
-            'type': entry.type.name,
-          },
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => _EntryDetailsSheet(entry: entry),
         );
       },
       child: AppCard(
@@ -2312,7 +2254,7 @@ class _EntryTile extends StatelessWidget {
               ),
             ),
             Text(
-              _formatQuantity(entry),
+              formatCurrency(entry.amount),
               style: AppTheme.bodyLarge.copyWith(
                 fontWeight: FontWeight.w800,
                 color: color,
@@ -2335,6 +2277,638 @@ class _ActionButtons extends StatelessWidget {
       label: 'Add Entry',
       icon: Icons.add_circle_outline,
       onPressed: () => Navigator.pushNamed(context, '/add-entry'),
+    );
+  }
+}
+
+// ── Entry Details Sheet ────────────────────────────────────────────────────────
+class _EntryDetailsSheet extends StatefulWidget {
+  final EntryModel entry;
+  const _EntryDetailsSheet({required this.entry});
+
+  @override
+  State<_EntryDetailsSheet> createState() => _EntryDetailsSheetState();
+}
+
+class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
+  bool _isLoading = false;
+  Map<String, dynamic>? _transaction;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransaction();
+  }
+
+  Future<void> _loadTransaction() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.get('/transactions');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        List<dynamic> raw = [];
+        if (decoded is List) {
+          raw = decoded;
+        } else if (decoded is Map) {
+          raw = (decoded['transactions'] ?? decoded['data'] ?? decoded['items'] ?? []) as List<dynamic>;
+        }
+
+        Map<String, dynamic>? matchedTx;
+        for (final t in raw) {
+          final tId = t['_id']?.toString() ?? '';
+          if (tId == widget.entry.id) {
+            matchedTx = Map<String, dynamic>.from(t);
+            break;
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _transaction = matchedTx;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  PaymentStatus _mapPaymentStatus(String? statusStr) {
+    if (statusStr == null) return PaymentStatus.pending;
+    final lower = statusStr.trim().toLowerCase();
+    if (lower == 'paid') return PaymentStatus.paid;
+    if (lower == 'partial') return PaymentStatus.partial;
+    if (lower == 'overdue') return PaymentStatus.overdue;
+    return PaymentStatus.pending;
+  }
+
+  (Color, IconData) _style(EntryType t) {
+    switch (t) {
+      case EntryType.material:
+        return (AppColors.primary, Icons.category_outlined);
+      case EntryType.labour:
+        return (AppColors.info, Icons.people_outline);
+      case EntryType.equipment:
+        return (const Color(0xFF7B3FE7), Icons.construction_outlined);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = _style(widget.entry.type);
+    final d = widget.entry.date;
+    final dateStr = '${d.day} ${[
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ][d.month - 1]} ${d.year}';
+
+    final payStatus = _transaction != null
+        ? _mapPaymentStatus(_transaction!['paymentStatus']?.toString())
+        : PaymentStatus.pending;
+    final billAmt = _transaction != null
+        ? (_transaction!['amount'] ?? 0).toDouble()
+        : widget.entry.amount;
+    final paidAmt = _transaction != null
+        ? (_transaction!['paidAmount'] ?? 0).toDouble()
+        : 0.0;
+    final canSettle = _transaction != null &&
+        (payStatus == PaymentStatus.pending ||
+            payStatus == PaymentStatus.partial ||
+            payStatus == PaymentStatus.overdue);
+
+    final showPaymentSection = true;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF4F5FF),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBDBEE8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Transaction Details',
+                        style: TextStyle(
+                          color: Color(0xFF1E1E2E),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEEFFF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Color(0xFF173EEA),
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(icon, color: color, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.entry.description.isEmpty
+                                    ? widget.entry.type.name.toUpperCase()
+                                    : widget.entry.description,
+                                style: const TextStyle(
+                                  color: Color(0xFF1E1E2E),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$dateStr  ·  ${widget.entry.type.name.toUpperCase()}',
+                                style: const TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1, color: Color(0xFFF0EEF8)),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Value',
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          formatCurrency(widget.entry.amount),
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  children: [
+                    _buildMetaRow(
+                      Icons.layers_outlined,
+                      'Floor / Zone',
+                      widget.entry.floor ?? 'Ground Floor',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMetaRow(
+                      Icons.task_alt_outlined,
+                      'Project Phase',
+                      widget.entry.phaseId ?? 'General Works',
+                    ),
+                    if (widget.entry.ratePerUnit != null && widget.entry.ratePerUnit! > 0) ...[
+                      const SizedBox(height: 12),
+                      _buildMetaRow(
+                        Icons.payments_outlined,
+                        'Unit Rate',
+                        '₹${widget.entry.ratePerUnit!.toStringAsFixed(2)} / ${widget.entry.unit ?? "unit"}',
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              if (widget.entry.type == EntryType.material) ...[
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Text(
+                        'DELIVERY STATUS',
+                        style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Color(0xFF2E7D32),
+                              size: 14,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Delivered & Verified',
+                              style: TextStyle(
+                                color: Color(0xFF2E7D32),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Logged in Inventory',
+                        style: TextStyle(
+                          color: Color(0xFF4B5563),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (showPaymentSection) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'PAYMENT STATUS',
+                        style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_isLoading)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF173EEA),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: _isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator(color: Color(0xFF173EEA))),
+                        )
+                      : _transaction == null
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Center(
+                                child: Text(
+                                  'No payment record found on server',
+                                  style: TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    PaymentStatusChip(status: payStatus),
+                                    const Spacer(),
+                                    Text(
+                                      '${formatCurrency(paidAmt)} paid / ${formatCurrency(billAmt)}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF1E1E2E),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: billAmt > 0 ? paidAmt / billAmt : 0,
+                                    minHeight: 6,
+                                    backgroundColor: const Color(0xFFEEF0FF),
+                                    valueColor: const AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF173EEA),
+                                    ),
+                                  ),
+                                ),
+                                if (canSettle) ...[
+                                  const SizedBox(height: 16),
+                                  GestureDetector(
+                                    onTap: () {
+                                      showPaymentSheet(
+                                        context,
+                                        entryTitle: _transaction!['title'] as String? ?? widget.entry.description,
+                                        entryRef: _transaction!['ref'] as String? ?? '',
+                                        totalAmount: billAmt,
+                                        alreadyPaid: paidAmt,
+                                        vendorName: _transaction!['supplier'] as String? ?? '',
+                                        category: widget.entry.type.name,
+                                      ).then((result) async {
+                                        if (result != null && mounted) {
+                                          final paid = result['amount'] as double;
+                                          final newStatus = result['status'] as PaymentStatus?;
+                                          final totalPaid = (paidAmt + paid).clamp(0.0, double.infinity);
+
+                                          final newStatusStr = newStatus == PaymentStatus.paid
+                                              ? 'Paid'
+                                              : newStatus == PaymentStatus.partial
+                                                  ? 'Partial'
+                                                  : 'Pending';
+
+                                          String apiPaymentMode = result['method'] ?? '';
+                                          if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
+                                            apiPaymentMode = 'Bank';
+                                          }
+
+                                          setState(() {
+                                            _isLoading = true;
+                                          });
+
+                                          final success = await ApiService.updateTransactionPayment(
+                                            widget.entry.id,
+                                            {
+                                              'paymentStatus': newStatusStr,
+                                              'paidAmount': totalPaid,
+                                              'paymentMode': apiPaymentMode,
+                                              'notes': result['note'] ?? '',
+                                            },
+                                          );
+
+                                          if (success && mounted) {
+                                            context.read<ProjectProvider>().load();
+                                            _loadTransaction();
+
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  '${formatCurrency(paid)} payment recorded successfully!',
+                                                ),
+                                                backgroundColor: const Color(0xFF173EEA),
+                                                behavior: SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          } else {
+                                            setState(() {
+                                              _isLoading = false;
+                                            });
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: const Text('Failed to update payment on server'),
+                                                backgroundColor: Colors.red.shade600,
+                                                behavior: SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF173EEA).withValues(alpha: 0.2),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'Record Payment',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                ),
+              ],
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildMetaRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF9CA3AF), size: 18),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF6B7280),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xFF1E1E2E),
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AllProjectEntriesScreen extends StatelessWidget {
+  final ProjectModel project;
+  final ProjectProvider provider;
+
+  const _AllProjectEntriesScreen({
+    required this.project,
+    required this.provider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = provider.entriesForProject(project.id);
+
+    return Scaffold(
+      backgroundColor: AppColors.gradientStart,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            AppTopBar(
+              title: '${project.name} - All Entries',
+              isSubScreen: true,
+              leftIcon: Icons.arrow_back,
+              onLeftTap: () => Navigator.maybePop(context),
+            ),
+            Expanded(
+              child: entries.isEmpty
+                  ? const AppEmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      message: 'No entries logged yet.',
+                    )
+                  : ListView.builder(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: _EntryTile(entry: entries[index]),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

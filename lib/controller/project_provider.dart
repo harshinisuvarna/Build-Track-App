@@ -170,6 +170,7 @@ class ProjectProvider extends ChangeNotifier {
           } else if (json['project'] != null) {
             projectId = json['project'].toString();
           }
+
           if (projectId.isEmpty && json['projectId'] != null) {
             if (json['projectId'] is Map) {
               projectId = json['projectId']['_id']?.toString() ?? '';
