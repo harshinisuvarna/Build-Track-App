@@ -6,7 +6,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
   // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
-  static const String baseUrl = 'http://localhost:5001/api';
+  static const String baseUrl = 'https://unsecured-coastland-canister.ngrok-free.dev/api';
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
@@ -18,6 +18,8 @@ class ApiService {
 
   return {
     'Content-Type': 'application/json',
+    // ✅ Required for ngrok to not block browser requests
+    'ngrok-skip-browser-warning': 'true',
     if (token != null) 'Authorization': 'Bearer $token',
   };
 }
@@ -318,7 +320,7 @@ class ApiService {
   static Future<bool> resetPassword(String email) async {
     try {
       // Using your existing 'post' helper!
-      // baseUrl is already 'http://localhost:5001/api', so we just add the endpoint.
+      // baseUrl is already 'http:', so we just add the endpoint.
       final response = await post('/auth/reset-password', {'email': email});
 
       // Return true if 200 OK or 201 Created
