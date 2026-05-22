@@ -96,7 +96,6 @@ class ProjectModel {
     this.budgetMisc,
     this.projectStatus,
   });
-
   // ── Core ───────────────────────────────────────────────────────────────────
   final String id;
   final String name;
@@ -107,7 +106,6 @@ class ProjectModel {
   double totalBudget;
   double spentAmount;
   final DateTime startDate;
-
   // ── Basic optional ─────────────────────────────────────────────────────────
   final String? clientName;
   final String? projectType;
@@ -117,7 +115,6 @@ class ProjectModel {
   final List<String>? trackedActivityKeys;
   final List<String>? completedActivityKeys;
   final List<ProjectPhase>? selectedPhases;
-
   // ── Enterprise fields ──────────────────────────────────────────────────────
   final String? projectCode;
   final String? mapAddress;
@@ -141,46 +138,29 @@ class ProjectModel {
   final double? budgetEquipment;
   final double? budgetMisc;
   final String? projectStatus;
-
   // ── Computed ───────────────────────────────────────────────────────────────
-
   double get remainingBudget => totalBudget - spentAmount;
-
   double get budgetUtilization =>
       totalBudget > 0 ? spentAmount / totalBudget : 0.0;
-
   String get location => '$city • $sector';
-
   String get formattedBudget => formatCurrency(totalBudget);
-
   String get formattedSpent => formatCurrency(spentAmount);
-
   String get formattedRemaining => formatCurrency(remainingBudget);
-
   // ── NEW REPORT ANALYTICS ──────────────────────────────────────────────────
-
   double get materialCost => budgetMaterial ?? 0;
-
   double get labourCost => budgetLabour ?? 0;
-
   double get equipmentCost => budgetEquipment ?? 0;
-
   double get miscCost => budgetMisc ?? 0;
-
   double get totalCalculatedCost =>
       materialCost + labourCost + equipmentCost + miscCost;
-
   // Cost per sqft / unit
   double get costPerUnit {
     final area = double.tryParse(landArea ?? '0') ?? 0;
-
     if (area <= 0) return 0;
-
     return spentAmount / area;
   }
 
   String get formattedCostPerUnit => '₹${costPerUnit.toStringAsFixed(2)}/sqft';
-
   // Budget percentages
   double get materialPercentage {
     if (totalBudget <= 0) return 0;
@@ -204,22 +184,18 @@ class ProjectModel {
 
   // Budget exceeded
   bool get isBudgetExceeded => spentAmount > totalBudget;
-
   double get exceededAmount {
     if (!isBudgetExceeded) return 0;
     return spentAmount - totalBudget;
   }
 
   String get formattedExceededAmount => formatCurrency(exceededAmount);
-
   // Efficiency note
   String get efficiencyNote {
     if (isBudgetExceeded) {
       return 'Budget exceeded by $formattedExceededAmount';
     }
-
     final utilization = budgetUtilization * 100;
-
     if (utilization >= 90) {
       return 'Budget utilization is very high';
     } else if (utilization >= 70) {
@@ -233,18 +209,15 @@ class ProjectModel {
 
   // Progress percentage display
   String get progressPercent => '${(progress * 100).toStringAsFixed(0)}%';
-
   // Total rooms
   int get totalRooms =>
       (room1BHK ?? 0) + (room2BHK ?? 0) + (room3BHK ?? 0) + (roomCustom ?? 0);
-
   // Total bathrooms
   int get totalBathrooms =>
       (bathWestern ?? 0) +
       (bathIndian ?? 0) +
       (bathCommon ?? 0) +
       (bathAttached ?? 0);
-
   // ── copyWith ───────────────────────────────────────────────────────────────
   ProjectModel copyWith({
     String? name,
@@ -325,7 +298,6 @@ class ProjectModel {
     budgetMisc: budgetMisc ?? this.budgetMisc,
     projectStatus: projectStatus ?? this.projectStatus,
   );
-
   // ── JSON ───────────────────────────────────────────────────────────────────
   /// Produces a backend-compatible JSON payload.
   /// Keys mirror the Node.js Mongoose schema (`projectName`, `location`, etc.).
@@ -333,7 +305,6 @@ class ProjectModel {
     // 1. Safely extract mainType and subType from the combined string ("Commercial → Plaza")
     String mainType = 'Residential';
     String subType = 'Independent';
-
     if (projectType != null && projectType!.contains('→')) {
       final parts = projectType!.split('→');
       mainType = parts[0].trim();
@@ -342,12 +313,10 @@ class ProjectModel {
       mainType = projectType!;
       subType = 'General';
     }
-
     // 2. Map the UI status to the exact backend enum values (Title Case)
     //    Backend enum: ["Active", "Completed", "On Hold", "Review Needed"]
     String mappedStatus = 'Active'; // Default fallback
     final rawStatus = (projectStatus ?? '').toLowerCase();
-
     if (rawStatus.contains('progress') ||
         rawStatus.contains('active') ||
         rawStatus.contains('plan')) {
@@ -359,7 +328,6 @@ class ProjectModel {
     } else if (rawStatus.contains('review')) {
       mappedStatus = 'Review Needed';
     }
-
     return {
       'projectName': name,
       'location': city,
@@ -367,33 +335,34 @@ class ProjectModel {
       'stage': stage.name,
       'progress': progress,
       'spentAmount': spentAmount,
+      'totalBudget': totalBudget,
       'startDate': startDate.toIso8601String(),
-
       // Core fields required by the backend schema
       'clientName': clientName ?? 'Internal Client',
       'projectCode':
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
-
       // Flat budget fields extracted by backend controller
       'budgetMaterial': budgetMaterial ?? 0,
+      'budgetMaterials': budgetMaterial ?? 0, // Fallback for backend
       'budgetLabour': budgetLabour ?? 0,
       'budgetEquipment': budgetEquipment ?? 0,
+      'budgetMisc': budgetMisc ?? 0,
+      'budgetMiscellaneous': budgetMisc ?? 0, // Fallback for backend
 
       // Nested buildingType object required by validation
       'buildingType': {'mainType': mainType, 'subType': subType},
-
       // Nested budget object to fix the "0 budget" issue
       'budget': {
         'total': totalBudget,
         'material': budgetMaterial ?? 0,
+        'materials': budgetMaterial ?? 0, // Fallback
         'labour': budgetLabour ?? 0,
         'equipment': budgetEquipment ?? 0,
         'misc': budgetMisc ?? 0,
+        'miscellaneous': budgetMisc ?? 0, // Fallback
       },
-
       // Mapped enum
       'status': mappedStatus,
-
       'floors': floors,
       'selectedPhaseNames': selectedPhaseNames,
       'trackedActivityKeys': trackedActivityKeys,
@@ -408,51 +377,40 @@ class ProjectModel {
     final dates = j['dates'] as Map<String, dynamic>?;
     final budget = j['budget'] as Map<String, dynamic>?;
     final buildingType = j['buildingType'] as Map<String, dynamic>?;
-
     // 2. Handle the missing name bug (fallback to projectCode if backend drops it)
     final rawName = (j['projectName'] ?? j['name'] ?? '').toString();
     final pCode = (j['projectCode'] ?? 'Unnamed Project').toString();
     final finalName = rawName.trim().isNotEmpty ? rawName : pCode;
-
     return ProjectModel(
       id: (j['_id'] ?? j['id'] ?? '').toString(),
       name: finalName,
       city: (j['location'] ?? j['city'] ?? '').toString(),
       sector: (j['sector'] ?? '').toString(),
-
       stage: ProjectStage.values.firstWhere(
         (s) => s.name == j['stage'],
         orElse: () => ProjectStage.preConstruction,
       ),
       progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
-
-      // 3. Extract budgets from nested 'budget' object (fallback to old flat structure)
+      // 3. Extract budgets from nested 'budget' object
       totalBudget:
           (budget?['total'] as num?)?.toDouble() ??
           (j['totalBudget'] as num?)?.toDouble() ??
           0.0,
       spentAmount: (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
-
-      // 4. Extract dates from nested 'dates' object
       startDate: dates?['startDate'] != null
-          ? DateTime.tryParse(dates!['startDate'].toString()) ?? DateTime.now()
+          ? (DateTime.tryParse(dates!['startDate'].toString()) ?? DateTime.now())
           : j['startDate'] != null
           ? (DateTime.tryParse(j['startDate'].toString()) ?? DateTime.now())
           : DateTime.now(),
-
       clientName: j['clientName']?.toString(),
-
-      // 5. Reconstruct the project type from the nested buildingType
       projectType: buildingType != null
           ? '${buildingType['mainType']} → ${buildingType['subType']}'
           : j['projectType']?.toString(),
-
       expectedEndDate: dates?['expectedEndDate'] != null
           ? DateTime.tryParse(dates!['expectedEndDate'].toString())
           : j['expectedEndDate'] != null
           ? DateTime.tryParse(j['expectedEndDate'].toString())
           : null,
-
       floors: j['floors'] != null
           ? List<String>.from(j['floors'] as List)
           : null,
@@ -465,23 +423,19 @@ class ProjectModel {
       completedActivityKeys: j['completedActivityKeys'] != null
           ? List<String>.from(j['completedActivityKeys'] as List)
           : null,
-
       selectedPhases: j['selectedPhases'] != null
           ? (j['selectedPhases'] as List<dynamic>)
                 .map((e) => ProjectPhase.fromJson(e as Map<String, dynamic>))
                 .toList()
           : null,
-
       contractorName: j['contractorName'] as String?,
       siteEngineer: j['siteEngineer'] as String?,
       contactNumber: j['contactNumber'] as String?,
-
       actualEndDate: dates?['actualEndDate'] != null
           ? DateTime.tryParse(dates!['actualEndDate'].toString())
           : j['actualEndDate'] != null
           ? DateTime.tryParse(j['actualEndDate'] as String)
           : null,
-
       landArea: j['landArea'] as String?,
       landUnit: j['landUnit'] as String?,
       projectCode: j['projectCode'] as String?,
@@ -497,28 +451,48 @@ class ProjectModel {
       selectedFeatures: j['selectedFeatures'] != null
           ? List<String>.from(j['selectedFeatures'] as List)
           : null,
-
-      // 6. Extract specific nested budgets
+      // 6. Extract specific nested budgets with alternatives
       budgetMaterial:
           (budget?['material'] as num?)?.toDouble() ??
-          (j['budgetMaterial'] as num?)?.toDouble(),
+          (budget?['materials'] as num?)?.toDouble() ??
+          (j['budgetMaterial'] as num?)?.toDouble() ??
+          (j['budgetMaterials'] as num?)?.toDouble(),
       budgetLabour:
           (budget?['labour'] as num?)?.toDouble() ??
           (j['budgetLabour'] as num?)?.toDouble(),
       budgetEquipment:
           (budget?['equipment'] as num?)?.toDouble() ??
           (j['budgetEquipment'] as num?)?.toDouble(),
-      budgetMisc:
-          (budget?['misc'] as num?)?.toDouble() ??
-          (j['budgetMisc'] as num?)?.toDouble(),
+      budgetMisc: (() {
+        double bMat = (budget?['material'] as num?)?.toDouble() ??
+            (budget?['materials'] as num?)?.toDouble() ??
+            (j['budgetMaterial'] as num?)?.toDouble() ??
+            (j['budgetMaterials'] as num?)?.toDouble() ?? 0.0;
+        double bLab = (budget?['labour'] as num?)?.toDouble() ??
+            (j['budgetLabour'] as num?)?.toDouble() ?? 0.0;
+        double bEq = (budget?['equipment'] as num?)?.toDouble() ??
+            (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0;
+        double bMisc = (budget?['misc'] as num?)?.toDouble() ??
+            (budget?['miscellaneous'] as num?)?.toDouble() ??
+            (j['budgetMisc'] as num?)?.toDouble() ??
+            (j['budgetMiscellaneous'] as num?)?.toDouble() ?? 0.0;
+        double tBudget = (budget?['total'] as num?)?.toDouble() ??
+            (j['totalBudget'] as num?)?.toDouble() ?? 0.0;
 
+        // If backend dropped misc but we have the total, recover it dynamically!
+        if (bMisc == 0 && tBudget > 0) {
+          final calcMisc = tBudget - (bMat + bLab + bEq);
+          if (calcMisc > 0) {
+            bMisc = calcMisc;
+          }
+        }
+        return bMisc > 0 ? bMisc : null;
+      })(),
       projectStatus: j['status'] as String?,
     );
   }
-
   static String encodeList(List<ProjectModel> list) =>
       jsonEncode(list.map((p) => p.toJson()).toList());
-
   static List<ProjectModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
@@ -533,28 +507,24 @@ class ProjectActivity {
   final String name;
   final bool isCustom;
   bool completed;
-
   ProjectActivity({
     required this.id,
     required this.name,
     this.isCustom = false,
     this.completed = false,
   });
-
   ProjectActivity copyWith({bool? completed}) => ProjectActivity(
     id: id,
     name: name,
     isCustom: isCustom,
     completed: completed ?? this.completed,
   );
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'isCustom': isCustom,
     'completed': completed,
   };
-
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
     id: j['id'] as String,
     name: j['name'] as String,
@@ -570,7 +540,6 @@ class ProjectPhase {
   final bool isCustom;
   bool isExpanded;
   final List<ProjectActivity> activities;
-
   ProjectPhase({
     required this.id,
     required this.phaseName,
@@ -578,10 +547,8 @@ class ProjectPhase {
     this.isExpanded = false,
     List<ProjectActivity>? activities,
   }) : activities = activities ?? [];
-
   int get totalCount => activities.length;
   int get completedCount => activities.where((a) => a.completed).length;
-
   // Deep-copy with optional activity list override
   ProjectPhase copyWith({List<ProjectActivity>? activities}) => ProjectPhase(
     id: id,
@@ -590,14 +557,12 @@ class ProjectPhase {
     isExpanded: isExpanded,
     activities: activities ?? List<ProjectActivity>.from(this.activities),
   );
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'phaseName': phaseName,
     'isCustom': isCustom,
     'activities': activities.map((a) => a.toJson()).toList(),
   };
-
   factory ProjectPhase.fromJson(Map<String, dynamic> j) => ProjectPhase(
     id: j['id'] as String,
     phaseName: j['phaseName'] as String,
@@ -638,7 +603,6 @@ class EntryModel {
   final ProjectStage? phase;
   final String? phaseId;
   final String? unit;
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'projectId': projectId,
@@ -653,7 +617,6 @@ class EntryModel {
     if (phaseId != null) 'phaseId': phaseId,
     if (unit != null) 'unit': unit,
   };
-
   factory EntryModel.fromJson(Map<String, dynamic> j) => EntryModel(
     id: j['id'] as String,
     projectId: j['projectId'] as String,
@@ -676,10 +639,8 @@ class EntryModel {
     phaseId: j['phaseId'] as String?,
     unit: j['unit'] as String?,
   );
-
   static String encodeList(List<EntryModel> list) =>
       jsonEncode(list.map((e) => e.toJson()).toList());
-
   static List<EntryModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
