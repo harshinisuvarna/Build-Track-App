@@ -7,14 +7,15 @@ class ApiService {
   // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
   // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
   static const String baseUrl = 'https://unsecured-coastland-canister.ngrok-free.dev/api';
+  // static const String baseUrl = 'https://jargon-tit-stained.ngrok-free.dev/api';
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
   // ==========================================
   static Future<Map<String, String>> _getHeaders() async {
-  final prefs = await SharedPreferences.getInstance();
-  // ✅ Try 'token' first, fall back to 'jwt_token'
-  final token = prefs.getString('token') ?? prefs.getString('jwt_token');
+    final prefs = await SharedPreferences.getInstance();
+    // ✅ Try 'token' first, fall back to 'jwt_token'
+    final token = prefs.getString('token') ?? prefs.getString('jwt_token');
 
   return {
     'Content-Type': 'application/json',
@@ -225,8 +226,8 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      // YOUR FIX: Using the correct /inventory endpoint from main
-      String endpoint = '/inventory';
+      // 1. CHANGED: Ask for the full transaction history to capture Wages and Expenses
+      String endpoint = '/transactions';
       if (projectId.isNotEmpty) endpoint += '?project=$projectId';
 
       final response = await get(endpoint);
@@ -237,13 +238,14 @@ class ApiService {
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
 
-        // ROSELIN'S LOGIC: Preserving her list extraction
         List<dynamic> raw = [];
         if (decoded is List) {
           raw = decoded;
         } else if (decoded is Map) {
+          // 2. CHANGED: Added 'transactions' so it recognizes the backend payload
           raw =
-              (decoded['inventory'] ??
+              (decoded['transactions'] ??
+                      decoded['inventory'] ??
                       decoded['data'] ??
                       decoded['items'] ??
                       [])
@@ -251,50 +253,57 @@ class ApiService {
         }
 
         // ROSELIN'S LOGIC: Preserving her complex grouping algorithm
+        // --- UPDATED GROUPING ALGORITHM ---
         final Map<String, Map<String, dynamic>> grouped = {};
-        for (final t in raw) {
-          final String title = (t['title'] ?? t['materialName'] ?? 'Unknown')
-              .toString();
 
-          final String rawCat = (t['category'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
+        for (final t in raw) {
+          // 1. Get the original category name (e.g., "gas", "Crane Rental", "Sunil Contractors")
+          final String originalCategory =
+              (t['category'] ?? t['materialName'] ?? 'Unknown')
+                  .toString()
+                  .trim();
+
+          // 2. Determine the TAB type (material, labour, or equipment)
+          final String rawCat = originalCategory.toLowerCase();
           final String rawType = (t['type'] ?? '')
               .toString()
               .trim()
               .toLowerCase();
 
-          String category = 'material';
+          String tabType = 'material'; // Default
           if (rawCat == 'labour' ||
               rawCat == 'wages' ||
               rawCat == 'labor' ||
               rawCat.contains('labour') ||
               rawType == 'wages' ||
               rawType == 'labour') {
-            category = 'labour';
+            tabType = 'labour';
           } else if (rawCat == 'equipment' ||
               rawCat == 'machinery' ||
               rawCat == 'expense' ||
               rawType == 'expense' ||
               rawType == 'equipment') {
-            category = 'equipment';
+            tabType = 'equipment';
           }
 
+          // 3. Group by the ORIGINAL CATEGORY name, not the title
+          final String key = '$originalCategory||$tabType';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
           final String unit = (t['unit'] ?? 'units').toString();
-          final String key = '$title||$category';
 
           if (grouped.containsKey(key)) {
+            // If the category exists, add to the total stock
             grouped[key]!['purchased'] =
                 (grouped[key]!['purchased'] as double) + qty;
             grouped[key]!['closingStock'] =
                 (grouped[key]!['closingStock'] as double) + qty;
           } else {
+            // Create a new category card
             grouped[key] = {
               '_id': t['_id'] ?? key,
-              'materialName': title,
-              'category': category,
+              'materialName':
+                  originalCategory, // <-- UI reads this for the Card Title!
+              'category': tabType, // <-- UI reads this to sort into Tabs!
               'purchased': qty,
               'used': 0.0,
               'closingStock': qty,
@@ -303,6 +312,7 @@ class ApiService {
             };
           }
         }
+
         print('fetchInventory grouped items: ${grouped.length}');
         return grouped.values.toList();
       } else {

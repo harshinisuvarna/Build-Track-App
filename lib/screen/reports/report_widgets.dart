@@ -27,7 +27,6 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🛡️ SAFETY NET: Prevent NaN and Infinity from crashing the UI
     final safeChange = (change.isNaN || change.isInfinite) ? 0.0 : change;
 
     final isNeutral = safeChange == 0.0;
@@ -36,20 +35,20 @@ class MetricCard extends StatelessWidget {
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
-        ? AppColors.success
-        : AppColors.error;
+            ? AppColors.success
+            : AppColors.error;
 
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
-        ? Icons.trending_down
-        : Icons.trending_up;
+            ? Icons.trending_down
+            : Icons.trending_up;
 
     final subText = isNeutral
         ? 'On Track'
         : isGood
-        ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
-        : '+${safeChange.toStringAsFixed(0)}% Over';
+            ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
+            : '+${safeChange.toStringAsFixed(0)}% Over';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -57,7 +56,8 @@ class MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
         border: Border.all(color: const Color(0xFFF0F1F5)),
       ),
@@ -114,8 +114,6 @@ class MetricCard extends StatelessWidget {
   }
 }
 
-// ── Replace MetricGrid ──────────────────────────────────────────────────────
-
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
 
@@ -124,51 +122,63 @@ class MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Show actual spent vs target — no mock percentages
     final totalTarget = report.targetMaterial +
         report.targetLabour +
         report.targetEquipment +
         report.targetMisc;
 
-    double _pct(double actual, double target) {
+    double pct(double actual, double target) {
       if (target <= 0) return 0;
-      return ((actual / target) - 1) * 100; // negative = saving, positive = over
+      return ((actual / target) - 1) * 100;
     }
 
     final cards = [
-      _M(Icons.credit_card_outlined, 'TOTAL COST',
-          report.formattedTotal, _pct(report.totalCost, totalTarget)),
-      _M(Icons.architecture, 'MATERIAL',
-          report.formattedMaterial, _pct(report.materialCost, report.targetMaterial)),
-      _M(Icons.people_outline, 'LABOUR',
-          report.formattedLabour, _pct(report.labourCost, report.targetLabour)),
+      _M(Icons.credit_card_outlined, 'TOTAL COST', report.formattedTotal,
+          pct(report.totalCost, totalTarget)),
+      _M(Icons.architecture, 'MATERIAL', report.formattedMaterial,
+          pct(report.materialCost, report.targetMaterial)),
+      _M(Icons.people_outline, 'LABOUR', report.formattedLabour,
+          pct(report.labourCost, report.targetLabour)),
       _M(Icons.precision_manufacturing_outlined, 'EQUIPMENT',
-          report.formattedEquipment, _pct(report.equipmentCost, report.targetEquipment)),
+          report.formattedEquipment,
+          pct(report.equipmentCost, report.targetEquipment)),
     ];
 
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: MetricCard(
-              icon: cards[0].icon, label: cards[0].label,
-              value: cards[0].value, change: cards[0].change)),
+            Expanded(
+                child: MetricCard(
+                    icon: cards[0].icon,
+                    label: cards[0].label,
+                    value: cards[0].value,
+                    change: cards[0].change)),
             const SizedBox(width: 12),
-            Expanded(child: MetricCard(
-              icon: cards[1].icon, label: cards[1].label,
-              value: cards[1].value, change: cards[1].change)),
+            Expanded(
+                child: MetricCard(
+                    icon: cards[1].icon,
+                    label: cards[1].label,
+                    value: cards[1].value,
+                    change: cards[1].change)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: MetricCard(
-              icon: cards[2].icon, label: cards[2].label,
-              value: cards[2].value, change: cards[2].change)),
+            Expanded(
+                child: MetricCard(
+                    icon: cards[2].icon,
+                    label: cards[2].label,
+                    value: cards[2].value,
+                    change: cards[2].change)),
             const SizedBox(width: 12),
-            Expanded(child: MetricCard(
-              icon: cards[3].icon, label: cards[3].label,
-              value: cards[3].value, change: cards[3].change)),
+            Expanded(
+                child: MetricCard(
+                    icon: cards[3].icon,
+                    label: cards[3].label,
+                    value: cards[3].value,
+                    change: cards[3].change)),
           ],
         ),
       ],
@@ -183,8 +193,6 @@ class _M {
   final String value;
   final double change;
 }
-
-// ── Replace ChartSection ────────────────────────────────────────────────────
 
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.report});
@@ -267,7 +275,8 @@ class ChartSection extends StatelessWidget {
               child: LineChart(LineChartData(
                 minY: 0,
                 maxY: maxY,
-                gridData: const FlGridData(show: true, drawVerticalLine: false),
+                gridData:
+                    const FlGridData(show: true, drawVerticalLine: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
@@ -276,8 +285,9 @@ class ChartSection extends StatelessWidget {
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final i = value.toInt();
-                        if (i < 0 || i >= categories.length)
+                        if (i < 0 || i >= categories.length) {
                           return const SizedBox();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(categories[i]['name'].toString(),
@@ -287,7 +297,8 @@ class ChartSection extends StatelessWidget {
                     ),
                   ),
                   leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: true, reservedSize: 44),
+                    sideTitles:
+                        SideTitles(showTitles: true, reservedSize: 44),
                   ),
                   topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false)),
@@ -295,7 +306,6 @@ class ChartSection extends StatelessWidget {
                       sideTitles: SideTitles(showTitles: false)),
                 ),
                 lineBarsData: [
-                  // ✅ Blue solid = actual paid amount spent
                   LineChartBarData(
                     spots: actualSpots,
                     isCurved: true,
@@ -307,7 +317,6 @@ class ChartSection extends StatelessWidget {
                       color: AppColors.primary.withOpacity(0.08),
                     ),
                   ),
-                  // ✅ Red dashed = target budget
                   LineChartBarData(
                     spots: targetSpots,
                     isCurved: false,
@@ -388,23 +397,21 @@ class _UnitToggle extends StatelessWidget {
           final actualRaw = item['actual'] as double;
           final targetRaw = item['target'] as double;
 
-          // 🛡️ SAFETY NET: Prevent NaN crashes
-          final actual = (actualRaw.isNaN || actualRaw.isInfinite)
-              ? 0.0
-              : actualRaw;
-          final target = (targetRaw.isNaN || targetRaw.isInfinite)
-              ? 0.0
-              : targetRaw;
+          final actual =
+              (actualRaw.isNaN || actualRaw.isInfinite) ? 0.0 : actualRaw;
+          final target =
+              (targetRaw.isNaN || targetRaw.isInfinite) ? 0.0 : targetRaw;
 
           final hasTarget = target > 0;
-          final percent = hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
+          final percent =
+              hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
           final isOver = hasTarget && actual > target;
 
           final color = isOver
               ? AppColors.error
               : percent >= 0.75
-              ? AppColors.warning
-              : AppColors.primary;
+                  ? AppColors.warning
+                  : AppColors.primary;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
@@ -482,9 +489,6 @@ class ProjectSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final projectProvider = context.watch<ProjectProvider>();
-    final projects = projectProvider.projects;
-
     return AppCard(
       margin: EdgeInsets.zero,
       onTap: () => _showSheet(context),
@@ -513,6 +517,7 @@ class ProjectSelector extends StatelessWidget {
     final realProjects = projectProvider.projects;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -530,88 +535,107 @@ class _ProjectPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIX: constrain the sheet to 60% of screen height so it never overflows
+    final maxSheetHeight = MediaQuery.of(context).size.height * 0.60;
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              title: const Text('All Active Projects'),
-              leading: const Icon(Icons.grid_view),
-              onTap: () {
-                provider.selectProject('all');
-                Navigator.pop(context);
-              },
-            ),
-            Text('Select Project', style: AppTheme.heading3),
-            const SizedBox(height: 12),
-            ...projects.map((p) {
-              final selected = p.id == provider.selectedProjectId;
-              return InkWell(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxSheetHeight),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Text('Select Project', style: AppTheme.heading3),
+              const SizedBox(height: 8),
+
+              // All Active Projects option
+              ListTile(
+                title: const Text('All Active Projects'),
+                leading: const Icon(Icons.grid_view),
+                contentPadding: EdgeInsets.zero,
                 onTap: () {
-                  provider.selectProject(p.id);
-                  context.read<ProjectProvider>().selectProject(p);
+                  provider.selectProject('all');
                   Navigator.pop(context);
                 },
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  margin: const EdgeInsets.only(bottom: 6),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.primary.withValues(alpha: 0.08)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        selected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        size: 18,
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.textLight,
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          p.name,
-                          style: AppTheme.bodyLarge.copyWith(
+              ),
+
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+
+              // ✅ FIX: Scrollable list so overflow never happens
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: projects.map((p) {
+                    final selected = p.id == provider.selectedProjectId;
+                    return InkWell(
+                      onTap: () {
+                        provider.selectProject(p.id);
+                        context.read<ProjectProvider>().selectProject(p);
+                        Navigator.pop(context);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
                             color: selected
                                 ? AppColors.primary
-                                : AppColors.textDark,
-                            fontWeight: selected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                                : Colors.transparent,
+                            width: 1.5,
                           ),
                         ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              selected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              size: 18,
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.textLight,
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                p.name,
+                                style: AppTheme.bodyLarge.copyWith(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.textDark,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-// ── Replace CategoryBudgetSection ───────────────────────────────────────────
-// Shows actual ₹ spent vs ₹ budget — no percentages, blue progress bar
 
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key, required this.categoryBudget});
@@ -620,8 +644,6 @@ class CategoryBudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // categoryBudget keys are actual spent amounts
-    // We need targets from the report — get them from ReportProvider
     final report = context.read<ReportProvider>().buildLiveReport();
 
     final items = [
@@ -695,7 +717,6 @@ class CategoryBudgetSection extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // ✅ Show actual ₹ amount, not percentage
                           Text(
                             '₹${actual.toStringAsFixed(0)} spent',
                             style: TextStyle(
@@ -720,7 +741,6 @@ class CategoryBudgetSection extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: LinearProgressIndicator(
-                      // ✅ Blue progress bar showing spent/budget ratio
                       value: hasTarget ? percent : 0,
                       minHeight: 8,
                       backgroundColor: const Color(0xFFEEF0F8),
@@ -757,14 +777,13 @@ class _BudgetBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🛡️ SAFETY NET: Stop FractionallySizedBox & .round() from crashing on NaN
     final safeValue = (value.isNaN || value.isInfinite) ? 0.0 : value;
 
     final Color color = safeValue >= 0.90
         ? AppColors.error
         : safeValue >= 0.70
-        ? AppColors.warning
-        : AppColors.primary;
+            ? AppColors.warning
+            : AppColors.primary;
 
     final String pct = '${(safeValue * 100).round()}%';
 
@@ -885,9 +904,8 @@ class EfficiencyBanner extends StatelessWidget {
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
-              final selectedProjectName = context
-                  .read<ReportProvider>()
-                  .selectedProjectName;
+              final selectedProjectName =
+                  context.read<ReportProvider>().selectedProjectName;
               Navigator.pushNamed(
                 context,
                 '/report-insights',

@@ -325,10 +325,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         projectStatus: _projectStatus,
       );
 
-      print('DEBUG PHASES COUNT: ${newProject.selectedPhases?.length}');
-      print('DEBUG PHASE NAMES: ${newProject.selectedPhaseNames}');
-      print('DEBUG ACTIVITY KEYS: ${newProject.trackedActivityKeys}');
-
       // Save via provider (which POSTs to backend first, then adds locally)
       await projectProvider.addProject(newProject);
 
@@ -350,83 +346,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-  }
-
-  void _showUpgradeDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: primaryBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(
-                Icons.lock_outline,
-                color: primaryBlue,
-                size: 30,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Project Limit Reached',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: textDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Free plan allows up to 2 projects.\nUpgrade to Pro for unlimited projects.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.5, color: textGray, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.pushNamed(context, '/subscription');
-                },
-                child: const Text(
-                  'Upgrade to Pro',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Maybe Later',
-                style: TextStyle(color: textGray, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -1825,8 +1744,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   GestureDetector(
                     onTap: () => setState(() {
                       for (var p in _phases) {
+                        p.isSelected = true; // Check the parent phase
                         for (var a in p.allActivities) {
-                          a.isSelected = true;
+                          a.isSelected = true; // Check all child activities
                         }
                       }
                     }),
@@ -1851,8 +1771,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   GestureDetector(
                     onTap: () => setState(() {
                       for (var p in _phases) {
+                        p.isSelected = false; // Uncheck the parent phase
                         for (var a in p.allActivities) {
-                          a.isSelected = false;
+                          a.isSelected = false; // Uncheck all child activities
                         }
                       }
                     }),
@@ -1890,24 +1811,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         const SizedBox(height: 14),
 
-        // ── Phase cards (reorderable) ───────────────────────────────
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          proxyDecorator: _buildDragProxy,
-          onReorder: (oldIndex, newIndex) {
-            setState(() {
-              if (newIndex > oldIndex) newIndex--;
-              _phases.insert(newIndex, _phases.removeAt(oldIndex));
-            });
-          },
-          itemCount: _phases.length,
-          itemBuilder: (_, i) => ReorderableDelayedDragStartListener(
-            key: ValueKey('phase_drag_$i'),
-            index: i,
-            child: _buildPhaseAccordion(i, _phases[i]),
-          ),
+        // ── Phase cards (NON-reorderable) ───────────────────────────────
+        Column(
+          children: List.generate(_phases.length, (i) {
+            return _buildPhaseAccordion(i, _phases[i]);
+          }),
         ),
         const SizedBox(height: 12),
         // ── Add Custom Phase link ───────────────────────────────────
@@ -1957,10 +1865,15 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  // Phase Selection Checkbox
+                  // PHASE CHECKBOX
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => phase.isSelected = !phase.isSelected),
+                    onTap: () => setState(() {
+                      phase.isSelected = !phase.isSelected;
+                      // Parent updates all children
+                      for (var a in phase.allActivities) {
+                        a.isSelected = phase.isSelected;
+                      }
+                    }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       width: 22,
@@ -2030,11 +1943,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                     });
                   },
                   itemCount: phase.allActivities.length,
-                  itemBuilder: (_, idx) => ReorderableDelayedDragStartListener(
-                    key: ValueKey('act_drag_${phase.name}_$idx'),
-                    index: idx,
-                    child: _buildActivityRow(idx, phase.allActivities[idx]),
-                  ),
+                  itemBuilder: (_, idx) =>
+                      _buildActivityRow(idx, phase.allActivities[idx], phase),
                 ),
                 // + Add Custom Activity — pill chip
                 GestureDetector(
@@ -2075,23 +1985,41 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
   }
 
-  Widget _buildActivityRow(int index, ConstructionActivity act) {
+  Widget _buildActivityRow(
+    int index,
+    ConstructionActivity act,
+    ConstructionPhase phase,
+  ) {
     return InkWell(
-      key: ValueKey('act_${act.key}_$index'),
-      onTap: () => setState(() => act.isSelected = !act.isSelected),
-      splashColor: primaryBlue.withValues(alpha: 0.06),
+      key: ValueKey(act.key),
+      onTap: () {
+        setState(() {
+          // 1. Toggle the child activity
+          act.isSelected = !act.isSelected;
+
+          // 2. Sync parent phase
+          if (act.isSelected) {
+            phase.isSelected = true;
+          } else {
+            bool hasCheckedChild = phase.allActivities.any((a) => a.isSelected);
+            if (!hasCheckedChild) phase.isSelected = false;
+          }
+        });
+      },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ), // <-- RESTORED UI PADDING
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ── Animated checkbox ─────────────────────────────────────
+            // ── Animated checkbox ──
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(4),
                 color: act.isSelected ? primaryBlue : Colors.transparent,
                 border: Border.all(
                   color: act.isSelected ? primaryBlue : const Color(0xFFCDD0DA),
@@ -2101,33 +2029,32 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               child: act.isSelected
                   ? const Icon(
                       Icons.check_rounded,
-                      size: 13,
+                      size: 14,
                       color: Colors.white,
                     )
                   : null,
             ),
             const SizedBox(width: 12),
-            // ── Activity name ─────────────────────────────────────────
+            // ── Activity name ──
             Expanded(
               child: Text(
                 act.name,
                 style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: 14, // <-- RESTORED SIZE
                   fontWeight: act.isSelected
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+                      ? FontWeight.w500
+                      : FontWeight.w400,
                   color: act.isSelected ? textDark : const Color(0xFF6B7280),
-                  height: 1.3,
                 ),
               ),
             ),
-            // ── Subtle drag handle (trailing) ─────────────────────────
+            // ── Drag handle ──
             ReorderableDragStartListener(
               index: index,
               child: const Icon(
                 Icons.drag_indicator_rounded,
-                size: 18,
-                color: Color(0xFFCDD0DA),
+                size: 20,
+                color: Color(0xFFDDE0E8),
               ),
             ),
           ],
