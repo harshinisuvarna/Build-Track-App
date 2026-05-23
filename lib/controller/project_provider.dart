@@ -86,45 +86,34 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
       if (_phases.isEmpty || _phases.length < 11) {
-        _phases =
-            [
-                  'Pre-Construction',
-                  'Site Preparation',
-                  'Foundation',
-                  'Plinth',
-                  'Superstructure',
-                  'Masonry',
-                  'MEP',
-                  'Plastering',
-                  'Finishing',
-                  'Fixtures',
-                  'Handover',
-                ]
-                .asMap()
-                .entries
-                .map(
-                  (e) => PhaseModel(
-                    id: e.value.toLowerCase().replaceAll(' ', '_'),
-                    name: e.value,
-                    order: e.key,
-                  ),
-                )
-                .toList();
+        _phases = [
+          'Pre-Construction',
+          'Site Preparation',
+          'Foundation',
+          'Plinth',
+          'Superstructure',
+          'Masonry',
+          'MEP',
+          'Plastering',
+          'Finishing',
+          'Fixtures',
+          'Handover',
+        ].asMap().entries.map((e) => PhaseModel(
+          id: e.value.toLowerCase().replaceAll(' ', '_'),
+          name: e.value,
+          order: e.key,
+        )).toList();
         _savePhases();
       }
 
       // ── Projects ────────────────────────────────────────────────
       try {
         _projects = await ApiService.fetchProjects();
-        _projects = _projects
-            .map(
-              (p) => p.copyWith(
-                floors: (p.floors == null || p.floors!.isEmpty)
-                    ? ['Ground Floor']
-                    : p.floors,
-              ),
-            )
-            .toList();
+        _projects = _projects.map((p) => p.copyWith(
+          floors: (p.floors == null || p.floors!.isEmpty)
+              ? ['Ground Floor']
+              : p.floors,
+        )).toList();
         debugPrint('Projects loaded: ${_projects.length}');
         for (final p in _projects) {
           debugPrint(
@@ -170,7 +159,6 @@ class ProjectProvider extends ChangeNotifier {
           } else if (json['project'] != null) {
             projectId = json['project'].toString();
           }
-
           if (projectId.isEmpty && json['projectId'] != null) {
             if (json['projectId'] is Map) {
               projectId = json['projectId']['_id']?.toString() ?? '';
@@ -181,36 +169,42 @@ class ProjectProvider extends ChangeNotifier {
           projectId = projectId.trim();
           if (projectId.isEmpty) projectId = 'p1';
 
-          // ✅ Amount: paidAmount first (actual paid), then full amount
+          // ✅ Amount: ONLY count paid/partial amounts
+          // If paymentStatus is Pending — show 0 (not yet paid, don't show in chart)
           double amount = 0;
-          final paid = json['paidAmount'];
-          if (paid != null && paid is num && paid > 0) {
-            amount = paid.toDouble();
-          } else {
-            final fieldsToTry = [
-              'amount', 'totalCost', 'total', 'cost',
-              'closingStock', 'totalAmount', 'price',
-            ];
-            for (final field in fieldsToTry) {
-              final v = json[field];
+          final paymentStatus =
+              (json['paymentStatus'] ?? '').toString().toLowerCase().trim();
+          final paidAmount = json['paidAmount'];
+
+          if (paymentStatus == 'paid') {
+            // Fully paid — use paidAmount if set, else use full amount
+            if (paidAmount != null && paidAmount is num && paidAmount > 0) {
+              amount = paidAmount.toDouble();
+            } else {
+              // paidAmount not set but status is Paid — use full amount
+              final v = json['amount'];
               if (v != null && v is num && v > 0) {
                 amount = v.toDouble();
-                break;
+              } else {
+                final qty = json['quantity'];
+                final rate = json['rate'];
+                if (qty is num && rate is num && qty > 0 && rate > 0) {
+                  amount = (qty * rate).toDouble();
+                }
               }
             }
-            if (amount == 0) {
-              final qty = json['quantity'];
-              final rate = json['rate'];
-              if (qty is num && qty > 0) {
-                amount = rate is num && rate > 0
-                    ? (qty * rate).toDouble()
-                    : qty.toDouble();
-              }
+          } else if (paymentStatus == 'partial') {
+            // Partially paid — use only the paidAmount (not the full amount)
+            if (paidAmount != null && paidAmount is num && paidAmount > 0) {
+              amount = paidAmount.toDouble();
             }
+            // If paidAmount is 0 or missing for partial — show 0
           }
+          // paymentStatus == 'pending' or anything else — amount stays 0
 
           debugPrint(
             'Entry → type=$rawType projectId=$projectId '
+            'paymentStatus=$paymentStatus '
             'paidAmount=${json['paidAmount']} amount=${json['amount']} '
             'using=$amount',
           );
@@ -256,7 +250,7 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      // Retain currently selected project if it still exists in the fetched list
+      // Retain currently selected project
       if (_selectedProject != null) {
         final existingIdx = _projects.indexWhere(
           (p) => p.id.trim() == _selectedProject!.id.trim(),
@@ -291,15 +285,11 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
-      _projects = _projects
-          .map(
-            (p) => p.copyWith(
-              floors: (p.floors == null || p.floors!.isEmpty)
-                  ? ['Ground Floor']
-                  : p.floors,
-            ),
-          )
-          .toList();
+      _projects = _projects.map((p) => p.copyWith(
+        floors: (p.floors == null || p.floors!.isEmpty)
+            ? ['Ground Floor']
+            : p.floors,
+      )).toList();
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
       }
@@ -455,49 +445,42 @@ class ProjectProvider extends ChangeNotifier {
     String? floor,
     ProjectStage? phase,
   }) async {
-    // 1. Map Dart Enums back to exact Backend strings
     String rawType = "Materials";
     if (entry.type == EntryType.labour) rawType = "Wages";
     if (entry.type == EntryType.equipment) rawType = "Expense";
 
-    // 2. Build the STRICT payload that your backend demands
     final payload = {
-      "title": entry.description.isNotEmpty ? entry.description : "New Entry",
-      "type": rawType,
-      "project": entry.projectId,
-      "category":
-          brand ?? entry.brand ?? entry.description, // Links to inventory item
-      "unit": entry.unit ?? "unit",
-      "quantity": entry.amount,
-      "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
-      "amount":
-          entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1), // Total bill
-      "paymentStatus": "Paid", // Enforced default to pass validation
-      "paymentMode": "Cash", // Enforced default to pass validation
-      "paidAmount":
-          entry.amount *
-          (ratePerUnit ?? entry.ratePerUnit ?? 1), // Full payment
+    "title": entry.description.isNotEmpty ? entry.description : "New Entry",
+    "type": rawType,
+    "project": entry.projectId,
+    "category": brand ?? entry.brand ?? entry.description,
+    "unit": entry.unit ?? "unit",
+    "quantity": entry.amount,
+    "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
+    "amount": entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1),
+    // ✅ Save as Pending — chart only shows when paid via Record Payment
+    "paymentStatus": "Pending",
+    "paymentMode": "Cash",
+    "paidAmount": 0,
     };
 
     final success = await ApiService.addMaterial(payload);
     if (!success) {
-      dev.log(
-        "Failed to save entry to backend. Check terminal for server errors.",
-      );
+      dev.log("Failed to save entry to backend.");
       return;
     }
 
     final updatedEntry = EntryModel(
-      id: entry.id,
-      projectId: entry.projectId,
-      type: entry.type,
-      amount: entry.amount,
-      date: entry.date,
-      description: entry.description,
-      brand: brand ?? entry.brand,
-      ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
-      floor: floor ?? entry.floor,
-      phase: phase ?? entry.phase,
+    id: entry.id,
+    projectId: entry.projectId,
+    type: entry.type,
+    amount: 0,  // ✅ 0 until paid via Record Payment in inventory
+    date: entry.date,
+    description: entry.description,
+    brand: brand ?? entry.brand,
+    ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
+    floor: floor ?? entry.floor,
+    phase: phase ?? entry.phase,
     );
 
     _entries.add(updatedEntry);
@@ -505,19 +488,19 @@ class ProjectProvider extends ChangeNotifier {
     final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
       final oldProject = _projects[idx];
-      final newSpent = oldProject.spentAmount + updatedEntry.amount;
-      _projects[idx] = oldProject.copyWith(spentAmount: newSpent);
+      //final newSpent = oldProject.spentAmount + updatedEntry.amount;
+      //_projects[idx] = oldProject.copyWith(spentAmount: newSpent);
       if (_selectedProject?.id == updatedEntry.projectId) {
         _selectedProject = _projects[idx];
       }
-      try {
+      /*try {
         await ApiService.put(
           '/projects/${oldProject.id}',
           _projects[idx].toJson(),
         );
       } catch (e) {
         dev.log('Failed updating project spent: $e');
-      }
+      }*/
     }
 
     await _persistEntries();
@@ -535,13 +518,11 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   void addPhase(String name) {
-    _phases.add(
-      PhaseModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name,
-        order: _phases.length,
-      ),
-    );
+    _phases.add(PhaseModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: name,
+      order: _phases.length,
+    ));
     _savePhases();
     notifyListeners();
   }

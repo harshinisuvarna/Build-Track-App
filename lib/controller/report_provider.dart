@@ -70,7 +70,7 @@ class ReportProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ReportModel buildLiveReport() {
+ReportModel buildLiveReport() {
   final provider = _projectProvider;
   if (provider == null || provider.projects.isEmpty) {
     return ReportModel.empty();
@@ -88,44 +88,17 @@ class ReportProvider extends ChangeNotifier {
 
   for (final project in targetProjects) {
     final entries = provider.entriesForProject(project.id);
-    
-    // Try entries first
-    double entryMaterial = 0, entryLabour = 0, entryEquipment = 0;
+    // ✅ ONLY count entries — no spentAmount fallback
+    // Entries with pending payment have amount=0 so they won't affect chart
     for (final entry in entries) {
       switch (entry.type) {
-        case EntryType.material: entryMaterial += entry.amount; break;
-        case EntryType.labour:   entryLabour   += entry.amount; break;
-        case EntryType.equipment:entryEquipment+= entry.amount; break;
-      }
-    }
-
-    final entryTotal = entryMaterial + entryLabour + entryEquipment;
-
-    if (entryTotal > 0) {
-      // ✅ Real entry data exists — use it
-      material  += entryMaterial;
-      labour    += entryLabour;
-      equipment += entryEquipment;
-    } else if (project.spentAmount > 0) {
-      // ✅ FALLBACK: distribute spentAmount by budget ratio
-      final bm = project.budgetMaterial  ?? 0;
-      final bl = project.budgetLabour    ?? 0;
-      final be = project.budgetEquipment ?? 0;
-      final bx = project.budgetMisc      ?? 0;
-      final bt = bm + bl + be + bx;
-
-      if (bt > 0) {
-        material  += project.spentAmount * (bm / bt);
-        labour    += project.spentAmount * (bl / bt);
-        equipment += project.spentAmount * (be / bt);
-      } else {
-        // No budget breakdown — put all in material
-        material += project.spentAmount;
+        case EntryType.material: material += entry.amount; break;
+        case EntryType.labour:   labour   += entry.amount; break;
+        case EntryType.equipment:equipment += entry.amount; break;
       }
     }
   }
 
-  // Target budgets
   double targetMaterial = 0, targetLabour = 0,
          targetEquipment = 0, targetMisc = 0;
   for (final project in targetProjects) {

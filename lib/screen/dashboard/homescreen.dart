@@ -7,6 +7,7 @@ import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // --- TASK 3: Imported API Service ---
@@ -395,14 +396,31 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         Row(
           children: [
             Expanded(
-              child: _costCard(
+            child:_costCard(
                 'TOTAL COST',
-                project?.formattedSpent ?? '₹—',
+                // ✅ show only actually paid amounts from entries
                 project != null
-                    ? '${(project.budgetUtilization * 100).toStringAsFixed(0)}% Used'
+                    ? formatCurrency(
+                        context.read<ProjectProvider>()
+                            .totalSpentForProject(project.id),
+                      )
+                    : '₹—',
+                project != null
+                    ? () {
+                        final paid = context.read<ProjectProvider>()
+                            .totalSpentForProject(project.id);
+                        final budget = project.totalBudget;
+                        final pct = budget > 0
+                            ? (paid / budget * 100).toStringAsFixed(0)
+                            : '0';
+                        return '$pct% Used';
+                      }()
                     : '—',
-                project != null && project.budgetUtilization > 0.9,
-              ),
+                project != null &&
+                    context.read<ProjectProvider>()
+                            .totalSpentForProject(project.id) >
+                        project.totalBudget * 0.9,
+              ), 
             ),
             const SizedBox(width: 12),
             Expanded(

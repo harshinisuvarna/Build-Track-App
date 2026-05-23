@@ -88,7 +88,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          'Create Workspace',
+          'Create Account',
           style: AppTheme.heading2.copyWith(
             fontSize: 26,
             letterSpacing: -0.5,
@@ -113,7 +113,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           prefixIcon: Icons.person_outline,
         ),
         AppTextField(
-          label: 'Company / Project Name',
+          label: 'Company Name',
           controller: _companyCtrl,
           hint: 'e.g. Apex Construction',
           prefixIcon: Icons.business_outlined,
@@ -178,7 +178,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         _isLoading
             ? const Center(child: CircularProgressIndicator())
             : AppButton(
-                label: 'Create Workspace',
+                label: 'Create Account',
                 icon: Icons.arrow_forward,
                 onPressed: _onCreatePressed,
               ),
