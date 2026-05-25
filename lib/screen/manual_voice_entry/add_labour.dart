@@ -38,6 +38,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   bool _isEditing = false;
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
+  DateTime _selectedDate = DateTime.now();
 
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
@@ -85,6 +86,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           _selectedUnit = 'Sq.ft';
         } else if (rawUnit.isNotEmpty) {
           _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+        }
+
+        if (args['date'] != null) {
+          try {
+            _selectedDate = DateTime.parse(args['date'].toString());
+          } catch (_) {}
         }
       } else {
         final prefill = args['prefill'] as String?;
@@ -158,6 +165,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ? "sqft"
           : "unit",
       "project": _selectedProjectId,
+      "date": _selectedDate.toIso8601String(),
     };
 
     final success = await ApiService.addMaterial(payload);
@@ -377,6 +385,75 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           ),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
+                        ],
+                      ),
+                    ),
+
+                    EntrySectionCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const EntryCardHeader(
+                            icon: Icons.calendar_month_outlined,
+                            title: 'Logging Date',
+                            subtitle:
+                                'Select when this labour activity or wages took place',
+                          ),
+                          const SizedBox(height: 20),
+                          const Divider(color: Color(0xFFF0EEF8)),
+                          const SizedBox(height: 16),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                                builder: (ctx, child) => Theme(
+                                  data: Theme.of(ctx).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.primary,
+                                      onPrimary: Colors.white,
+                                      onSurface: AppColors.textDark,
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(15),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFE0E5FF),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_month_outlined,
+                                    color: AppColors.primary,
+                                    size: 19,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

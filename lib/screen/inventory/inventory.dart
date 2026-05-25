@@ -604,6 +604,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           levelColor: color,
           bottomColor: color,
           type: 'material',
+          itemId: item.id,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -766,6 +767,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           levelColor: color,
           bottomColor: color,
           type: 'labour',
+          itemId: item.id,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -808,6 +810,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           levelColor: color,
           bottomColor: color,
           type: 'equipment',
+          itemId: item.id,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -921,8 +924,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required Color levelColor,
     required Color bottomColor,
     required String type,
+    String itemId = '',
   }) {
     // ... (Your exact existing code)
+    String formattedDate = '';
+    if (itemId.length == 24) {
+      try {
+        final timestamp = int.parse(itemId.substring(0, 8), radix: 16);
+        final createdDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        final months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        formattedDate = '${createdDate.day} ${months[createdDate.month - 1]} ${createdDate.year}';
+      } catch (_) {}
+    }
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -963,6 +980,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     child: Icon(icon, color: purple, size: 20),
                   ),
                   const Spacer(),
+                  if (formattedDate.isNotEmpty) ...[
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: textGray,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
