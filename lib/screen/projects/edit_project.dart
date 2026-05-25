@@ -1,6 +1,7 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -52,11 +53,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   late Set<String> _additionalConfigs;
 
   bool _saving = false;
+  bool _loading = true; // true while fetching fresh data from API
   bool _basicExpanded = true;
   bool _buildingExpanded = true;
   bool _landExpanded = true;
-  bool _roomsExpanded = false;
-  bool _addlExpanded = false;
+  bool _roomsExpanded = true;  // expanded so user can see existing data
+  bool _addlExpanded = true;  // expanded so user can see existing data
   bool _datesExpanded = true;
 
   static const Map<String, List<String>> _buildingSubTypes = {
@@ -131,42 +133,79 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   @override
   void initState() {
     super.initState();
-    final p = widget.project;
-
-    _nameCtrl = TextEditingController(text: p.name);
-    _cityCtrl = TextEditingController(text: p.city);
-    _mapAddressCtrl = TextEditingController(text: p.mapAddress ?? '');
-    _clientCtrl = TextEditingController(text: p.clientName ?? '');
-    _contactCtrl = TextEditingController(text: p.contactNumber ?? '');
-    _contractorCtrl = TextEditingController(text: p.contractorName ?? '');
-    _engineerCtrl = TextEditingController(text: p.siteEngineer ?? '');
-    _landAreaCtrl = TextEditingController(text: p.landArea ?? '');
-    _budgetMaterialCtrl = TextEditingController(
-      text: p.budgetMaterial != null && p.budgetMaterial! > 0 ? p.budgetMaterial!.toStringAsFixed(0) : '',
-    );
-    _budgetLabourCtrl = TextEditingController(
-      text: p.budgetLabour != null && p.budgetLabour! > 0 ? p.budgetLabour!.toStringAsFixed(0) : '',
-    );
-    _budgetEquipmentCtrl = TextEditingController(
-      text: p.budgetEquipment != null && p.budgetEquipment! > 0 ? p.budgetEquipment!.toStringAsFixed(0) : '',
-    );
-    _budgetMiscCtrl = TextEditingController(
-      text: p.budgetMisc != null && p.budgetMisc! > 0 ? p.budgetMisc!.toStringAsFixed(0) : '',
-    );
+    // Initialize controllers with empty/default values first
+    _nameCtrl = TextEditingController();
+    _cityCtrl = TextEditingController();
+    _mapAddressCtrl = TextEditingController();
+    _clientCtrl = TextEditingController();
+    _contactCtrl = TextEditingController();
+    _contractorCtrl = TextEditingController();
+    _engineerCtrl = TextEditingController();
+    _landAreaCtrl = TextEditingController();
+    _budgetMaterialCtrl = TextEditingController();
+    _budgetLabourCtrl = TextEditingController();
+    _budgetEquipmentCtrl = TextEditingController();
+    _budgetMiscCtrl = TextEditingController();
     _customSubTypeCtrl = TextEditingController();
+    _startDate = DateTime.now();
+    _selectedFloorChips = [];
+    _room1BHKCount = 0;
+    _room2BHKCount = 0;
+    _room3BHKCount = 0;
+    _roomCustomCount = 0;
+    _bathWesternCount = 0;
+    _bathIndianCount = 0;
+    _bathCommonCount = 0;
+    _bathAttachedCount = 0;
+    _additionalConfigs = {};
+    _projectStatus = 'Planning';
+    _landUnit = 'Sq ft';
+
+    // Pre-populate from passed project immediately, then fetch fresh from API
+    _populateFrom(widget.project);
+    _fetchFreshAndPopulate();
+  }
+
+  /// Populate all form fields from a [ProjectModel].
+  void _populateFrom(ProjectModel p) {
+    _nameCtrl.text = p.name;
+    _cityCtrl.text = p.city;
+    _mapAddressCtrl.text = p.mapAddress ?? '';
+    _clientCtrl.text = p.clientName ?? '';
+    _contactCtrl.text = p.contactNumber ?? '';
+    _contractorCtrl.text = p.contractorName ?? '';
+    _engineerCtrl.text = p.siteEngineer ?? '';
+    _landAreaCtrl.text = p.landArea ?? '';
+    _budgetMaterialCtrl.text =
+        p.budgetMaterial != null && p.budgetMaterial! > 0
+            ? p.budgetMaterial!.toStringAsFixed(0)
+            : '';
+    _budgetLabourCtrl.text =
+        p.budgetLabour != null && p.budgetLabour! > 0
+            ? p.budgetLabour!.toStringAsFixed(0)
+            : '';
+    _budgetEquipmentCtrl.text =
+        p.budgetEquipment != null && p.budgetEquipment! > 0
+            ? p.budgetEquipment!.toStringAsFixed(0)
+            : '';
+    _budgetMiscCtrl.text =
+        p.budgetMisc != null && p.budgetMisc! > 0
+            ? p.budgetMisc!.toStringAsFixed(0)
+            : '';
 
     _startDate = p.startDate;
     _expectedEndDate = p.expectedEndDate;
-
-    // FIX: use the improved _resolveStatus helper
     _projectStatus = _resolveStatus(p.projectStatus);
 
     _landUnit = p.landUnit ?? 'Sq ft';
-    // FIX: validate that _landUnit is in the allowed list
     const landUnits = ['Sq ft', 'Sq m', 'Acres', 'Hectares'];
     if (!landUnits.contains(_landUnit)) _landUnit = 'Sq ft';
 
-    // FIX: parse building type — handle 'Main → Sub' format
+    // Building type
+    _mainBuildingType = null;
+    _buildingSubType = null;
+    _isCustomSubType = false;
+    _customSubTypeCtrl.clear();
     if (p.projectType != null && p.projectType!.contains('→')) {
       final parts = p.projectType!.split('→');
       _mainBuildingType = parts[0].trim();
@@ -187,14 +226,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       }
     }
 
-    // FIX: normalize floor names and keep only those matching chip options
-    // Also include any floor that matches after normalization, even if not in chip list
+    // Floors
     final rawFloors = p.floors ?? [];
     _selectedFloorChips = rawFloors
         .map((f) => _normalizeFloor(f))
         .where((f) => _floorChipOptions.contains(f))
         .toList();
 
+    // Rooms & bathrooms
     _room1BHKCount = p.room1BHK ?? 0;
     _room2BHKCount = p.room2BHK ?? 0;
     _room3BHKCount = p.room3BHK ?? 0;
@@ -203,7 +242,25 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _bathIndianCount = p.bathIndian ?? 0;
     _bathCommonCount = p.bathCommon ?? 0;
     _bathAttachedCount = p.bathAttached ?? 0;
+
+    // Additional features
     _additionalConfigs = Set<String>.from(p.selectedFeatures ?? []);
+  }
+
+  /// Fetch the latest project data from the API to ensure all fields are fresh.
+  Future<void> _fetchFreshAndPopulate() async {
+    try {
+      final fresh = await ApiService.fetchProjectById(widget.project.id);
+      if (fresh != null && mounted) {
+        setState(() {
+          _populateFrom(fresh);
+          _loading = false;
+        });
+        return;
+      }
+    } catch (_) {}
+    // API call failed — just stop loading, keep whatever we already have
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -308,9 +365,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         Navigator.pop(context, updated);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -349,6 +408,31 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Loading indicator while fetching fresh data from API
+            if (_loading)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: primaryBlue.withValues(alpha: 0.2)),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: primaryBlue),
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Loading latest project data…',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryBlue),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,

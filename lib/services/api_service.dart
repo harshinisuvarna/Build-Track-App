@@ -130,6 +130,25 @@ class ApiService {
     }
   }
 
+  /// GET /api/projects/:id → fetches a single project with ALL fields
+  static Future<ProjectModel?> fetchProjectById(String id) async {
+    try {
+      final response = await get('/projects/$id');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final Map<String, dynamic> projectJson =
+            (decoded is Map && decoded.containsKey('project'))
+            ? decoded['project'] as Map<String, dynamic>
+            : decoded as Map<String, dynamic>;
+        return ProjectModel.fromJson(projectJson);
+      }
+      return null;
+    } catch (e) {
+      print('fetchProjectById error: $e');
+      return null;
+    }
+  }
+
   // ==========================================
   // HARSHINI'S WORK: TRACK 2 SPECIFIC METHODS
   // ==========================================
