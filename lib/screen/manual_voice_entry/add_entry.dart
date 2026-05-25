@@ -115,25 +115,6 @@ class AddEntryScreen extends StatelessWidget {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
-                _bottomSheetOption(
-                  icon: Icons.payments_outlined,
-                  iconColor: const Color(0xFF15803D),
-                  iconBg: const Color(0xFFDCFCE7),
-                  title: 'Add & Pay',
-                  subtitle: 'Fill the form and record payment in one go',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final route = manualRoutes[type];
-                    if (route != null) {
-                      Navigator.pushNamed(
-                        context,
-                        route,
-                        arguments: {'type': type, 'openPayment': true},
-                      );
-                    }
-                  },
-                ),
                 const SizedBox(height: 16),
                 InkWell(
                   onTap: () => Navigator.pop(ctx),

@@ -49,9 +49,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _gstCtrl = TextEditingController();
 
   // ── Payment state ───────────────────────────────────────────────────────
-  bool _recordPaymentNow = false;
-  String _paymentMethod = 'Cash';
+  bool _isAddAndPay = false; // true when launched via "Add & Pay"
+  bool _recordPaymentNow = false; // toggle for Enter Manually flow
+  // Stores the result returned by showPaymentSheet (Enter Manually toggle flow)
+  Map<String, dynamic>? _paymentResult;
+  // Inline payment state for Add & Pay flow
   final _paymentAmountCtrl = TextEditingController();
+  final _paymentNoteCtrl = TextEditingController();
+  String _paymentMethod = 'Cash';
   DateTime _paymentDate = DateTime.now();
 
   // ── Validation errors ───────────────────────────────────────────────────
@@ -124,9 +129,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         if (prefill != null) _nameCtrl.text = prefill;
       }
 
-      // Auto-open payment section if navigated via "Add & Pay"
+      // "Add & Pay" mode: show embedded payment form, no toggle
       if (args['openPayment'] == true) {
-        _recordPaymentNow = true;
+        _isAddAndPay = true;
       }
     }
     _selectedProjectId ??= UserSession.projectId;
@@ -143,6 +148,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _gstCtrl.dispose();
     _supplierCtrl.dispose();
     _paymentAmountCtrl.dispose();
+    _paymentNoteCtrl.dispose();
     super.dispose();
   }
 
@@ -234,13 +240,35 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "date": _selectedDate.toIso8601String(),
     };
 
-    if (_recordPaymentNow) {
-      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0;
+    // Payment data — two possible sources:
+    // 1. Add & Pay mode: inline form fields
+    // 2. Enter Manually toggle: result from showPaymentSheet
+    if (_isAddAndPay) {
+      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0.0;
+      String apiMode = _paymentMethod;
+      if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = paid;
-      payload["paymentMode"] = _paymentMethod;
+      payload["paymentMode"] = apiMode;
       payload["paymentStatus"] =
           paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
       payload["paymentDate"] = _paymentDate.toIso8601String();
+      if (_paymentNoteCtrl.text.trim().isNotEmpty) {
+        payload["notes"] = _paymentNoteCtrl.text.trim();
+      }
+    } else if (_recordPaymentNow && _paymentResult != null) {
+      final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
+      final method = (_paymentResult!['method'] as String?) ?? 'Cash';
+      final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+      String apiMode = method;
+      if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
+      payload["paidAmount"] = paid;
+      payload["paymentMode"] = apiMode;
+      payload["paymentStatus"] =
+          paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+      payload["paymentDate"] = payDate.toIso8601String();
+      if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
+        payload["notes"] = _paymentResult!['note'];
+      }
     }
 
     final bool success;
@@ -299,7 +327,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   }
 
   Widget _buildPaymentSection() {
-    final methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+    // Add & Pay mode: show full inline form, no toggle switch
+    if (_isAddAndPay) return _buildInlinePaymentForm();
+
+    // Enter Manually mode: toggle → opens showPaymentSheet
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,7 +352,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Record Payment Now',
+                    const Text('Pay Now',
                         style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
@@ -336,101 +367,315 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               Switch(
                 value: _recordPaymentNow,
                 activeColor: AppColors.primary,
-                onChanged: (v) => setState(() => _recordPaymentNow = v),
+                onChanged: (v) async {
+                  if (v) {
+                    // Open the full payment sheet — same as in entry details
+                    final result = await showPaymentSheet(
+                      context,
+                      entryTitle: _nameCtrl.text.trim().isEmpty
+                          ? 'Material'
+                          : _nameCtrl.text.trim(),
+                      entryRef: '',
+                      totalAmount: _finalTotal(),
+                      alreadyPaid: 0,
+                      vendorName: _supplierCtrl.text.trim(),
+                      category: _categoryCtrl.text.trim().isEmpty
+                          ? 'Material'
+                          : _categoryCtrl.text.trim(),
+                    );
+                    if (mounted) {
+                      setState(() {
+                        if (result != null) {
+                          _recordPaymentNow = true;
+                          _paymentResult = result;
+                        }
+                        // If user dismissed without submitting, keep switch off
+                      });
+                    }
+                  } else {
+                    setState(() {
+                      _recordPaymentNow = false;
+                      _paymentResult = null;
+                    });
+                  }
+                },
               ),
             ],
           ),
-          if (_recordPaymentNow) ...[
+          // Show a summary card when payment has been recorded via the sheet
+          if (_recordPaymentNow && _paymentResult != null) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFF0EEF8)),
-            const SizedBox(height: 16),
-            const EntryFieldLabel('Amount Paid', required: false),
-            const SizedBox(height: 8),
-            EntryUnderlineField(
-              controller: _paymentAmountCtrl,
-              hint: '0',
-              prefix: '₹',
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
+            const SizedBox(height: 12),
+            _buildPaymentSummary(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Compact summary of the payment captured via showPaymentSheet.
+  Widget _buildPaymentSummary() {
+    final amount = (_paymentResult!['amount'] as double?) ?? 0.0;
+    final method = (_paymentResult!['method'] as String?) ?? 'Cash';
+    final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+    final note = (_paymentResult!['note'] as String?) ?? '';
+    return GestureDetector(
+      onTap: () async {
+        // Tap the summary to re-open the sheet and change details
+        final result = await showPaymentSheet(
+          context,
+          entryTitle: _nameCtrl.text.trim().isEmpty ? 'Material' : _nameCtrl.text.trim(),
+          entryRef: '',
+          totalAmount: _finalTotal(),
+          alreadyPaid: 0,
+          vendorName: _supplierCtrl.text.trim(),
+          category: _categoryCtrl.text.trim().isEmpty ? 'Material' : _categoryCtrl.text.trim(),
+        );
+        if (result != null && mounted) setState(() => _paymentResult = result);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: Color(0xFF16A34A), size: 18),
+                const SizedBox(width: 8),
+                const Text('Payment Recorded',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF15803D))),
+                const Spacer(),
+                const Text('Tap to edit',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF15803D))),
+              ],
             ),
-            const SizedBox(height: 18),
-            const EntryFieldLabel('Payment Method'),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: methods.map((m) {
-                final sel = _paymentMethod == m;
-                return GestureDetector(
-                  onTap: () => setState(() => _paymentMethod = m),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: sel ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: sel
-                              ? AppColors.primary
-                              : const Color(0xFFDDE0F0),
-                          width: 1.5),
-                    ),
-                    child: Text(m,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color:
-                                sel ? Colors.white : AppColors.textDark)),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 18),
-            const EntryFieldLabel('Payment Date'),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _paymentDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                  builder: (ctx, child) => Theme(
-                    data: Theme.of(ctx).copyWith(
-                        colorScheme: const ColorScheme.light(
-                            primary: AppColors.primary,
-                            onPrimary: Colors.white,
-                            onSurface: AppColors.textDark)),
-                    child: child!,
-                  ),
-                );
-                if (picked != null) setState(() => _paymentDate = picked);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: const Color(0xFFE0E5FF), width: 1.5),
+            Row(
+              children: [
+                Expanded(
+                  child: _summaryChip(Icons.currency_rupee,
+                      '₹${amount.toStringAsFixed(0)}', 'Amount'),
                 ),
-                child: Row(
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _summaryChip(Icons.payment_outlined, method, 'Method'),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _summaryChip(
+                      Icons.calendar_today_outlined,
+                      '${payDate.day}/${payDate.month}/${payDate.year}',
+                      'Date'),
+                ),
+              ],
+            ),
+            if (note.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Note: $note',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF4B5563),
+                      fontWeight: FontWeight.w500)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryChip(IconData icon, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFD1FAE5), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6B7280))),
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              Icon(icon, size: 11, color: const Color(0xFF15803D)),
+              const SizedBox(width: 3),
+              Expanded(
+                child: Text(value,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827))),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Inline payment form used in "Add & Pay" mode.
+  /// No toggle — payment fields are always shown directly.
+  Widget _buildInlinePaymentForm() {
+    const methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+    return EntrySectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(Icons.payments_outlined,
+                    color: Color(0xFF15803D), size: 22),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.calendar_month_outlined,
-                        color: AppColors.primary, size: 19),
-                    const SizedBox(width: 8),
-                    Text(
-                        '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
-                        style: const TextStyle(
+                    Text('Record Payment',
+                        style: TextStyle(
+                            fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            fontSize: 15,
                             color: AppColors.textDark)),
+                    SizedBox(height: 2),
+                    Text('Log payment details for this entry',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textLight)),
                   ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(color: Color(0xFFF0EEF8)),
+          const SizedBox(height: 16),
+
+          // Amount
+          const EntryFieldLabel('Amount Paid', required: false),
+          const SizedBox(height: 8),
+          EntryUnderlineField(
+            controller: _paymentAmountCtrl,
+            hint: '0',
+            prefix: '₹',
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 18),
+
+          // Payment Method
+          const EntryFieldLabel('Payment Method'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: methods.map((m) {
+              final sel = _paymentMethod == m;
+              return GestureDetector(
+                onTap: () => setState(() => _paymentMethod = m),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: sel ? AppColors.primary : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: sel
+                            ? AppColors.primary
+                            : const Color(0xFFDDE0F0),
+                        width: 1.5),
+                  ),
+                  child: Text(m,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: sel ? Colors.white : AppColors.textDark)),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+
+          // Payment Date
+          const EntryFieldLabel('Payment Date'),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _paymentDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+                builder: (ctx, child) => Theme(
+                  data: Theme.of(ctx).copyWith(
+                      colorScheme: const ColorScheme.light(
+                          primary: AppColors.primary,
+                          onPrimary: Colors.white,
+                          onSurface: AppColors.textDark)),
+                  child: child!,
+                ),
+              );
+              if (picked != null) setState(() => _paymentDate = picked);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: const Color(0xFFE0E5FF), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_outlined,
+                      color: AppColors.primary, size: 19),
+                  const SizedBox(width: 8),
+                  Text(
+                      '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: AppColors.textDark)),
+                ],
+              ),
             ),
-          ],
+          ),
+          const SizedBox(height: 18),
+
+          // Notes
+          const EntryFieldLabel('Notes', required: false),
+          const SizedBox(height: 8),
+          EntryUnderlineField(
+            controller: _paymentNoteCtrl,
+            hint: 'e.g. Paid by site manager',
+            maxLines: 2,
+          ),
         ],
       ),
     );
