@@ -13,6 +13,7 @@ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
+
   @override
   State<AddEquipmentScreen> createState() => _AddEquipmentScreenState();
 }
@@ -46,6 +47,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _isWithGst = false;
   final _gstCtrl = TextEditingController();
 
+  // ── Payment state ───────────────────────────────────────────────────────
+  bool _recordPaymentNow = false;
+  String _paymentMethod = 'Cash';
+  final _paymentAmountCtrl = TextEditingController();
+  PaymentStatus _initialPaymentStatus = PaymentStatus.pending;
+  DateTime _paymentDate = DateTime.now();
+
   // ── Validation ────────────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
@@ -75,16 +83,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        
+
         final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+        _qtyCtrl.text =
+            qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
 
         final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+        _rateCtrl.text = rate > 0
+            ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+            : '';
 
         _typeCtrl.text = args['categoryName'] as String? ?? '';
         _notesCtrl.text = args['notes'] as String? ?? '';
-        _operatorCtrl.text = args['operator'] as String? ?? args['remarks'] as String? ?? '';
+        _operatorCtrl.text =
+            args['operator'] as String? ?? args['remarks'] as String? ?? '';
 
         final String rawUnit = (args['unit'] ?? '')
             .toString()
@@ -129,6 +141,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _rateCtrl.dispose();
     _notesCtrl.dispose();
     _gstCtrl.dispose();
+    _paymentAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -178,7 +191,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     setState(() => _isSaving = true);
 
-    // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Mongoose schema for Machinery/Equipment
     final payload = {
       "title": _nameCtrl.text.trim(),
       "type": "Expense",
@@ -188,20 +200,28 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "unit": _selectedUnit == null
           ? "hour"
           : _selectedUnit == "Day" || _selectedUnit == "day"
-          ? "day"
-          : _selectedUnit == "Hour" || _selectedUnit == "hour"
-          ? "hour"
-          : _selectedUnit == "Trip" ||
-                _selectedUnit == "Load" ||
-                _selectedUnit == "Shift"
-          ? "truck"
-          : "unit",
+              ? "day"
+              : _selectedUnit == "Hour" || _selectedUnit == "hour"
+                  ? "hour"
+                  : _selectedUnit == "Trip" ||
+                          _selectedUnit == "Load" ||
+                          _selectedUnit == "Shift"
+                      ? "truck"
+                      : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
-      // --- NEW: Added GST Data to Payload ---
       "gstPercentage": _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
       "totalAmount": _finalTotal(),
     };
+
+    if (_recordPaymentNow) {
+      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0;
+      payload["paidAmount"] = paid;
+      payload["paymentMode"] = _paymentMethod;
+      payload["paymentStatus"] =
+          paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+      payload["paymentDate"] = _paymentDate.toIso8601String();
+    }
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
@@ -213,11 +233,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (!mounted) return;
 
     if (success) {
-      // 🌟 THE REFRESH FIX
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack(_isEditing ? 'Equipment log updated successfully!' : 'Equipment log recorded to workspace!');
+      _snack(_isEditing
+          ? 'Equipment log updated successfully!'
+          : 'Equipment log recorded to workspace!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
@@ -256,6 +277,168 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
   }
 
+  Widget _buildPaymentSection() {
+    final methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+    return EntrySectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  color: Color(0xFF15803D),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Record Payment Now',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Optionally log payment while adding',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _recordPaymentNow,
+                activeColor: AppColors.primary,
+                onChanged: (v) => setState(() => _recordPaymentNow = v),
+              ),
+            ],
+          ),
+          if (_recordPaymentNow) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFF0EEF8)),
+            const SizedBox(height: 16),
+            const EntryFieldLabel('Amount Paid', required: false),
+            const SizedBox(height: 8),
+            EntryUnderlineField(
+              controller: _paymentAmountCtrl,
+              hint: '0',
+              prefix: '₹',
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Method'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: methods.map((m) {
+                final sel = _paymentMethod == m;
+                return GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = m),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.primary : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: sel
+                            ? AppColors.primary
+                            : const Color(0xFFDDE0F0),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      m,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: sel ? Colors.white : AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Date'),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _paymentDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: AppColors.primary,
+                        onPrimary: Colors.white,
+                        onSurface: AppColors.textDark,
+                      ),
+                    ),
+                    child: child!,
+                  ),
+                );
+                if (picked != null) setState(() => _paymentDate = picked);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFE0E5FF),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_outlined,
+                      color: AppColors.primary,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,7 +463,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── EXECUTION CONTEXT ─────────────────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
                       selectedFloor: _selectedFloor,
@@ -305,7 +487,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
-                    // ── RESOURCE ASSET IDENTITY ────────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +536,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
-                    // ── TIMELINE LOG QUANTIFICATION ───────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +600,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Unit selector
                           const EntryFieldLabel('Unit'),
                           const SizedBox(height: 8),
                           UnitSelectorField(
@@ -431,7 +610,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 22),
 
-                          // ── GST PRICING MODULE ───────────────────────────
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -474,7 +652,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Refined segmented toggle
                                 Container(
                                   height: 40,
                                   padding: const EdgeInsets.all(3),
@@ -508,17 +685,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                               boxShadow: !_isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color:
-                                                            const Color(
-                                                              0xFF173EEA,
-                                                            ).withValues(
-                                                              alpha: 0.22,
-                                                            ),
+                                                        color: const Color(
+                                                          0xFF173EEA,
+                                                        ).withValues(alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                          0,
-                                                          2,
-                                                        ),
+                                                        offset:
+                                                            const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -539,8 +711,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                       ),
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () =>
-                                              setState(() => _isWithGst = true),
+                                          onTap: () => setState(
+                                            () => _isWithGst = true,
+                                          ),
                                           child: AnimatedContainer(
                                             duration: const Duration(
                                               milliseconds: 200,
@@ -555,17 +728,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                               boxShadow: _isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color:
-                                                            const Color(
-                                                              0xFF173EEA,
-                                                            ).withValues(
-                                                              alpha: 0.22,
-                                                            ),
+                                                        color: const Color(
+                                                          0xFF173EEA,
+                                                        ).withValues(alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                          0,
-                                                          2,
-                                                        ),
+                                                        offset:
+                                                            const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -588,7 +756,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   ),
                                 ),
 
-                                // GST % field
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
                                   const Text(
@@ -610,7 +777,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   ),
                                 ],
 
-                                // Live cost breakdown
                                 const SizedBox(height: 14),
                                 const Divider(
                                   color: Color(0xFFE2E4F6),
@@ -666,16 +832,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Fuel Usage
-                          // const EntryFieldLabel('Fuel Usage (Optional)'),
-                          // const SizedBox(height: 8),
-                          // EntryUnderlineField(
-                          //   controller: _fuelCtrl,
-                          //   hint: 'e.g. 50',
-                          //   suffix: 'L',
-                          //   keyboardType: TextInputType.number,
-                          // ),
-                          // const SizedBox(height: 18),
                           const EntryFieldLabel(
                             'Deployment Event Comments (Optional)',
                           ),
@@ -754,7 +910,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
-                    // ── MATRIX SUMMARY ANALYSIS ────────────────────────────
                     CostSummaryCard(
                       totalAmount: _finalTotal(),
                       label: _isWithGst
@@ -765,10 +920,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           'Usage × Rate',
                           '${_qtyCtrl.text.isEmpty ? "—" : _qtyCtrl.text} ${_selectedUnit ?? "Unit"} × ₹${_rateCtrl.text.isEmpty ? "—" : _rateCtrl.text}',
                         ),
-                        // (
-                        //   'Fuel Used',
-                        //   '${_fuelCtrl.text.isEmpty ? "—" : _fuelCtrl.text} L',
-                        // ),
                         ('Subtotal', formatCurrency(_subtotal())),
                         if (_isWithGst) ...[
                           (
@@ -779,7 +930,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ],
                     ),
 
-                    // ── BILLING EVIDENCE ATTACHMENT ────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -801,7 +951,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
-                    // ── SUBMIT ─────────────────────────────────────────────
+                    _buildPaymentSection(),
                     const SizedBox(height: 4),
                     EntrySubmitButton(
                       label: 'Save Equipment Entry',

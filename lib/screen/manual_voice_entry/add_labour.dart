@@ -12,6 +12,7 @@ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 
 class AddLabourScreen extends StatefulWidget {
   const AddLabourScreen({super.key});
+
   @override
   State<AddLabourScreen> createState() => _AddLabourScreenState();
 }
@@ -40,6 +41,13 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
+
+  // ── Payment state ───────────────────────────────────────────────────────
+  bool _recordPaymentNow = false;
+  String _paymentMethod = 'Cash';
+  final _paymentAmountCtrl = TextEditingController();
+  PaymentStatus _initialPaymentStatus = PaymentStatus.pending;
+  DateTime _paymentDate = DateTime.now();
 
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
@@ -71,21 +79,22 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        
+
         final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+        _qtyCtrl.text =
+            qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
 
         final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+        _rateCtrl.text = rate > 0
+            ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+            : '';
 
         _categoryCtrl.text = args['categoryName'] as String? ?? '';
         _notesCtrl.text = args['notes'] as String? ?? '';
-        _workTypeCtrl.text = args['workType'] as String? ?? args['remarks'] as String? ?? '';
+        _workTypeCtrl.text =
+            args['workType'] as String? ?? args['remarks'] as String? ?? '';
 
-        final String rawUnit = (args['unit'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
+        final String rawUnit = (args['unit'] ?? '').toString().trim().toLowerCase();
         if (rawUnit == 'day' || rawUnit == 'days') {
           _selectedUnit = 'Day';
         } else if (rawUnit == 'hour' || rawUnit == 'hours') {
@@ -120,6 +129,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     _rateCtrl.dispose();
     _overtimeCtrl.dispose();
     _notesCtrl.dispose();
+    _paymentAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -139,7 +149,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       final qty = double.tryParse(_qtyCtrl.text);
       _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
       final rate = double.tryParse(_rateCtrl.text);
-      _rateError = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
+      _rateError =
+          (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
       ok = _nameError == null && _qtyError == null && _rateError == null;
     });
     return ok;
@@ -154,7 +165,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
     setState(() => _isSaving = true);
 
-    // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Mongoose schema for Expenses/Labour
     final payload = {
       "title": _nameCtrl.text.trim(),
       "type": "Wages",
@@ -166,17 +176,26 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       "unit": _selectedUnit == null
           ? "hour"
           : _selectedUnit == "Day" || _selectedUnit == "day"
-          ? "day"
-          : _selectedUnit == "Hour" || _selectedUnit == "hour"
-          ? "hour"
-          : _selectedUnit == "Sq ft" ||
-                _selectedUnit == "sqft" ||
-                _selectedUnit == "Sq.ft"
-          ? "sqft"
-          : "unit",
+              ? "day"
+              : _selectedUnit == "Hour" || _selectedUnit == "hour"
+                  ? "hour"
+                  : _selectedUnit == "Sq ft" ||
+                          _selectedUnit == "sqft" ||
+                          _selectedUnit == "Sq.ft"
+                      ? "sqft"
+                      : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
     };
+
+    if (_recordPaymentNow) {
+      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0;
+      payload["paidAmount"] = paid;
+      payload["paymentMode"] = _paymentMethod;
+      payload["paymentStatus"] =
+          paid >= _totalCost() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+      payload["paymentDate"] = _paymentDate.toIso8601String();
+    }
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
@@ -188,17 +207,182 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (!mounted) return;
 
     if (success) {
-      // 🌟 THE REFRESH FIX
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack(_isEditing ? 'Labour entry updated successfully!' : 'Labour entry logged to database!');
+      _snack(_isEditing
+          ? 'Labour entry updated successfully!'
+          : 'Labour entry logged to database!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
     }
 
     setState(() => _isSaving = false);
+  }
+
+  Widget _buildPaymentSection() {
+    final methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+    return EntrySectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  color: Color(0xFF15803D),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Record Payment Now',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Optionally log payment while adding',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _recordPaymentNow,
+                activeColor: AppColors.primary,
+                onChanged: (v) => setState(() => _recordPaymentNow = v),
+              ),
+            ],
+          ),
+          if (_recordPaymentNow) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFF0EEF8)),
+            const SizedBox(height: 16),
+            const EntryFieldLabel('Amount Paid', required: false),
+            const SizedBox(height: 8),
+            EntryUnderlineField(
+              controller: _paymentAmountCtrl,
+              hint: '0',
+              prefix: '₹',
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Method'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: methods.map((m) {
+                final sel = _paymentMethod == m;
+                return GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = m),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.primary : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: sel
+                            ? AppColors.primary
+                            : const Color(0xFFDDE0F0),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      m,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: sel ? Colors.white : AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Date'),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _paymentDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: AppColors.primary,
+                        onPrimary: Colors.white,
+                        onSurface: AppColors.textDark,
+                      ),
+                    ),
+                    child: child!,
+                  ),
+                );
+                if (picked != null) {
+                  setState(() => _paymentDate = picked);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFE0E5FF),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_outlined,
+                      color: AppColors.primary,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   void _snack(String msg) {
@@ -229,7 +413,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── EXECUTION CONTEXT ─────────────────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
                       selectedFloor: _selectedFloor,
@@ -254,7 +437,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
-                    // ── RESOURCE DETAIL PROFILE ────────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +489,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    // ── WORK DONE METRIC QUANTIFICATION ─────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +553,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Unit selector
                           const EntryFieldLabel('Unit', required: false),
                           const SizedBox(height: 8),
                           UnitSelectorField(
@@ -383,7 +563,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Overtime
                           const EntryFieldLabel('Overtime Amount (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -473,7 +652,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    // ── METRIC COST EVALUATION MATRIX ──────────────────────
                     CostSummaryCard(
                       totalAmount: _totalCost(),
                       label: 'Calculated Operational Labor Budget',
@@ -489,7 +667,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ],
                     ),
 
-                    // ── SUPPORTING EVIDENCE CAPTURE ───────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,7 +688,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    // ── SUBMIT ─────────────────────────────────────────────
+                    _buildPaymentSection(),
                     const SizedBox(height: 4),
                     EntrySubmitButton(
                       label: 'Save Labour Entry',

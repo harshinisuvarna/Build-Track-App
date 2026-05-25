@@ -115,11 +115,30 @@ class AddEntryScreen extends StatelessWidget {
                     }
                   },
                 ),
+                const SizedBox(height: 12),
+                _bottomSheetOption(
+                  icon: Icons.payments_outlined,
+                  iconColor: const Color(0xFF15803D),
+                  iconBg: const Color(0xFFDCFCE7),
+                  title: 'Add & Pay',
+                  subtitle: 'Fill the form and record payment in one go',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    final route = manualRoutes[type];
+                    if (route != null) {
+                      Navigator.pushNamed(
+                        context,
+                        route,
+                        arguments: {'type': type, 'openPayment': true},
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(height: 16),
                 InkWell(
                   onTap: () => Navigator.pop(ctx),
                   borderRadius: BorderRadius.circular(8),
-                  child: Padding(
+                  child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     child: Text(
                       'Cancel',
@@ -212,7 +231,8 @@ class AddEntryScreen extends StatelessWidget {
             AppTopBar(
               title: 'Add Entry',
               leftIcon: Navigator.canPop(context) ? Icons.arrow_back : null,
-              onLeftTap: Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              onLeftTap:
+                  Navigator.canPop(context) ? () => Navigator.pop(context) : null,
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: CircleAvatar(

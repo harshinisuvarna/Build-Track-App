@@ -250,7 +250,13 @@ class _FinancialSnapshot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final u = project.budgetUtilization;
+    // ✅ Use actual paid entry amounts instead of spentAmount
+    final provider = context.read<ProjectProvider>();
+    final paidTotal = provider.totalSpentForProject(project.id);
+    final budget = project.totalBudget;
+    final remaining = budget - paidTotal;
+    final u = budget > 0 ? paidTotal / budget : 0.0;
+
     final statusColor = u >= 0.9
         ? AppColors.error
         : u >= 0.6
@@ -268,14 +274,14 @@ class _FinancialSnapshot extends StatelessWidget {
         const SizedBox(width: 8),
         _StatChip(
           label: 'Spent',
-          value: project.formattedSpent,
+          value: formatCurrency(paidTotal),   // ✅ paid only
           icon: Icons.payments_outlined,
           color: AppColors.primary,
         ),
         const SizedBox(width: 8),
         _StatChip(
           label: 'Remaining',
-          value: project.formattedRemaining,
+          value: formatCurrency(remaining < 0 ? 0 : remaining), // ✅ based on paid
           icon: Icons.savings_outlined,
           color: statusColor,
         ),
@@ -283,6 +289,8 @@ class _FinancialSnapshot extends StatelessWidget {
     );
   }
 }
+
+
 class _StatChip extends StatelessWidget {
   const _StatChip({
     required this.label,

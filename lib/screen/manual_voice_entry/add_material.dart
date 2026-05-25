@@ -34,8 +34,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _notesCtrl = TextEditingController();
 
   // ── Supplier ────────────────────────────────────────────────────────────
-  bool _supplierSelected = false;
-  bool _supplierError = false;
+  final _supplierCtrl = TextEditingController();
 
   // ── UI state ────────────────────────────────────────────────────────────
   bool _isSaving = false;
@@ -48,6 +47,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
   final _gstCtrl = TextEditingController();
+
+  // ── Payment state ───────────────────────────────────────────────────────
+  bool _recordPaymentNow = false;
+  String _paymentMethod = 'Cash';
+  final _paymentAmountCtrl = TextEditingController();
+  DateTime _paymentDate = DateTime.now();
 
   // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
@@ -78,21 +83,23 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        
+
         final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+        _qtyCtrl.text = qty > 0
+            ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+            : '';
 
         final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+        _rateCtrl.text = rate > 0
+            ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+            : '';
 
         _brandCtrl.text = args['brand'] as String? ?? '';
         _categoryCtrl.text = args['categoryName'] as String? ?? '';
         _notesCtrl.text = args['notes'] as String? ?? '';
 
-        final String rawUnit = (args['unit'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
+        final String rawUnit =
+            (args['unit'] ?? '').toString().trim().toLowerCase();
         if (rawUnit == 'bag' || rawUnit == 'bags') {
           _selectedUnit = 'bag';
         } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
@@ -116,6 +123,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
       }
+
+      // Auto-open payment section if navigated via "Add & Pay"
+      if (args['openPayment'] == true) {
+        _recordPaymentNow = true;
+      }
     }
     _selectedProjectId ??= UserSession.projectId;
   }
@@ -129,6 +141,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _rateCtrl.dispose();
     _notesCtrl.dispose();
     _gstCtrl.dispose();
+    _supplierCtrl.dispose();
+    _paymentAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -153,21 +167,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       _nameError = _nameCtrl.text.trim().isEmpty
           ? 'Material name is required'
           : null;
+
       final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError = (qty == null || qty <= 0)
-          ? 'Enter a valid quantity > 0'
-          : null;
+      _qtyError =
+          (qty == null || qty <= 0) ? 'Enter a valid quantity > 0' : null;
+
       final rate = double.tryParse(_rateCtrl.text);
-      _rateError = (rate == null || rate <= 0)
-          ? 'Enter a valid rate > 0'
-          : null;
-      _supplierError = !_supplierSelected;
-      ok =
-          _nameError == null &&
-          _qtyError == null &&
-          _rateError == null &&
-          _supplierSelected;
+      _rateError =
+          (rate == null || rate <= 0) ? 'Enter a valid rate > 0' : null;
+
+      ok = _nameError == null && _qtyError == null && _rateError == null;
     });
+
     return ok;
   }
 
@@ -192,7 +203,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
     setState(() => _isSaving = true);
 
-    // 🌟 CHOSEN BACKEND STRUCTURE: Matches the Node.js Mongoose Transaction Schema exactly
     final payload = {
       "title": _nameCtrl.text.trim(),
       "type": "Materials",
@@ -201,31 +211,42 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           ? "General"
           : _categoryCtrl.text.trim(),
       "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      "supplier": _supplierCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
       "unit": _selectedUnit == null
           ? "unit"
           : _selectedUnit == "bags" || _selectedUnit == "bag"
-          ? "bag"
-          : _selectedUnit == "sq.ft" ||
-                _selectedUnit == "sqft" ||
-                _selectedUnit == "Sq.ft"
-          ? "sqft"
-          : _selectedUnit == "ton" || _selectedUnit == "tons"
-          ? "ton"
-          : _selectedUnit == "kg" || _selectedUnit == "kgs"
-          ? "kg"
-          : _selectedUnit == "pcs" || _selectedUnit == "unit"
-          ? "unit"
-          : "unit",
+              ? "bag"
+              : _selectedUnit == "sq.ft" ||
+                      _selectedUnit == "sqft" ||
+                      _selectedUnit == "Sq.ft"
+                  ? "sqft"
+                  : _selectedUnit == "ton" || _selectedUnit == "tons"
+                      ? "ton"
+                      : _selectedUnit == "kg" || _selectedUnit == "kgs"
+                          ? "kg"
+                          : _selectedUnit == "pcs" || _selectedUnit == "unit"
+                              ? "unit"
+                              : "unit",
       "project": _selectedProjectId,
       "notes": _notesCtrl.text.trim(),
       "date": _selectedDate.toIso8601String(),
     };
 
+    if (_recordPaymentNow) {
+      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0;
+      payload["paidAmount"] = paid;
+      payload["paymentMode"] = _paymentMethod;
+      payload["paymentStatus"] =
+          paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+      payload["paymentDate"] = _paymentDate.toIso8601String();
+    }
+
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
-      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
+      success =
+          await ApiService.updateTransaction(_editingTransactionId!, payload);
     } else {
       success = await ApiService.addMaterial(payload);
     }
@@ -233,7 +254,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (!mounted) return;
 
     if (success) {
-      // 🌟 THE REFRESH FIX: Triggers the app's provider to get fresh database changes
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
@@ -278,86 +298,140 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  // ── SUPPLIER PICKER ────────────────────────────────────────────────────
-  void _showSupplierPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPaymentSection() {
+    final methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+    return EntrySectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(Icons.payments_outlined,
+                    color: Color(0xFF15803D), size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Record Payment Now',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark)),
+                    const SizedBox(height: 2),
+                    Text('Optionally log payment while adding',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textLight)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Select Supplier',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 16),
-              ...[
-                'ABC Suppliers Ltd.',
-                'Metro Build Co.',
-                'SteelWorks Inc.',
-              ].map(
-                (s) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Material(
-                    color: const Color(0xFFF8F9FF),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        setState(() {
-                          _supplierSelected = true;
-                          _supplierError = false;
-                        });
-                        Navigator.pop(ctx);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.business,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              s,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              Switch(
+                value: _recordPaymentNow,
+                activeColor: AppColors.primary,
+                onChanged: (v) => setState(() => _recordPaymentNow = v),
               ),
             ],
           ),
-        ),
+          if (_recordPaymentNow) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFF0EEF8)),
+            const SizedBox(height: 16),
+            const EntryFieldLabel('Amount Paid', required: false),
+            const SizedBox(height: 8),
+            EntryUnderlineField(
+              controller: _paymentAmountCtrl,
+              hint: '0',
+              prefix: '₹',
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Method'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: methods.map((m) {
+                final sel = _paymentMethod == m;
+                return GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = m),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.primary : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: sel
+                              ? AppColors.primary
+                              : const Color(0xFFDDE0F0),
+                          width: 1.5),
+                    ),
+                    child: Text(m,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color:
+                                sel ? Colors.white : AppColors.textDark)),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            const EntryFieldLabel('Payment Date'),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _paymentDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                        colorScheme: const ColorScheme.light(
+                            primary: AppColors.primary,
+                            onPrimary: Colors.white,
+                            onSurface: AppColors.textDark)),
+                    child: child!,
+                  ),
+                );
+                if (picked != null) setState(() => _paymentDate = picked);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: const Color(0xFFE0E5FF), width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined,
+                        color: AppColors.primary, size: 19),
+                    const SizedBox(width: 8),
+                    Text(
+                        '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.textDark)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -455,60 +529,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const SizedBox(height: 18),
 
                           // Supplier
-                          const EntryFieldLabel('Supplier', required: true),
+                          const EntryFieldLabel('Supplier (Optional)'),
                           const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: _showSupplierPicker,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: _supplierError
-                                        ? AppColors.error
-                                        : AppColors.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _supplierSelected
-                                          ? 'ABC Suppliers Ltd.'
-                                          : 'Select supplier',
-                                      style: TextStyle(
-                                        color: _supplierSelected
-                                            ? AppColors.textDark
-                                            : AppColors.textLight,
-                                        fontSize: 15,
-                                        fontWeight: _supplierSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w400,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_supplierError)
-                                    const Icon(
-                                      Icons.error,
-                                      color: AppColors.error,
-                                      size: 22,
-                                    ),
-                                  if (_supplierSelected)
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 22,
-                                    ),
-                                ],
-                              ),
-                            ),
+                          EntryUnderlineField(
+                            controller: _supplierCtrl,
+                            hint: 'e.g. ABC Suppliers Ltd.',
                           ),
-                          if (_supplierError)
-                            const EntryErrorText(
-                              'Please select a valid supplier from the database.',
-                            ),
                         ],
                       ),
                     ),
@@ -652,8 +678,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                           }),
                                           child: AnimatedContainer(
                                             duration: const Duration(
-                                              milliseconds: 200,
-                                            ),
+                                                milliseconds: 200),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: !_isWithGst
@@ -664,17 +689,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                               boxShadow: !_isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color:
-                                                            const Color(
-                                                              0xFF173EEA,
-                                                            ).withValues(
-                                                              alpha: 0.22,
-                                                            ),
+                                                        color: const Color(
+                                                                0xFF173EEA)
+                                                            .withValues(
+                                                                alpha: 0.22),
                                                         blurRadius: 6,
                                                         offset: const Offset(
-                                                          0,
-                                                          2,
-                                                        ),
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -695,12 +716,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                       ),
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () =>
-                                              setState(() => _isWithGst = true),
+                                          onTap: () => setState(
+                                              () => _isWithGst = true),
                                           child: AnimatedContainer(
                                             duration: const Duration(
-                                              milliseconds: 200,
-                                            ),
+                                                milliseconds: 200),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: _isWithGst
@@ -711,17 +731,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                               boxShadow: _isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color:
-                                                            const Color(
-                                                              0xFF173EEA,
-                                                            ).withValues(
-                                                              alpha: 0.22,
-                                                            ),
+                                                        color: const Color(
+                                                                0xFF173EEA)
+                                                            .withValues(
+                                                                alpha: 0.22),
                                                         blurRadius: 6,
                                                         offset: const Offset(
-                                                          0,
-                                                          2,
-                                                        ),
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -769,9 +785,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 // Live cost breakdown
                                 const SizedBox(height: 14),
                                 const Divider(
-                                  color: Color(0xFFE2E4F6),
-                                  thickness: 1,
-                                ),
+                                    color: Color(0xFFE2E4F6), thickness: 1),
                                 const SizedBox(height: 10),
                                 _calcRow(
                                   'Subtotal',
@@ -788,9 +802,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 ],
                                 const SizedBox(height: 8),
                                 const Divider(
-                                  color: Color(0xFFE2E4F6),
-                                  thickness: 1,
-                                ),
+                                    color: Color(0xFFE2E4F6), thickness: 1),
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment:
@@ -830,6 +842,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       ),
                     ),
 
+                    // ── PURCHASING DATE ────────────────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,8 +960,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       ),
                     ),
 
-                    // ── SUBMIT ─────────────────────────────────────────────
+                    // ── PAYMENT SECTION ────────────────────────────────────
+                    _buildPaymentSection(),
                     const SizedBox(height: 4),
+
+                    // ── SUBMIT ─────────────────────────────────────────────
                     EntrySubmitButton(
                       label: 'Save Material Entry',
                       icon: Icons.check_circle,
