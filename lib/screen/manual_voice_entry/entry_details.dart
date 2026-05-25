@@ -8,6 +8,9 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
 
 class EntryDetailScreen extends StatefulWidget {
   const EntryDetailScreen({super.key});
@@ -31,6 +34,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   List<dynamic> _paymentHistory = [];
   String? _paymentReceiptFile;
   bool _viewAllPayments = false;
+  String? _customDate;
 
   @override
   void didChangeDependencies() {
@@ -55,6 +59,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     } else {
       _paymentHistory = [];
     }
+    _customDate = args['date'] as String?;
   }
 
   // ── Static type helpers ──────────────────────────────────────────────────
@@ -127,7 +132,28 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String title = args['title'] as String? ?? 'Stock Entry';
     final String ref = args['ref'] as String? ?? '#INV-0000';
     final String amount = args['amount'] as String? ?? '+0';
-    final String date = args['date'] as String? ?? 'Unknown date';
+    final String date = _customDate ?? args['date'] as String? ?? 'Unknown date';
+    String displayDate = date;
+    if (displayDate.contains('T')) {
+      try {
+        final dt = DateTime.parse(displayDate);
+        final months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        displayDate = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      } catch (_) {}
+    }
     final String type = args['type'] as String? ?? 'material';
     final String name = args['name'] as String? ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
@@ -312,22 +338,96 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           const AppDivider(verticalPadding: 12),
                           _fieldLabel('DATE'),
                           const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                color: _typeColor(type),
-                                size: 14,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                date,
-                                style: AppTheme.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: textDark,
+                          GestureDetector(
+                            onTap: () async {
+                              DateTime parsedInitial = DateTime.now();
+                              try {
+                                parsedInitial = DateTime.parse(args['date'].toString());
+                              } catch (_) {
+                                try {
+                                  parsedInitial = DateTime.parse(date);
+                                } catch (_) {}
+                              }
+                              
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: parsedInitial,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                                builder: (c, child) => Theme(
+                                  data: Theme.of(c).copyWith(
+                                    colorScheme: ColorScheme.light(
+                                      primary: _typeColor(type),
+                                      onPrimary: Colors.white,
+                                      onSurface: textDark,
+                                    ),
+                                  ),
+                                  child: child!,
                                 ),
-                              ),
-                            ],
+                              );
+                              
+                              if (picked != null && context.mounted) {
+                                final success = await ApiService.updateTransaction(
+                                  args['id'] as String? ?? '',
+                                  {
+                                    'date': picked.toIso8601String(),
+                                  },
+                                );
+                                
+                                if (success && context.mounted) {
+                                  setState(() {
+                                    _customDate = picked.toIso8601String();
+                                    args['date'] = picked.toIso8601String();
+                                  });
+                                  
+                                  context.read<InventoryProvider>().loadInventory(projectId);
+                                  context.read<ProjectProvider>().load();
+                                  
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Date updated successfully'),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                } else if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to update date'),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: _typeColor(type),
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  displayDate,
+                                  style: AppTheme.bodyLarge.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: textDark,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: _typeColor(type).withValues(alpha: 0.4),
+                                    decorationStyle: TextDecorationStyle.dashed,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.edit_outlined,
+                                  color: _typeColor(type).withValues(alpha: 0.6),
+                                  size: 12,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -396,7 +496,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     // ── DELETE ENTRY — secondary destructive action ──────────
                     if (canDelete) ...[
                       const SizedBox(height: 16),
-                      _buildDeleteAction(context),
+                      _buildDeleteAction(context, id: args['id'] as String? ?? '', projectId: projectId),
                     ],
 
                     const SizedBox(height: 8),
@@ -628,6 +728,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             final paid = result['amount'] as double? ?? 0;
             final newStatus = result['status'] as PaymentStatus?;
             final receiptFile = result['receipt'] as String?;
+            final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
 
             final totalPaid = _paidAmount + paid;
             final newStatusVal =
@@ -657,6 +758,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 'paidAmount': totalPaid,
                 'paymentMode': apiPaymentMode,
                 'notes': result['note'] ?? '',
+                'paymentDate': customPaymentDate.toIso8601String(),
               });
             }
 
@@ -664,7 +766,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               _paidAmount = totalPaid;
               _payStatus = newStatusVal;
               _paymentHistory.add({
-                'date': DateTime.now().toIso8601String(),
+                'date': customPaymentDate.toIso8601String(),
                 'method': result['method'] ?? 'Cash',
                 'amount': paid,
                 'note': result['note'] ?? '',
@@ -813,7 +915,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
               // Parse date
               String formattedDate = 'Unknown Date';
-              final rawDate = item['date'];
+              final rawDate = item['date'] ?? item['paymentDate'];
               if (rawDate != null) {
                 try {
                   final dt = DateTime.parse(rawDate.toString());
@@ -913,9 +1015,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE ACTION — low-emphasis secondary ────────────────────────────────
-  Widget _buildDeleteAction(BuildContext context) {
+  Widget _buildDeleteAction(BuildContext context, {required String id, required String projectId}) {
     return GestureDetector(
-      onTap: () => _showDeleteDialog(context),
+      onTap: () => _showDeleteDialog(context, id: id, projectId: projectId),
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -943,7 +1045,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE DIALOG ─────────────────────────────────────────────────────────
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, {required String id, required String projectId}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -964,9 +1066,35 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              Navigator.pop(context);
+              
+              if (id.isNotEmpty) {
+                final success = await ApiService.deleteTransaction(id);
+                if (success && context.mounted) {
+                  if (projectId.isNotEmpty) {
+                    context.read<InventoryProvider>().loadInventory(projectId);
+                  }
+                  context.read<ProjectProvider>().load();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Entry deleted successfully'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  Navigator.pop(context);
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to delete entry'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } else {
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

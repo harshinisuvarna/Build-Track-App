@@ -1584,6 +1584,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String selectedMethod = 'UPI';
   String? amountError;
   String? uploadedReceipt;
+  DateTime selectedPaymentDate = DateTime.now();
 
   const pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
@@ -2120,6 +2121,65 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                 ),
                               ),
                               const SizedBox(height: 12),
+                              const _SheetSectionLabel('PAYMENT DATE'),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: ctx,
+                                    initialDate: selectedPaymentDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2100),
+                                    builder: (c, child) => Theme(
+                                      data: Theme.of(c).copyWith(
+                                        colorScheme: const ColorScheme.light(
+                                          primary: Color(0xFF173EEA),
+                                          onPrimary: Colors.white,
+                                          onSurface: _kDark,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    ss(() => selectedPaymentDate = picked);
+                                  }
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 13,
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFCCCFE8),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_month_outlined,
+                                        color: Color(0xFF173EEA),
+                                        size: 19,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${selectedPaymentDate.day}/${selectedPaymentDate.month}/${selectedPaymentDate.year}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                          color: _kDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               EntryNotesField(
                                 controller: noteCtrl,
                                 hint:
@@ -2215,6 +2275,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                     'note': noteCtrl.text.trim(),
                                     'status': selectedStatus,
                                     'receipt': uploadedReceipt,
+                                    'paymentDate': selectedPaymentDate,
                                   });
                                 },
                                 child: Container(

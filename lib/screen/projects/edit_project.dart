@@ -2,7 +2,6 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class EditProjectScreen extends StatefulWidget {
@@ -272,6 +271,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       final updated = widget.project.copyWith(
         name: _nameCtrl.text.trim(),
         city: _cityCtrl.text.trim(),
+        startDate: _startDate,
         sector: widget.project.sector,
         mapAddress: nn(_mapAddressCtrl.text),
         clientName: nn(_clientCtrl.text),
