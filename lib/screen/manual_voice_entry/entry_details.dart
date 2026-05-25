@@ -336,7 +336,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                             ],
                           ),
                           const AppDivider(verticalPadding: 12),
-                          _fieldLabel('DATE'),
+                          _fieldLabel('PURCHASE DATE'),
                           const SizedBox(height: 6),
                           GestureDetector(
                             onTap: () async {
