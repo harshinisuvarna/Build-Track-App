@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
 enum ProjectStage {
-  preConstruction, // Pre-Construction
-  sitePreparation, // Site Preparation
-  foundationPlinthWork, // Foundation & Plinth Work
-  floorConstruction, // Floor Construction
-  finishingWork, // Finishing Work
-  externalWorks, // External Works
-  materialMaster, // Material Master
-  labourMaster, // Labour Master
-  equipmentMaster, // Equipment Master
+  preConstruction,
+  sitePreparation,
+  foundationPlinthWork,
+  floorConstruction,
+  finishingWork,
+  externalWorks,
+  materialMaster,
+  labourMaster,
+  equipmentMaster,
 }
 
 enum EntryType { material, labour, equipment }
@@ -72,7 +72,6 @@ class ProjectModel {
     this.trackedActivityKeys,
     this.completedActivityKeys,
     this.selectedPhases,
-    // ── NEW enterprise fields ──────────────────────────────────────
     this.projectCode,
     this.mapAddress,
     this.contractorName,
@@ -96,7 +95,7 @@ class ProjectModel {
     this.budgetMisc,
     this.projectStatus,
   });
-  // ── Core ───────────────────────────────────────────────────────────────────
+
   final String id;
   final String name;
   final String city;
@@ -106,7 +105,6 @@ class ProjectModel {
   double totalBudget;
   double spentAmount;
   final DateTime startDate;
-  // ── Basic optional ─────────────────────────────────────────────────────────
   final String? clientName;
   final String? projectType;
   final DateTime? expectedEndDate;
@@ -115,7 +113,6 @@ class ProjectModel {
   final List<String>? trackedActivityKeys;
   final List<String>? completedActivityKeys;
   final List<ProjectPhase>? selectedPhases;
-  // ── Enterprise fields ──────────────────────────────────────────────────────
   final String? projectCode;
   final String? mapAddress;
   final String? contractorName;
@@ -138,7 +135,7 @@ class ProjectModel {
   final double? budgetEquipment;
   final double? budgetMisc;
   final String? projectStatus;
-  // ── Computed ───────────────────────────────────────────────────────────────
+
   double get remainingBudget => totalBudget - spentAmount;
   double get budgetUtilization =>
       totalBudget > 0 ? spentAmount / totalBudget : 0.0;
@@ -146,14 +143,14 @@ class ProjectModel {
   String get formattedBudget => formatCurrency(totalBudget);
   String get formattedSpent => formatCurrency(spentAmount);
   String get formattedRemaining => formatCurrency(remainingBudget);
-  // ── NEW REPORT ANALYTICS ──────────────────────────────────────────────────
+
   double get materialCost => budgetMaterial ?? 0;
   double get labourCost => budgetLabour ?? 0;
   double get equipmentCost => budgetEquipment ?? 0;
   double get miscCost => budgetMisc ?? 0;
   double get totalCalculatedCost =>
       materialCost + labourCost + equipmentCost + miscCost;
-  // Cost per sqft / unit
+
   double get costPerUnit {
     final area = double.tryParse(landArea ?? '0') ?? 0;
     if (area <= 0) return 0;
@@ -161,7 +158,7 @@ class ProjectModel {
   }
 
   String get formattedCostPerUnit => '₹${costPerUnit.toStringAsFixed(2)}/sqft';
-  // Budget percentages
+
   double get materialPercentage {
     if (totalBudget <= 0) return 0;
     return (materialCost / totalBudget) * 100;
@@ -182,7 +179,6 @@ class ProjectModel {
     return (miscCost / totalBudget) * 100;
   }
 
-  // Budget exceeded
   bool get isBudgetExceeded => spentAmount > totalBudget;
   double get exceededAmount {
     if (!isBudgetExceeded) return 0;
@@ -190,7 +186,7 @@ class ProjectModel {
   }
 
   String get formattedExceededAmount => formatCurrency(exceededAmount);
-  // Efficiency note
+
   String get efficiencyNote {
     if (isBudgetExceeded) {
       return 'Budget exceeded by $formattedExceededAmount';
@@ -207,18 +203,17 @@ class ProjectModel {
     }
   }
 
-  // Progress percentage display
   String get progressPercent => '${(progress * 100).toStringAsFixed(0)}%';
-  // Total rooms
+
   int get totalRooms =>
       (room1BHK ?? 0) + (room2BHK ?? 0) + (room3BHK ?? 0) + (roomCustom ?? 0);
-  // Total bathrooms
+
   int get totalBathrooms =>
       (bathWestern ?? 0) +
       (bathIndian ?? 0) +
       (bathCommon ?? 0) +
       (bathAttached ?? 0);
-  // ── copyWith ───────────────────────────────────────────────────────────────
+
   ProjectModel copyWith({
     String? name,
     String? city,
@@ -257,52 +252,51 @@ class ProjectModel {
     double? budgetEquipment,
     double? budgetMisc,
     String? projectStatus,
-  }) => ProjectModel(
-    id: id,
-    name: name ?? this.name,
-    city: city ?? this.city,
-    sector: sector ?? this.sector,
-    stage: stage ?? this.stage,
-    progress: progress ?? this.progress,
-    totalBudget: totalBudget ?? this.totalBudget,
-    spentAmount: spentAmount ?? this.spentAmount,
-    startDate: startDate,
-    clientName: clientName ?? this.clientName,
-    projectType: projectType ?? this.projectType,
-    expectedEndDate: expectedEndDate ?? this.expectedEndDate,
-    floors: floors ?? this.floors,
-    selectedPhaseNames: selectedPhaseNames ?? this.selectedPhaseNames,
-    trackedActivityKeys: trackedActivityKeys ?? this.trackedActivityKeys,
-    completedActivityKeys: completedActivityKeys ?? this.completedActivityKeys,
-    selectedPhases: selectedPhases ?? this.selectedPhases,
-    projectCode: projectCode ?? this.projectCode,
-    mapAddress: mapAddress ?? this.mapAddress,
-    contractorName: contractorName ?? this.contractorName,
-    siteEngineer: siteEngineer ?? this.siteEngineer,
-    contactNumber: contactNumber ?? this.contactNumber,
-    actualEndDate: actualEndDate ?? this.actualEndDate,
-    landArea: landArea ?? this.landArea,
-    landUnit: landUnit ?? this.landUnit,
-    room1BHK: room1BHK ?? this.room1BHK,
-    room2BHK: room2BHK ?? this.room2BHK,
-    room3BHK: room3BHK ?? this.room3BHK,
-    roomCustom: roomCustom ?? this.roomCustom,
-    bathWestern: bathWestern ?? this.bathWestern,
-    bathIndian: bathIndian ?? this.bathIndian,
-    bathCommon: bathCommon ?? this.bathCommon,
-    bathAttached: bathAttached ?? this.bathAttached,
-    selectedFeatures: selectedFeatures ?? this.selectedFeatures,
-    budgetMaterial: budgetMaterial ?? this.budgetMaterial,
-    budgetLabour: budgetLabour ?? this.budgetLabour,
-    budgetEquipment: budgetEquipment ?? this.budgetEquipment,
-    budgetMisc: budgetMisc ?? this.budgetMisc,
-    projectStatus: projectStatus ?? this.projectStatus,
-  );
-  // ── JSON ───────────────────────────────────────────────────────────────────
-  /// Produces a backend-compatible JSON payload.
-  /// Keys mirror the Node.js Mongoose schema (`projectName`, `location`, etc.).
+  }) =>
+      ProjectModel(
+        id: id,
+        name: name ?? this.name,
+        city: city ?? this.city,
+        sector: sector ?? this.sector,
+        stage: stage ?? this.stage,
+        progress: progress ?? this.progress,
+        totalBudget: totalBudget ?? this.totalBudget,
+        spentAmount: spentAmount ?? this.spentAmount,
+        startDate: startDate,
+        clientName: clientName ?? this.clientName,
+        projectType: projectType ?? this.projectType,
+        expectedEndDate: expectedEndDate ?? this.expectedEndDate,
+        floors: floors ?? this.floors,
+        selectedPhaseNames: selectedPhaseNames ?? this.selectedPhaseNames,
+        trackedActivityKeys: trackedActivityKeys ?? this.trackedActivityKeys,
+        completedActivityKeys:
+            completedActivityKeys ?? this.completedActivityKeys,
+        selectedPhases: selectedPhases ?? this.selectedPhases,
+        projectCode: projectCode ?? this.projectCode,
+        mapAddress: mapAddress ?? this.mapAddress,
+        contractorName: contractorName ?? this.contractorName,
+        siteEngineer: siteEngineer ?? this.siteEngineer,
+        contactNumber: contactNumber ?? this.contactNumber,
+        actualEndDate: actualEndDate ?? this.actualEndDate,
+        landArea: landArea ?? this.landArea,
+        landUnit: landUnit ?? this.landUnit,
+        room1BHK: room1BHK ?? this.room1BHK,
+        room2BHK: room2BHK ?? this.room2BHK,
+        room3BHK: room3BHK ?? this.room3BHK,
+        roomCustom: roomCustom ?? this.roomCustom,
+        bathWestern: bathWestern ?? this.bathWestern,
+        bathIndian: bathIndian ?? this.bathIndian,
+        bathCommon: bathCommon ?? this.bathCommon,
+        bathAttached: bathAttached ?? this.bathAttached,
+        selectedFeatures: selectedFeatures ?? this.selectedFeatures,
+        budgetMaterial: budgetMaterial ?? this.budgetMaterial,
+        budgetLabour: budgetLabour ?? this.budgetLabour,
+        budgetEquipment: budgetEquipment ?? this.budgetEquipment,
+        budgetMisc: budgetMisc ?? this.budgetMisc,
+        projectStatus: projectStatus ?? this.projectStatus,
+      );
+
   Map<String, dynamic> toJson() {
-    // 1. Safely extract mainType and subType from the combined string ("Commercial → Plaza")
     String mainType = 'Residential';
     String subType = 'Independent';
     if (projectType != null && projectType!.contains('→')) {
@@ -313,9 +307,8 @@ class ProjectModel {
       mainType = projectType!;
       subType = 'General';
     }
-    // 2. Map the UI status to the exact backend enum values (Title Case)
-    //    Backend enum: ["Active", "Completed", "On Hold", "Review Needed"]
-    String mappedStatus = 'Active'; // Default fallback
+
+    String mappedStatus = 'Active';
     final rawStatus = (projectStatus ?? '').toLowerCase();
     if (rawStatus.contains('progress') ||
         rawStatus.contains('active') ||
@@ -328,6 +321,7 @@ class ProjectModel {
     } else if (rawStatus.contains('review')) {
       mappedStatus = 'Review Needed';
     }
+
     return {
       'projectName': name,
       'location': city,
@@ -336,51 +330,169 @@ class ProjectModel {
       'progress': progress,
       'spentAmount': spentAmount,
       'totalBudget': totalBudget,
+      // FIX: send startDate at root AND nested under dates
+      // Backend now reads both; dates.startDate is what the schema stores
       'startDate': startDate.toIso8601String(),
-      // Core fields required by the backend schema
+      'dates': {
+        'startDate': startDate.toIso8601String(),
+        if (expectedEndDate != null)
+          'expectedEndDate': expectedEndDate!.toIso8601String(),
+        if (actualEndDate != null)
+          'actualEndDate': actualEndDate!.toIso8601String(),
+      },
+      if (expectedEndDate != null)
+        'expectedEndDate': expectedEndDate!.toIso8601String(),
       'clientName': clientName ?? 'Internal Client',
       'projectCode':
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
-      // Flat budget fields extracted by backend controller
       'budgetMaterial': budgetMaterial ?? 0,
-      'budgetMaterials': budgetMaterial ?? 0, // Fallback for backend
+      'budgetMaterials': budgetMaterial ?? 0,
       'budgetLabour': budgetLabour ?? 0,
       'budgetEquipment': budgetEquipment ?? 0,
       'budgetMisc': budgetMisc ?? 0,
-      'budgetMiscellaneous': budgetMisc ?? 0, // Fallback for backend
-
-      // Nested buildingType object required by validation
+      'budgetMiscellaneous': budgetMisc ?? 0,
       'buildingType': {'mainType': mainType, 'subType': subType},
-      // Nested budget object to fix the "0 budget" issue
       'budget': {
         'total': totalBudget,
         'material': budgetMaterial ?? 0,
-        'materials': budgetMaterial ?? 0, // Fallback
+        'materials': budgetMaterial ?? 0,
         'labour': budgetLabour ?? 0,
         'equipment': budgetEquipment ?? 0,
         'misc': budgetMisc ?? 0,
-        'miscellaneous': budgetMisc ?? 0, // Fallback
+        'miscellaneous': budgetMisc ?? 0,
       },
-      // Mapped enum
+      // backend enum status (for filtering)
       'status': mappedStatus,
+      // UI label status (what user picked — stored as projectStatus in DB)
+      'projectStatus': projectStatus,
       'floors': floors,
       'selectedPhaseNames': selectedPhaseNames,
       'trackedActivityKeys': trackedActivityKeys,
       'completedActivityKeys': completedActivityKeys,
       'selectedPhases': selectedPhases?.map((p) => p.toJson()).toList(),
-      'projectStatus': projectStatus,
+      'contractorName': contractorName,
+      'siteEngineer': siteEngineer,
+      'contactNumber': contactNumber,
+      'mapAddress': mapAddress,
+      'landArea': landArea,
+      'landUnit': landUnit,
+      'room1BHK': room1BHK,
+      'room2BHK': room2BHK,
+      'room3BHK': room3BHK,
+      'roomCustom': roomCustom,
+      'bathWestern': bathWestern,
+      'bathIndian': bathIndian,
+      'bathCommon': bathCommon,
+      'bathAttached': bathAttached,
+      'selectedFeatures': selectedFeatures,
     };
   }
 
   factory ProjectModel.fromJson(Map<String, dynamic> j) {
-    // 1. Safely extract nested objects from the new backend schema
     final dates = j['dates'] as Map<String, dynamic>?;
     final budget = j['budget'] as Map<String, dynamic>?;
     final buildingType = j['buildingType'] as Map<String, dynamic>?;
-    // 2. Handle the missing name bug (fallback to projectCode if backend drops it)
+
     final rawName = (j['projectName'] ?? j['name'] ?? '').toString();
     final pCode = (j['projectCode'] ?? 'Unnamed Project').toString();
     final finalName = rawName.trim().isNotEmpty ? rawName : pCode;
+
+    // ── Start Date ────────────────────────────────────────────────────────
+    // Backend now saves startDate at root AND under dates — try root first
+    DateTime parsedStartDate = DateTime.now();
+    final rawStartDate = j['startDate']?.toString() ??
+        dates?['startDate']?.toString();
+    if (rawStartDate != null && rawStartDate.isNotEmpty) {
+      final parsed = DateTime.tryParse(rawStartDate);
+      if (parsed != null) parsedStartDate = parsed;
+    }
+
+    // ── Expected End Date ─────────────────────────────────────────────────
+    DateTime? parsedExpectedEnd;
+    final rawExpected = j['expectedEndDate']?.toString() ??
+        dates?['expectedEndDate']?.toString();
+    if (rawExpected != null && rawExpected.isNotEmpty) {
+      parsedExpectedEnd = DateTime.tryParse(rawExpected);
+    }
+
+    // ── Floors ────────────────────────────────────────────────────────────
+    // Backend now stores chip labels directly — no normalization needed
+    List<String>? parsedFloors;
+    if (j['floors'] != null) {
+      final rawFloors = j['floors'] as List?;
+      if (rawFloors != null && rawFloors.isNotEmpty) {
+        parsedFloors = rawFloors.map((f) => f.toString()).toList();
+      }
+    }
+
+    // ── Project Status ────────────────────────────────────────────────────
+    // FIX: backend now returns 'projectStatus' (UI label: 'Planning',
+    // 'In Progress', etc.) — read it directly. Fall back to mapping
+    // 'status' (backend enum: 'Active', 'On Hold', etc.) for old records
+    // that were saved before this fix.
+    String? resolvedProjectStatus = j['projectStatus']?.toString();
+    if (resolvedProjectStatus == null || resolvedProjectStatus.isEmpty) {
+      final backendStatus = (j['status'] ?? '').toString().toLowerCase();
+      if (backendStatus == 'active') {
+        resolvedProjectStatus = 'In Progress';
+      } else if (backendStatus == 'on hold') {
+        resolvedProjectStatus = 'On Hold';
+      } else if (backendStatus == 'completed') {
+        resolvedProjectStatus = 'Completed';
+      } else if (backendStatus == 'review needed') {
+        resolvedProjectStatus = 'On Hold';
+      } else {
+        resolvedProjectStatus = 'Planning';
+      }
+    }
+
+    // ── Budget ────────────────────────────────────────────────────────────
+    final bMat = (budget?['material'] as num?)?.toDouble() ??
+        (budget?['materials'] as num?)?.toDouble() ??
+        (j['budgetMaterial'] as num?)?.toDouble() ??
+        (j['budgetMaterials'] as num?)?.toDouble() ??
+        0.0;
+    final bLab = (budget?['labour'] as num?)?.toDouble() ??
+        (j['budgetLabour'] as num?)?.toDouble() ??
+        0.0;
+    final bEq = (budget?['equipment'] as num?)?.toDouble() ??
+        (j['budgetEquipment'] as num?)?.toDouble() ??
+        0.0;
+    // FIX: read budgetMisc directly first — don't compute from total
+    // unless truly absent, to avoid double-counting
+    double bMisc = (budget?['misc'] as num?)?.toDouble() ??
+        (budget?['miscellaneous'] as num?)?.toDouble() ??
+        (j['budgetMisc'] as num?)?.toDouble() ??
+        (j['budgetMiscellaneous'] as num?)?.toDouble() ??
+        0.0;
+    final bTotal = (budget?['total'] as num?)?.toDouble() ??
+        (j['totalBudget'] as num?)?.toDouble() ??
+        0.0;
+    // Only infer misc from total if all four breakdown fields are present
+    // but misc is genuinely zero and total doesn't add up
+    if (bMisc == 0 && bTotal > 0 && (bMat + bLab + bEq) < bTotal) {
+      bMisc = bTotal - (bMat + bLab + bEq);
+    }
+
+    // ── Building Type string ──────────────────────────────────────────────
+    String? projectTypeStr;
+    if (buildingType != null) {
+      final main = buildingType['mainType']?.toString() ?? '';
+      final sub = buildingType['subType']?.toString() ?? '';
+      if (main.isNotEmpty && sub.isNotEmpty && sub != 'General' && sub != 'Independent') {
+        projectTypeStr = '$main → $sub';
+      } else if (main.isNotEmpty) {
+        projectTypeStr = main;
+      }
+    } else if (j['projectType'] != null) {
+      projectTypeStr = j['projectType'].toString();
+    }
+
+    // ── Safe int helper ───────────────────────────────────────────────────
+    // FIX: MongoDB may return room counts as num (double), not int —
+    // direct `as int?` cast throws; use toInt() instead
+    int? safeInt(dynamic v) => v == null ? null : (v as num).toInt();
+
     return ProjectModel(
       id: (j['_id'] ?? j['id'] ?? '').toString(),
       name: finalName,
@@ -391,29 +503,13 @@ class ProjectModel {
         orElse: () => ProjectStage.preConstruction,
       ),
       progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
-      // 3. Extract budgets from nested 'budget' object
-      totalBudget:
-          (budget?['total'] as num?)?.toDouble() ??
-          (j['totalBudget'] as num?)?.toDouble() ??
-          0.0,
+      totalBudget: bTotal,
       spentAmount: (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
-      startDate: dates?['startDate'] != null
-          ? (DateTime.tryParse(dates!['startDate'].toString()) ?? DateTime.now())
-          : j['startDate'] != null
-          ? (DateTime.tryParse(j['startDate'].toString()) ?? DateTime.now())
-          : DateTime.now(),
+      startDate: parsedStartDate,
       clientName: j['clientName']?.toString(),
-      projectType: buildingType != null
-          ? '${buildingType['mainType']} → ${buildingType['subType']}'
-          : j['projectType']?.toString(),
-      expectedEndDate: dates?['expectedEndDate'] != null
-          ? DateTime.tryParse(dates!['expectedEndDate'].toString())
-          : j['expectedEndDate'] != null
-          ? DateTime.tryParse(j['expectedEndDate'].toString())
-          : null,
-      floors: j['floors'] != null
-          ? List<String>.from(j['floors'] as List)
-          : null,
+      projectType: projectTypeStr,
+      expectedEndDate: parsedExpectedEnd,
+      floors: parsedFloors,
       selectedPhaseNames: j['selectedPhaseNames'] != null
           ? List<String>.from(j['selectedPhaseNames'] as List)
           : null,
@@ -425,74 +521,49 @@ class ProjectModel {
           : null,
       selectedPhases: j['selectedPhases'] != null
           ? (j['selectedPhases'] as List<dynamic>)
-                .map((e) => ProjectPhase.fromJson(e as Map<String, dynamic>))
-                .toList()
+              .map((e) => ProjectPhase.fromJson(e as Map<String, dynamic>))
+              .toList()
           : null,
-      contractorName: j['contractorName'] as String?,
-      siteEngineer: j['siteEngineer'] as String?,
-      contactNumber: j['contactNumber'] as String?,
+      contractorName: j['contractorName']?.toString(),
+      // FIX: read 'siteEngineer' (new backend field name) with
+      // fallback to 'siteEngineerName' for old records
+      siteEngineer: j['siteEngineer']?.toString() ??
+          j['siteEngineerName']?.toString(),
+      contactNumber: j['contactNumber']?.toString(),
+      mapAddress: j['mapAddress']?.toString(),
       actualEndDate: dates?['actualEndDate'] != null
           ? DateTime.tryParse(dates!['actualEndDate'].toString())
           : j['actualEndDate'] != null
-          ? DateTime.tryParse(j['actualEndDate'] as String)
-          : null,
-      landArea: j['landArea'] as String?,
-      landUnit: j['landUnit'] as String?,
-      projectCode: j['projectCode'] as String?,
-      mapAddress: j['mapAddress'] as String?,
-      room1BHK: j['room1BHK'] as int?,
-      room2BHK: j['room2BHK'] as int?,
-      room3BHK: j['room3BHK'] as int?,
-      roomCustom: j['roomCustom'] as int?,
-      bathWestern: j['bathWestern'] as int?,
-      bathIndian: j['bathIndian'] as int?,
-      bathCommon: j['bathCommon'] as int?,
-      bathAttached: j['bathAttached'] as int?,
+              ? DateTime.tryParse(j['actualEndDate'].toString())
+              : null,
+      landArea: j['landArea']?.toString(),
+      landUnit: j['landUnit']?.toString(),
+      projectCode: j['projectCode']?.toString(),
+      // FIX: use safeInt() — MongoDB returns num, not int
+      room1BHK: safeInt(j['room1BHK']),
+      room2BHK: safeInt(j['room2BHK']),
+      room3BHK: safeInt(j['room3BHK']),
+      roomCustom: safeInt(j['roomCustom']),
+      bathWestern: safeInt(j['bathWestern']),
+      bathIndian: safeInt(j['bathIndian']),
+      bathCommon: safeInt(j['bathCommon']),
+      bathAttached: safeInt(j['bathAttached']),
       selectedFeatures: j['selectedFeatures'] != null
           ? List<String>.from(j['selectedFeatures'] as List)
           : null,
-      // 6. Extract specific nested budgets with alternatives
-      budgetMaterial:
-          (budget?['material'] as num?)?.toDouble() ??
-          (budget?['materials'] as num?)?.toDouble() ??
-          (j['budgetMaterial'] as num?)?.toDouble() ??
-          (j['budgetMaterials'] as num?)?.toDouble(),
-      budgetLabour:
-          (budget?['labour'] as num?)?.toDouble() ??
-          (j['budgetLabour'] as num?)?.toDouble(),
-      budgetEquipment:
-          (budget?['equipment'] as num?)?.toDouble() ??
-          (j['budgetEquipment'] as num?)?.toDouble(),
-      budgetMisc: (() {
-        double bMat = (budget?['material'] as num?)?.toDouble() ??
-            (budget?['materials'] as num?)?.toDouble() ??
-            (j['budgetMaterial'] as num?)?.toDouble() ??
-            (j['budgetMaterials'] as num?)?.toDouble() ?? 0.0;
-        double bLab = (budget?['labour'] as num?)?.toDouble() ??
-            (j['budgetLabour'] as num?)?.toDouble() ?? 0.0;
-        double bEq = (budget?['equipment'] as num?)?.toDouble() ??
-            (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0;
-        double bMisc = (budget?['misc'] as num?)?.toDouble() ??
-            (budget?['miscellaneous'] as num?)?.toDouble() ??
-            (j['budgetMisc'] as num?)?.toDouble() ??
-            (j['budgetMiscellaneous'] as num?)?.toDouble() ?? 0.0;
-        double tBudget = (budget?['total'] as num?)?.toDouble() ??
-            (j['totalBudget'] as num?)?.toDouble() ?? 0.0;
-
-        // If backend dropped misc but we have the total, recover it dynamically!
-        if (bMisc == 0 && tBudget > 0) {
-          final calcMisc = tBudget - (bMat + bLab + bEq);
-          if (calcMisc > 0) {
-            bMisc = calcMisc;
-          }
-        }
-        return bMisc > 0 ? bMisc : null;
-      })(),
-      projectStatus: j['status'] as String?,
+      budgetMaterial: bMat > 0 ? bMat : null,
+      budgetLabour: bLab > 0 ? bLab : null,
+      budgetEquipment: bEq > 0 ? bEq : null,
+      budgetMisc: bMisc > 0 ? bMisc : null,
+      // FIX: read 'projectStatus' (UI label saved by updated backend)
+      // NOT 'status' (backend enum) — resolved above with fallback logic
+      projectStatus: resolvedProjectStatus,
     );
   }
+
   static String encodeList(List<ProjectModel> list) =>
       jsonEncode(list.map((p) => p.toJson()).toList());
+
   static List<ProjectModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
@@ -501,36 +572,40 @@ class ProjectModel {
   }
 }
 
-// ── ProjectActivity ─────────────────────────────────────────────────────────
+// ── ProjectActivity ──────────────────────────────────────────────────────────
 class ProjectActivity {
   final String id;
   final String name;
   final bool isCustom;
   bool completed;
+
   ProjectActivity({
     required this.id,
     required this.name,
     this.isCustom = false,
     this.completed = false,
   });
+
   ProjectActivity copyWith({bool? completed}) => ProjectActivity(
-    id: id,
-    name: name,
-    isCustom: isCustom,
-    completed: completed ?? this.completed,
-  );
+        id: id,
+        name: name,
+        isCustom: isCustom,
+        completed: completed ?? this.completed,
+      );
+
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'isCustom': isCustom,
-    'completed': completed,
-  };
+        'id': id,
+        'name': name,
+        'isCustom': isCustom,
+        'completed': completed,
+      };
+
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
-    id: j['id'] as String,
-    name: j['name'] as String,
-    isCustom: (j['isCustom'] as bool?) ?? false,
-    completed: (j['completed'] as bool?) ?? false,
-  );
+        id: j['id'] as String,
+        name: j['name'] as String,
+        isCustom: (j['isCustom'] as bool?) ?? false,
+        completed: (j['completed'] as bool?) ?? false,
+      );
 }
 
 // ── ProjectPhase ─────────────────────────────────────────────────────────────
@@ -540,6 +615,7 @@ class ProjectPhase {
   final bool isCustom;
   bool isExpanded;
   final List<ProjectActivity> activities;
+
   ProjectPhase({
     required this.id,
     required this.phaseName,
@@ -547,35 +623,38 @@ class ProjectPhase {
     this.isExpanded = false,
     List<ProjectActivity>? activities,
   }) : activities = activities ?? [];
+
   int get totalCount => activities.length;
   int get completedCount => activities.where((a) => a.completed).length;
-  // Deep-copy with optional activity list override
+
   ProjectPhase copyWith({List<ProjectActivity>? activities}) => ProjectPhase(
-    id: id,
-    phaseName: phaseName,
-    isCustom: isCustom,
-    isExpanded: isExpanded,
-    activities: activities ?? List<ProjectActivity>.from(this.activities),
-  );
+        id: id,
+        phaseName: phaseName,
+        isCustom: isCustom,
+        isExpanded: isExpanded,
+        activities: activities ?? List<ProjectActivity>.from(this.activities),
+      );
+
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'phaseName': phaseName,
-    'isCustom': isCustom,
-    'activities': activities.map((a) => a.toJson()).toList(),
-  };
+        'id': id,
+        'phaseName': phaseName,
+        'isCustom': isCustom,
+        'activities': activities.map((a) => a.toJson()).toList(),
+      };
+
   factory ProjectPhase.fromJson(Map<String, dynamic> j) => ProjectPhase(
-    id: j['id'] as String,
-    phaseName: j['phaseName'] as String,
-    isCustom: (j['isCustom'] as bool?) ?? false,
-    activities:
-        (j['activities'] as List<dynamic>?)
-            ?.map((e) => ProjectActivity.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [],
-  );
+        id: j['id'] as String,
+        phaseName: j['phaseName'] as String,
+        isCustom: (j['isCustom'] as bool?) ?? false,
+        activities: (j['activities'] as List<dynamic>?)
+                ?.map((e) =>
+                    ProjectActivity.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+      );
 }
 
-// ── EntryModel ─────────────────────────────────────────────────────────────────
+// ── EntryModel ────────────────────────────────────────────────────────────────
 class EntryModel {
   EntryModel({
     required this.id,
@@ -591,6 +670,7 @@ class EntryModel {
     this.phaseId,
     this.unit,
   });
+
   final String id;
   final String projectId;
   final EntryType type;
@@ -603,44 +683,48 @@ class EntryModel {
   final ProjectStage? phase;
   final String? phaseId;
   final String? unit;
+
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'projectId': projectId,
-    'type': type.name,
-    'amount': amount,
-    'date': date.toIso8601String(),
-    'description': description,
-    if (brand != null) 'brand': brand,
-    if (ratePerUnit != null) 'ratePerUnit': ratePerUnit,
-    if (floor != null) 'floor': floor,
-    if (phase != null) 'phase': phase!.name,
-    if (phaseId != null) 'phaseId': phaseId,
-    if (unit != null) 'unit': unit,
-  };
+        'id': id,
+        'projectId': projectId,
+        'type': type.name,
+        'amount': amount,
+        'date': date.toIso8601String(),
+        'description': description,
+        if (brand != null) 'brand': brand,
+        if (ratePerUnit != null) 'ratePerUnit': ratePerUnit,
+        if (floor != null) 'floor': floor,
+        if (phase != null) 'phase': phase!.name,
+        if (phaseId != null) 'phaseId': phaseId,
+        if (unit != null) 'unit': unit,
+      };
+
   factory EntryModel.fromJson(Map<String, dynamic> j) => EntryModel(
-    id: j['id'] as String,
-    projectId: j['projectId'] as String,
-    type: EntryType.values.firstWhere(
-      (t) => t.name == j['type'],
-      orElse: () => EntryType.material,
-    ),
-    amount: (j['amount'] as num).toDouble(),
-    date: DateTime.parse(j['date'] as String),
-    description: (j['description'] as String?) ?? '',
-    brand: j['brand'] as String?,
-    ratePerUnit: (j['ratePerUnit'] as num?)?.toDouble(),
-    floor: j['floor'] as String?,
-    phase: j['phase'] != null
-        ? ProjectStage.values.firstWhere(
-            (s) => s.name == j['phase'],
-            orElse: () => ProjectStage.preConstruction,
-          )
-        : null,
-    phaseId: j['phaseId'] as String?,
-    unit: j['unit'] as String?,
-  );
+        id: j['id'] as String,
+        projectId: j['projectId'] as String,
+        type: EntryType.values.firstWhere(
+          (t) => t.name == j['type'],
+          orElse: () => EntryType.material,
+        ),
+        amount: (j['amount'] as num).toDouble(),
+        date: DateTime.parse(j['date'] as String),
+        description: (j['description'] as String?) ?? '',
+        brand: j['brand'] as String?,
+        ratePerUnit: (j['ratePerUnit'] as num?)?.toDouble(),
+        floor: j['floor'] as String?,
+        phase: j['phase'] != null
+            ? ProjectStage.values.firstWhere(
+                (s) => s.name == j['phase'],
+                orElse: () => ProjectStage.preConstruction,
+              )
+            : null,
+        phaseId: j['phaseId'] as String?,
+        unit: j['unit'] as String?,
+      );
+
   static String encodeList(List<EntryModel> list) =>
       jsonEncode(list.map((e) => e.toJson()).toList());
+
   static List<EntryModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
     return decoded

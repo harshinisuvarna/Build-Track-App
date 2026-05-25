@@ -98,30 +98,36 @@ class ProjectProvider extends ChangeNotifier {
           'Finishing',
           'Fixtures',
           'Handover',
-        ].asMap().entries.map((e) => PhaseModel(
-          id: e.value.toLowerCase().replaceAll(' ', '_'),
-          name: e.value,
-          order: e.key,
-        )).toList();
+        ]
+            .asMap()
+            .entries
+            .map((e) => PhaseModel(
+                  id: e.value.toLowerCase().replaceAll(' ', '_'),
+                  name: e.value,
+                  order: e.key,
+                ))
+            .toList();
         _savePhases();
       }
 
       // ── Projects ────────────────────────────────────────────────
       try {
         _projects = await ApiService.fetchProjects();
-        _projects = _projects.map((p) => p.copyWith(
-          floors: (p.floors == null || p.floors!.isEmpty)
-              ? ['Ground Floor']
-              : p.floors,
-        )).toList();
+        // FIX: use 'Ground' (short label matching chip options) not 'Ground Floor'
+        // Only add default if floors is truly null or empty — never overwrite
+        // a non-empty list coming from the backend
+        _projects = _projects.map((p) {
+          if (p.floors == null || p.floors!.isEmpty) {
+            return p.copyWith(floors: ['Ground']);
+          }
+          return p; // preserve backend floors exactly as received
+        }).toList();
+
         debugPrint('Projects loaded: ${_projects.length}');
         for (final p in _projects) {
           debugPrint(
-            '  Project: "${p.name}" id=${p.id} '
-            'spentAmount=${p.spentAmount} '
-            'budgetMaterial=${p.budgetMaterial} '
-            'budgetLabour=${p.budgetLabour} '
-            'budgetEquipment=${p.budgetEquipment}',
+            '  Project: "${p.name}" id=${p.id} floors=${p.floors} '
+            'spentAmount=${p.spentAmount} ',
           );
         }
       } catch (e) {
@@ -143,7 +149,6 @@ class ProjectProvider extends ChangeNotifier {
         }
 
         _entries = apiMaterials.map<EntryModel>((json) {
-          // --- Type ---
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
           if (rawType == 'labour' || rawType == 'wages') {
@@ -152,7 +157,6 @@ class ProjectProvider extends ChangeNotifier {
             parsedType = EntryType.equipment;
           }
 
-          // --- ProjectId ---
           String projectId = '';
           if (json['project'] is Map) {
             projectId = json['project']['_id']?.toString() ?? '';
@@ -169,19 +173,15 @@ class ProjectProvider extends ChangeNotifier {
           projectId = projectId.trim();
           if (projectId.isEmpty) projectId = 'p1';
 
-          // ✅ Amount: ONLY count paid/partial amounts
-          // If paymentStatus is Pending — show 0 (not yet paid, don't show in chart)
           double amount = 0;
           final paymentStatus =
               (json['paymentStatus'] ?? '').toString().toLowerCase().trim();
           final paidAmount = json['paidAmount'];
 
           if (paymentStatus == 'paid') {
-            // Fully paid — use paidAmount if set, else use full amount
             if (paidAmount != null && paidAmount is num && paidAmount > 0) {
               amount = paidAmount.toDouble();
             } else {
-              // paidAmount not set but status is Paid — use full amount
               final v = json['amount'];
               if (v != null && v is num && v > 0) {
                 amount = v.toDouble();
@@ -194,13 +194,10 @@ class ProjectProvider extends ChangeNotifier {
               }
             }
           } else if (paymentStatus == 'partial') {
-            // Partially paid — use only the paidAmount (not the full amount)
             if (paidAmount != null && paidAmount is num && paidAmount > 0) {
               amount = paidAmount.toDouble();
             }
-            // If paidAmount is 0 or missing for partial — show 0
           }
-          // paymentStatus == 'pending' or anything else — amount stays 0
 
           debugPrint(
             'Entry → type=$rawType projectId=$projectId '
@@ -285,11 +282,14 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
-      _projects = _projects.map((p) => p.copyWith(
-        floors: (p.floors == null || p.floors!.isEmpty)
-            ? ['Ground Floor']
-            : p.floors,
-      )).toList();
+      // FIX: use 'Ground' short label, not 'Ground Floor'
+      _projects = _projects.map((p) {
+        final floors = p.floors;
+        if (floors == null || floors.isEmpty) {
+          return p.copyWith(floors: ['Ground']);
+        }
+        return p;
+      }).toList();
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
       }
@@ -316,8 +316,9 @@ class ProjectProvider extends ChangeNotifier {
     DateTime? expectedEndDate,
     List<String>? floors,
   }) async {
+    // FIX: default to 'Ground' (short label) not 'Ground Floor'
     final finalFloors = (floors == null || floors.isEmpty)
-        ? ['Ground Floor']
+        ? (project.floors == null || project.floors!.isEmpty ? ['Ground'] : project.floors!)
         : floors;
     final updatedProject = project.copyWith(
       clientName: clientName,
@@ -334,6 +335,39 @@ class ProjectProvider extends ChangeNotifier {
     _selectedProject = saved;
     UserSession.projectId = saved.id;
     notifyListeners();
+  }
+
+  // =========================
+  // UPDATE PROJECT (for Edit screen)
+  // =========================
+
+  Future<void> updateProject(ProjectModel updated) async {
+    _setLoading(true);
+    try {
+      final response = await ApiService.put(
+        '/projects/${updated.id}',
+        updated.toJson(),
+      );
+      if (response.statusCode == 200) {
+        final idx = _projects.indexWhere((p) => p.id == updated.id);
+        if (idx != -1) {
+          _projects[idx] = updated;
+        }
+        if (_selectedProject?.id == updated.id) {
+          _selectedProject = updated;
+          UserSession.projectId = updated.id;
+        }
+        _error = '';
+      } else {
+        _error = 'Failed to update project: ${response.statusCode}';
+        dev.log('updateProject failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      _error = 'Update error: $e';
+      dev.log('updateProject error: $e');
+    } finally {
+      _setLoading(false);
+    }
   }
 
   void selectProject(ProjectModel project) {
@@ -394,8 +428,10 @@ class ProjectProvider extends ChangeNotifier {
         return phase.copyWith(activities: updatedActivities);
       }).toList();
 
-      final total = updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
-      final done = updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
+      final total =
+          updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
+      final done =
+          updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
       _projects[idx] = project.copyWith(
         selectedPhases: updatedPhases,
         completedActivityKeys: updatedCompletedKeys,
@@ -450,18 +486,18 @@ class ProjectProvider extends ChangeNotifier {
     if (entry.type == EntryType.equipment) rawType = "Expense";
 
     final payload = {
-    "title": entry.description.isNotEmpty ? entry.description : "New Entry",
-    "type": rawType,
-    "project": entry.projectId,
-    "category": brand ?? entry.brand ?? entry.description,
-    "unit": entry.unit ?? "unit",
-    "quantity": entry.amount,
-    "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
-    "amount": entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1),
-    // ✅ Save as Pending — chart only shows when paid via Record Payment
-    "paymentStatus": "Pending",
-    "paymentMode": "Cash",
-    "paidAmount": 0,
+      "title":
+          entry.description.isNotEmpty ? entry.description : "New Entry",
+      "type": rawType,
+      "project": entry.projectId,
+      "category": brand ?? entry.brand ?? entry.description,
+      "unit": entry.unit ?? "unit",
+      "quantity": entry.amount,
+      "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
+      "amount": entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1),
+      "paymentStatus": "Pending",
+      "paymentMode": "Cash",
+      "paidAmount": 0,
     };
 
     final success = await ApiService.addMaterial(payload);
@@ -471,36 +507,25 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     final updatedEntry = EntryModel(
-    id: entry.id,
-    projectId: entry.projectId,
-    type: entry.type,
-    amount: 0,  // ✅ 0 until paid via Record Payment in inventory
-    date: entry.date,
-    description: entry.description,
-    brand: brand ?? entry.brand,
-    ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
-    floor: floor ?? entry.floor,
-    phase: phase ?? entry.phase,
+      id: entry.id,
+      projectId: entry.projectId,
+      type: entry.type,
+      amount: 0,
+      date: entry.date,
+      description: entry.description,
+      brand: brand ?? entry.brand,
+      ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
+      floor: floor ?? entry.floor,
+      phase: phase ?? entry.phase,
     );
 
     _entries.add(updatedEntry);
 
     final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
     if (idx != -1) {
-      final oldProject = _projects[idx];
-      //final newSpent = oldProject.spentAmount + updatedEntry.amount;
-      //_projects[idx] = oldProject.copyWith(spentAmount: newSpent);
       if (_selectedProject?.id == updatedEntry.projectId) {
         _selectedProject = _projects[idx];
       }
-      /*try {
-        await ApiService.put(
-          '/projects/${oldProject.id}',
-          _projects[idx].toJson(),
-        );
-      } catch (e) {
-        dev.log('Failed updating project spent: $e');
-      }*/
     }
 
     await _persistEntries();
@@ -544,6 +569,4 @@ class ProjectProvider extends ChangeNotifier {
     _isLoading = value;
     notifyListeners();
   }
-
-  List<EntryModel> _seedEntries() => [];
 }

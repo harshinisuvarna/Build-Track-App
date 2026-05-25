@@ -11,7 +11,7 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'dart:convert';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
+import 'package:buildtrack_mobile/screen/projects/edit_project.dart';
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
   @override
@@ -2271,12 +2271,33 @@ class _EntryTile extends StatelessWidget {
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
   final ProjectModel project;
+
   @override
   Widget build(BuildContext context) {
-    return AppButton(
-      label: 'Add Entry',
-      icon: Icons.add_circle_outline,
-      onPressed: () => Navigator.pushNamed(context, '/add-entry'),
+    return Column(
+      children: [
+        AppButton(
+          label: 'Add Entry',
+          icon: Icons.add_circle_outline,
+          onPressed: () => Navigator.pushNamed(context, '/add-entry'),
+        ),
+        const SizedBox(height: 10),
+        AppButton(
+          label: 'Edit Project',
+          icon: Icons.edit_outlined,
+          variant: AppButtonVariant.outline,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EditProjectScreen(project: project),
+              ),
+            ).then((_) {
+              context.read<ProjectProvider>().load();
+            });
+          },
+        ),
+      ],
     );
   }
 }
@@ -2883,10 +2904,25 @@ class _AllProjectEntriesScreen extends StatelessWidget {
         child: Column(
           children: [
             AppTopBar(
-              title: '${project.name} - All Entries',
+              title: project.name,
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
+              // ✅ ADD THIS
+              rightWidget: IconButton(
+                icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProjectScreen(project: project),
+                    ),
+                  ).then((_) {
+                    // Refresh after edit
+                    context.read<ProjectProvider>().load();
+                  });
+                },
+              ),
             ),
             Expanded(
               child: entries.isEmpty
