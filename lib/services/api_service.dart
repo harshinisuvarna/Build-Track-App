@@ -421,4 +421,44 @@ class ApiService {
       rethrow;
     }
   }
+
+  static Future<bool> updateTransaction(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await put('/transactions/$id', payload);
+      print('=== PUT UPDATE TRANSACTION RESPONSE ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('PUT /transactions/$id Error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteTransaction(String id) async {
+    try {
+      final response = await delete('/transactions/$id');
+      print('=== DELETE TRANSACTION RESPONSE ===');
+      print('Status Code: ${response.statusCode}');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('DELETE /transactions/$id Error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteProject(String id) async {
+    try {
+      final response = await delete('/projects/$id');
+      print('=== DELETE PROJECT RESPONSE ===');
+      print('Status Code: ${response.statusCode}');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('DELETE /projects/$id Error: $e');
+      return false;
+    }
+  }
 }

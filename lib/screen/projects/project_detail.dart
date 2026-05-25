@@ -2209,19 +2209,174 @@ class _EntryTile extends StatelessWidget {
     }
   }
 
+  void _navigateToDetailFallback(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      '/entry-detail',
+      arguments: {
+        'id': entry.id,
+        'title': entry.description.isEmpty ? entry.type.name.toUpperCase() : entry.description,
+        'ref': entry.id.length > 4 ? '#${entry.id.substring(entry.id.length - 4)}' : '#${entry.id}',
+        'amount': '+${entry.amount}',
+        'date': entry.date.toIso8601String(),
+        'isPositive': true,
+        'type': entry.type.name,
+        'name': entry.description.isEmpty ? entry.type.name.toUpperCase() : entry.description,
+        'projectId': entry.projectId,
+        'status': 'pending',
+        'paymentStatus': PaymentStatus.pending,
+        'billAmount': entry.amount,
+        'paidAmount': 0.0,
+      },
+    ).then((_) {
+      if (context.mounted) {
+        context.read<ProjectProvider>().load();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _style(entry.type);
     final d = entry.date;
     final dateStr = '${d.day} ${_months[d.month - 1]} ${d.year}';
     return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
+      onTap: () async {
+        showDialog(
           context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => _EntryDetailsSheet(entry: entry),
+          barrierDismissible: false,
+          builder: (lCtx) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
         );
+
+        try {
+          final response = await ApiService.get('/transactions');
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+
+          if (response.statusCode == 200) {
+            final decoded = json.decode(response.body);
+            List<dynamic> raw = [];
+            if (decoded is List) {
+              raw = decoded;
+            } else if (decoded is Map) {
+              raw = (decoded['transactions'] ??
+                      decoded['data'] ??
+                      decoded['items'] ??
+                      [])
+                  as List<dynamic>;
+            }
+
+            Map<String, dynamic>? matched;
+            for (final t in raw) {
+              final tId = t['_id']?.toString() ?? '';
+              if (tId == entry.id) {
+                matched = Map<String, dynamic>.from(t);
+                break;
+              }
+            }
+
+            if (matched != null) {
+              String? statusStr = matched['paymentStatus']?.toString();
+              PaymentStatus payStatus = PaymentStatus.pending;
+              if (statusStr != null) {
+                final lower = statusStr.trim().toLowerCase();
+                if (lower == 'paid') payStatus = PaymentStatus.paid;
+                if (lower == 'partial') payStatus = PaymentStatus.partial;
+                if (lower == 'overdue') payStatus = PaymentStatus.overdue;
+              }
+
+              final String rawCat = (matched['category'] ?? '').toString().trim().toLowerCase();
+              final String rawType = (matched['type'] ?? '').toString().trim().toLowerCase();
+
+              String category = 'material';
+              if (rawCat == 'labour' ||
+                  rawCat == 'wages' ||
+                  rawCat == 'labor' ||
+                  rawCat.contains('labour') ||
+                  rawType == 'wages' ||
+                  rawType == 'labour') {
+                category = 'labour';
+              } else if (rawCat == 'equipment' ||
+                  rawCat == 'machinery' ||
+                  rawCat == 'expense' ||
+                  rawType == 'expense' ||
+                  rawType == 'equipment') {
+                category = 'equipment';
+              }
+
+              bool isPositive = true;
+              if (matched['subType']?.toString().toLowerCase() == 'consumption') {
+                isPositive = false;
+              }
+
+              final String tId = matched['_id']?.toString() ?? '';
+              final String ref = tId.length > 4
+                  ? '#${tId.substring(tId.length - 4)}'
+                  : '#${tId.isNotEmpty ? tId : DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+
+              final Map<String, dynamic> mappedArgs = {
+                'id': tId,
+                'title': matched['title'] ?? matched['materialName'] ?? 'Unknown',
+                'ref': ref,
+                'amount': '${isPositive ? "+" : "-"}${matched['quantity'] ?? 0}',
+                'date': matched['date'] ?? '',
+                'isPositive': isPositive,
+                'type': category,
+                'name': matched['title'] ?? matched['materialName'] ?? 'Unknown',
+                'receipt': (matched['attachments'] is List && matched['attachments'].isNotEmpty)
+                    ? matched['attachments'].first?.toString()
+                    : null,
+                'attachment': null,
+                'createdBy': matched['createdBy'] ?? '',
+                'projectId': entry.projectId,
+                'status': matched['status'] ?? 'pending',
+                'paymentStatus': payStatus,
+                'billAmount': (matched['amount'] ?? 0).toDouble(),
+                'paidAmount': (matched['paidAmount'] ?? 0).toDouble(),
+                'supplier': matched['supplier'] ?? '',
+                'paymentMethod': matched['paymentMode'] ?? '',
+                'lastUpdated': matched['updatedAt'] ?? matched['date'] ?? '',
+                'paymentHistory': matched['paymentHistory'],
+                'rate': (matched['rate'] ?? 0).toDouble(),
+                'brand': matched['brand'] ?? '',
+                'notes': matched['notes'] ?? '',
+                'remarks': matched['remarks'] ?? '',
+                'categoryName': matched['category'] ?? '',
+                'quantity': (matched['quantity'] ?? 0).toDouble(),
+                'subType': matched['subType'] ?? '',
+                'materialType': matched['materialType'] ?? '',
+              };
+
+              if (context.mounted) {
+                Navigator.pushNamed(
+                  context,
+                  '/entry-detail',
+                  arguments: mappedArgs,
+                ).then((_) {
+                  if (context.mounted) {
+                    context.read<ProjectProvider>().load();
+                  }
+                });
+              }
+            } else {
+              if (context.mounted) {
+                _navigateToDetailFallback(context);
+              }
+            }
+          } else {
+            if (context.mounted) {
+              _navigateToDetailFallback(context);
+            }
+          }
+        } catch (e) {
+          if (context.mounted) {
+            Navigator.pop(context);
+            _navigateToDetailFallback(context);
+          }
+        }
       },
       child: AppCard(
         child: Row(
@@ -2272,6 +2427,90 @@ class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
   final ProjectModel project;
 
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'Delete Project',
+              style: AppTheme.heading2.copyWith(color: AppColors.textDark),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${project.name}"? This action cannot be undone and all associated entries will be permanently removed.',
+          style: AppTheme.bodyLarge.copyWith(color: AppColors.textLight),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (lCtx) => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              );
+
+              final success = await ApiService.deleteProject(project.id);
+
+              if (context.mounted) {
+                Navigator.pop(context); // Dismiss loading indicator
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Project deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  await context.read<ProjectProvider>().load();
+                  if (context.mounted) {
+                    Navigator.pop(context); // Back to dashboard
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to delete project'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -2296,6 +2535,13 @@ class _ActionButtons extends StatelessWidget {
               context.read<ProjectProvider>().load();
             });
           },
+        ),
+        const SizedBox(height: 10),
+        AppButton(
+          label: 'Delete Project',
+          icon: Icons.delete_outline_outlined,
+          variant: AppButtonVariant.danger,
+          onPressed: () => _showDeleteConfirmation(context),
         ),
       ],
     );
@@ -2773,6 +3019,8 @@ class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
                                             apiPaymentMode = 'Bank';
                                           }
 
+                                          final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
+
                                           setState(() {
                                             _isLoading = true;
                                           });
@@ -2784,6 +3032,7 @@ class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
                                               'paidAmount': totalPaid,
                                               'paymentMode': apiPaymentMode,
                                               'notes': result['note'] ?? '',
+                                              'paymentDate': customPaymentDate.toIso8601String(),
                                             },
                                           );
 

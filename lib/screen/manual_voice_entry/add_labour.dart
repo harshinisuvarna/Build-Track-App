@@ -36,6 +36,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   // ── UI states ────────────────────────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
+  String? _editingTransactionId;
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
@@ -67,10 +68,19 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       }
 
       if (_isEditing) {
+        _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        final rawAmount = args['amount']?.toString() ?? '';
-        _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
+        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+
+        final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
+        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+
+        _categoryCtrl.text = args['categoryName'] as String? ?? '';
+        _notesCtrl.text = args['notes'] as String? ?? '';
+        _workTypeCtrl.text = args['workType'] as String? ?? args['remarks'] as String? ?? '';
 
         final String rawUnit = (args['unit'] ?? '')
             .toString()
@@ -168,7 +178,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       "date": _selectedDate.toIso8601String(),
     };
 
-    final success = await ApiService.addMaterial(payload);
+    final bool success;
+    if (_isEditing && _editingTransactionId != null) {
+      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
+    } else {
+      success = await ApiService.addMaterial(payload);
+    }
 
     if (!mounted) return;
 
@@ -177,7 +192,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack('Labour entry logged to database!');
+      _snack(_isEditing ? 'Labour entry updated successfully!' : 'Labour entry logged to database!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
@@ -395,9 +410,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         children: [
                           const EntryCardHeader(
                             icon: Icons.calendar_month_outlined,
-                            title: 'Logging Date',
+                            title: 'Purchase Date',
                             subtitle:
-                                'Select when this labour activity or wages took place',
+                                'Select when this transaction took place',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),

@@ -40,6 +40,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── UI state ────────────────────────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
+  String? _editingTransactionId;
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
@@ -74,10 +75,19 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
 
       if (_isEditing) {
+        _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        final rawAmount = args['amount']?.toString() ?? '';
-        _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
+        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+
+        final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
+        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+
+        _brandCtrl.text = args['brand'] as String? ?? '';
+        _categoryCtrl.text = args['categoryName'] as String? ?? '';
+        _notesCtrl.text = args['notes'] as String? ?? '';
 
         final String rawUnit = (args['unit'] ?? '')
             .toString()
@@ -213,7 +223,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "date": _selectedDate.toIso8601String(),
     };
 
-    final success = await ApiService.addMaterial(payload);
+    final bool success;
+    if (_isEditing && _editingTransactionId != null) {
+      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
+    } else {
+      success = await ApiService.addMaterial(payload);
+    }
 
     if (!mounted) return;
 
@@ -222,7 +237,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack('Material logged and inventory stock synchronized!');
+      _snack(_isEditing
+          ? 'Material entry updated successfully!'
+          : 'Material logged and inventory stock synchronized!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');

@@ -37,6 +37,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   // ── UI dynamic state variables ───────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
+  String? _editingTransactionId;
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
@@ -71,10 +72,19 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       }
 
       if (_isEditing) {
+        _editingTransactionId = args['id'] as String?;
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
-        final rawAmount = args['amount']?.toString() ?? '';
-        _qtyCtrl.text = rawAmount.replaceAll('+', '').replaceAll('-', '');
+        
+        final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
+        _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+
+        final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
+        _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+
+        _typeCtrl.text = args['categoryName'] as String? ?? '';
+        _notesCtrl.text = args['notes'] as String? ?? '';
+        _operatorCtrl.text = args['operator'] as String? ?? args['remarks'] as String? ?? '';
 
         final String rawUnit = (args['unit'] ?? '')
             .toString()
@@ -193,7 +203,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "totalAmount": _finalTotal(),
     };
 
-    final success = await ApiService.addMaterial(payload);
+    final bool success;
+    if (_isEditing && _editingTransactionId != null) {
+      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
+    } else {
+      success = await ApiService.addMaterial(payload);
+    }
 
     if (!mounted) return;
 
@@ -202,7 +217,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack('Equipment log recorded to workspace!');
+      _snack(_isEditing ? 'Equipment log updated successfully!' : 'Equipment log recorded to workspace!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
@@ -676,9 +691,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         children: [
                           const EntryCardHeader(
                             icon: Icons.calendar_month_outlined,
-                            title: 'Deployment Date',
+                            title: 'Purchase Date',
                             subtitle:
-                                'Select when this equipment deployment took place',
+                                'Select when this transaction took place',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),

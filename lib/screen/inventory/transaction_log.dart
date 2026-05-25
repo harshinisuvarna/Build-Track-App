@@ -288,6 +288,14 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'category': category,
             'unit': t['unit']?.toString(),
             'paymentHistory': t['paymentHistory'],
+            'rate': (t['rate'] ?? 0).toDouble(),
+            'brand': t['brand'] ?? '',
+            'notes': t['notes'] ?? '',
+            'remarks': t['remarks'] ?? '',
+            'categoryName': t['category'] ?? '',
+            'quantity': (t['quantity'] ?? 0).toDouble(),
+            'subType': t['subType'] ?? '',
+            'materialType': t['materialType'] ?? '',
           });
         }
 
@@ -994,6 +1002,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                                   0.0,
                                   double.infinity,
                                 );
+                                final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
 
                                 // Convert enum to Mongoose capitalized string
                                 final newStatusStr =
@@ -1017,6 +1026,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                                         'paidAmount': totalPaid,
                                         'paymentMode': apiPaymentMode,
                                         'notes': result['note'] ?? '',
+                                        'paymentDate': customPaymentDate.toIso8601String(),
                                       },
                                     );
 
