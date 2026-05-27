@@ -49,11 +49,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _gstCtrl = TextEditingController();
 
   // ── Payment state ───────────────────────────────────────────────────────
-  bool _isAddAndPay = false; // true when launched via "Add & Pay"
-  bool _recordPaymentNow = false; // toggle for Enter Manually flow
-  // Stores the result returned by showPaymentSheet (Enter Manually toggle flow)
+  bool _isAddAndPay = false;
+  bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
-  // Inline payment state for Add & Pay flow
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
@@ -86,6 +84,29 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
       if (_isEditing) {
         _editingTransactionId = args['id'] as String?;
+
+        // ── Restore execution context ──────────────────────────────────
+        // projectId comes in as either 'projectId' or 'project'
+        final projectId = args['projectId'] as String? ??
+            args['project'] as String? ??
+            UserSession.projectId;
+        _selectedProjectId = projectId;
+
+        // floor / zone
+        final floor = args['floor'] as String? ?? args['zone'] as String?;
+        if (floor != null && floor.isNotEmpty) _selectedFloor = floor;
+
+        // phase — stored as the full object if available, else null
+        final phase = args['phase'];
+        if (phase != null) _selectedPhase = phase;
+
+        // activity
+        final activity = args['activity'] as String?;
+        if (activity != null && activity.isNotEmpty) {
+          _selectedActivity = activity;
+        }
+
+        // ── Restore detail fields ──────────────────────────────────────
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
 
@@ -102,6 +123,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         _brandCtrl.text = args['brand'] as String? ?? '';
         _categoryCtrl.text = args['categoryName'] as String? ?? '';
         _notesCtrl.text = args['notes'] as String? ?? '';
+        _supplierCtrl.text = args['supplier'] as String? ?? '';
 
         final String rawUnit =
             (args['unit'] ?? '').toString().trim().toLowerCase();
@@ -125,16 +147,19 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           } catch (_) {}
         }
       } else {
+        // ── New entry — default project from session ───────────────────
+        _selectedProjectId ??= UserSession.projectId;
+
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
       }
 
-      // "Add & Pay" mode: show embedded payment form, no toggle
       if (args['openPayment'] == true) {
         _isAddAndPay = true;
       }
+    } else {
+      _selectedProjectId ??= UserSession.projectId;
     }
-    _selectedProjectId ??= UserSession.projectId;
   }
 
   @override
@@ -201,10 +226,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       _snack('Please select a phase');
       return;
     }
-    if (_selectedActivity == null) {
-      _snack('Please select an activity');
-      return;
-    }
+    // Activity is OPTIONAL — no guard here
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -238,11 +260,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "project": _selectedProjectId,
       "notes": _notesCtrl.text.trim(),
       "date": _selectedDate.toIso8601String(),
+      if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
+        "activity": _selectedActivity,
     };
 
-    // Payment data — two possible sources:
-    // 1. Add & Pay mode: inline form fields
-    // 2. Enter Manually toggle: result from showPaymentSheet
     if (_isAddAndPay) {
       final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0.0;
       String apiMode = _paymentMethod;
@@ -258,7 +279,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     } else if (_recordPaymentNow && _paymentResult != null) {
       final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
       final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-      final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+      final payDate =
+          (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
       String apiMode = method;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = paid;
@@ -327,10 +349,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   }
 
   Widget _buildPaymentSection() {
-    // Add & Pay mode: show full inline form, no toggle switch
     if (_isAddAndPay) return _buildInlinePaymentForm();
 
-    // Enter Manually mode: toggle → opens showPaymentSheet
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +389,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 activeColor: AppColors.primary,
                 onChanged: (v) async {
                   if (v) {
-                    // Open the full payment sheet — same as in entry details
                     final result = await showPaymentSheet(
                       context,
                       entryTitle: _nameCtrl.text.trim().isEmpty
@@ -389,7 +408,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           _recordPaymentNow = true;
                           _paymentResult = result;
                         }
-                        // If user dismissed without submitting, keep switch off
                       });
                     }
                   } else {
@@ -402,7 +420,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
             ],
           ),
-          // Show a summary card when payment has been recorded via the sheet
           if (_recordPaymentNow && _paymentResult != null) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFF0EEF8)),
@@ -414,23 +431,26 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  /// Compact summary of the payment captured via showPaymentSheet.
   Widget _buildPaymentSummary() {
     final amount = (_paymentResult!['amount'] as double?) ?? 0.0;
     final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-    final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+    final payDate =
+        (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
     final note = (_paymentResult!['note'] as String?) ?? '';
     return GestureDetector(
       onTap: () async {
-        // Tap the summary to re-open the sheet and change details
         final result = await showPaymentSheet(
           context,
-          entryTitle: _nameCtrl.text.trim().isEmpty ? 'Material' : _nameCtrl.text.trim(),
+          entryTitle: _nameCtrl.text.trim().isEmpty
+              ? 'Material'
+              : _nameCtrl.text.trim(),
           entryRef: '',
           totalAmount: _finalTotal(),
           alreadyPaid: 0,
           vendorName: _supplierCtrl.text.trim(),
-          category: _categoryCtrl.text.trim().isEmpty ? 'Material' : _categoryCtrl.text.trim(),
+          category: _categoryCtrl.text.trim().isEmpty
+              ? 'Material'
+              : _categoryCtrl.text.trim(),
         );
         if (result != null && mounted) setState(() => _paymentResult = result);
       },
@@ -471,7 +491,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _summaryChip(Icons.payment_outlined, method, 'Method'),
+                  child:
+                      _summaryChip(Icons.payment_outlined, method, 'Method'),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -532,15 +553,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
-  /// Inline payment form used in "Add & Pay" mode.
-  /// No toggle — payment fields are always shown directly.
   Widget _buildInlinePaymentForm() {
     const methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
@@ -575,8 +593,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           const SizedBox(height: 20),
           const Divider(color: Color(0xFFF0EEF8)),
           const SizedBox(height: 16),
-
-          // Amount
           const EntryFieldLabel('Amount Paid', required: false),
           const SizedBox(height: 8),
           EntryUnderlineField(
@@ -587,8 +603,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 18),
-
-          // Payment Method
           const EntryFieldLabel('Payment Method'),
           const SizedBox(height: 10),
           Wrap(
@@ -600,15 +614,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 onTap: () => setState(() => _paymentMethod = m),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
                     color: sel ? AppColors.primary : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: sel
-                            ? AppColors.primary
-                            : const Color(0xFFDDE0F0),
+                        color:
+                            sel ? AppColors.primary : const Color(0xFFDDE0F0),
                         width: 1.5),
                   ),
                   child: Text(m,
@@ -621,8 +634,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             }).toList(),
           ),
           const SizedBox(height: 18),
-
-          // Payment Date
           const EntryFieldLabel('Payment Date'),
           const SizedBox(height: 8),
           GestureDetector(
@@ -648,8 +659,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: const Color(0xFFE0E5FF), width: 1.5),
+                border:
+                    Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
               ),
               child: Row(
                 children: [
@@ -667,8 +678,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
           ),
           const SizedBox(height: 18),
-
-          // Notes
           const EntryFieldLabel('Notes', required: false),
           const SizedBox(height: 8),
           EntryUnderlineField(
@@ -742,7 +751,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          // Material Name
                           const EntryFieldLabel(
                             'Material Name',
                             required: true,
@@ -755,7 +763,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 18),
 
-                          // Brand
                           const EntryFieldLabel('Brand (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -764,7 +771,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Category
                           const EntryFieldLabel('Category (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -773,7 +779,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Supplier
                           const EntryFieldLabel('Supplier (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -798,31 +803,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
+                          // ── ROW 1: Rate / Unit  +  Unit selector ──────────
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Quantity',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _qtyCtrl,
-                                      hint: '0',
-                                      suffix: _selectedUnit ?? 'units',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_qtyError != null)
-                                      EntryErrorText(_qtyError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 20),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,16 +828,44 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const EntryFieldLabel('Unit (Optional)'),
+                                    const SizedBox(height: 8),
+                                    UnitSelectorField(
+                                      value: _selectedUnit,
+                                      onChanged: (u) =>
+                                          setState(() => _selectedUnit = u),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 18),
 
-                          // Unit selector
-                          const EntryFieldLabel('Unit (Optional)'),
-                          const SizedBox(height: 8),
-                          UnitSelectorField(
-                            value: _selectedUnit,
-                            onChanged: (u) => setState(() => _selectedUnit = u),
+                          // ── ROW 2: Quantity ───────────────────────────────
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const EntryFieldLabel(
+                                'Quantity',
+                                required: true,
+                              ),
+                              const SizedBox(height: 8),
+                              EntryUnderlineField(
+                                controller: _qtyCtrl,
+                                hint: '0',
+                                suffix: _selectedUnit ?? 'units',
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setState(() {}),
+                              ),
+                              if (_qtyError != null)
+                                EntryErrorText(_qtyError!),
+                            ],
                           ),
                           const SizedBox(height: 22),
 
@@ -871,7 +883,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Section label
                                 Row(
                                   children: [
                                     Container(
@@ -901,7 +912,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Refined toggle
                                 Container(
                                   height: 40,
                                   padding: const EdgeInsets.all(3),
@@ -939,8 +949,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                            0, 2),
+                                                        offset:
+                                                            const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -981,8 +991,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                            0, 2),
+                                                        offset:
+                                                            const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -1005,7 +1015,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   ),
                                 ),
 
-                                // GST % field (only when With GST)
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
                                   const Text(
@@ -1027,7 +1036,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   ),
                                 ],
 
-                                // Live cost breakdown
                                 const SizedBox(height: 14),
                                 const Divider(
                                     color: Color(0xFFE2E4F6), thickness: 1),
@@ -1079,7 +1087,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Notes
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),

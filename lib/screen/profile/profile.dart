@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
@@ -7,26 +8,45 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/subscription_card.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
+// ── Data model returned by GET /api/users/profile ────────────────────────────
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
     required this.email,
     required this.role,
+    this.phone,
+    this.company,
   });
 
   final String name;
   final String email;
   final String role;
+  final String? phone;
+  final String? company;
+
+  /// Fallback when API data is unavailable.
   static ProfileUserData get sessionFallback => ProfileUserData(
-    name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
-    email: '${UserSession.userId}@buildtrack.app',
-    role: UserSession.roleLabel,
-  );
+        name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
+        email: '${UserSession.userId}@buildtrack.app',
+        role: UserSession.roleLabel,
+      );
+
+  factory ProfileUserData.fromJson(Map<String, dynamic> json) {
+    return ProfileUserData(
+      name: json['name'] as String? ?? 'Unknown User',
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String? ?? UserSession.roleLabel,
+      phone: json['phone'] as String?,
+      company: json['company'] as String?,
+    );
+  }
 }
 
+// ── Screen ────────────────────────────────────────────────────────────────────
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -36,17 +56,64 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
-
   File? _selectedImage;
+
+  // API state
+  ProfileUserData? _user;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  // ── Fetch real profile from backend ────────────────────────────────────────
+  Future<void> _fetchProfile() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // GET /api/users/profile  (auth header added by ApiService)
+      final response = await ApiService.get('/api/users/profile');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        // Backend may wrap data under a 'user' or 'data' key — handle both
+        final data = (body['user'] ?? body['data'] ?? body) as Map<String, dynamic>;
+        setState(() {
+          _user = ProfileUserData.fromJson(data);
+          _isLoading = false;
+        });
+      } else {
+        // Non-200: fall back to session data and show a subtle error
+        debugPrint('Profile fetch failed: ${response.statusCode} ${response.body}');
+        setState(() {
+          _user = ProfileUserData.sessionFallback;
+          _isLoading = false;
+          _error = 'Could not refresh profile (${response.statusCode})';
+        });
+      }
+    } catch (e) {
+      debugPrint('Profile fetch exception: $e');
+      if (!mounted) return;
+      setState(() {
+        _user = ProfileUserData.sessionFallback;
+        _isLoading = false;
+        _error = 'Network error — showing cached data';
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final file = await pickImageFromGallery(context);
     if (file != null && mounted) setState(() => _selectedImage = file);
-  }
-
-  ProfileUserData get _user {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    return args is ProfileUserData ? args : ProfileUserData.sessionFallback;
   }
 
   @override
@@ -54,32 +121,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppSubScreenLayout(
       title: 'Profile',
       scrollable: true,
-      child: Column(
-        children: [
-          _buildProfileCard(_user),
-          const SizedBox(height: AppTheme.spacingLg),
-          // Subscription status card — reads SubscriptionProvider via context
-          const SubscriptionCard(),
-          const SizedBox(height: AppTheme.spacingLg),
-          _buildSettingsCard(),
-          const SizedBox(height: AppTheme.spacingLg),
-          if (RoleManager.canViewTeamAccess) ...[
-            _buildTeamAccessSection(),
-            const SizedBox(height: AppTheme.spacingLg),
-          ],
-          _buildActions(),
-          const SizedBox(height: AppTheme.spacingLg),
-          Text(
-            'BuildTrack Version 2.4.0 (2024)',
-            style: AppTheme.caption.copyWith(color: Colors.grey.shade600),
-          ),
-        ],
-      ),
+      child: _isLoading
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 60),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          : RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: _fetchProfile,
+              child: Column(
+                children: [
+                  // ── Error banner (non-blocking) ──────────────────────────
+                  if (_error != null)
+                    _ErrorBanner(
+                      message: _error!,
+                      onDismiss: () => setState(() => _error = null),
+                    ),
+
+                  _buildProfileCard(_user!),
+                  const SizedBox(height: AppTheme.spacingLg),
+
+                  // Subscription status card
+                  const SubscriptionCard(),
+                  const SizedBox(height: AppTheme.spacingLg),
+
+                  _buildSettingsCard(),
+                  const SizedBox(height: AppTheme.spacingLg),
+
+                  if (RoleManager.canViewTeamAccess) ...[
+                    _buildTeamAccessSection(),
+                    const SizedBox(height: AppTheme.spacingLg),
+                  ],
+
+                  _buildActions(),
+                  const SizedBox(height: AppTheme.spacingLg),
+
+                  Text(
+                    'BuildTrack Version 2.4.0 (2024)',
+                    style:
+                        AppTheme.caption.copyWith(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
+  // ── Profile card ─────────────────────────────────────────────────────────
   Widget _buildProfileCard(ProfileUserData user) {
-    // Container is necessary here: AppCard doesn't support gradients.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
@@ -115,6 +206,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 13.5,
             ),
           ),
+          // Optional: phone / company
+          if (user.phone != null && user.phone!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              user.phone!,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12.5,
+              ),
+            ),
+          ],
+          if (user.company != null && user.company!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              user.company!,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12,
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           _buildRoleBadge(user.role),
         ],
@@ -130,9 +242,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: CircleAvatar(
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
-            backgroundImage: _selectedImage != null
-                ? FileImage(_selectedImage!)
-                : null,
+            backgroundImage:
+                _selectedImage != null ? FileImage(_selectedImage!) : null,
             child: _selectedImage == null
                 ? const Icon(Icons.person, size: 40, color: Colors.white)
                 : null,
@@ -187,6 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ── Settings card ─────────────────────────────────────────────────────────
   Widget _buildSettingsCard() {
     return AppCard(
       padding: EdgeInsets.zero,
@@ -200,7 +312,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSettingsTile(
             icon: Icons.person_outline,
             label: 'Edit Profile',
-            onTap: () => Navigator.pushNamed(context, '/edit-profile'),
+            onTap: () async {
+              // Refresh profile after editing
+              await Navigator.pushNamed(context, '/edit-profile');
+              _fetchProfile();
+            },
             showDivider: true,
           ),
           _buildSettingsTile(
@@ -295,9 +411,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Text(
         _notificationsEnabled ? 'Enabled' : 'Disabled',
         style: TextStyle(
-          color: _notificationsEnabled
-              ? AppColors.primary
-              : AppColors.textLight,
+          color: _notificationsEnabled ? AppColors.primary : AppColors.textLight,
           fontSize: 12.5,
           fontWeight: FontWeight.w700,
         ),
@@ -305,6 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   Widget _buildActions() {
     return AppButton(
       label: 'Logout',
@@ -315,10 +430,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onLogoutPressed() {
-    UserSession.clear(); // clear session data
+    UserSession.clear();
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
+  // ── Team Access (admin only) ───────────────────────────────────────────────
   Widget _buildTeamAccessSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,17 +474,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   'Team & Access',
                   style: AppTheme.heading3.copyWith(
-                    color: AppColors.textDark,
-                    fontSize: 16,
-                  ),
+                      color: AppColors.textDark, fontSize: 16),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Assign roles and manage team access for your project.',
-                  style: AppTheme.body.copyWith(
-                    color: AppColors.textLight,
-                    height: 1.45,
-                  ),
+                  style: AppTheme.body
+                      .copyWith(color: AppColors.textLight, height: 1.45),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -386,16 +498,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.person_add_outlined,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.person_add_outlined,
+                            color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text(
                           'Assign Role',
                           style: TextStyle(
                             color: Colors.white,
@@ -439,10 +548,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Container(
               width: 28,
               height: 28,
-              decoration: const BoxDecoration(
-                color: purple,
-                shape: BoxShape.circle,
-              ),
+              decoration:
+                  const BoxDecoration(color: purple, shape: BoxShape.circle),
               child: const Icon(Icons.person, color: Colors.white, size: 16),
             ),
           ),
@@ -453,9 +560,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
+                  color: purpleLight.withValues(alpha: 0.6),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
@@ -466,9 +572,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
+                  color: purpleLight.withValues(alpha: 0.6),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
@@ -479,9 +584,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
-              ),
+                  color: purpleLight.withValues(alpha: 0.4),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.person, color: Colors.white, size: 9),
             ),
           ),
@@ -492,9 +596,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: purpleLight.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
-              ),
+                  color: purpleLight.withValues(alpha: 0.4),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.person, color: Colors.white, size: 9),
             ),
           ),
@@ -513,11 +616,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.shield_outlined,
-            color: AppColors.primary.withValues(alpha: 0.7),
-            size: 18,
-          ),
+          Icon(Icons.shield_outlined,
+              color: AppColors.primary.withValues(alpha: 0.7), size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -526,10 +626,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   'This feature is only available to Admins.',
                   style: AppTheme.bodyLarge.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -543,6 +642,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
 
+// ── Non-blocking error banner ──────────────────────────────────────────────────
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onDismiss});
+  final String message;
+  final VoidCallback onDismiss;
 
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8EC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD166).withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFFB45309), size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                  color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Color(0xFFB45309)),
+            onPressed: onDismiss,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+        ],
+      ),
+    );
+  }
 }

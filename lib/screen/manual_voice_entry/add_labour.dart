@@ -25,14 +25,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   String? _selectedActivity;
 
   // ── Resource detail controllers ──────────────────────────────────────────
-  final _nameCtrl = TextEditingController(); // Worker / Team Name
-  final _workTypeCtrl = TextEditingController(); // Work Type
-  final _categoryCtrl = TextEditingController(); // Labour Category
-  final _qtyCtrl = TextEditingController(); // Quantity (hours/days/sqft etc)
-  final _rateCtrl = TextEditingController(); // Rate / Unit
-  final _overtimeCtrl = TextEditingController(); // Overtime (optional)
-  final _notesCtrl = TextEditingController(); // Notes
-  String? _selectedUnit; // Labour unit
+  final _nameCtrl = TextEditingController();
+  final _workTypeCtrl = TextEditingController();
+  final _categoryCtrl = TextEditingController();
+  final _qtyCtrl = TextEditingController();
+  final _rateCtrl = TextEditingController();
+  final _overtimeCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  String? _selectedUnit;
 
   // ── UI states ────────────────────────────────────────────────────────────
   bool _isSaving = false;
@@ -43,11 +43,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   DateTime _selectedDate = DateTime.now();
 
   // ── Payment state ───────────────────────────────────────────────────────
-  bool _isAddAndPay = false; // true when launched via "Add & Pay"
-  bool _recordPaymentNow = false; // toggle for Enter Manually flow
-  // Stores the result returned by showPaymentSheet (Enter Manually toggle flow)
+  bool _isAddAndPay = false;
+  bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
-  // Inline payment state for Add & Pay flow
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
@@ -81,12 +79,32 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
       if (_isEditing) {
         _editingTransactionId = args['id'] as String?;
+
+        // ── Restore execution context ──────────────────────────────────
+        final projectId = args['projectId'] as String? ??
+            args['project'] as String? ??
+            UserSession.projectId;
+        _selectedProjectId = projectId;
+
+        final floor = args['floor'] as String? ?? args['zone'] as String?;
+        if (floor != null && floor.isNotEmpty) _selectedFloor = floor;
+
+        final phase = args['phase'];
+        if (phase != null) _selectedPhase = phase;
+
+        final activity = args['activity'] as String?;
+        if (activity != null && activity.isNotEmpty) {
+          _selectedActivity = activity;
+        }
+
+        // ── Restore detail fields ──────────────────────────────────────
         _nameCtrl.text =
             args['title'] as String? ?? args['name'] as String? ?? '';
 
         final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text =
-            qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+        _qtyCtrl.text = qty > 0
+            ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+            : '';
 
         final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
         _rateCtrl.text = rate > 0
@@ -98,7 +116,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _workTypeCtrl.text =
             args['workType'] as String? ?? args['remarks'] as String? ?? '';
 
-        final String rawUnit = (args['unit'] ?? '').toString().trim().toLowerCase();
+        final String rawUnit =
+            (args['unit'] ?? '').toString().trim().toLowerCase();
         if (rawUnit == 'day' || rawUnit == 'days') {
           _selectedUnit = 'Day';
         } else if (rawUnit == 'hour' || rawUnit == 'hours') {
@@ -108,7 +127,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             rawUnit == 'sq ft') {
           _selectedUnit = 'Sq.ft';
         } else if (rawUnit.isNotEmpty) {
-          _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+          _selectedUnit =
+              rawUnit[0].toUpperCase() + rawUnit.substring(1);
         }
 
         if (args['date'] != null) {
@@ -117,14 +137,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           } catch (_) {}
         }
       } else {
+        _selectedProjectId ??= UserSession.projectId;
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
       }
+
       if (args['openPayment'] == true) {
         _isAddAndPay = true;
       }
+    } else {
+      _selectedProjectId ??= UserSession.projectId;
     }
-    _selectedProjectId ??= UserSession.projectId;
   }
 
   @override
@@ -155,7 +178,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ? 'Worker / team name is required'
           : null;
       final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
+      _qtyError =
+          (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
       final rate = double.tryParse(_rateCtrl.text);
       _rateError =
           (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
@@ -194,6 +218,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
+      if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
+        "activity": _selectedActivity,
     };
 
     if (_isAddAndPay) {
@@ -211,7 +237,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     } else if (_recordPaymentNow && _paymentResult != null) {
       final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
       final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-      final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+      final payDate =
+          (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
       String apiMode = method;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = paid;
@@ -226,7 +253,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
-      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
+      success =
+          await ApiService.updateTransaction(_editingTransactionId!, payload);
     } else {
       success = await ApiService.addMaterial(payload);
     }
@@ -249,10 +277,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Widget _buildPaymentSection() {
-    // Add & Pay mode: show full inline form, no toggle switch
     if (_isAddAndPay) return _buildInlinePaymentForm();
 
-    // Enter Manually mode: toggle → opens showPaymentSheet
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,18 +372,23 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   Widget _buildPaymentSummary() {
     final amount = (_paymentResult!['amount'] as double?) ?? 0.0;
     final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-    final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+    final payDate =
+        (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
     final note = (_paymentResult!['note'] as String?) ?? '';
     return GestureDetector(
       onTap: () async {
         final result = await showPaymentSheet(
           context,
-          entryTitle: _nameCtrl.text.trim().isEmpty ? 'Labour' : _nameCtrl.text.trim(),
+          entryTitle: _nameCtrl.text.trim().isEmpty
+              ? 'Labour'
+              : _nameCtrl.text.trim(),
           entryRef: '',
           totalAmount: _totalCost(),
           alreadyPaid: 0,
           vendorName: '',
-          category: _categoryCtrl.text.trim().isEmpty ? 'Labour' : _categoryCtrl.text.trim(),
+          category: _categoryCtrl.text.trim().isEmpty
+              ? 'Labour'
+              : _categoryCtrl.text.trim(),
         );
         if (result != null && mounted) setState(() => _paymentResult = result);
       },
@@ -398,7 +429,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _summaryChip(Icons.payment_outlined, method, 'Method'),
+                  child:
+                      _summaryChip(Icons.payment_outlined, method, 'Method'),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -459,15 +491,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     );
   }
 
-  /// Inline payment form used in "Add & Pay" mode.
-  /// No toggle — payment fields are always shown directly.
   Widget _buildInlinePaymentForm() {
     const methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
@@ -502,8 +531,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           const SizedBox(height: 20),
           const Divider(color: Color(0xFFF0EEF8)),
           const SizedBox(height: 16),
-
-          // Amount
           const EntryFieldLabel('Amount Paid', required: false),
           const SizedBox(height: 8),
           EntryUnderlineField(
@@ -514,8 +541,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 18),
-
-          // Payment Method
           const EntryFieldLabel('Payment Method'),
           const SizedBox(height: 10),
           Wrap(
@@ -527,15 +552,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 onTap: () => setState(() => _paymentMethod = m),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
                     color: sel ? AppColors.primary : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: sel
-                            ? AppColors.primary
-                            : const Color(0xFFDDE0F0),
+                        color:
+                            sel ? AppColors.primary : const Color(0xFFDDE0F0),
                         width: 1.5),
                   ),
                   child: Text(m,
@@ -548,8 +572,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             }).toList(),
           ),
           const SizedBox(height: 18),
-
-          // Payment Date
           const EntryFieldLabel('Payment Date'),
           const SizedBox(height: 8),
           GestureDetector(
@@ -575,8 +597,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: const Color(0xFFE0E5FF), width: 1.5),
+                border:
+                    Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
               ),
               child: Row(
                 children: [
@@ -594,8 +616,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             ),
           ),
           const SizedBox(height: 18),
-
-          // Notes
           const EntryFieldLabel('Notes', required: false),
           const SizedBox(height: 8),
           EntryUnderlineField(
@@ -681,7 +701,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _nameCtrl,
-                            hint: 'e.g. Rajesh Kumar Team, Steel Fixers Crew',
+                            hint:
+                                'e.g. Rajesh Kumar Team, Steel Fixers Crew',
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 18),
@@ -693,7 +714,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _workTypeCtrl,
-                            hint: 'e.g. Masonry, Barbending, Concrete Crew',
+                            hint:
+                                'e.g. Masonry, Barbending, Concrete Crew',
                           ),
                           if (_workTypeError != null)
                             EntryErrorText(_workTypeError!),
@@ -782,11 +804,13 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             value: _selectedUnit,
                             units: kLabourUnits,
                             hint: 'Select unit (e.g. Day, Hour, Sq ft)',
-                            onChanged: (u) => setState(() => _selectedUnit = u),
+                            onChanged: (u) =>
+                                setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel('Overtime Amount (Optional)'),
+                          const EntryFieldLabel(
+                              'Overtime Amount (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _overtimeCtrl,

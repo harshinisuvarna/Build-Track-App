@@ -3,11 +3,11 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/premium_cta_button.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
-import 'package:buildtrack_mobile/services/billing_service.dart';
+import 'package:buildtrack_mobile/services/billing_service.dart'; // ← FIX: import constants
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-
+// ── Plan metadata ────────────────────────────────────────────────────────────
 class _PlanInfo {
   const _PlanInfo({
     required this.plan,
@@ -17,8 +17,10 @@ class _PlanInfo {
     required this.tagline,
     required this.features,
     required this.productId,
+    required this.cta,
+    required this.maxUsers,
+    required this.maxProjectsLabel,
     this.isHighlighted = false,
-    this.isCta = 'Upgrade Now',
   });
 
   final SubscriptionPlan plan;
@@ -28,8 +30,10 @@ class _PlanInfo {
   final String tagline;
   final List<String> features;
   final String? productId;
+  final String cta;
+  final int maxUsers;
+  final String maxProjectsLabel;
   final bool isHighlighted;
-  final String isCta;
 }
 
 const _plans = [
@@ -38,61 +42,121 @@ const _plans = [
     title: 'Free',
     price: '₹0',
     period: 'forever',
-    tagline: 'Perfect to get started and explore.',
+    tagline: 'Try out BuildTrack with no commitment.',
     features: [
-      'Up to 2 projects',
+      '1 project / 30 days',
+      'Up to 2 users',
       'Basic project tracking',
       'Labour & material entries',
       'Community support',
     ],
     productId: null,
-    isCta: 'Current Plan',
+    cta: 'Current Plan',
+    maxUsers: 2,
+    maxProjectsLabel: '1 project / 30 days',
+  ),
+  _PlanInfo(
+    plan: SubscriptionPlan.starter,
+    title: 'Starter',
+    price: '₹498',
+    period: '/month',
+    tagline: 'For small teams just getting started.',
+    features: [
+      '2 active projects',
+      'Up to 5 users',
+      'Labour & material tracking',
+      'Basic reports',
+      'Email support',
+    ],
+    productId: kStarterMonthlyId,
+    cta: 'Get Starter',
+    maxUsers: 5,
+    maxProjectsLabel: '2 projects',
+  ),
+  _PlanInfo(
+    plan: SubscriptionPlan.growth,
+    title: 'Growth',
+    price: '₹999',
+    period: '/month',
+    tagline: 'Scale your operations with more capacity.',
+    features: [
+      '4 active projects',
+      'Up to 8 users',
+      'Advanced reports & analytics',
+      'Inventory tracking',
+      'Priority support',
+    ],
+    productId: kGrowthMonthlyId,
+    cta: 'Get Growth',
+    maxUsers: 8,
+    maxProjectsLabel: '4 projects',
   ),
   _PlanInfo(
     plan: SubscriptionPlan.pro,
     title: 'Pro',
-    price: '₹499',
+    price: '₹1,499',
     period: '/month',
     tagline: 'Everything you need for growing teams.',
     features: [
-      'Unlimited projects',
-      'Advanced reports & analytics',
-      'Full inventory tracking',
-      'Receipt & file storage',
-      'Priority 24/7 support',
+      '6 active projects',
+      'Up to 15 users',
+      'Full inventory & receipt storage',
+      'Advanced cost analytics',
+      '24/7 priority support',
     ],
     productId: kProMonthlyId,
+    cta: 'Upgrade to Pro',
+    maxUsers: 15,
+    maxProjectsLabel: '6 projects',
     isHighlighted: true,
-    isCta: 'Upgrade to Pro',
+  ),
+  _PlanInfo(
+    plan: SubscriptionPlan.business,
+    title: 'Business',
+    price: '₹2,499',
+    period: '/month',
+    tagline: 'For agencies managing multiple sites.',
+    features: [
+      '12 active projects',
+      'Up to 25 users',
+      'Role management',
+      'API access',
+      'Dedicated support',
+    ],
+    productId: kBusinessMonthlyId,
+    cta: 'Get Business',
+    maxUsers: 25,
+    maxProjectsLabel: '12 projects',
   ),
   _PlanInfo(
     plan: SubscriptionPlan.enterprise,
     title: 'Enterprise',
-    price: '₹1,499',
+    price: '₹4,999',
     period: '/month',
-    tagline: 'Advanced tools for large, multi-team projects.',
+    tagline: 'Advanced tools for large, multi-team operations.',
     features: [
-      'Everything in Pro',
+      'Unlimited projects',
+      'Unlimited users',
       'Multi-user role management',
-      'Advanced cost reporting',
-      'API access & integrations',
+      'Custom integrations & API',
       'Dedicated account manager',
     ],
     productId: kEnterpriseMonthlyId,
-    isCta: 'Contact Sales', // Reusing the upgrade flow for demo, but labeled for Enterprise
+    cta: 'Contact Sales',
+    maxUsers: 999999,
+    maxProjectsLabel: 'Unlimited',
   ),
 ];
 
-
+// ── Screen ────────────────────────────────────────────────────────────────────
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final sub = context.watch<SubscriptionProvider>();
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA), // Ultra-clean light gray bg
+      backgroundColor: const Color(0xFFFAFAFA),
       body: SafeArea(
         child: Column(
           children: [
@@ -124,7 +188,6 @@ class SubscriptionScreen extends StatelessWidget {
                     }),
 
                     const SizedBox(height: 16),
-
                     GestureDetector(
                       onTap: () => _onRestore(context, sub),
                       behavior: HitTestBehavior.opaque,
@@ -137,14 +200,15 @@ class SubscriptionScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                             decoration: TextDecoration.underline,
-                            decorationColor: AppColors.primary.withValues(alpha: 0.4),
+                            decorationColor:
+                                AppColors.primary.withValues(alpha: 0.4),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Subscriptions auto-renew monthly.\nCancel anytime from your Play Store settings.',
+                      'Subscriptions auto-renew monthly.\nCancel anytime from your Play Store or App Store settings.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -163,14 +227,14 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: AppColors.textDark),
+            icon:
+                const Icon(Icons.close_rounded, color: AppColors.textDark),
             onPressed: () => Navigator.maybePop(context),
           ),
         ],
@@ -182,15 +246,14 @@ class SubscriptionScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Premium badge pill
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.15),
-            ),
+                color: AppColors.primary.withValues(alpha: 0.15)),
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
@@ -201,11 +264,10 @@ class SubscriptionScreen extends StatelessWidget {
               Text(
                 'Unlock Premium Features',
                 style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
+                    color: AppColors.primary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2),
               ),
             ],
           ),
@@ -218,7 +280,7 @@ class SubscriptionScreen extends StatelessWidget {
             fontSize: 28,
             letterSpacing: -0.6,
             height: 1.15,
-            color: const Color(0xFF101828), // Deep slate black
+            color: const Color(0xFF101828),
           ),
         ),
         const SizedBox(height: 12),
@@ -226,27 +288,21 @@ class SubscriptionScreen extends StatelessWidget {
           'Choose a plan that scales with your business.',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 15,
-            color: Color(0xFF667085), // Soft grey
-            height: 1.4,
-          ),
+              fontSize: 15, color: Color(0xFF667085), height: 1.4),
         ),
       ],
     );
   }
+
   Future<void> _onUpgrade(
-    BuildContext context,
-    SubscriptionProvider sub,
-    _PlanInfo plan,
-  ) async {
-    if (plan.productId == null) return; // Free plan — no action.
-    if (sub.currentPlan == plan.plan) return; // Already on this plan.
+      BuildContext context, SubscriptionProvider sub, _PlanInfo plan) async {
+    if (plan.productId == null) return;
+    if (sub.currentPlan == plan.plan) return;
     await sub.purchase(plan.productId!);
     if (!context.mounted) return;
-    if (sub.error.isEmpty && sub.isPaid) {
-      _showSuccessDialog(context, plan);
-    }
+    if (sub.error.isEmpty && sub.isPaid) _showSuccessDialog(context, plan);
   }
+
   Future<void> _onRestore(
       BuildContext context, SubscriptionProvider sub) async {
     await sub.restore();
@@ -263,16 +319,19 @@ class SubscriptionScreen extends StatelessWidget {
         backgroundColor:
             sub.error.isEmpty ? AppColors.success : AppColors.error,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
     );
   }
+
   void _showSuccessDialog(BuildContext context, _PlanInfo plan) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -285,25 +344,25 @@ class SubscriptionScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  )
+                      color:
+                          AppColors.primaryPurple.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8))
                 ],
               ),
               child: const Icon(Icons.check_rounded,
                   color: Colors.white, size: 36),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Welcome to ${plan.title}!',
-              style: AppTheme.heading2.copyWith(fontSize: 22, color: const Color(0xFF101828)),
-            ),
+            Text('Welcome to ${plan.title}!',
+                style: AppTheme.heading2.copyWith(
+                    fontSize: 22, color: const Color(0xFF101828))),
             const SizedBox(height: 8),
             Text(
               'Your subscription is now active.\nEnjoy all ${plan.title} features.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF667085), fontSize: 14, height: 1.5),
+              style: const TextStyle(
+                  color: Color(0xFF667085), fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 32),
             PremiumCtaButton(
@@ -320,6 +379,8 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 }
+
+// ── Plan card ─────────────────────────────────────────────────────────────────
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.info,
@@ -327,14 +388,15 @@ class _PlanCard extends StatelessWidget {
     required this.isPurchasing,
     required this.onUpgrade,
   });
+
   final _PlanInfo info;
   final bool isCurrentPlan;
   final bool isPurchasing;
   final VoidCallback onUpgrade;
+
   @override
   Widget build(BuildContext context) {
     final bool isPro = info.isHighlighted;
-
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -346,26 +408,25 @@ class _PlanCard extends StatelessWidget {
               color: isPro ? AppColors.primary : const Color(0xFFEAECF0),
               width: isPro ? 2 : 1,
             ),
-            // Premium shadow layering for highlighted card
             boxShadow: isPro
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
+                        color:
+                            AppColors.primary.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12)),
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
+                        color:
+                            AppColors.primary.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4)),
                   ]
                 : [
                     BoxShadow(
-                      color: const Color(0xFF101828).withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                        color: const Color(0xFF101828)
+                            .withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4))
                   ],
           ),
           child: Padding(
@@ -373,26 +434,49 @@ class _PlanCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  info.title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: isPro ? AppColors.primary : const Color(0xFF101828),
-                    letterSpacing: -0.3,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        info.title,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: isPro
+                              ? AppColors.primary
+                              : const Color(0xFF101828),
+                        ),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _LimitPill(
+                          icon: Icons.people_outline,
+                          label: info.maxUsers == 999999
+                              ? 'Unlimited users'
+                              : '${info.maxUsers} users',
+                        ),
+                        const SizedBox(height: 4),
+                        _LimitPill(
+                          icon: Icons.folder_outlined,
+                          label: info.maxProjectsLabel,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   info.tagline,
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF667085),
-                    height: 1.4,
-                  ),
+                      fontSize: 14,
+                      color: Color(0xFF667085),
+                      height: 1.4),
                 ),
                 const SizedBox(height: 20),
-
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -410,17 +494,17 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       info.period,
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF667085),
-                      ),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF667085)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 const Divider(color: Color(0xFFEAECF0), height: 1),
                 const SizedBox(height: 24),
-                ...info.features.map((f) => _FeatureItem(text: f, isHighlighted: isPro)),
+                ...info.features
+                    .map((f) => _FeatureItem(text: f, isHighlighted: isPro)),
                 const SizedBox(height: 8),
                 _buildCta(),
               ],
@@ -432,26 +516,46 @@ class _PlanCard extends StatelessWidget {
             top: -14,
             right: 24,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 gradient: AppGradients.primaryButton,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
+                      color:
+                          AppColors.primaryPurple.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4))
                 ],
               ),
               child: const Text(
                 'Most Popular',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.3,
-                ),
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3),
+              ),
+            ),
+          ),
+        if (isCurrentPlan && !isPro)
+          Positioned(
+            top: -14,
+            right: 24,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF101828),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Your Plan',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -465,7 +569,7 @@ class _PlanCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F4F7), // Neutral grey
+          color: const Color(0xFFF2F4F7),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFEAECF0)),
         ),
@@ -473,64 +577,96 @@ class _PlanCard extends StatelessWidget {
           child: Text(
             'Current Plan',
             style: TextStyle(
-              color: Color(0xFF475467),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+                color: Color(0xFF475467),
+                fontSize: 15,
+                fontWeight: FontWeight.w700),
           ),
         ),
       );
     }
-    if (!info.isHighlighted) {
-      return GestureDetector(
-        onTap: isPurchasing ? null : onUpgrade,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD0D5DD), width: 1.5),
-            boxShadow: [
-              BoxShadow(
+
+    if (info.isHighlighted) {
+      return PremiumCtaButton(
+        label: info.cta,
+        isFullWidth: true,
+        isLoading: isPurchasing,
+        onTap: onUpgrade,
+        variant: CtaVariant.primary,
+      );
+    }
+
+    return GestureDetector(
+      onTap: isPurchasing ? null : onUpgrade,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD0D5DD), width: 1.5),
+          boxShadow: [
+            BoxShadow(
                 color: const Color(0xFF101828).withValues(alpha: 0.05),
                 blurRadius: 2,
-                offset: const Offset(0, 1),
-              )
-            ],
-          ),
-          child: Center(
-            child: isPurchasing
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF344054)),
-                  )
-                : Text(
-                    info.isCta,
-                    style: const TextStyle(
+                offset: const Offset(0, 1))
+          ],
+        ),
+        child: Center(
+          child: isPurchasing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFF344054)),
+                )
+              : Text(info.cta,
+                  style: const TextStyle(
                       color: Color(0xFF344054),
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-          ),
+                      fontWeight: FontWeight.w700)),
         ),
-      );
-    }
-    return PremiumCtaButton(
-      label: info.isCta,
-      isFullWidth: true,
-      isLoading: isPurchasing,
-      onTap: onUpgrade,
-      variant: CtaVariant.primary,
+      ),
     );
   }
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+class _LimitPill extends StatelessWidget {
+  const _LimitPill({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: const Color(0xFF667085)),
+          const SizedBox(width: 4),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF344054),
+                  fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
 class _FeatureItem extends StatelessWidget {
   const _FeatureItem({required this.text, required this.isHighlighted});
   final String text;
   final bool isHighlighted;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -547,22 +683,21 @@ class _FeatureItem extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(4),
-            child: Icon(
-              Icons.check_rounded,
-              size: 14,
-              color: isHighlighted ? AppColors.primary : const Color(0xFF667085),
-            ),
+            child: Icon(Icons.check_rounded,
+                size: 14,
+                color: isHighlighted
+                    ? AppColors.primary
+                    : const Color(0xFF667085)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                fontSize: 14.5,
-                color: Color(0xFF344054), // Dark grey for maximum readability
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
+                  fontSize: 14.5,
+                  color: Color(0xFF344054),
+                  height: 1.4,
+                  fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -570,9 +705,11 @@ class _FeatureItem extends StatelessWidget {
     );
   }
 }
+
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
   final String message;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -584,13 +721,15 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFFD92D20), size: 20),
+          const Icon(Icons.error_outline,
+              color: Color(0xFFD92D20), size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Color(0xFFB42318), fontSize: 13.5, fontWeight: FontWeight.w500),
-            ),
+            child: Text(message,
+                style: const TextStyle(
+                    color: Color(0xFFB42318),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500)),
           ),
         ],
       ),

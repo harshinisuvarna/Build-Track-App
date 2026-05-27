@@ -3,15 +3,25 @@ import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:in_app_purchase/in_app_purchase.dart';
 
-const kProMonthlyId = 'com.buildtrack.pro.monthly';
+// ── Product IDs ────────────────────────────────────────────────────────────
+const kStarterMonthlyId    = 'com.buildtrack.starter.monthly';
+const kGrowthMonthlyId     = 'com.buildtrack.growth.monthly';
+const kProMonthlyId        = 'com.buildtrack.pro.monthly';
+const kBusinessMonthlyId   = 'com.buildtrack.business.monthly';
 const kEnterpriseMonthlyId = 'com.buildtrack.enterprise.monthly';
-const Set<String> kProductIds = {kProMonthlyId, kEnterpriseMonthlyId};
+
+const Set<String> kProductIds = {
+  kStarterMonthlyId,
+  kGrowthMonthlyId,
+  kProMonthlyId,
+  kBusinessMonthlyId,
+  kEnterpriseMonthlyId,
+};
 
 class BillingService {
   BillingService._();
   static final instance = BillingService._();
 
-  // Changed to a getter to prevent LateInitializationError on Web startup
   InAppPurchase get _iap => InAppPurchase.instance;
 
   List<ProductDetails> products = [];
@@ -21,20 +31,17 @@ class BillingService {
   Future<void> init(
     void Function(List<PurchaseDetails>) onPurchaseUpdate,
   ) async {
-    // --- SAFELY BYPASS ON WEB ---
     if (kIsWeb) {
-      dev.log(
-        'BillingService: Skipping In-App Purchases (Not supported on Web)',
-      );
+      dev.log('BillingService: Skipping IAP (not supported on Web)');
       return;
     }
-    // ----------------------------
 
     isAvailable = await _iap.isAvailable();
     if (!isAvailable) {
-      dev.log('BillingService: Play Store/App Store not available');
+      dev.log('BillingService: Store not available');
       return;
     }
+
     _subscription = _iap.purchaseStream.listen(
       onPurchaseUpdate,
       onError: (Object e) => dev.log('BillingService stream error: $e'),
@@ -64,16 +71,16 @@ class BillingService {
   }
 
   Future<bool> purchase(String productId) async {
-    if (kIsWeb) return false; // Safety check
-
+    if (kIsWeb) return false;
     final product = productFor(productId);
     if (product == null) {
       dev.log('BillingService.purchase: product $productId not found');
       return false;
     }
-    final param = PurchaseParam(productDetails: product);
     try {
-      return await _iap.buyNonConsumable(purchaseParam: param);
+      return await _iap.buyNonConsumable(
+        purchaseParam: PurchaseParam(productDetails: product),
+      );
     } catch (e) {
       dev.log('BillingService.purchase error: $e');
       return false;
@@ -81,12 +88,12 @@ class BillingService {
   }
 
   Future<void> restorePurchases() async {
-    if (kIsWeb) return; // Safety check
+    if (kIsWeb) return;
     await _iap.restorePurchases();
   }
 
   Future<void> completePurchase(PurchaseDetails details) async {
-    if (kIsWeb) return; // Safety check
+    if (kIsWeb) return;
     if (details.pendingCompletePurchase) {
       await _iap.completePurchase(details);
     }
