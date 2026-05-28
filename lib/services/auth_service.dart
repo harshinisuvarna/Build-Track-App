@@ -17,13 +17,15 @@ class AuthService {
         'password': password,
       });
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
+      if (response.statusCode == 200) {
         final token = data['token'];
         final user = data['user'];
 
-        if (token == null) return null;
+        if (token == null) {
+          throw Exception('Token not found in login response');
+        }
 
         final prefs = await SharedPreferences.getInstance();
 
@@ -49,12 +51,15 @@ class AuthService {
         );
 
         return data; // ✅ IMPORTANT
+      } else {
+        final message = data is Map && data.containsKey('message')
+            ? data['message'].toString()
+            : 'Login failed with status ${response.statusCode}';
+        throw Exception(message);
       }
-
-      return null;
     } catch (e) {
       debugPrint("Login error: $e");
-      return null;
+      rethrow;
     }
   }
 

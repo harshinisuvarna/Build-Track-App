@@ -4,6 +4,7 @@ import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 class CreateWorkspaceScreen extends StatefulWidget {
   const CreateWorkspaceScreen({super.key});
   @override
@@ -266,17 +267,31 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         );
         Navigator.pushReplacementNamed(context, '/login');
       } else {
+        String errorMsg = 'Failed to create account: ${response.statusCode}';
+        try {
+          final Map<String, dynamic> body = jsonDecode(response.body);
+          if (body.containsKey('message')) {
+            errorMsg = body['message'].toString();
+          }
+        } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create account: ${response.statusCode}')),
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Registration exception details: $e\n$st');
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred during sign-up.')),
+        SnackBar(
+          content: Text('Connection failed. Server might be offline. Error: $e'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }

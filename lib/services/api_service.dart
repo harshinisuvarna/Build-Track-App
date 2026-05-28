@@ -5,11 +5,24 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 
+import 'package:flutter/foundation.dart';
+
 class ApiService {
-  // NOTE: You mentioned your backend runs on 5000, so I set it to 5000.
-  // Change to 'http://10.0.2.2:5001/api' if testing on an Android Emulator.
-  static const String baseUrl = 'https://unsecured-coastland-canister.ngrok-free.dev/api';
-  // static const String baseUrl = 'https://jargon-tit-stained.ngrok-free.dev/api';
+  // Configured Base URL based on runtime platform
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api';
+    }
+    // Android emulator maps 10.0.2.2 to host localhost port 5000
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5000/api';
+    }
+    // iOS simulator, macOS, Windows, Linux
+    return 'http://localhost:5000/api';
+    
+    // Ngrok Fallback (Uncomment if testing on a physical device over network)
+    // return 'https://unsecured-coastland-canister.ngrok-free.dev/api';
+  }
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
