@@ -386,7 +386,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
               Switch(
                 value: _recordPaymentNow,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 onChanged: (v) async {
                   if (v) {
                     final result = await showPaymentSheet(

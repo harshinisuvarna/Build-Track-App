@@ -2292,7 +2292,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       BoxShadow(
                                         color: const Color(
                                           0xFF173EEA,
-                                        ).withOpacity(0.25),
+                                        ).withValues(alpha: 0.25),
                                         blurRadius: 8,
                                         offset: const Offset(0, 3),
                                       ),
@@ -2430,7 +2430,7 @@ Widget _pMethodChip(
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: const Color(0xFF173EEA).withOpacity(0.18),
+                  color: const Color(0xFF173EEA).withValues(alpha: 0.18),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),

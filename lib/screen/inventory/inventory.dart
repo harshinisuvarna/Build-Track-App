@@ -27,7 +27,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   int _tabIndex = 0;
 
   final TextEditingController _searchCtrl = TextEditingController();
-  String _searchQuery = '';
   String _activeFilter = 'Recently Added';
 
   String? _selectedProjectId;
@@ -466,7 +465,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
               controller: _searchCtrl,
               // --- ADDED: Task 2 Debounce Timer Logic ---
               onChanged: (val) {
-                setState(() => _searchQuery = val);
                 if (_debounce?.isActive ?? false) _debounce!.cancel();
                 _debounce = Timer(const Duration(milliseconds: 500), () {
                   String category = 'All';

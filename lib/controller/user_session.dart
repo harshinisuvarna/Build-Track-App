@@ -9,7 +9,7 @@ class UserSession {
 
   static String _userId = '';
   static UserRole _role = UserRole.admin;
-  static String _projectId = '';
+  static String projectId = '';
 
   static bool _initialized = false;
 
@@ -20,14 +20,14 @@ class UserSession {
   }) {
     _userId = userId;
     _role = role;
-    _projectId = projectId;
+    UserSession.projectId = projectId;
     _initialized = true;
   }
 
   static void clear() {
     _userId = '';
     _role = UserRole.admin;
-    _projectId = '';
+    projectId = '';
     _initialized = false;
   }
 
@@ -69,8 +69,7 @@ class UserSession {
 
   static String get userId => _userId;
   static UserRole get role => _role;
-  static String get projectId => _projectId;
-  static set projectId(String value) => _projectId = value;
+
   static String get roleLabel {
     switch (_role) {
       case UserRole.admin:

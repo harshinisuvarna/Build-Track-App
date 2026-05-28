@@ -28,7 +28,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   String _itemType = 'material';
   bool _argsLoaded = false;
   bool _isLoading = true;
-  String _error = '';
   List<Map<String, dynamic>> _allLogs = [];
   bool _isGeneral = false;
   String? _filterProjectId;
@@ -100,7 +99,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   }
 
   Color _typeColor() => _getCategoryColor(_itemType);
-  Color _typeBg() => _getCategoryBg(_itemType);
 
   IconData _typeIcon() {
     switch (_itemType) {
@@ -160,7 +158,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   Future<void> _fetchRealLogs() async {
     setState(() {
       _isLoading = true;
-      _error = '';
     });
 
     try {
@@ -318,14 +315,12 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         });
       } else {
         setState(() {
-          _error = 'Failed to load logs: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e, stack) {
       dev.log('Error fetching logs', error: e, stackTrace: stack);
       setState(() {
-        _error = 'Error: $e';
         _isLoading = false;
       });
     }
@@ -816,12 +811,13 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       if (qty > 1) {
         if (parsedUnit == 'bag') {
           unitLabel = 'bags';
-        } else if (parsedUnit == 'ton')
+        } else if (parsedUnit == 'ton') {
           unitLabel = 'tons';
-        else if (parsedUnit == 'truck')
+        } else if (parsedUnit == 'truck') {
           unitLabel = 'trucks';
-        else if (parsedUnit == 'block')
+        } else if (parsedUnit == 'block') {
           unitLabel = 'blocks';
+        }
       }
       return '$sign$qtyFormatted $unitLabel';
     }

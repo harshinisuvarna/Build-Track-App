@@ -25,7 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
 
   bool _obscurePass = true;
-  final bool _rememberMe = false;
   bool _loading = false;
 
   @override

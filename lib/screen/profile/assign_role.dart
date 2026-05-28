@@ -1,3 +1,4 @@
+// Resolved print statements warning
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -67,8 +68,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       'projectId': _selectedProject,
     };
 
-    print('----- EXACT JSON PAYLOAD -----');
-    print(payload);
+    debugPrint('----- EXACT JSON PAYLOAD -----');
+    debugPrint(payload.toString());
 
     try {
       final response = await ApiService.post('/auth/register', payload);
@@ -86,17 +87,17 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         );
         Navigator.pop(context);
       } else {
-        print('----- API REQUEST FAILED -----');
-        print('Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
+        debugPrint('----- API REQUEST FAILED -----');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to assign role. Check console.')),
         );
       }
     } catch (e) {
-      print('----- CAUGHT EXCEPTION -----');
-      print(e);
+      debugPrint('----- CAUGHT EXCEPTION -----');
+      debugPrint(e.toString());
 
       if (!mounted) return;
       setState(() => _isLoading = false);

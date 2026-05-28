@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../common/themes/app_theme.dart';
 import '../../common/themes/app_colors.dart';
-import '../../common/themes/app_gradients.dart';
 import '../../common/widgets/app_widgets.dart';
 import '../../controller/report_model.dart';
 import '../../controller/project_provider.dart';
@@ -69,7 +68,7 @@ class MetricCard extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.10),
+              color: AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: AppColors.primary, size: 16),
@@ -314,7 +313,7 @@ class ChartSection extends StatelessWidget {
                     dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                     ),
                   ),
                   LineChartBarData(
@@ -351,135 +350,6 @@ class ChartSection extends StatelessWidget {
         height: 10,
         decoration: BoxDecoration(color: c, shape: BoxShape.circle),
       );
-}
-
-class _UnitToggle extends StatelessWidget {
-  const _UnitToggle({
-    required this.unitIndex,
-    required this.onChanged,
-    required this.report,
-  });
-  final int unitIndex;
-  final void Function(int) onChanged;
-  final ReportModel report;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      {
-        'label': 'Material',
-        'actual': report.materialCost,
-        'target': report.targetMaterial,
-      },
-      {
-        'label': 'Labour',
-        'actual': report.labourCost,
-        'target': report.targetLabour,
-      },
-      {
-        'label': 'Equipment',
-        'actual': report.equipmentCost,
-        'target': report.targetEquipment,
-      },
-      {
-        'label': 'Misc',
-        'actual': report.categoryBudget['Misc'] ?? 0.0,
-        'target': report.targetMisc,
-      },
-    ];
-
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: items.map((item) {
-          final actualRaw = item['actual'] as double;
-          final targetRaw = item['target'] as double;
-
-          final actual =
-              (actualRaw.isNaN || actualRaw.isInfinite) ? 0.0 : actualRaw;
-          final target =
-              (targetRaw.isNaN || targetRaw.isInfinite) ? 0.0 : targetRaw;
-
-          final hasTarget = target > 0;
-          final percent =
-              hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
-          final isOver = hasTarget && actual > target;
-
-          final color = isOver
-              ? AppColors.error
-              : percent >= 0.75
-                  ? AppColors.warning
-                  : AppColors.primary;
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      item['label'].toString(),
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '₹${actual.toStringAsFixed(0)} spent',
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (hasTarget)
-                          Text(
-                            'of ₹${target.toStringAsFixed(0)} budget',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: LinearProgressIndicator(
-                    value: hasTarget ? percent : 0,
-                    minHeight: 8,
-                    backgroundColor: const Color(0xFFEFEFEF),
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                ),
-                if (isOver)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Exceeded by ₹${(actual - target).toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
 }
 
 class ProjectSelector extends StatelessWidget {
@@ -769,84 +639,6 @@ class CategoryBudgetSection extends StatelessWidget {
   }
 }
 
-class _BudgetBar extends StatelessWidget {
-  const _BudgetBar({required this.label, required this.value});
-
-  final String label;
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    final safeValue = (value.isNaN || value.isInfinite) ? 0.0 : value;
-
-    final Color color = safeValue >= 0.90
-        ? AppColors.error
-        : safeValue >= 0.70
-            ? AppColors.warning
-            : AppColors.primary;
-
-    final String pct = '${(safeValue * 100).round()}%';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: AppTheme.label.copyWith(
-                  color: AppColors.textDark,
-                  fontSize: 12,
-                  letterSpacing: 0.4,
-                ),
-              ),
-              Text(
-                pct,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF0F8),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: safeValue.clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: (safeValue < 0.70)
-                            ? AppGradients.progressBar
-                            : null,
-                        color: (safeValue >= 0.70) ? color : null,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
@@ -865,8 +657,8 @@ class EfficiencyBanner extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isExceeded
-              ? [AppColors.error, AppColors.error.withOpacity(0.7)]
-              : [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+              ? [AppColors.error, AppColors.error.withValues(alpha: 0.7)]
+              : [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),

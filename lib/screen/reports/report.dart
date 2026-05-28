@@ -122,7 +122,7 @@ class _ReportsViewState extends State<_ReportsView> {
     }
 
     if (provider.error != null && provider.error!.trim().isNotEmpty) {
-      print("REPORT CRASH EXCEPTION: ${provider.error}"); // 👈 ADD THIS LINE
+      debugPrint("REPORT CRASH EXCEPTION: ${provider.error}"); // 👈 ADD THIS LINE
       return AppEmptyState(
         icon: Icons.cloud_off_outlined,
         message: 'Failed to load report.\nPull down to retry.',
