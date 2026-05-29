@@ -18,9 +18,9 @@ class UpdateProgressScreen extends StatefulWidget {
 
 class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   static const primaryBlue = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   // ── Selection state ─────────────────────────────────────────────────────
   String? _selectedProjectId;
@@ -28,13 +28,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   String? _selectedPhaseName;
   String? _selectedActivityName;
 
+  // ── Pre-fill from route args (activity row deep-link) ────────────────────
+  String? _prefillActivityId;   // used to toggle completion on submit
+  bool _argsLoaded = false;
+  bool _launchedFromTracker = false; // hides project / phase dropdowns when pre-filled
+
   // ── Form state ──────────────────────────────────────────────────────────
   final TextEditingController _notesCtrl = TextEditingController();
   late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
   PickedAttachment? _attachment;
 
-  // ── Full phase catalogue (built once, used for activity lookup) ──────────
+  // ── Full phase catalogue ─────────────────────────────────────────────────
   late final List<ConstructionPhase> _catalogue;
 
   static const _months = [
@@ -52,15 +57,59 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsLoaded) return;
+    _argsLoaded = true;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      // Pre-fill from execution tracker activity row
+      final projectId = args['projectId'] as String?;
+      final phaseName = args['phaseName'] as String?;
+      final activityName = args['activityName'] as String?;
+      final activityId = args['activityId'] as String?;
+      final floor = args['floor'] as String?;
+      final floors = args['projectFloors'] as List<String>?;
+
+      if (projectId != null && phaseName != null && activityName != null) {
+        _launchedFromTracker = true;
+        _selectedProjectId = projectId;
+        _selectedPhaseName = phaseName;
+        _selectedActivityName = activityName;
+        _prefillActivityId = activityId;
+
+        // Default to first project floor or the passed floor
+        if (floor != null && floor.isNotEmpty) {
+          _selectedFloor = floor;
+        } else if (floors != null && floors.isNotEmpty) {
+          _selectedFloor = floors.first;
+        }
+
+        // Sync progress from provider
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final provider = context.read<ProjectProvider>();
+          final project = provider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == projectId,
+            orElse: () => null,
+          );
+          if (project != null) {
+            setState(() => _completionProgress = project.progress);
+          }
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _notesCtrl.dispose();
     super.dispose();
   }
 
-  // ── Derive phase names for the selected project ──────────────────────────
   List<String> _phasesFor(ProjectModel? project) {
     if (project == null) return [];
-    // Use the project-configured phases if available, else full catalogue
     if (project.selectedPhaseNames != null &&
         project.selectedPhaseNames!.isNotEmpty) {
       return project.selectedPhaseNames!;
@@ -68,7 +117,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     return _catalogue.map((p) => p.name).toList();
   }
 
-  // ── Derive activities for selected phase ─────────────────────────────────
   List<String> _activitiesFor(String? phaseName) {
     if (phaseName == null) return [];
     final match = _catalogue.cast<ConstructionPhase?>().firstWhere(
@@ -78,8 +126,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     if (match == null) return [];
     return match.allActivities.map((a) => a.name).toList();
   }
-
-  // ── Build helpers ────────────────────────────────────────────────────────
 
   Widget _sectionLabel(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -167,13 +213,14 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
-      // ← No AppBottomNav: this is a focused workflow route
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             AppTopBar(
-              title: 'Update Progress',
+              title: _launchedFromTracker
+                  ? 'Progress Update'
+                  : 'Update Progress',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -191,8 +238,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
                   final floors = (selProject?.floors?.isNotEmpty ?? false)
                       ? List<String>.from(selProject!.floors!)
-                      : ['Basement', 'Ground Floor', '1st Floor', '2nd Floor', 'Terrace'];
-                  if (_selectedFloor != null && !floors.contains(_selectedFloor)) {
+                      : [
+                          'Basement',
+                          'Ground Floor',
+                          '1st Floor',
+                          '2nd Floor',
+                          'Terrace',
+                        ];
+                  if (_selectedFloor != null &&
+                      !floors.contains(_selectedFloor)) {
                     floors.add(_selectedFloor!);
                   }
 
@@ -205,7 +259,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── EXECUTION CONTEXT CARD ──────────────────────
+                        // ── If launched from tracker: show a context banner ─
+                        if (_launchedFromTracker) ...[
+                          _buildTrackerContextBanner(),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // ── EXECUTION CONTEXT CARD ─────────────────────────
+                        // Show full card normally; when pre-filled from tracker
+                        // only show the floor dropdown (others are locked).
                         _buildContextCard(
                           projects: projects,
                           floors: floors,
@@ -214,29 +276,30 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // ── ACTIVE STAGE SUMMARY (shown after selection) ─
-                        if (_selectedPhaseName != null && _selectedFloor != null) ...[
+                        // ── ACTIVE STAGE SUMMARY ───────────────────────────
+                        if (_selectedPhaseName != null &&
+                            _selectedFloor != null) ...[
                           _buildStageSummaryCard(),
                           const SizedBox(height: 20),
                         ],
 
-                        // ── EXECUTION NOTES ──────────────────────────────
+                        // ── EXECUTION NOTES ────────────────────────────────
                         _buildExecutionNotes(),
                         const SizedBox(height: 20),
 
-                        // ── UPDATE DATE ──────────────────────────────────
+                        // ── UPDATE DATE ────────────────────────────────────
                         _buildDateField(),
                         const SizedBox(height: 20),
 
-                        // ── PROGRESS PHOTOS ──────────────────────────────
+                        // ── PROGRESS PHOTOS ────────────────────────────────
                         _buildPhotoUpload(),
                         const SizedBox(height: 20),
 
-                        // ── MATERIAL CONSUMPTION ─────────────────────────
+                        // ── MATERIAL CONSUMPTION ───────────────────────────
                         _buildMaterialConsumption(context, provider),
                         const SizedBox(height: 32),
 
-                        // ── SUBMIT CTA ───────────────────────────────────
+                        // ── SUBMIT CTA ─────────────────────────────────────
                         _buildSaveButton(context, provider),
                         const SizedBox(height: 16),
                       ],
@@ -247,6 +310,64 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Tracker context banner ──────────────────────────────────────────────
+  Widget _buildTrackerContextBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: primaryBlue.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: primaryBlue.withValues(alpha: 0.20),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: primaryBlue.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: const Icon(
+              Icons.checklist_rounded,
+              color: primaryBlue,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Activity Progress Update',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: primaryBlue,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_selectedPhaseName ?? ""} › ${_selectedActivityName ?? ""}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textGray,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -274,7 +395,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card header
           Row(
             children: [
               Container(
@@ -284,7 +404,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   color: primaryBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.tune_rounded, color: primaryBlue, size: 17),
+                child: const Icon(Icons.tune_rounded,
+                    color: primaryBlue, size: 17),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -300,78 +421,141 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 1. Project
+          // 1. Project — locked when launched from tracker
           _sectionLabel('Project'),
-          _dropdownCard<String>(
-            value: _selectedProjectId,
-            hint: 'Select project',
-            items: projects
-                .map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name)))
-                .toList(),
-            onChanged: (val) => setState(() {
-              _selectedProjectId = val;
-              _selectedFloor = null;
-              _selectedPhaseName = null;
-              _selectedActivityName = null;
-              final p = projects.cast<ProjectModel?>()
-                  .firstWhere((x) => x?.id == val, orElse: () => null);
-              _completionProgress = p?.progress ?? 0.0;
-            }),
-          ),
+          _launchedFromTracker
+              ? _lockedField(
+                  projects
+                          .cast<ProjectModel?>()
+                          .firstWhere(
+                            (p) => p?.id == _selectedProjectId,
+                            orElse: () => null,
+                          )
+                          ?.name ??
+                      'Project',
+                )
+              : _dropdownCard<String>(
+                  value: _selectedProjectId,
+                  hint: 'Select project',
+                  items: projects
+                      .map((p) => DropdownMenuItem<String>(
+                          value: p.id, child: Text(p.name)))
+                      .toList(),
+                  onChanged: (val) => setState(() {
+                    _selectedProjectId = val;
+                    _selectedFloor = null;
+                    _selectedPhaseName = null;
+                    _selectedActivityName = null;
+                    final p = projects
+                        .cast<ProjectModel?>()
+                        .firstWhere((x) => x?.id == val, orElse: () => null);
+                    _completionProgress = p?.progress ?? 0.0;
+                  }),
+                ),
           const SizedBox(height: 16),
 
-          // 2. Floor / Zone
+          // 2. Floor / Zone — always editable
           _sectionLabel('Floor / Zone'),
           _dropdownCard<String>(
             value: _selectedFloor,
-            hint: _selectedProjectId == null ? 'Select project first' : 'Select floor or zone',
+            hint: _selectedProjectId == null
+                ? 'Select project first'
+                : 'Select floor or zone',
             enabled: _selectedProjectId != null,
             items: floors
-                .map((f) => DropdownMenuItem<String>(value: f, child: Text(f)))
+                .map((f) =>
+                    DropdownMenuItem<String>(value: f, child: Text(f)))
                 .toList(),
             onChanged: _selectedProjectId == null
                 ? null
                 : (val) => setState(() {
                       _selectedFloor = val;
-                      _selectedPhaseName = null;
-                      _selectedActivityName = null;
+                      if (!_launchedFromTracker) {
+                        _selectedPhaseName = null;
+                        _selectedActivityName = null;
+                      }
                     }),
           ),
           const SizedBox(height: 16),
 
-          // 3. Phase (dynamic — from project's selectedPhaseNames)
+          // 3. Phase — locked when launched from tracker
           _sectionLabel('Phase'),
-          _dropdownCard<String>(
-            value: _selectedPhaseName,
-            hint: _selectedFloor == null ? 'Select floor first' : 'Select phase',
-            enabled: _selectedFloor != null,
-            items: phaseNames
-                .map((n) => DropdownMenuItem<String>(value: n, child: Text(n)))
-                .toList(),
-            onChanged: _selectedFloor == null
-                ? null
-                : (val) => setState(() {
-                      _selectedPhaseName = val;
-                      _selectedActivityName = null;
-                    }),
-          ),
+          _launchedFromTracker
+              ? _lockedField(_selectedPhaseName ?? 'Phase')
+              : _dropdownCard<String>(
+                  value: _selectedPhaseName,
+                  hint: _selectedFloor == null
+                      ? 'Select floor first'
+                      : 'Select phase',
+                  enabled: _selectedFloor != null,
+                  items: phaseNames
+                      .map((n) => DropdownMenuItem<String>(
+                          value: n, child: Text(n)))
+                      .toList(),
+                  onChanged: _selectedFloor == null
+                      ? null
+                      : (val) => setState(() {
+                            _selectedPhaseName = val;
+                            _selectedActivityName = null;
+                          }),
+                ),
           const SizedBox(height: 16),
 
-          // 4. Activity (reactive on phase)
+          // 4. Activity — locked when launched from tracker
           _sectionLabel('Activity'),
-          _dropdownCard<String>(
-            value: _selectedActivityName,
-            hint: _selectedPhaseName == null ? 'Select phase first' : 'Select activity',
-            enabled: _selectedPhaseName != null && activityNames.isNotEmpty,
-            items: activityNames.isEmpty && _selectedPhaseName != null
-                ? [const DropdownMenuItem<String>(value: '__none', child: Text('No activities configured'))]
-                : activityNames
-                    .map((a) => DropdownMenuItem<String>(value: a, child: Text(a)))
-                    .toList(),
-            onChanged: (_selectedPhaseName == null || activityNames.isEmpty)
-                ? null
-                : (val) => setState(() => _selectedActivityName = val),
+          _launchedFromTracker
+              ? _lockedField(_selectedActivityName ?? 'Activity')
+              : _dropdownCard<String>(
+                  value: _selectedActivityName,
+                  hint: _selectedPhaseName == null
+                      ? 'Select phase first'
+                      : 'Select activity',
+                  enabled: _selectedPhaseName != null &&
+                      activityNames.isNotEmpty,
+                  items: activityNames.isEmpty && _selectedPhaseName != null
+                      ? [
+                          const DropdownMenuItem<String>(
+                            value: '__none',
+                            child: Text('No activities configured'),
+                          ),
+                        ]
+                      : activityNames
+                          .map((a) => DropdownMenuItem<String>(
+                              value: a, child: Text(a)))
+                          .toList(),
+                  onChanged:
+                      (_selectedPhaseName == null || activityNames.isEmpty)
+                          ? null
+                          : (val) =>
+                              setState(() => _selectedActivityName = val),
+                ),
+        ],
+      ),
+    );
+  }
+
+  /// Read-only display field for locked dropdowns when pre-filled from tracker.
+  Widget _lockedField(String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primaryBlue.withValues(alpha: 0.25), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: textDark,
+              ),
+            ),
           ),
+          const Icon(Icons.lock_outline_rounded, size: 14, color: textGray),
         ],
       ),
     );
@@ -396,7 +580,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pill
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -414,8 +597,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Phase name + activity
           Text(
             _selectedPhaseName ?? '',
             style: const TextStyle(
@@ -453,8 +634,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Completion slider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -577,7 +756,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_outlined, color: primaryBlue, size: 19),
+                const Icon(Icons.calendar_month_outlined,
+                    color: primaryBlue, size: 19),
                 const SizedBox(width: 8),
                 Text(
                   dateStr,
@@ -675,14 +855,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No materials logged for this location yet.',
-                style: TextStyle(color: textGray, fontStyle: FontStyle.italic, fontSize: 13),
+                style: TextStyle(
+                    color: textGray,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 13),
               ),
             )
           else
             ...materials.map(
               (m) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: _materialTag(m.description, m.amount.toString()),
+                child:
+                    _materialTag(m.description, m.amount.toString()),
               ),
             ),
         ],
@@ -696,7 +880,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         Container(
           width: 7,
           height: 7,
-          decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+          decoration: const BoxDecoration(
+              color: primaryBlue, shape: BoxShape.circle),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -730,13 +915,73 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
   // ── SUBMIT CTA ───────────────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context, ProjectProvider provider) {
+    // Label changes based on whether there's an activity to mark done
+    final label = _launchedFromTracker && _prefillActivityId != null
+        ? 'Mark as Done & Submit'
+        : 'Submit Progress Update';
+
     return GestureDetector(
       onTap: () async {
-        final project = provider.selectedProject;
+        final project = provider.selectedProject ??
+            provider.projects.cast<ProjectModel?>().firstWhere(
+              (p) => p?.id == _selectedProjectId,
+              orElse: () => null,
+            );
+
+        // 1. Update project-level progress percentage
         if (project != null) {
-          await provider.updateProjectProgress(project.id, _completionProgress);
+          await provider.updateProjectProgress(
+              project.id, _completionProgress);
         }
-        if (context.mounted) Navigator.maybePop(context);
+
+        // 2. If launched from tracker, toggle the activity to completed
+        //    and record completion date via the provider
+        if (_launchedFromTracker &&
+            _prefillActivityId != null &&
+            _selectedProjectId != null) {
+          await provider.toggleActivityCompletion(
+            _selectedProjectId!,
+            _prefillActivityId!,
+            completedAt: _selectedDate, // pass date from the form
+          );
+        }
+
+        if (context.mounted) {
+          // Show success snackbar with the completion date
+          final months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          ];
+          final dateLabel =
+              '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _launchedFromTracker &&
+                              _selectedActivityName != null
+                          ? '${_selectedActivityName!} marked done · $dateLabel'
+                          : 'Progress updated · $dateLabel',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+
+          Navigator.maybePop(context);
+        }
       },
       child: Container(
         width: double.infinity,
@@ -752,14 +997,20 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
-            SizedBox(width: 8),
+            Icon(
+              _launchedFromTracker
+                  ? Icons.check_circle_rounded
+                  : Icons.check_circle_outline,
+              color: Colors.white,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
             Text(
-              'Submit Progress Update',
-              style: TextStyle(
+              label,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,

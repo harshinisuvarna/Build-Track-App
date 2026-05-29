@@ -256,59 +256,9 @@ class AddEntryScreen extends StatelessWidget {
                       _entries.length,
                       (i) => _entryCard(context, i),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // ── Quick Actions ───────────────────────────────────────
-                    const AppSectionHeader(title: 'Quick Actions'),
-                    AppCard(
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/update-progress'),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: const Icon(
-                              Icons.assignment_turned_in_outlined,
-                              color: AppTheme.primary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Daily Progress Update',
-                                  style: AppTheme.bodyLarge.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: textDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Update work status, %, and photos',
-                                  style: AppTheme.caption.copyWith(
-                                    color: textGray,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right,
-                            color: textGray,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Quick Actions section removed — Daily Progress Update
+                    // is now accessible directly from the Execution Tracker
+                    // in Project Detail via the activity row action button.
                   ],
                 ),
               ),
