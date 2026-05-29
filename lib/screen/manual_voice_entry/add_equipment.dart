@@ -727,122 +727,89 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
+                    // ── SECTION 2: EQUIPMENT ENTRY ───────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
                             icon: Icons.precision_manufacturing_outlined,
-                            title: 'Machinery Identification',
-                            subtitle:
-                                'Track deployable dynamic equipment metrics',
+                            title: 'Equipment Entry',
+                            subtitle: 'Date · Equipment · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Equipment Name',
-                            required: true,
+                          // ── 1. DATE ────────────────────────────────────────
+                          const EntryFieldLabel('Date', required: true),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                                builder: (ctx, child) => Theme(
+                                  data: Theme.of(ctx).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.primary,
+                                      onPrimary: Colors.white,
+                                      onSurface: AppColors.textDark,
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF173EEA), width: 2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.primary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.primary, size: 22),
+                                ],
+                              ),
+                            ),
                           ),
+                          const SizedBox(height: 20),
+
+                          // ── 2. EQUIPMENT NAME ──────────────────────────────
+                          const EntryFieldLabel('Equipment Name',
+                              required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _nameCtrl,
-                            hint:
-                                'e.g. JCB Excavator 3DX, Hydra Crane 14T',
+                            hint: 'e.g. JCB Excavator 3DX, Hydra Crane 14T',
+                            onChanged: (_) => setState(() {}),
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Machinery Sub-Class / Model Tag (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _typeCtrl,
-                            hint: 'e.g. Earthmoving, Material Handling',
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Assigned Operator / Vendor (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _operatorCtrl,
-                            hint:
-                                'e.g. Sunil Mehta (Shree Balaji Logistics)',
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.shutter_speed_outlined,
-                            title: 'Log Metrics & Billing Rates',
-                            subtitle:
-                                'Quantify logistical assets timeline operations cost',
-                          ),
                           const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
 
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Usage Quantity',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _qtyCtrl,
-                                      hint: '0',
-                                      suffix: _selectedUnit ?? 'Unit',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_qtyError != null)
-                                      EntryErrorText(_qtyError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel('Unit'),
+                          // ── 3. UNIT ────────────────────────────────────────
+                          const EntryFieldLabel('Unit', required: true),
                           const SizedBox(height: 8),
                           UnitSelectorField(
                             value: _selectedUnit,
@@ -851,8 +818,129 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             onChanged: (u) =>
                                 setState(() => _selectedUnit = u),
                           ),
+                          const SizedBox(height: 20),
+
+                          // ── 4. QUANTITY ────────────────────────────────────
+                          const EntryFieldLabel('Quantity', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _qtyCtrl,
+                            hint: '0',
+                            suffix: _selectedUnit ?? 'Unit',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_qtyError != null) EntryErrorText(_qtyError!),
+                          const SizedBox(height: 20),
+
+                          // ── 5. RATE ────────────────────────────────────────
+                          const EntryFieldLabel('Rate (₹)', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _rateCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_rateError != null) EntryErrorText(_rateError!),
+                          const SizedBox(height: 20),
+
+                          // ── 6. AMOUNT (auto-calculated) ────────────────────
+                          const EntryFieldLabel('Amount (₹)'),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F2FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.currency_rupee_rounded,
+                                    size: 16, color: Color(0xFF173EEA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _subtotal() > 0
+                                      ? _subtotal().toStringAsFixed(
+                                          _subtotal() % 1 == 0 ? 0 : 2)
+                                      : '—',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF173EEA),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0E3FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Auto',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF173EEA),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── OPTIONAL DETAILS ───────────────────────────────
+                          Row(
+                            children: [
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10),
+                                child: Text(
+                                  'OPTIONAL DETAILS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textLight,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 7. MACHINERY SUB-CLASS ────────────────────────
+                          const EntryFieldLabel('Machinery Sub-Class / Model (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _typeCtrl,
+                            hint: 'e.g. Earthmoving, Material Handling',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 8. OPERATOR / VENDOR ─────────────────────────
+                          const EntryFieldLabel('Operator / Vendor (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _operatorCtrl,
+                            hint: 'e.g. Sunil Mehta (Shree Balaji Logistics)',
+                          ),
                           const SizedBox(height: 22),
 
+                          // ── GST PRICING MODULE ────────────────────────────
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -873,7 +961,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.percent_rounded,
@@ -894,7 +983,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-
                                 Container(
                                   height: 40,
                                   padding: const EdgeInsets.all(3),
@@ -997,7 +1085,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     ],
                                   ),
                                 ),
-
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
                                   const Text(
@@ -1018,7 +1105,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     onChanged: (_) => setState(() {}),
                                   ),
                                 ],
-
                                 const SizedBox(height: 14),
                                 const Divider(
                                     color: Color(0xFFE2E4F6), thickness: 1),
@@ -1070,80 +1156,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          const EntryFieldLabel(
-                            'Deployment Event Comments (Optional)',
-                          ),
+                          // ── NOTES ────────────────────────────────────────
+                          const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Purchase Date',
-                            subtitle:
-                                'Select when this transaction took place',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
-                                builder: (ctx, child) => Theme(
-                                  data: Theme.of(ctx).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: AppColors.primary,
-                                      onPrimary: Colors.white,
-                                      onSurface: AppColors.textDark,
-                                    ),
-                                  ),
-                                  child: child!,
-                                ),
-                              );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E5FF),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_month_outlined,
-                                    color: AppColors.primary,
-                                    size: 19,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),

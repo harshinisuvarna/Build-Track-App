@@ -53,7 +53,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
-  String? _workTypeError;
   String? _qtyError;
   String? _rateError;
 
@@ -680,169 +679,23 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
+                    // ── SECTION 2: LABOUR ENTRY ───────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
                             icon: Icons.people_outline,
-                            title: 'Labour Allocation Details',
-                            subtitle:
-                                'Define working crew parameters or workforce units',
+                            title: 'Labour Entry',
+                            subtitle: 'Date · Labour Type · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Labour / Crew Name',
-                            required: true,
-                          ),
+                          // ── 1. DATE ────────────────────────────────────────
+                          const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _nameCtrl,
-                            hint:
-                                'e.g. Rajesh Kumar Team, Steel Fixers Crew',
-                          ),
-                          if (_nameError != null) EntryErrorText(_nameError!),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Trade Classification',
-                            required: true,
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _workTypeCtrl,
-                            hint:
-                                'e.g. Masonry, Barbending, Concrete Crew',
-                          ),
-                          if (_workTypeError != null)
-                            EntryErrorText(_workTypeError!),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Subcontractor / Sub-Group Tag (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _categoryCtrl,
-                            hint: 'e.g. Vertex Infra Contractors',
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.timer_outlined,
-                            title: 'Quantified Effort & Wages',
-                            subtitle:
-                                'Calculate deployment financials via timeline logs',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Work Quantity',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _qtyCtrl,
-                                      hint: '0',
-                                      suffix: _selectedUnit ?? 'Unit',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_qtyError != null)
-                                      EntryErrorText(_qtyError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel('Unit', required: false),
-                          const SizedBox(height: 8),
-                          UnitSelectorField(
-                            value: _selectedUnit,
-                            units: kLabourUnits,
-                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
-                            onChanged: (u) =>
-                                setState(() => _selectedUnit = u),
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                              'Overtime Amount (Optional)'),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _overtimeCtrl,
-                            hint: '0',
-                            prefix: '₹',
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Operational Activity Notes (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryNotesField(controller: _notesCtrl),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Purchase Date',
-                            subtitle:
-                                'Select when this transaction took place',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
                           GestureDetector(
                             onTap: () async {
                               final picked = await showDatePicker(
@@ -866,38 +719,203 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E5FF),
-                                  width: 1.5,
-                                ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF173EEA), width: 2)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.calendar_month_outlined,
-                                    color: AppColors.primary,
-                                    size: 19,
-                                  ),
+                                  const Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.primary, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                       color: AppColors.textDark,
                                     ),
                                   ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.primary, size: 22),
                                 ],
                               ),
                             ),
                           ),
+                          const SizedBox(height: 20),
+
+                          // ── 2. LABOUR TYPE ─────────────────────────────────
+                          const EntryFieldLabel('Labour Type', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _nameCtrl,
+                            hint: 'e.g. Mason, Carpenter, Steel Fixer',
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_nameError != null) EntryErrorText(_nameError!),
+                          const SizedBox(height: 20),
+
+                          // ── 3. UNIT ────────────────────────────────────────
+                          const EntryFieldLabel('Unit', required: true),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            units: kLabourUnits,
+                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
+                            onChanged: (u) =>
+                                setState(() => _selectedUnit = u),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 4. QUANTITY ────────────────────────────────────
+                          const EntryFieldLabel('Quantity', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _qtyCtrl,
+                            hint: '0',
+                            suffix: _selectedUnit ?? 'Unit',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_qtyError != null) EntryErrorText(_qtyError!),
+                          const SizedBox(height: 20),
+
+                          // ── 5. RATE ────────────────────────────────────────
+                          const EntryFieldLabel('Rate (₹)', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _rateCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_rateError != null) EntryErrorText(_rateError!),
+                          const SizedBox(height: 20),
+
+                          // ── 6. AMOUNT (auto-calculated) ────────────────────
+                          const EntryFieldLabel('Amount (₹)'),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F2FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.currency_rupee_rounded,
+                                    size: 16, color: Color(0xFF173EEA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (() {
+                                    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
+                                    final rate = double.tryParse(_rateCtrl.text) ?? 0;
+                                    final sub = qty * rate;
+                                    return sub > 0
+                                        ? sub.toStringAsFixed(sub % 1 == 0 ? 0 : 2)
+                                        : '—';
+                                  })(),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF173EEA),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0E3FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Auto',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF173EEA),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── OPTIONAL DETAILS ───────────────────────────────
+                          Row(
+                            children: [
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10),
+                                child: Text(
+                                  'OPTIONAL DETAILS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textLight,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 7. TRADE / WORK TYPE ───────────────────────────
+                          const EntryFieldLabel('Trade / Work Type (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _workTypeCtrl,
+                            hint: 'e.g. Masonry, Barbending, Concrete Crew',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 8. CONTRACTOR / TEAM ──────────────────────────
+                          const EntryFieldLabel('Contractor / Team (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _categoryCtrl,
+                            hint: 'e.g. Vertex Infra Contractors',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 9. OVERTIME ────────────────────────────────────
+                          const EntryFieldLabel('Overtime Amount (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _overtimeCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 10. NOTES ──────────────────────────────────────
+                          const EntryFieldLabel('Notes (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryNotesField(controller: _notesCtrl),
                         ],
                       ),
                     ),
+
+
 
                     CostSummaryCard(
                       totalAmount: _totalCost(),

@@ -737,139 +737,230 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
-                    // ── SECTION 2: MATERIAL DETAILS ────────────────────────
+
+                    // ── SECTION 2: MATERIAL PURCHASE ENTRY ────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ── Header ──────────────────────────────────────
                           const EntryCardHeader(
-                            icon: Icons.inventory_2_outlined,
-                            title: 'Material Details',
-                            subtitle: 'Specify the material being logged',
+                            icon: Icons.receipt_long_outlined,
+                            title: 'Material Purchase Entry',
+                            subtitle: 'Date · Item · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Material Name',
-                            required: true,
+
+                          // ── 1. DATE ──────────────────────────────────────
+                          const EntryFieldLabel('Date', required: true),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                                builder: (ctx, child) => Theme(
+                                  data: Theme.of(ctx).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.primary,
+                                      onPrimary: Colors.white,
+                                      onSurface: AppColors.textDark,
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF173EEA), width: 2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.primary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.primary, size: 22),
+                                ],
+                              ),
+                            ),
                           ),
+                          const SizedBox(height: 20),
+
+                          // ── 2. MATERIAL / ITEM ───────────────────────────
+                          const EntryFieldLabel('Material / Item',
+                              required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _nameCtrl,
                             hint: 'e.g. Ready-Mix Concrete M30',
+                            onChanged: (_) => setState(() {}),
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 3. UNIT ──────────────────────────────────────
+                          const EntryFieldLabel('Unit', required: true),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            onChanged: (u) =>
+                                setState(() => _selectedUnit = u),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 4. QUANTITY ──────────────────────────────────
+                          const EntryFieldLabel('Quantity', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _qtyCtrl,
+                            hint: '0',
+                            suffix: _selectedUnit ?? 'units',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_qtyError != null) EntryErrorText(_qtyError!),
+                          const SizedBox(height: 20),
+
+                          // ── 5. RATE ──────────────────────────────────────
+                          const EntryFieldLabel('Rate (₹)', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _rateCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_rateError != null) EntryErrorText(_rateError!),
+                          const SizedBox(height: 20),
+
+                          // ── 6. AMOUNT (auto-calculated) ──────────────────
+                          const EntryFieldLabel('Amount (₹)', required: false),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F2FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.currency_rupee_rounded,
+                                    size: 16, color: Color(0xFF173EEA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _subtotal() > 0
+                                      ? _subtotal().toStringAsFixed(
+                                          _subtotal() % 1 == 0 ? 0 : 2)
+                                      : '—',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF173EEA),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0E3FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Auto',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF173EEA),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── Divider before optional fields ───────────────
+                          Row(
+                            children: [
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10),
+                                child: Text(
+                                  'OPTIONAL DETAILS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textLight,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 7. BRAND ─────────────────────────────────────
                           const EntryFieldLabel('Brand (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _brandCtrl,
                             hint: 'e.g. UltraTech, Tata Steel',
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 8. CATEGORY ───────────────────────────────────
                           const EntryFieldLabel('Category (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _categoryCtrl,
                             hint: 'e.g. Structural, Finishing',
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 9. SUPPLIER ───────────────────────────────────
                           const EntryFieldLabel('Supplier (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _supplierCtrl,
                             hint: 'e.g. ABC Suppliers Ltd.',
                           ),
-                        ],
-                      ),
-                    ),
+                          const SizedBox(height: 24),
 
-                    // ── SECTION 3: QUANTITY & RATE ─────────────────────────
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.straighten_outlined,
-                            title: 'Quantity & Rate',
-                            subtitle: 'Enter amounts for cost calculation',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-
-                          // ── ROW 1: Rate / Unit  +  Unit selector ──────────
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel('Unit (Optional)'),
-                                    const SizedBox(height: 8),
-                                    UnitSelectorField(
-                                      value: _selectedUnit,
-                                      onChanged: (u) =>
-                                          setState(() => _selectedUnit = u),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          // ── ROW 2: Quantity ───────────────────────────────
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const EntryFieldLabel(
-                                'Quantity',
-                                required: true,
-                              ),
-                              const SizedBox(height: 8),
-                              EntryUnderlineField(
-                                controller: _qtyCtrl,
-                                hint: '0',
-                                suffix: _selectedUnit ?? 'units',
-                                keyboardType: TextInputType.number,
-                                onChanged: (_) => setState(() {}),
-                              ),
-                              if (_qtyError != null)
-                                EntryErrorText(_qtyError!),
-                            ],
-                          ),
-                          const SizedBox(height: 22),
-
-                          // ── GST PRICING MODULE ───────────────────────────
+                          // ── GST PRICING MODULE ────────────────────────────
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -890,7 +981,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.percent_rounded,
@@ -949,8 +1041,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
+                                                        offset: const Offset(
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -991,8 +1083,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
+                                                        offset: const Offset(
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -1087,6 +1179,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
+                          // ── NOTES ─────────────────────────────────────────
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
@@ -1094,75 +1187,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       ),
                     ),
 
-                    // ── PURCHASING DATE ────────────────────────────────────
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Purchasing Date',
-                            subtitle:
-                                'Select when this purchase or transaction took place',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
-                                builder: (ctx, child) => Theme(
-                                  data: Theme.of(ctx).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: AppColors.primary,
-                                      onPrimary: Colors.white,
-                                      onSurface: AppColors.textDark,
-                                    ),
-                                  ),
-                                  child: child!,
-                                ),
-                              );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E5FF),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_month_outlined,
-                                    color: AppColors.primary,
-                                    size: 19,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
 
                     // ── SECTION 4: COST SUMMARY ────────────────────────────
                     CostSummaryCard(
