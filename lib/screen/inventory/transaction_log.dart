@@ -235,7 +235,11 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
           if (!_isGeneral) {
             if (category != _itemType) continue;
-            if (rawCat != _itemName.trim().toLowerCase()) {
+            final String transactionItemName = (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
+                .toString()
+                .trim()
+                .toLowerCase();
+            if (transactionItemName != _itemName.trim().toLowerCase()) {
               continue;
             }
           }

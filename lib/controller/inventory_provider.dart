@@ -70,14 +70,18 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   // New method for Server-Side Search
-  Future<void> performSearch(String query, String category) async {
+  Future<void> performSearch(String query, String category, {String projectId = ''}) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
       // Hits the new backend-connected search method
-      final rawData = await ApiService.searchMaterials(query: query, category: category);
+      final rawData = await ApiService.searchMaterials(
+        query: query,
+        category: category,
+        projectId: projectId,
+      );
       _inventory = rawData.map((json) => InventoryItem.fromJson(json)).toList();
     } catch (e) {
       _error = 'Search failed: $e';

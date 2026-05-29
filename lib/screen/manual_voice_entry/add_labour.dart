@@ -136,9 +136,57 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           } catch (_) {}
         }
       } else {
+        // ── New entry — default project from session ───────────────────
         _selectedProjectId ??= UserSession.projectId;
+
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        // Smart pre-fill from latest record
+        final latest = args['latestRecord'] as Map<String, dynamic>?;
+        if (latest != null) {
+          final pId = latest['projectId'] ?? latest['project'];
+          if (pId != null) {
+            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+          }
+          final floor = latest['floor'] ?? latest['zone'];
+          if (floor != null && floor.toString().isNotEmpty) {
+            _selectedFloor = floor.toString();
+          }
+          final phase = latest['phase'];
+          if (phase != null && phase.toString().isNotEmpty) {
+            _selectedPhase = phase;
+          }
+          final activity = latest['activity'];
+          if (activity != null && activity.toString().isNotEmpty) {
+            _selectedActivity = activity.toString();
+          }
+          final labourType = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          if (labourType != null && labourType.toString().isNotEmpty) {
+            _nameCtrl.text = labourType.toString();
+          }
+          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
+          if (rawUnit == 'day' || rawUnit == 'days') {
+            _selectedUnit = 'Day';
+          } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+            _selectedUnit = 'Hour';
+          } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
+            _selectedUnit = 'Sq.ft';
+          } else if (rawUnit.isNotEmpty) {
+            _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+          }
+          
+          _categoryCtrl.text = latest['categoryName'] as String? ?? latest['category'] as String? ?? '';
+          _workTypeCtrl.text = latest['workType'] as String? ?? latest['remarks'] as String? ?? latest['notes'] as String? ?? '';
+
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+            _isAddAndPay = true;
+            _paymentMethod = latest['paymentMode'] ?? 'Cash';
+            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+          }
+        }
       }
 
       if (args['openPayment'] == true) {
@@ -217,6 +265,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
+      "floor": _selectedFloor,
+      "phase": _selectedPhase,
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
     };

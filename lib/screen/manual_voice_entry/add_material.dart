@@ -152,6 +152,59 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        // Smart pre-fill from latest record
+        final latest = args['latestRecord'] as Map<String, dynamic>?;
+        if (latest != null) {
+          final pId = latest['projectId'] ?? latest['project'];
+          if (pId != null) {
+            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+          }
+          final floor = latest['floor'] ?? latest['zone'];
+          if (floor != null && floor.toString().isNotEmpty) {
+            _selectedFloor = floor.toString();
+          }
+          final phase = latest['phase'];
+          if (phase != null && phase.toString().isNotEmpty) {
+            _selectedPhase = phase;
+          }
+          final activity = latest['activity'];
+          if (activity != null && activity.toString().isNotEmpty) {
+            _selectedActivity = activity.toString();
+          }
+          final materialName = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          if (materialName != null && materialName.toString().isNotEmpty) {
+            _nameCtrl.text = materialName.toString();
+          }
+          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
+          if (rawUnit == 'bag' || rawUnit == 'bags') {
+            _selectedUnit = 'bag';
+          } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+            _selectedUnit = 'Sq.ft';
+          } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+            _selectedUnit = 'ton';
+          } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+            _selectedUnit = 'kg';
+          } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+            _selectedUnit = 'unit';
+          } else if (rawUnit.isNotEmpty) {
+            _selectedUnit = rawUnit;
+          }
+          _brandCtrl.text = latest['brand'] as String? ?? '';
+          _supplierCtrl.text = latest['supplier'] as String? ?? '';
+          
+          final gstVal = latest['gst'] ?? 0;
+          _gstCtrl.text = gstVal.toString();
+          _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+            _isAddAndPay = true;
+            _paymentMethod = latest['paymentMode'] ?? 'Cash';
+            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+          }
+        }
       }
 
       if (args['openPayment'] == true) {
@@ -260,6 +313,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "project": _selectedProjectId,
       "notes": _notesCtrl.text.trim(),
       "date": _selectedDate.toIso8601String(),
+      "floor": _selectedFloor,
+      "phase": _selectedPhase,
+      "gst": double.tryParse(_gstCtrl.text) ?? 0,
+      "isWithGst": _isWithGst,
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
     };

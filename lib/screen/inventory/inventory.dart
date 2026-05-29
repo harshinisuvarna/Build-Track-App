@@ -7,6 +7,7 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 // --- ADDED YOUR NEW PROVIDER IMPORTS ---
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/models/inventory_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +19,6 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   static const primaryBlue = AppColors.primary;
-  static const purple = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
@@ -151,158 +151,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  void _showEntryOptions(BuildContext context, String type) {
-    // ... (Your exact existing code for _showEntryOptions remains here)
-    final voiceRoutes = {
-      'material': '/review-material',
-      'labour': '/review-labour',
-      'equipment': '/review-equipment',
-    };
-    final manualRoutes = {
-      'material': '/add-material',
-      'labour': '/add-labour',
-      'equipment': '/add-equipment',
-    };
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDDE0F0),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'How do you want to add?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: textDark,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _sheetOption(
-              icon: Icons.mic,
-              iconColor: primaryBlue,
-              iconBg: const Color(0xFFEEF0FF),
-              title: 'Use Voice',
-              subtitle: 'Speak and let AI capture the details',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(
-                  context,
-                  voiceRoutes[type]!,
-                  arguments: {'type': type},
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _sheetOption(
-              icon: Icons.edit_outlined,
-              iconColor: purple,
-              iconBg: const Color(0xFFF0EEFF),
-              title: 'Enter Manually',
-              subtitle: 'Fill the form manually',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(
-                  context,
-                  manualRoutes[type]!,
-                  arguments: {'type': type},
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: () => Navigator.pop(ctx),
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: textGray,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _sheetOption({
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E5FF)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: textDark,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 13.5, color: textGray),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: textGray, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -474,6 +323,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   context.read<InventoryProvider>().performSearch(
                     val,
                     category,
+                    projectId: _selectedProjectId ?? '',
                   );
                 });
               },
@@ -571,15 +421,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return const Center(child: CircularProgressIndicator(color: primaryBlue));
     }
 
-    // Maps your real backend data directly into your custom `_inventoryCard` UI
     var items = provider.materialInventory.map((item) {
       final isLow = item.closingStock < item.threshold;
       final levelStr = isLow
           ? 'LOW'
           : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
-      final color = isLow
-          ? Colors.redAccent
-          : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
 
       int timestamp = 0;
       if (item.id.length == 24) {
@@ -591,18 +437,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return {
         'name': item.name,
         'projectId': _selectedProjectId ?? 'p1',
-        'widget': _inventoryCard(
-          context: context,
+        'widget': _ItemGroupWidget(
+          item: item,
           icon: Icons.architecture,
-          name: item.name,
-          lastUpdated: 'Live Stock Level',
-          qty: item.closingStock.toStringAsFixed(0),
-          unit: 'units',
-          level: levelStr,
-          levelColor: color,
-          bottomColor: color,
           type: 'material',
-          itemId: item.id,
+          selectedProjectId: _selectedProjectId,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -741,9 +580,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final levelStr = isLow
           ? 'LOW'
           : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
-      final color = isLow
-          ? Colors.redAccent
-          : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
 
       int timestamp = 0;
       if (item.id.length == 24) {
@@ -754,18 +590,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
       return {
         'name': item.name,
-        'widget': _inventoryCard(
-          context: context,
+        'widget': _ItemGroupWidget(
+          item: item,
           icon: Icons.people_outline,
-          name: item.name,
-          lastUpdated: 'Live Stock Level',
-          qty: item.closingStock.toStringAsFixed(0),
-          unit: item.unit,
-          level: levelStr,
-          levelColor: color,
-          bottomColor: color,
           type: 'labour',
-          itemId: item.id,
+          selectedProjectId: _selectedProjectId,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -784,9 +613,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       final levelStr = isLow
           ? 'LOW'
           : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
-      final color = isLow
-          ? Colors.redAccent
-          : (levelStr == 'HIGH' ? primaryBlue : Colors.orange);
 
       int timestamp = 0;
       if (item.id.length == 24) {
@@ -797,18 +623,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
       return {
         'name': item.name,
-        'widget': _inventoryCard(
-          context: context,
+        'widget': _ItemGroupWidget(
+          item: item,
           icon: Icons.construction_outlined,
-          name: item.name,
-          lastUpdated: 'Live Stock Level',
-          qty: item.closingStock.toStringAsFixed(0),
-          unit: item.unit,
-          level: levelStr,
-          levelColor: color,
-          bottomColor: color,
           type: 'equipment',
-          itemId: item.id,
+          selectedProjectId: _selectedProjectId,
         ),
         'level': isLow ? 0 : (levelStr == 'HIGH' ? 2 : 1),
         'time': timestamp,
@@ -910,53 +729,86 @@ class _InventoryScreenState extends State<InventoryScreen> {
       },
     );
   }
+}
 
-  Widget _inventoryCard({
-    required BuildContext context,
-    required IconData icon,
-    required String name,
-    required String lastUpdated,
-    required String qty,
-    required String unit,
-    required String level,
-    required Color levelColor,
-    required Color bottomColor,
-    required String type,
-    String itemId = '',
-  }) {
-    // ... (Your exact existing code)
-    String formattedDate = '';
-    if (itemId.length == 24) {
-      try {
-        final timestamp = int.parse(itemId.substring(0, 8), radix: 16);
-        final createdDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-        final months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-        formattedDate = '${createdDate.day} ${months[createdDate.month - 1]} ${createdDate.year}';
-      } catch (_) {}
+class _ItemGroupWidget extends StatelessWidget {
+  const _ItemGroupWidget({
+    required this.item,
+    required this.icon,
+    required this.type,
+    required this.selectedProjectId,
+  });
+
+  final InventoryItem item;
+  final IconData icon;
+  final String type; // 'material', 'labour', 'equipment'
+  final String? selectedProjectId;
+
+  String _formatItemDate(dynamic dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final dt = DateTime.parse(dateStr.toString());
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      return '${dt.day} ${months[dt.month - 1]}';
+    } catch (_) {
+      return dateStr.toString();
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final txs = item.transactions;
+    final totalTxs = txs.length;
+
+    // Determine level/color
+    final isLow = item.closingStock < item.threshold;
+    final levelStr = isLow
+        ? 'LOW'
+        : (item.closingStock > item.threshold * 2 ? 'HIGH' : 'MED');
+    final statusColor = isLow
+        ? Colors.redAccent
+        : (levelStr == 'HIGH' ? AppColors.primary : Colors.orange);
+
+    String lastUpdatedLabel = '—';
+    if (txs.isNotEmpty) {
+      lastUpdatedLabel = _formatItemDate(txs[0]['date'] ?? txs[0]['updatedAt']);
+    }
+
+    String stockLabel = 'Current Stock';
+    if (type == 'labour') {
+      stockLabel = 'Current Quantity';
+    } else if (type == 'equipment') {
+      stockLabel = 'Current Usage';
+    }
+
+    final unitSuffix = (item.unit.isNotEmpty && item.unit.toLowerCase() != 'units') ? ' ${item.unit}' : '';
+    final stockText = '$stockLabel: ${item.closingStock.toStringAsFixed(0)}$unitSuffix';
 
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: () => Navigator.pushNamed(
-          context,
-          '/logs',
-          arguments: {
-            'type': type,
-            'name': name,
-            'projectId': _selectedProjectId,
-          },
-        ),
+        onTap: () {
+          // Navigate directly to the item details page for that material
+          Navigator.pushNamed(
+            context,
+            '/logs',
+            arguments: {
+              'type': type,
+              'name': item.name,
+              'projectId': selectedProjectId,
+            },
+          );
+        },
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border(bottom: BorderSide(color: bottomColor, width: 3.5)),
+            border: Border(bottom: BorderSide(color: statusColor, width: 3.5)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.04),
@@ -964,116 +816,98 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: purple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: purple, size: 20),
-                  ),
-                  const Spacer(),
-                  if (formattedDate.isNotEmpty) ...[
-                    Text(
-                      formattedDate,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: textGray,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: levelColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      level,
-                      style: TextStyle(
-                        color: levelColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ],
+              // Item Icon
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 20),
               ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 12),
+
+              // Title details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      stockText,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
                       children: [
                         Text(
-                          name,
-                          style: AppTheme.bodyLarge.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: textDark,
+                          'Transactions: $totalTxs',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(width: 12),
                         Text(
-                          lastUpdated,
-                          style: AppTheme.caption.copyWith(color: textGray),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              qty,
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: textDark,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              unit,
-                              style: AppTheme.body.copyWith(color: textGray),
-                            ),
-                          ],
+                          'Last Updated: $lastUpdatedLabel',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Material(
-                      color: const Color(0xFFF0F2FF),
-                      borderRadius: BorderRadius.circular(16),
-                      child: InkWell(
-                        onTap: () => _showEntryOptions(context, type),
-                        borderRadius: BorderRadius.circular(16),
-                        child: const SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: Icon(Icons.add, color: primaryBlue, size: 22),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
+
+              // Add (+) button (Smart Prefill from latest transaction)
+              Material(
+                color: const Color(0xFFF0F2FF),
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  onTap: () {
+                    // Open prefilled entry screen using the latest record (txs[0])
+                    final manualRoutes = {
+                      'material': '/add-material',
+                      'labour': '/add-labour',
+                      'equipment': '/add-equipment',
+                    };
+                    Navigator.pushNamed(
+                      context,
+                      manualRoutes[type]!,
+                      arguments: {
+                        'type': type,
+                        'prefill': item.name,
+                        'latestRecord': txs.isNotEmpty ? txs[0] : null,
+                      },
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Icon(Icons.add, color: AppColors.primary, size: 20),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

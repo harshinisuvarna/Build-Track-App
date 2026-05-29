@@ -7,6 +7,7 @@ class InventoryItem {
   final double threshold;
   final String unit;
   final String category; // 'material' | 'labour' | 'equipment'
+  final List<dynamic> transactions; // Individual transactions
 
   InventoryItem({
     required this.id,
@@ -17,6 +18,7 @@ class InventoryItem {
     required this.threshold,
     this.unit = 'units',
     this.category = 'material',
+    this.transactions = const [],
   });
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
@@ -44,7 +46,6 @@ class InventoryItem {
 
     return InventoryItem(
       id: json['_id'] ?? '',
-      // --- UPDATED: Checking all possible backend keys for the name ---
       name:
           json['materialName'] ??
           json['itemName'] ??
@@ -62,6 +63,7 @@ class InventoryItem {
       threshold: (json['threshold'] ?? 10.0).toDouble(),
       unit: json['unit'] ?? 'units',
       category: category,
+      transactions: json['transactions'] ?? const [],
     );
   }
 }

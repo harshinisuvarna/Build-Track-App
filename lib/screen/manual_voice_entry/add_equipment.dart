@@ -148,6 +148,60 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _selectedProjectId ??= UserSession.projectId;
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        // Smart pre-fill from latest record
+        final latest = args['latestRecord'] as Map<String, dynamic>?;
+        if (latest != null) {
+          final pId = latest['projectId'] ?? latest['project'];
+          if (pId != null) {
+            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+          }
+          final floor = latest['floor'] ?? latest['zone'];
+          if (floor != null && floor.toString().isNotEmpty) {
+            _selectedFloor = floor.toString();
+          }
+          final phase = latest['phase'];
+          if (phase != null && phase.toString().isNotEmpty) {
+            _selectedPhase = phase;
+          }
+          final activity = latest['activity'];
+          if (activity != null && activity.toString().isNotEmpty) {
+            _selectedActivity = activity.toString();
+          }
+          final equipName = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          if (equipName != null && equipName.toString().isNotEmpty) {
+            _nameCtrl.text = equipName.toString();
+          }
+          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
+          if (rawUnit == 'day' || rawUnit == 'days') {
+            _selectedUnit = 'Day';
+          } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+            _selectedUnit = 'Hour';
+          } else if (rawUnit == 'week' || rawUnit == 'weeks') {
+            _selectedUnit = 'Week';
+          } else if (rawUnit == 'month' || rawUnit == 'months') {
+            _selectedUnit = 'Month';
+          } else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') {
+            _selectedUnit = 'Trip';
+          } else if (rawUnit.isNotEmpty) {
+            _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+          }
+          
+          _typeCtrl.text = latest['categoryName'] as String? ?? latest['category'] as String? ?? '';
+          _operatorCtrl.text = latest['operator'] as String? ?? latest['remarks'] as String? ?? latest['notes'] as String? ?? '';
+
+          final gstVal = latest['gst'] ?? latest['gstPercentage'] ?? 0;
+          _gstCtrl.text = gstVal.toString();
+          _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+            _isAddAndPay = true;
+            _paymentMethod = latest['paymentMode'] ?? 'Cash';
+            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+          }
+        }
       }
 
       if (args['openPayment'] == true) {
@@ -236,6 +290,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
+      "floor": _selectedFloor,
+      "phase": _selectedPhase,
+      "gst": double.tryParse(_gstCtrl.text) ?? 0,
+      "isWithGst": _isWithGst,
       "gstPercentage":
           _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
       "totalAmount": _finalTotal(),
