@@ -318,9 +318,12 @@ class ApiService {
             }
           }
 
-          final String key = '$itemName||$tabType';
+          String unit = (t['unit'] ?? '').toString().trim();
+          if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
+            unit = '';
+          }
+          final String key = '$itemName||$tabType||$unit';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-          final String unit = (t['unit'] ?? 'units').toString();
 
           final bool isPositive = t['subType']?.toString().toLowerCase() != 'consumption' &&
               t['materialType']?.toString().toLowerCase() != 'usage';
@@ -450,9 +453,12 @@ class ApiService {
             }
           }
 
-          final String key = '$itemName||$tabType';
+          String unit = (t['unit'] ?? '').toString().trim();
+          if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
+            unit = '';
+          }
+          final String key = '$itemName||$tabType||$unit';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-          final String unit = (t['unit'] ?? 'units').toString();
 
           final bool isPositive = t['subType']?.toString().toLowerCase() != 'consumption' &&
               t['materialType']?.toString().toLowerCase() != 'usage';
@@ -584,6 +590,158 @@ class ApiService {
     } catch (e) {
       print('DELETE /projects/$id Error: $e');
       return false;
+    }
+  }
+
+  static Future<List<dynamic>> fetchRecentTransactions({
+    required String projectId,
+    required String type,
+  }) async {
+    try {
+      final response = await get('/transactions?project=$projectId&type=$type');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map) {
+          return (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+        }
+      }
+      return [];
+    } catch (e) {
+      print('fetchRecentTransactions Error: $e');
+      return [];
+    }
+  }
+
+  // ── SMART AUTOCOMPLETE SUGGESTION ENGINE ────────────────────────────────
+  /// Returns a deduplicated, ranked list of historical entries for the
+  /// autocomplete dropdown.
+  ///
+  /// Ranking priority (descending):
+  ///   1. Current project history  →  most recent  →  most frequent
+  ///   2. All-project (global) history  →  most recent
+  ///
+  /// Returns at most 50 records so the caller can locally filter them.
+  static Future<List<Map<String, dynamic>>> fetchSuggestions({
+    required String projectId,
+    required String type, // 'Materials' | 'Wages' | 'Expense'
+  }) async {
+    try {
+      // ── 1. Fetch current-project transactions ──────────────────────────
+      List<dynamic> projectTxs = [];
+      try {
+        final r = await get('/transactions?project=$projectId&type=$type');
+        if (r.statusCode == 200) {
+          final d = json.decode(r.body);
+          if (d is List) {
+            projectTxs = d;
+          } else if (d is Map) {
+            projectTxs = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+          }
+        }
+      } catch (_) {}
+
+      // ── 2. Fetch global transactions (all projects) ────────────────────
+      List<dynamic> globalTxs = [];
+      try {
+        final r = await get('/transactions?type=$type');
+        if (r.statusCode == 200) {
+          final d = json.decode(r.body);
+          if (d is List) {
+            globalTxs = d;
+          } else if (d is Map) {
+            globalTxs = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+          }
+        }
+      } catch (_) {}
+
+      // ── 3. Build deduplicated map keyed by title (lowercase) ───────────
+      // We keep the MOST RECENT record per title, and track metadata.
+      final Map<String, Map<String, dynamic>> byTitle = {};
+      final Map<String, int> frequency = {};
+      final Map<String, bool> isCurrentProject = {};
+
+      // Process current-project first (higher priority)
+      for (final rawTx in projectTxs) {
+        final tx = rawTx as Map<String, dynamic>;
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        final key = title.toLowerCase();
+        frequency[key] = (frequency[key] ?? 0) + 1;
+        isCurrentProject[key] = true;
+
+        if (!byTitle.containsKey(key)) {
+          byTitle[key] = Map<String, dynamic>.from(tx);
+        } else {
+          // Keep most recent record
+          final existingDate = byTitle[key]!['date']?.toString() ?? '';
+          final newDate = tx['date']?.toString() ?? '';
+          if (newDate.compareTo(existingDate) > 0) {
+            byTitle[key] = Map<String, dynamic>.from(tx);
+          }
+        }
+      }
+
+      // Process global transactions — only add if title not already seen
+      for (final rawTx in globalTxs) {
+        final tx = rawTx as Map<String, dynamic>;
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        final key = title.toLowerCase();
+        if (!byTitle.containsKey(key)) {
+          // New title from another project
+          byTitle[key] = Map<String, dynamic>.from(tx);
+          frequency[key] = 1;
+          isCurrentProject[key] = false;
+        } else if (isCurrentProject[key] != true) {
+          // Same title from another project — keep most recent
+          final existingDate = byTitle[key]!['date']?.toString() ?? '';
+          final newDate = tx['date']?.toString() ?? '';
+          if (newDate.compareTo(existingDate) > 0) {
+            byTitle[key] = Map<String, dynamic>.from(tx);
+          }
+          frequency[key] = (frequency[key] ?? 0) + 1;
+        }
+      }
+
+      // ── 4. Sort: current-project > recency > frequency ─────────────────
+      final entries = byTitle.entries.toList()
+        ..sort((a, b) {
+          final aKey = a.key;
+          final bKey = b.key;
+
+          // Current project first
+          final aProj = isCurrentProject[aKey] == true ? 1 : 0;
+          final bProj = isCurrentProject[bKey] == true ? 1 : 0;
+          if (aProj != bProj) return bProj - aProj;
+
+          // Most recent first
+          final aDate = a.value['date']?.toString() ?? '';
+          final bDate = b.value['date']?.toString() ?? '';
+          final dateCmp = bDate.compareTo(aDate);
+          if (dateCmp != 0) return dateCmp;
+
+          // Most frequent first
+          final aFreq = frequency[aKey] ?? 0;
+          final bFreq = frequency[bKey] ?? 0;
+          return bFreq - aFreq;
+        });
+
+      // ── 5. Embed frequency metadata for potential future use ───────────
+      final result = <Map<String, dynamic>>[];
+      for (final e in entries.take(50)) {
+        final record = Map<String, dynamic>.from(e.value)
+          ..['\$freq'] = frequency[e.key] ?? 1
+          ..['\$isCurrentProject'] = isCurrentProject[e.key] ?? false;
+        result.add(record);
+      }
+
+      print('fetchSuggestions [$type]: ${result.length} unique suggestions');
+      return result;
+    } catch (e, stack) {
+      print('fetchSuggestions Error: $e');
+      print(stack);
+      return [];
     }
   }
 }

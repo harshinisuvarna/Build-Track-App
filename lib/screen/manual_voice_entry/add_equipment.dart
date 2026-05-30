@@ -41,6 +41,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
+  List<dynamic> _recentEntries = [];
+  bool _isLoadingRecent = false;
 
   // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
@@ -210,6 +212,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     } else {
       _selectedProjectId ??= UserSession.projectId;
     }
+
+    if (_selectedProjectId != null && !_isEditing) {
+      _loadRecentEntries();
+    }
   }
 
   @override
@@ -358,6 +364,165 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _loadRecentEntries() async {
+    if (_selectedProjectId == null) {
+      setState(() {
+        _recentEntries = [];
+      });
+      return;
+    }
+    setState(() => _isLoadingRecent = true);
+    final txs = await ApiService.fetchRecentTransactions(
+      projectId: _selectedProjectId!,
+      type: 'Expense',
+    );
+    if (mounted) {
+      setState(() {
+        _recentEntries = txs.take(5).toList();
+        _isLoadingRecent = false;
+      });
+    }
+  }
+
+  void _prefillFromRecent(Map<String, dynamic> tx) {
+    setState(() {
+      _nameCtrl.text = tx['title']?.toString() ?? '';
+      
+      final rawUnit = (tx['unit'] ?? '').toString().trim().toLowerCase();
+      if (rawUnit == 'day' || rawUnit == 'days') {
+        _selectedUnit = 'Day';
+      } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+        _selectedUnit = 'Hour';
+      } else if (rawUnit == 'week' || rawUnit == 'weeks') {
+        _selectedUnit = 'Week';
+      } else if (rawUnit == 'month' || rawUnit == 'months') {
+        _selectedUnit = 'Month';
+      } else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') {
+        _selectedUnit = 'Trip';
+      } else if (rawUnit.isNotEmpty) {
+        _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+      }
+      
+      _typeCtrl.text = tx['category']?.toString() ?? '';
+      _operatorCtrl.text = tx['remarks']?.toString() ?? '';
+      
+      final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+      _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
+      
+      final gstVal = tx['gst'] ?? 0;
+      _gstCtrl.text = gstVal.toString();
+      _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
+      
+      final pStatus = tx['paymentStatus']?.toString().toLowerCase();
+      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+        _isAddAndPay = true;
+        _paymentMethod = tx['paymentMode'] ?? 'Cash';
+        final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+      }
+    });
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    if (month >= 1 && month <= 12) {
+      return months[month - 1];
+    }
+    return '';
+  }
+
+  Widget _activityTile({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String badgeLabel,
+    required Color badgeBg,
+    required Color badgeColor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: badgeColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -771,6 +936,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
@@ -1265,6 +1431,63 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
                     _buildPaymentSection(),
                     const SizedBox(height: 4),
+
+                    if (_selectedProjectId != null && !_isEditing) ...[
+                      if (_isLoadingRecent) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      ] else if (_recentEntries.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Recent Equipment Entries',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._recentEntries.map((tx) {
+                          final String title = tx['title']?.toString() ?? '';
+                          final double qty = (tx['quantity'] as num?)?.toDouble() ?? 0.0;
+                          final String unit = tx['unit']?.toString() ?? '';
+                          final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                          
+                          String dateStr = '';
+                          if (tx['date'] != null) {
+                            try {
+                              final parsed = DateTime.parse(tx['date'].toString());
+                              dateStr = '${parsed.day} ${_monthName(parsed.month)} ${parsed.year}';
+                            } catch (_) {}
+                          }
+                          
+                          final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+                          final String rateStr = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
+
+                          return _activityTile(
+                            context: context,
+                            title: title,
+                            subtitle: '$qtyStr $unit • ₹$rateStr • $dateStr',
+                            badgeLabel: 'Equipment',
+                            badgeBg: const Color(0xFFFFF3E0),
+                            badgeColor: const Color(0xFFE65100),
+                            icon: Icons.precision_manufacturing_outlined,
+                            onTap: () {
+                              _prefillFromRecent(tx);
+                              _snack('Prefilled details for "$title"');
+                            },
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                    ],
+
                     EntrySubmitButton(
                       label: 'Save Equipment Entry',
                       icon: Icons.check_circle,

@@ -411,10 +411,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   // --- UPDATED: Uses Live Inventory Provider ---
   Widget _buildMaterialsTab(BuildContext context) {
-    final stock = context.watch<ProjectProvider>().materialStock;
-    final stockList = stock.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
     final provider = context.watch<InventoryProvider>();
 
     if (provider.isLoading) {
@@ -448,11 +444,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       };
     }).toList();
 
-    return _buildTab(items, stockSummary: _buildStockSummary(stockList));
+    return _buildTab(items, stockSummary: _buildStockSummary(provider.materialInventory, 'LIVE STOCK SUMMARY'));
   }
 
-  Widget _buildStockSummary(List<MapEntry<String, double>> stockList) {
-    // ... (Your exact existing code)
+  Widget _buildStockSummary(List<InventoryItem> items, String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -470,8 +465,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'LIVE STOCK SUMMARY',
-                style: TextStyle(
+                title.toUpperCase(),
+                style: const TextStyle(
                   color: textGray,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -481,7 +476,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ],
           ),
         ),
-        if (stockList.isEmpty)
+        if (items.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -493,21 +488,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.inventory_2_outlined, color: textGray, size: 18),
+                const Icon(Icons.inventory_2_outlined, color: textGray, size: 18),
                 const SizedBox(width: 10),
                 Text(
-                  'No material entries yet — add one above',
+                  'No entries yet — add one above',
                   style: AppTheme.caption.copyWith(color: textGray),
                 ),
               ],
             ),
           )
         else
-          ...stockList.map((entry) {
-            final brand = entry.key;
-            final qty = entry.value;
-            final maxQty = stockList.first.value;
+          ...items.map((item) {
+            final qty = item.closingStock;
+            final maxQty = items.isEmpty ? 0.0 : items.map((e) => e.closingStock).reduce((a, b) => a > b ? a : b);
             final ratio = maxQty > 0 ? (qty / maxQty).clamp(0.0, 1.0) : 0.0;
+            
+            final unitText = (item.unit.isNotEmpty &&
+                             item.unit.toLowerCase() != 'units' &&
+                             item.unit.toLowerCase() != 'unit')
+                ? ' ${item.unit}'
+                : '';
+            final qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+            
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -528,16 +530,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        brand,
-                        style: TextStyle(
+                        item.name,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: textDark,
                         ),
                       ),
                       Text(
-                        '${qty.toStringAsFixed(1)} units',
-                        style: TextStyle(
+                        '$qtyStr$unitText',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                           color: primaryBlue,
@@ -600,7 +602,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         'time': timestamp,
       };
     }).toList();
-    return _buildTab(items);
+    return _buildTab(items, stockSummary: _buildStockSummary(provider.labourInventory, 'LIVE LABOUR SUMMARY'));
   }
 
   Widget _buildEquipmentTab(BuildContext context) {
@@ -633,7 +635,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         'time': timestamp,
       };
     }).toList();
-    return _buildTab(items);
+    return _buildTab(items, stockSummary: _buildStockSummary(provider.equipmentInventory, 'LIVE EQUIPMENT SUMMARY'));
   }
 
   Widget _buildTab(List<Map<String, dynamic>> items, {Widget? stockSummary}) {
@@ -784,8 +786,15 @@ class _ItemGroupWidget extends StatelessWidget {
       stockLabel = 'Current Usage';
     }
 
-    final unitSuffix = (item.unit.isNotEmpty && item.unit.toLowerCase() != 'units') ? ' ${item.unit}' : '';
-    final stockText = '$stockLabel: ${item.closingStock.toStringAsFixed(0)}$unitSuffix';
+    final unitText = (item.unit.isNotEmpty &&
+                     item.unit.toLowerCase() != 'units' &&
+                     item.unit.toLowerCase() != 'unit')
+        ? ' ${item.unit}'
+        : '';
+    final qtyStr = item.closingStock % 1 == 0
+        ? item.closingStock.toInt().toString()
+        : item.closingStock.toString();
+    final stockText = '$stockLabel: $qtyStr$unitText';
 
     return Material(
       color: Colors.white,
