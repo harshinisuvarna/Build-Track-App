@@ -614,14 +614,7 @@ class ApiService {
   }
 
   // ── SMART AUTOCOMPLETE SUGGESTION ENGINE ────────────────────────────────
-  /// Returns a deduplicated, ranked list of historical entries for the
-  /// autocomplete dropdown.
-  ///
-  /// Ranking priority (descending):
-  ///   1. Current project history  →  most recent  →  most frequent
-  ///   2. All-project (global) history  →  most recent
-  ///
-  /// Returns at most 50 records so the caller can locally filter them.
+
   static Future<List<Map<String, dynamic>>> fetchSuggestions({
     required String projectId,
     required String type, // 'Materials' | 'Wages' | 'Expense'
@@ -655,8 +648,6 @@ class ApiService {
         }
       } catch (_) {}
 
-      // ── 3. Build deduplicated map keyed by title (lowercase) ───────────
-      // We keep the MOST RECENT record per title, and track metadata.
       final Map<String, Map<String, dynamic>> byTitle = {};
       final Map<String, int> frequency = {};
       final Map<String, bool> isCurrentProject = {};

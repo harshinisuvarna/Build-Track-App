@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
@@ -43,6 +44,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
   bool _isLoadingRecent = false;
+
+  // ── Autocomplete suggestion cache ───────────────────────────────────────
+  List<Map<String, dynamic>> _suggestions = [];
 
   // ── Payment state ───────────────────────────────────────────────────────
   bool _isAddAndPay = false;
@@ -693,17 +697,28 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (_selectedProjectId == null) {
       setState(() {
         _recentEntries = [];
+        _suggestions = [];
       });
       return;
     }
     setState(() => _isLoadingRecent = true);
-    final txs = await ApiService.fetchRecentTransactions(
+
+    // Load recent entries and autocomplete suggestions in parallel
+    final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
       type: 'Wages',
     );
+    final suggestionFuture = ApiService.fetchSuggestions(
+      projectId: _selectedProjectId!,
+      type: 'Wages',
+    );
+    final recentTxs = await recentFuture;
+    final suggestions = await suggestionFuture;
+
     if (mounted) {
       setState(() {
-        _recentEntries = txs.take(5).toList();
+        _recentEntries = recentTxs.take(5).toList();
+        _suggestions = suggestions;
         _isLoadingRecent = false;
       });
     }
@@ -959,13 +974,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           // ── 2. LABOUR TYPE ─────────────────────────────────
                           const EntryFieldLabel('Labour Type', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
+                          AutocompleteNameField(
                             controller: _nameCtrl,
                             hint: 'e.g. Mason, Carpenter, Steel Fixer',
+                            suggestions: _suggestions,
                             onChanged: (_) => setState(() {}),
+                            onSuggestionSelected: _prefillFromRecent,
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
+
 
                           // ── 3. UNIT ────────────────────────────────────────
                           const EntryFieldLabel('Unit', required: true),

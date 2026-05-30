@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
@@ -43,6 +44,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
   bool _isLoadingRecent = false;
+
+  // ── Autocomplete suggestion cache ───────────────────────────────────────
+  List<Map<String, dynamic>> _suggestions = [];
 
   // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
@@ -371,21 +375,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (_selectedProjectId == null) {
       setState(() {
         _recentEntries = [];
+        _suggestions = [];
       });
       return;
     }
     setState(() => _isLoadingRecent = true);
-    final txs = await ApiService.fetchRecentTransactions(
+
+    // Load recent entries and autocomplete suggestions in parallel
+    final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
       type: 'Expense',
     );
+    final suggestionFuture = ApiService.fetchSuggestions(
+      projectId: _selectedProjectId!,
+      type: 'Expense',
+    );
+    final recentTxs = await recentFuture;
+    final suggestions = await suggestionFuture;
+
     if (mounted) {
       setState(() {
-        _recentEntries = txs.take(5).toList();
+        _recentEntries = recentTxs.take(5).toList();
+        _suggestions = suggestions;
         _isLoadingRecent = false;
       });
     }
   }
+
 
   void _prefillFromRecent(Map<String, dynamic> tx) {
     setState(() {
@@ -1024,13 +1040,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           const EntryFieldLabel('Equipment Name',
                               required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
+                          AutocompleteNameField(
                             controller: _nameCtrl,
                             hint: 'e.g. JCB Excavator 3DX, Hydra Crane 14T',
+                            suggestions: _suggestions,
                             onChanged: (_) => setState(() {}),
+                            onSuggestionSelected: _prefillFromRecent,
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
+
 
                           // ── 3. UNIT ────────────────────────────────────────
                           const EntryFieldLabel('Unit', required: true),
