@@ -40,6 +40,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
 
   // ── Field controllers ─────────────────────────────────────────────────────
   late TextEditingController _nameCtrl;
+  late TextEditingController _vendorCtrl;
   late TextEditingController _brandCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _qtyCtrl;
@@ -63,6 +64,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
+    _vendorCtrl = TextEditingController();
     _brandCtrl = TextEditingController();
     _categoryCtrl = TextEditingController();
     _qtyCtrl = TextEditingController();
@@ -123,6 +125,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
 
     _nameCtrl.text = 'Premium Ready-Mix Concrete (C35)';
     _brandCtrl.text = brand;
+    _vendorCtrl.text = brand.isNotEmpty ? '$brand Cement Ltd.' : '';
     _categoryCtrl.text = 'Structural';
     _qtyCtrl.text = qty > 0 ? qty.toString() : '12.5';
     _selectedUnit = 'm³';
@@ -138,6 +141,7 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
     _voiceCtrl.removeListener(_onVoiceChanged);
     _voiceCtrl.dispose();
     _nameCtrl.dispose();
+    _vendorCtrl.dispose();
     _brandCtrl.dispose();
     _categoryCtrl.dispose();
     _qtyCtrl.dispose();
@@ -394,6 +398,21 @@ class _ReviewVoiceEntryScreenState extends State<ReviewVoiceEntryScreen> {
                             EntryUnderlineField(
                               controller: _nameCtrl,
                               hint: 'Material name',
+                            ),
+                            const SizedBox(height: 18),
+                            // ── Vendor (ERP requirement) ─────────────────
+                            Row(
+                              children: [
+                                const Icon(Icons.store_outlined,
+                                    size: 13, color: AppColors.textLight),
+                                const SizedBox(width: 6),
+                                const EntryFieldLabel('Vendor / Supplier'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(
+                              controller: _vendorCtrl,
+                              hint: 'e.g. UltraTech Cement Ltd.',
                             ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Brand'),

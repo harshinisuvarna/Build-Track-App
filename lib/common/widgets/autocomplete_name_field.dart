@@ -61,7 +61,11 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
           '${widget.suggestions.length} records');
       // Re-filter immediately with the new pool
       if (widget.controller.text.isNotEmpty) {
-        _computeFiltered(widget.controller.text);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _computeFiltered(widget.controller.text);
+          }
+        });
       }
     }
   }

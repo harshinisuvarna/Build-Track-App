@@ -38,6 +38,8 @@ class _ReviewEquipmentEntryScreenState
   dynamic _selectedPhase;
   String? _selectedActivity;
   late TextEditingController _nameCtrl;
+  late TextEditingController _vendorCtrl; // ← NEW: Vendor / Supplier
+  late TextEditingController _ownershipCtrl; // ← NEW: Ownership Type (Owned / Rented / Leased)
   late TextEditingController _typeCtrl;
   late TextEditingController _operatorCtrl;
   late TextEditingController _hoursCtrl;
@@ -60,6 +62,8 @@ class _ReviewEquipmentEntryScreenState
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
+    _vendorCtrl = TextEditingController();
+    _ownershipCtrl = TextEditingController(text: 'Owned');
     _typeCtrl = TextEditingController();
     _operatorCtrl = TextEditingController();
     _hoursCtrl = TextEditingController();
@@ -101,6 +105,8 @@ class _ReviewEquipmentEntryScreenState
     if (t.contains('basement')) floor = 'Basement';
 
     _nameCtrl.text = 'JCB Excavator';
+    _vendorCtrl.text = 'JCB India Ltd';
+    _ownershipCtrl.text = 'Rented';
     _typeCtrl.text = 'Heavy Equipment';
     _operatorCtrl.text = 'Sunil Mehta';
     _hoursCtrl.text = '6';
@@ -117,6 +123,8 @@ class _ReviewEquipmentEntryScreenState
     _voiceCtrl.removeListener(_onVoiceChanged);
     _voiceCtrl.dispose();
     _nameCtrl.dispose();
+    _vendorCtrl.dispose();
+    _ownershipCtrl.dispose();
     _typeCtrl.dispose();
     _operatorCtrl.dispose();
     _hoursCtrl.dispose();
@@ -399,6 +407,78 @@ class _ReviewEquipmentEntryScreenState
                             EntryUnderlineField(
                               controller: _nameCtrl,
                               hint: 'Equipment name',
+                            ),
+                            const SizedBox(height: 18),
+                            // ── Vendor (ERP requirement) ─────────────────
+                            Row(
+                              children: [
+                                const Icon(Icons.store_outlined,
+                                    size: 13, color: AppColors.textLight),
+                                const SizedBox(width: 6),
+                                const EntryFieldLabel('Vendor / Supplier'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            EntryUnderlineField(
+                              controller: _vendorCtrl,
+                              hint: 'e.g. JCB India Ltd.',
+                            ),
+                            const SizedBox(height: 18),
+                            // ── Ownership Type (ERP requirement) ─────────
+                            Row(
+                              children: [
+                                const Icon(Icons.assignment_outlined,
+                                    size: 13, color: AppColors.textLight),
+                                const SizedBox(width: 6),
+                                const EntryFieldLabel('Ownership Type'),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: ['Owned', 'Rented', 'Leased'].map((type) {
+                                final isSelected = _ownershipCtrl.text == type;
+                                return Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _ownershipCtrl.text = type;
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Colors.transparent,
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : const Color(0xFFD6D1F0),
+                                            width: 1.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          type,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppColors.textDark,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                             const SizedBox(height: 18),
                             const EntryFieldLabel('Equipment Type'),

@@ -1335,9 +1335,9 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFF15803D);
       case PaymentStatus.partial:
-        return const Color(0xFF7C3AED);
+        return const Color(0xFFB45309);
       case PaymentStatus.pending:
-        return const Color(0xFFD97706);
+        return const Color(0xFFDC2626);
       case PaymentStatus.overdue:
         return const Color(0xFFDC2626);
     }
@@ -1348,9 +1348,9 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFFDCFCE7);
       case PaymentStatus.partial:
-        return const Color(0xFFF3E8FF);
-      case PaymentStatus.pending:
         return const Color(0xFFFEF3C7);
+      case PaymentStatus.pending:
+        return const Color(0xFFFEE2E2);
       case PaymentStatus.overdue:
         return const Color(0xFFFEE2E2);
     }
