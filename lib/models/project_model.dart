@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
+
 enum ProjectStage {
   preConstruction,
   sitePreparation,
@@ -13,7 +14,9 @@ enum ProjectStage {
   equipmentMaster,
 }
 
+
 enum EntryType { material, labour, equipment }
+
 
 extension ProjectStageX on ProjectStage {
   String get label {
@@ -40,6 +43,7 @@ extension ProjectStageX on ProjectStage {
   }
 }
 
+
 extension EntryTypeX on EntryType {
   String get label {
     switch (this) {
@@ -52,6 +56,7 @@ extension EntryTypeX on EntryType {
     }
   }
 }
+
 
 class EntryModel {
   EntryModel({
@@ -69,6 +74,7 @@ class EntryModel {
     this.unit,
   });
 
+
   final String id;
   final String projectId;
   final EntryType type;
@@ -81,6 +87,7 @@ class EntryModel {
   final ProjectStage? phase;
   final String? phaseId;
   final String? unit;
+
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -96,6 +103,7 @@ class EntryModel {
         'phaseId': phaseId,
         'unit': unit,
       };
+
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
     return EntryModel(
@@ -122,8 +130,10 @@ class EntryModel {
     );
   }
 
+
   static String encodeList(List<EntryModel> list) =>
       jsonEncode(list.map((e) => e.toJson()).toList());
+
 
   static List<EntryModel> decodeList(String raw) {
     final decoded = jsonDecode(raw as String) as List<dynamic>;
@@ -133,12 +143,14 @@ class EntryModel {
   }
 }
 
+
 class ProjectActivity {
   final String id;
   final String name;
   final bool isCustom;
   final bool completed;
   final DateTime? completedAt;
+
 
   ProjectActivity({
     required this.id,
@@ -147,6 +159,7 @@ class ProjectActivity {
     this.completed = false,
     this.completedAt,
   });
+
 
   ProjectActivity copyWith({
     bool? completed,
@@ -164,6 +177,7 @@ class ProjectActivity {
     );
   }
 
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -171,6 +185,7 @@ class ProjectActivity {
         'completed': completed,
         if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
       };
+
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
         id: j['id'] as String,
@@ -183,12 +198,14 @@ class ProjectActivity {
       );
 }
 
+
 class ProjectPhase {
   final String id;
   final String phaseName;
   final bool isCustom;
   final bool isExpanded;
   final List<ProjectActivity> activities;
+
 
   ProjectPhase({
     required this.id,
@@ -198,8 +215,10 @@ class ProjectPhase {
     List<ProjectActivity>? activities,
   }) : activities = activities ?? [];
 
+
   int get totalCount => activities.length;
   int get completedCount => activities.where((a) => a.completed).length;
+
 
   ProjectPhase copyWith({
     List<ProjectActivity>? activities,
@@ -213,12 +232,14 @@ class ProjectPhase {
     );
   }
 
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'phaseName': phaseName,
         'isCustom': isCustom,
         'activities': activities.map((a) => a.toJson()).toList(),
       };
+
 
   factory ProjectPhase.fromJson(Map<String, dynamic> j) {
     return ProjectPhase(
@@ -233,6 +254,7 @@ class ProjectPhase {
   }
 }
 
+
 class ProjectModel {
   final String id;
   final String name;
@@ -244,6 +266,7 @@ class ProjectModel {
   final double spentAmount;
   final DateTime startDate;
 
+
   final String location;
   final String? clientName;
   final String? projectType;
@@ -254,6 +277,7 @@ class ProjectModel {
   final List<String>? completedActivityKeys;
   final List<ProjectPhase>? selectedPhases;
 
+
   final String? projectCode;
   final String? mapAddress;
   final String? contractorName;
@@ -261,27 +285,34 @@ class ProjectModel {
   final String? contactNumber;
   final DateTime? actualEndDate;
 
+
   final String? landArea;
   final String? landUnit;
+
 
   final int? room1BHK;
   final int? room2BHK;
   final int? room3BHK;
   final int? roomCustom;
 
+
   final int? bathWestern;
   final int? bathIndian;
   final int? bathCommon;
   final int? bathAttached;
 
+
   final List<String>? selectedFeatures;
+
 
   final double? budgetMaterial;
   final double? budgetLabour;
   final double? budgetEquipment;
   final double? budgetMisc;
 
+
   final String? projectStatus;
+
 
   ProjectModel({
     required this.id,
@@ -325,6 +356,7 @@ class ProjectModel {
     this.budgetMisc,
     this.projectStatus,
   });
+
 
   ProjectModel copyWith({
     String? id,
@@ -413,13 +445,16 @@ class ProjectModel {
     );
   }
 
+
   double get remainingBudget => totalBudget - spentAmount;
   double get budgetUtilization =>
       totalBudget <= 0 ? 0 : (spentAmount / totalBudget).clamp(0.0, 1.0);
 
+
   String get formattedBudget => formatCurrency(totalBudget);
   String get formattedSpent => formatCurrency(spentAmount);
   String get formattedRemaining => formatCurrency(remainingBudget);
+
 
   Map<String, dynamic> toJson() {
     final mappedStatus = (() {
@@ -431,10 +466,12 @@ class ProjectModel {
       return 'Planning';
     })();
 
+
     final mainType = (projectType ?? '').split('/').first.trim();
     final subType = (projectType ?? '').contains('/')
         ? projectType!.split('/').last.trim()
         : '';
+
 
     return {
       '_id': id,
@@ -447,6 +484,7 @@ class ProjectModel {
       'spentAmount': spentAmount,
       'totalBudget': totalBudget,
 
+
       'startDate': startDate.toIso8601String(),
       'dates': {
         'startDate': startDate.toIso8601String(),
@@ -456,15 +494,18 @@ class ProjectModel {
           'actualEndDate': actualEndDate!.toIso8601String(),
       },
 
+
       if (expectedEndDate != null)
         'expectedEndDate': expectedEndDate!.toIso8601String(),
       if (actualEndDate != null)
         'actualEndDate': actualEndDate!.toIso8601String(),
 
+
       'location': location,
       'clientName': clientName ?? 'Internal Client',
       'projectCode':
           projectCode ?? 'PRJ-${DateTime.now().millisecondsSinceEpoch}',
+
 
       'budgetMaterial': budgetMaterial ?? 0,
       'budgetMaterials': budgetMaterial ?? 0,
@@ -473,10 +514,12 @@ class ProjectModel {
       'budgetMisc': budgetMisc ?? 0,
       'budgetMiscellaneous': budgetMisc ?? 0,
 
+
       'buildingType': {
         'mainType': mainType,
         'subType': subType,
       },
+
 
       'budget': {
         'total': totalBudget,
@@ -488,14 +531,17 @@ class ProjectModel {
         'miscellaneous': budgetMisc ?? 0,
       },
 
+
       'status': mappedStatus,
       'projectStatus': projectStatus,
+
 
       'floors': floors,
       'selectedPhaseNames': selectedPhaseNames,
       'trackedActivityKeys': trackedActivityKeys,
       'completedActivityKeys': completedActivityKeys,
       'selectedPhases': selectedPhases?.map((p) => p.toJson()).toList(),
+
 
       'contractorName': contractorName,
       'siteEngineer': siteEngineer,
@@ -504,29 +550,35 @@ class ProjectModel {
       'landArea': landArea,
       'landUnit': landUnit,
 
+
       'room1BHK': room1BHK,
       'room2BHK': room2BHK,
       'room3BHK': room3BHK,
       'roomCustom': roomCustom,
+
 
       'bathWestern': bathWestern,
       'bathIndian': bathIndian,
       'bathCommon': bathCommon,
       'bathAttached': bathAttached,
 
+
       'selectedFeatures': selectedFeatures,
       'projectType': projectType,
     };
   }
+
 
   factory ProjectModel.fromJson(Map<String, dynamic> j) {
     final dates = j['dates'] as Map<String, dynamic>?;
     final budget = j['budget'] as Map<String, dynamic>?;
     final buildingType = j['buildingType'] as Map<String, dynamic>?;
 
+
     final rawName = (j['projectName'] ?? j['name'] ?? '').toString();
     final pCode = (j['projectCode'] ?? 'Unnamed Project').toString();
     final finalName = rawName.trim().isNotEmpty ? rawName : pCode;
+
 
     DateTime parsedStartDate = DateTime.now();
     final rawStartDate =
@@ -536,6 +588,7 @@ class ProjectModel {
       if (parsed != null) parsedStartDate = parsed;
     }
 
+
     DateTime? parsedExpectedEnd;
     final rawExpected =
         j['expectedEndDate']?.toString() ?? dates?['expectedEndDate']?.toString();
@@ -543,11 +596,13 @@ class ProjectModel {
       parsedExpectedEnd = DateTime.tryParse(rawExpected);
     }
 
+
     List<String>? parsedFloors;
     final rawFloors = j['floors'] as List?;
     if (rawFloors != null && rawFloors.isNotEmpty) {
       parsedFloors = rawFloors.map((f) => f.toString()).toList();
     }
+
 
     String? resolvedProjectStatus = j['projectStatus']?.toString();
     if (resolvedProjectStatus == null || resolvedProjectStatus.isEmpty) {
@@ -565,7 +620,9 @@ class ProjectModel {
       }
     }
 
+
     int? safeInt(dynamic v) => v is num ? v.toInt() : int.tryParse('$v');
+
 
     final bMat = (budget?['material'] as num?)?.toDouble() ??
         (budget?['materials'] as num?)?.toDouble() ??
@@ -573,19 +630,23 @@ class ProjectModel {
         (j['budgetMaterials'] as num?)?.toDouble() ??
         0.0;
 
+
     final bLab = (budget?['labour'] as num?)?.toDouble() ??
         (j['budgetLabour'] as num?)?.toDouble() ??
         0.0;
 
+
     final bEq = (budget?['equipment'] as num?)?.toDouble() ??
         (j['budgetEquipment'] as num?)?.toDouble() ??
         0.0;
+
 
     final bMisc = (budget?['misc'] as num?)?.toDouble() ??
         (budget?['miscellaneous'] as num?)?.toDouble() ??
         (j['budgetMisc'] as num?)?.toDouble() ??
         (j['budgetMiscellaneous'] as num?)?.toDouble() ??
         0.0;
+
 
     String? projectTypeStr = j['projectType']?.toString();
     if ((projectTypeStr == null || projectTypeStr.isEmpty) &&
@@ -595,6 +656,7 @@ class ProjectModel {
       projectTypeStr =
           subType.isNotEmpty ? '$mainType / $subType' : mainType;
     }
+
 
     return ProjectModel(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
@@ -662,8 +724,10 @@ class ProjectModel {
     );
   }
 
+
   static String encodeList(List<ProjectModel> list) =>
       jsonEncode(list.map((p) => p.toJson()).toList());
+
 
   static List<ProjectModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;

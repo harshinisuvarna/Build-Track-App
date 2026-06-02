@@ -9,41 +9,39 @@ import 'package:buildtrack_mobile/common/widgets/subscription_card.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
+// UserRole enum is defined in user_session.dart — already imported above
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
-// ── Data model returned by GET /api/users/profile ────────────────────────────
+// ── Live user data model ──────────────────────────────────────────────────────
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
     required this.email,
     required this.role,
-    this.phone,
-    this.company,
+    this.profilePhoto,
   });
 
   final String name;
   final String email;
   final String role;
-  final String? phone;
-  final String? company;
+  final String? profilePhoto;
 
-  /// Fallback when API data is unavailable.
+  factory ProfileUserData.fromJson(Map<String, dynamic> json) {
+    return ProfileUserData(
+      name: json['name']?.toString() ?? 'Unknown',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'Mason',
+      profilePhoto: json['profilePhoto']?.toString(),
+    );
+  }
+
+  /// Fallback when API fails — still uses session for role label
   static ProfileUserData get sessionFallback => ProfileUserData(
         name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
         email: '${UserSession.userId}@buildtrack.app',
         role: UserSession.roleLabel,
       );
-
-  factory ProfileUserData.fromJson(Map<String, dynamic> json) {
-    return ProfileUserData(
-      name: json['name'] as String? ?? 'Unknown User',
-      email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? UserSession.roleLabel,
-      phone: json['phone'] as String?,
-      company: json['company'] as String?,
-    );
-  }
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -58,10 +56,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   File? _selectedImage;
 
-  // API state
   ProfileUserData? _user;
-  bool _isLoading = true;
-  String? _error;
+  bool _isLoadingProfile = true;
+  String? _profileError;
 
   @override
   void initState() {
@@ -69,44 +66,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchProfile();
   }
 
-  // ── Fetch real profile from backend ────────────────────────────────────────
   Future<void> _fetchProfile() async {
-    if (!mounted) return;
     setState(() {
-      _isLoading = true;
-      _error = null;
+      _isLoadingProfile = true;
+      _profileError = null;
     });
-
     try {
-      // GET /api/users/profile  (auth header added by ApiService)
-      final response = await ApiService.get('/api/users/profile');
-
+      final response = await ApiService.get('/users/profile');
       if (!mounted) return;
-
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        // Backend may wrap data under a 'user' or 'data' key — handle both
-        final data = (body['user'] ?? body['data'] ?? body) as Map<String, dynamic>;
+        final decoded = json.decode(response.body);
+        // API returns { user: { ... } }
+        final userJson = decoded['user'] ?? decoded;
+        final data = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
+        // Convert role string from API → UserRole enum, then sync into session
+        final roleStr = (userJson['role']?.toString() ?? '').toLowerCase();
+        final UserRole parsedRole;
+        switch (roleStr) {
+          case 'supervisor':
+            parsedRole = UserRole.supervisor;
+            break;
+          case 'mason':
+          case 'worker':
+            parsedRole = UserRole.mason;
+            break;
+          default:
+            parsedRole = UserRole.admin;
+        }
+        UserSession.set(
+          userId: userJson['name']?.toString() ?? UserSession.userId,
+          role: parsedRole,
+          projectId: UserSession.projectId,
+        );
         setState(() {
-          _user = ProfileUserData.fromJson(data);
-          _isLoading = false;
+          _user = data;
+          _isLoadingProfile = false;
         });
       } else {
-        // Non-200: fall back to session data and show a subtle error
-        debugPrint('Profile fetch failed: ${response.statusCode} ${response.body}');
         setState(() {
           _user = ProfileUserData.sessionFallback;
-          _isLoading = false;
-          _error = 'Could not refresh profile (${response.statusCode})';
+          _profileError = 'Could not load profile (${response.statusCode})';
+          _isLoadingProfile = false;
         });
       }
     } catch (e) {
-      debugPrint('Profile fetch exception: $e');
       if (!mounted) return;
       setState(() {
         _user = ProfileUserData.sessionFallback;
-        _isLoading = false;
-        _error = 'Network error — showing cached data';
+        _profileError = 'Network error. Showing cached data.';
+        _isLoadingProfile = false;
       });
     }
   }
@@ -121,55 +129,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppSubScreenLayout(
       title: 'Profile',
       scrollable: true,
-      child: _isLoading
+      child: _isLoadingProfile
           ? const Padding(
               padding: EdgeInsets.symmetric(vertical: 60),
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             )
-          : RefreshIndicator(
-              color: AppColors.primary,
-              onRefresh: _fetchProfile,
-              child: Column(
-                children: [
-                  // ── Error banner (non-blocking) ──────────────────────────
-                  if (_error != null)
-                    _ErrorBanner(
-                      message: _error!,
-                      onDismiss: () => setState(() => _error = null),
-                    ),
-
-                  _buildProfileCard(_user!),
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  // Subscription status card
-                  const SubscriptionCard(),
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  _buildSettingsCard(),
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  if (RoleManager.canViewTeamAccess) ...[
-                    _buildTeamAccessSection(),
-                    const SizedBox(height: AppTheme.spacingLg),
-                  ],
-
-                  _buildActions(),
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  Text(
-                    'BuildTrack Version 2.4.0 (2024)',
-                    style:
-                        AppTheme.caption.copyWith(color: Colors.grey.shade600),
-                  ),
+          : Column(
+              children: [
+                // Error banner if API failed but we have fallback data
+                if (_profileError != null) ...[
+                  _ErrorBanner(message: _profileError!),
+                  const SizedBox(height: 12),
                 ],
-              ),
+
+                _buildProfileCard(_user!),
+                const SizedBox(height: AppTheme.spacingLg),
+
+                const SubscriptionCard(),
+                const SizedBox(height: AppTheme.spacingLg),
+
+                _buildSettingsCard(),
+                const SizedBox(height: AppTheme.spacingLg),
+
+                if (RoleManager.canViewTeamAccess) ...[
+                  _buildTeamAccessSection(),
+                  const SizedBox(height: AppTheme.spacingLg),
+                ],
+
+                _buildActions(),
+                const SizedBox(height: AppTheme.spacingLg),
+
+                Text(
+                  'BuildTrack Version 2.4.0 (2024)',
+                  style:
+                      AppTheme.caption.copyWith(color: Colors.grey.shade600),
+                ),
+              ],
             ),
     );
   }
 
-  // ── Profile card ─────────────────────────────────────────────────────────
+  // ── Profile header card ────────────────────────────────────────────────────
   Widget _buildProfileCard(ProfileUserData user) {
     return Container(
       width: double.infinity,
@@ -187,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          _buildAvatar(),
+          _buildAvatar(user.profilePhoto),
           const SizedBox(height: 14),
           Text(
             user.name,
@@ -206,27 +208,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 13.5,
             ),
           ),
-          // Optional: phone / company
-          if (user.phone != null && user.phone!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              user.phone!,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12.5,
-              ),
-            ),
-          ],
-          if (user.company != null && user.company!.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(
-              user.company!,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-          ],
           const SizedBox(height: 14),
           _buildRoleBadge(user.role),
         ],
@@ -234,7 +215,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(String? photoUrl) {
+    ImageProvider? imageProvider;
+    if (_selectedImage != null) {
+      imageProvider = FileImage(_selectedImage!);
+    } else if (photoUrl != null && photoUrl.isNotEmpty) {
+      imageProvider = NetworkImage(photoUrl);
+    }
+
     return Stack(
       children: [
         GestureDetector(
@@ -242,9 +230,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: CircleAvatar(
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
-            backgroundImage:
-                _selectedImage != null ? FileImage(_selectedImage!) : null,
-            child: _selectedImage == null
+            backgroundImage: imageProvider,
+            child: imageProvider == null
                 ? const Icon(Icons.person, size: 40, color: Colors.white)
                 : null,
           ),
@@ -267,7 +254,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.edit, color: AppColors.primary, size: 14),
+              child:
+                  const Icon(Icons.edit, color: AppColors.primary, size: 14),
             ),
           ),
         ),
@@ -298,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Settings card ─────────────────────────────────────────────────────────
+  // ── Settings card ──────────────────────────────────────────────────────────
   Widget _buildSettingsCard() {
     return AppCard(
       padding: EdgeInsets.zero,
@@ -313,8 +301,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.person_outline,
             label: 'Edit Profile',
             onTap: () async {
-              // Refresh profile after editing
-              await Navigator.pushNamed(context, '/edit-profile');
+              await Navigator.pushNamed(
+                context,
+                '/edit-profile',
+                arguments: _user,
+              );
+              // Refresh profile after returning from edit
               _fetchProfile();
             },
             showDivider: true,
@@ -329,8 +321,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.notifications_outlined,
             label: 'Notifications',
             trailing: _buildNotificationsBadge(),
-            onTap: () =>
-                setState(() => _notificationsEnabled = !_notificationsEnabled),
+            onTap: () => setState(
+                () => _notificationsEnabled = !_notificationsEnabled),
             showDivider: false,
           ),
         ],
@@ -378,17 +370,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                if (trailing != null) ...[trailing, const SizedBox(width: 8)],
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textLight,
-                  size: 20,
-                ),
+                if (trailing != null) ...[
+                  trailing,
+                  const SizedBox(width: 8),
+                ],
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textLight, size: 20),
               ],
             ),
           ),
         ),
-        if (showDivider) const Divider(height: 1, indent: 18, endIndent: 18),
+        if (showDivider)
+          const Divider(height: 1, indent: 18, endIndent: 18),
       ],
     );
   }
@@ -411,7 +404,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Text(
         _notificationsEnabled ? 'Enabled' : 'Disabled',
         style: TextStyle(
-          color: _notificationsEnabled ? AppColors.primary : AppColors.textLight,
+          color:
+              _notificationsEnabled ? AppColors.primary : AppColors.textLight,
           fontSize: 12.5,
           fontWeight: FontWeight.w700,
         ),
@@ -419,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Logout ─────────────────────────────────────────────────────────────────
   Widget _buildActions() {
     return AppButton(
       label: 'Logout',
@@ -434,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  // ── Team Access (admin only) ───────────────────────────────────────────────
+  // ── Team access section ────────────────────────────────────────────────────
   Widget _buildTeamAccessSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,8 +467,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   'Team & Access',
-                  style: AppTheme.heading3.copyWith(
-                      color: AppColors.textDark, fontSize: 16),
+                  style: AppTheme.heading3
+                      .copyWith(color: AppColors.textDark, fontSize: 16),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -484,7 +478,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/assign-role'),
+                  onTap: () =>
+                      Navigator.pushNamed(context, '/assign-role'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
@@ -492,7 +487,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primaryPurple.withValues(alpha: 0.35),
+                          color: AppColors.primaryPurple
+                              .withValues(alpha: 0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -544,14 +540,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               shape: BoxShape.circle,
             ),
           ),
-          Positioned(
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration:
-                  const BoxDecoration(color: purple, shape: BoxShape.circle),
-              child: const Icon(Icons.person, color: Colors.white, size: 16),
-            ),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+                color: purple, shape: BoxShape.circle),
+            child: const Icon(Icons.person, color: Colors.white, size: 16),
           ),
           Positioned(
             top: 4,
@@ -562,7 +556,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                   color: purpleLight.withValues(alpha: 0.6),
                   shape: BoxShape.circle),
-              child: const Icon(Icons.person, color: Colors.white, size: 11),
+              child:
+                  const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
           Positioned(
@@ -574,7 +569,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                   color: purpleLight.withValues(alpha: 0.6),
                   shape: BoxShape.circle),
-              child: const Icon(Icons.person, color: Colors.white, size: 11),
+              child:
+                  const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
           Positioned(
@@ -612,7 +608,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        border:
+            Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -626,14 +623,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   'This feature is only available to Admins.',
                   style: AppTheme.bodyLarge.copyWith(
-                      color: AppColors.textDark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13),
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Manage user roles, permissions, and project access.',
-                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
+                  style: AppTheme.caption
+                      .copyWith(color: AppColors.textLight),
                 ),
               ],
             ),
@@ -644,38 +643,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Non-blocking error banner ──────────────────────────────────────────────────
+// ── Small error banner ────────────────────────────────────────────────────────
 class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message, required this.onDismiss});
+  const _ErrorBanner({required this.message});
   final String message;
-  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8EC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFFD166).withValues(alpha: 0.6)),
+        color: AppColors.warning.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFFB45309), size: 18),
-          const SizedBox(width: 10),
+          Icon(Icons.warning_amber_rounded,
+              color: AppColors.warning, size: 18),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                  color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w500),
+              style: AppTheme.caption.copyWith(color: AppColors.textMedium),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 16, color: Color(0xFFB45309)),
-            onPressed: onDismiss,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
           ),
         ],
       ),
