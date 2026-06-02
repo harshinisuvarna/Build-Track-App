@@ -8,18 +8,7 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   // Configured Base URL based on runtime platform
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    }
-    // Android emulator maps 10.0.2.2 to host localhost port 5000
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000/api';
-    }
-    // iOS simulator, macOS, Windows, Linux
-    return 'http://localhost:5000/api';
-    
-    // Ngrok Fallback (Uncomment if testing on a physical device over network)
-    // return 'https://unsecured-coastland-canister.ngrok-free.dev/api';
+    return 'https://build-track.onrender.com/api';
   }
 
   // ==========================================
