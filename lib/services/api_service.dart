@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,20 +99,28 @@ class ApiService {
             );
           } catch (e) {
             // If a legacy project crashes, print exactly why, but keep loading the rest!
-            print('CRASH parsing project ${item['_id']}: $e');
+            if (kDebugMode) {
+              print('CRASH parsing project ${item['_id']}: $e');
+            }
           }
         }
 
         return validProjects;
       } else if (response.statusCode == 401) {
-        print('AUTH Error: Token missing (401).');
+        if (kDebugMode) {
+          print('AUTH Error: Token missing (401).');
+        }
         throw Exception('Unauthorized');
       } else {
-        print('GET /projects failed: ${response.statusCode}');
+        if (kDebugMode) {
+          print('GET /projects failed: ${response.statusCode}');
+        }
         return [];
       }
     } catch (e) {
-      print('fetchProjects Master Error: $e');
+      if (kDebugMode) {
+        print('fetchProjects Master Error: $e');
+      }
       return [];
     }
   }
@@ -134,13 +140,17 @@ class ApiService {
             : decoded as Map<String, dynamic>;
         return ProjectModel.fromJson(projectJson);
       } else {
-        print(
+        if (kDebugMode) {
+          print(
           'POST /projects failed (${response.statusCode}): ${response.body}',
         );
+        }
         return null;
       }
     } catch (e) {
-      print('addProject Error: $e');
+      if (kDebugMode) {
+        print('addProject Error: $e');
+      }
       return null;
     }
   }
@@ -159,7 +169,9 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('fetchProjectById error: $e');
+      if (kDebugMode) {
+        print('fetchProjectById error: $e');
+      }
       return null;
     }
   }
@@ -185,20 +197,26 @@ class ApiService {
         return [];
       } else if (response.statusCode == 401) {
         // Token missing/expired — surface this clearly
-        print(
+        if (kDebugMode) {
+          print(
           'AUTH Error: Token missing or expired (401). Body: ${response.body}',
         );
+        }
         throw Exception('Unauthorized – please log in again');
       } else {
-        print(
+        if (kDebugMode) {
+          print(
           'GET /transactions failed with status ${response.statusCode}: ${response.body}',
         );
+        }
         throw Exception(
           'Failed to load transactions (HTTP ${response.statusCode})',
         );
       }
     } catch (e) {
-      print('GET Error: $e');
+      if (kDebugMode) {
+        print('GET Error: $e');
+      }
       return [];
     }
   }
@@ -209,14 +227,24 @@ class ApiService {
       // 🌟 CHANGED PATH URL: From '/inventory' to '/transactions' to resolve your 404 Route Not Found error
       final response = await post('/transactions', payload);
 
-      print('=== SERVER RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== SERVER RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('POST Error: $e');
+      if (kDebugMode) {
+        print('POST Error: $e');
+      }
       return false;
     }
   }
@@ -226,16 +254,26 @@ class ApiService {
   ) async {
     try {
       final response = await post('/transactions', payload);
-      print('=== SERVER RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== SERVER RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
       return null;
     } catch (e) {
-      print('POST Error: $e');
+      if (kDebugMode) {
+        print('POST Error: $e');
+      }
       return null;
     }
   }
@@ -247,13 +285,23 @@ class ApiService {
   ) async {
     try {
       final response = await put('/transactions/$id', payload);
-      print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('PUT /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('PUT /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -266,8 +314,12 @@ class ApiService {
 
       final response = await get(endpoint);
 
-      print('fetchInventory status: ${response.statusCode}');
-      print('fetchInventory body: ${response.body}');
+      if (kDebugMode) {
+        print('fetchInventory status: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('fetchInventory body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -364,15 +416,23 @@ class ApiService {
           });
         }
 
-        print('fetchInventory grouped items: ${grouped.length}');
+        if (kDebugMode) {
+          print('fetchInventory grouped items: ${grouped.length}');
+        }
         return grouped.values.toList();
       } else {
-        print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        if (kDebugMode) {
+          print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        }
         return [];
       }
     } catch (e, stack) {
-      print('Inventory GET Error: $e');
-      print(stack.toString());
+      if (kDebugMode) {
+        print('Inventory GET Error: $e');
+      }
+      if (kDebugMode) {
+        print(stack.toString());
+      }
       return [];
     }
   }
@@ -501,7 +561,9 @@ class ApiService {
         throw Exception('Search failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      print('Search API Error: $e');
+      if (kDebugMode) {
+        print('Search API Error: $e');
+      }
       return [];
     }
   }
@@ -519,7 +581,9 @@ class ApiService {
         throw Exception('Failed to load daily tasks');
       }
     } catch (e) {
-      print('Tasks API Error: $e');
+      if (kDebugMode) {
+        print('Tasks API Error: $e');
+      }
       return []; // Return empty list on error to prevent UI crash
     }
   }
@@ -542,13 +606,17 @@ class ApiService {
         'threshold': threshold,
       });
       if (response.statusCode != 200 && response.statusCode != 201) {
-        print(
+        if (kDebugMode) {
+          print(
           'addInventoryItem failed (${response.statusCode}): ${response.body}',
         );
+        }
         throw Exception('Failed to add inventory item');
       }
     } catch (e) {
-      print('addInventoryItem Error: $e');
+      if (kDebugMode) {
+        print('addInventoryItem Error: $e');
+      }
       rethrow;
     }
   }
@@ -559,12 +627,20 @@ class ApiService {
   ) async {
     try {
       final response = await put('/transactions/$id', payload);
-      print('=== PUT UPDATE TRANSACTION RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      if (kDebugMode) {
+        print('=== PUT UPDATE TRANSACTION RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('PUT /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('PUT /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -572,11 +648,17 @@ class ApiService {
   static Future<bool> deleteTransaction(String id) async {
     try {
       final response = await delete('/transactions/$id');
-      print('=== DELETE TRANSACTION RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        print('=== DELETE TRANSACTION RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('DELETE /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('DELETE /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -584,11 +666,17 @@ class ApiService {
   static Future<bool> deleteProject(String id) async {
     try {
       final response = await delete('/projects/$id');
-      print('=== DELETE PROJECT RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        print('=== DELETE PROJECT RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('DELETE /projects/$id Error: $e');
+      if (kDebugMode) {
+        print('DELETE /projects/$id Error: $e');
+      }
       return false;
     }
   }
@@ -608,7 +696,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('fetchRecentTransactions Error: $e');
+      if (kDebugMode) {
+        print('fetchRecentTransactions Error: $e');
+      }
       return [];
     }
   }
@@ -727,11 +817,17 @@ class ApiService {
         result.add(record);
       }
 
-      print('fetchSuggestions [$type]: ${result.length} unique suggestions');
+      if (kDebugMode) {
+        print('fetchSuggestions [$type]: ${result.length} unique suggestions');
+      }
       return result;
     } catch (e, stack) {
-      print('fetchSuggestions Error: $e');
-      print(stack);
+      if (kDebugMode) {
+        print('fetchSuggestions Error: $e');
+      }
+      if (kDebugMode) {
+        print(stack);
+      }
       return [];
     }
   }

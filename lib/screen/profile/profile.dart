@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       // GET /api/users/profile  (auth header added by ApiService)
-      final response = await ApiService.get('/api/users/profile');
+      final response = await ApiService.get('/users/profile');
 
       if (!mounted) return;
 
