@@ -1,15 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
-import 'package:buildtrack_mobile/controller/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -154,41 +150,42 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passCtrl.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter email and password')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter email and password')),
+      );
       return;
     }
 
     setState(() => _loading = true);
 
     try {
+      // AuthService.login() handles:
+      //   1. POST /auth/login
+      //   2. Saving token to SharedPreferences
+      //   3. Calling UserSession.fromLoginResponse() — stores role,
+      //      permissions, projectId in memory AND SharedPreferences
       final data = await AuthService.login(email, password);
 
-      if (data != null && data['token'] != null) {
-        final token = data['token'].toString();
-        final user = Map<String, dynamic>.from(data['user'] ?? {});
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
-
-        UserSession.fromLoginResponse(user);
-
+      if (data != null) {
         if (mounted) {
+          // ProjectProvider.load() will now filter projects correctly
+          // based on UserSession.isAdmin / UserSession.projectId
           await context.read<ProjectProvider>().load();
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
-        throw Exception("Invalid login response");
+        throw Exception('Invalid login response');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
-    } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
