@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,20 +99,28 @@ class ApiService {
             );
           } catch (e) {
             // If a legacy project crashes, print exactly why, but keep loading the rest!
-            print('CRASH parsing project ${item['_id']}: $e');
+            if (kDebugMode) {
+              print('CRASH parsing project ${item['_id']}: $e');
+            }
           }
         }
 
         return validProjects;
       } else if (response.statusCode == 401) {
-        print('AUTH Error: Token missing (401).');
+        if (kDebugMode) {
+          print('AUTH Error: Token missing (401).');
+        }
         throw Exception('Unauthorized');
       } else {
-        print('GET /projects failed: ${response.statusCode}');
+        if (kDebugMode) {
+          print('GET /projects failed: ${response.statusCode}');
+        }
         return [];
       }
     } catch (e) {
-      print('fetchProjects Master Error: $e');
+      if (kDebugMode) {
+        print('fetchProjects Master Error: $e');
+      }
       return [];
     }
   }
@@ -134,13 +140,17 @@ class ApiService {
             : decoded as Map<String, dynamic>;
         return ProjectModel.fromJson(projectJson);
       } else {
-        print(
+        if (kDebugMode) {
+          print(
           'POST /projects failed (${response.statusCode}): ${response.body}',
         );
+        }
         return null;
       }
     } catch (e) {
-      print('addProject Error: $e');
+      if (kDebugMode) {
+        print('addProject Error: $e');
+      }
       return null;
     }
   }
@@ -159,7 +169,9 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('fetchProjectById error: $e');
+      if (kDebugMode) {
+        print('fetchProjectById error: $e');
+      }
       return null;
     }
   }
@@ -185,20 +197,26 @@ class ApiService {
         return [];
       } else if (response.statusCode == 401) {
         // Token missing/expired — surface this clearly
-        print(
+        if (kDebugMode) {
+          print(
           'AUTH Error: Token missing or expired (401). Body: ${response.body}',
         );
+        }
         throw Exception('Unauthorized – please log in again');
       } else {
-        print(
+        if (kDebugMode) {
+          print(
           'GET /transactions failed with status ${response.statusCode}: ${response.body}',
         );
+        }
         throw Exception(
           'Failed to load transactions (HTTP ${response.statusCode})',
         );
       }
     } catch (e) {
-      print('GET Error: $e');
+      if (kDebugMode) {
+        print('GET Error: $e');
+      }
       return [];
     }
   }
@@ -209,14 +227,24 @@ class ApiService {
       // 🌟 CHANGED PATH URL: From '/inventory' to '/transactions' to resolve your 404 Route Not Found error
       final response = await post('/transactions', payload);
 
-      print('=== SERVER RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== SERVER RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('POST Error: $e');
+      if (kDebugMode) {
+        print('POST Error: $e');
+      }
       return false;
     }
   }
@@ -226,16 +254,26 @@ class ApiService {
   ) async {
     try {
       final response = await post('/transactions', payload);
-      print('=== SERVER RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== SERVER RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
       return null;
     } catch (e) {
-      print('POST Error: $e');
+      if (kDebugMode) {
+        print('POST Error: $e');
+      }
       return null;
     }
   }
@@ -247,13 +285,23 @@ class ApiService {
   ) async {
     try {
       final response = await put('/transactions/$id', payload);
-      print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('PUT /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('PUT /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -266,8 +314,12 @@ class ApiService {
 
       final response = await get(endpoint);
 
-      print('fetchInventory status: ${response.statusCode}');
-      print('fetchInventory body: ${response.body}');
+      if (kDebugMode) {
+        print('fetchInventory status: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('fetchInventory body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -286,76 +338,101 @@ class ApiService {
                   as List<dynamic>;
         }
 
-        // ROSELIN'S LOGIC: Preserving her complex grouping algorithm
-        // --- UPDATED GROUPING ALGORITHM ---
+        // --- UPDATED GROUPING ALGORITHM (GROUP BY ITEM/TRANSACTION TITLE) ---
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          // 1. Get the original category name (e.g., "gas", "Crane Rental", "Sunil Contractors")
-          final String originalCategory =
-              (t['category'] ?? t['materialName'] ?? 'Unknown')
-                  .toString()
-                  .trim();
-
-          // 2. Determine the TAB type (material, labour, or equipment)
-          final String rawCat = originalCategory.toLowerCase();
-          final String rawType = (t['type'] ?? '')
+          // Get the item name (Cement, Steel, M Sand, Mason, Excavator, etc.) from the title field
+          final String itemName = (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
               .toString()
-              .trim()
-              .toLowerCase();
+              .trim();
 
+          // Determine the TAB type (material, labour, or equipment) based on transaction type or category fallback
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
           String tabType = 'material'; // Default
-          if (rawCat == 'labour' ||
-              rawCat == 'wages' ||
-              rawCat == 'labor' ||
-              rawCat.contains('labour') ||
-              rawType == 'wages' ||
-              rawType == 'labour') {
+          if (rawType == 'wages' || rawType == 'labour') {
             tabType = 'labour';
-          } else if (rawCat == 'equipment' ||
-              rawCat == 'machinery' ||
-              rawCat == 'expense' ||
-              rawType == 'expense' ||
-              rawType == 'equipment') {
+          } else if (rawType == 'expense' || rawType == 'equipment') {
             tabType = 'equipment';
+          } else if (rawType == 'materials') {
+            tabType = 'material';
+          } else {
+            final String originalCategory = (t['category'] ?? t['materialName'] ?? '').toString().trim().toLowerCase();
+            if (originalCategory == 'labour' ||
+                originalCategory == 'wages' ||
+                originalCategory == 'labor' ||
+                originalCategory.contains('labour')) {
+              tabType = 'labour';
+            } else if (originalCategory == 'equipment' ||
+                originalCategory == 'machinery' ||
+                originalCategory == 'expense') {
+              tabType = 'equipment';
+            }
           }
 
-          // 3. Group by the ORIGINAL CATEGORY name, not the title
-          final String key = '$originalCategory||$tabType';
+          String unit = (t['unit'] ?? '').toString().trim();
+          if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
+            unit = '';
+          }
+          final String key = '$itemName||$tabType||$unit';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-          final String unit = (t['unit'] ?? 'units').toString();
+
+          final bool isPositive = t['subType']?.toString().toLowerCase() != 'consumption' &&
+              t['materialType']?.toString().toLowerCase() != 'usage';
 
           if (grouped.containsKey(key)) {
-            // If the category exists, add to the total stock
-            grouped[key]!['purchased'] =
-                (grouped[key]!['purchased'] as double) + qty;
-            grouped[key]!['closingStock'] =
-                (grouped[key]!['closingStock'] as double) + qty;
+            // If the item exists, add to the total stock
+            if (isPositive) {
+              grouped[key]!['purchased'] = (grouped[key]!['purchased'] as double) + qty;
+              grouped[key]!['closingStock'] = (grouped[key]!['closingStock'] as double) + qty;
+            } else {
+              grouped[key]!['used'] = (grouped[key]!['used'] as double) + qty;
+              grouped[key]!['closingStock'] = (grouped[key]!['closingStock'] as double) - qty;
+            }
+            (grouped[key]!['transactions'] as List<dynamic>).add(t);
           } else {
-            // Create a new category card
+            // Create a new item card
             grouped[key] = {
               '_id': t['_id'] ?? key,
-              'materialName':
-                  originalCategory, // <-- UI reads this for the Card Title!
+              'materialName': itemName, // <-- UI reads this for the Card Title!
               'category': tabType, // <-- UI reads this to sort into Tabs!
-              'purchased': qty,
-              'used': 0.0,
-              'closingStock': qty,
+              'purchased': isPositive ? qty : 0.0,
+              'used': isPositive ? 0.0 : qty,
+              'closingStock': isPositive ? qty : -qty,
               'threshold': 10.0,
               'unit': unit,
+              'transactions': [t],
             };
           }
         }
 
-        print('fetchInventory grouped items: ${grouped.length}');
+        // Sort transactions in each group descending by date
+        for (final item in grouped.values) {
+          final txs = item['transactions'] as List<dynamic>;
+          txs.sort((a, b) {
+            final dateA = a['date'] ?? '';
+            final dateB = b['date'] ?? '';
+            return dateB.toString().compareTo(dateA.toString());
+          });
+        }
+
+        if (kDebugMode) {
+          print('fetchInventory grouped items: ${grouped.length}');
+        }
         return grouped.values.toList();
       } else {
-        print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        if (kDebugMode) {
+          print('fetchInventory failed: ${response.statusCode} ${response.body}');
+        }
         return [];
       }
     } catch (e, stack) {
-      print('Inventory GET Error: $e');
-      print(stack.toString());
+      if (kDebugMode) {
+        print('Inventory GET Error: $e');
+      }
+      if (kDebugMode) {
+        print(stack.toString());
+      }
       return [];
     }
   }
@@ -382,29 +459,111 @@ class ApiService {
   static Future<List<dynamic>> searchMaterials({
     String? query,
     String? category,
+    String? projectId,
   }) async {
     try {
       // Build the query string dynamically
-      String endpoint = '/inventory?';
+      String endpoint = '/transactions?';
+      if (projectId != null && projectId.isNotEmpty) endpoint += 'project=$projectId&';
       if (query != null && query.isNotEmpty) endpoint += 'search=$query&';
       if (category != null && category.isNotEmpty && category != 'All') {
-        endpoint += 'category=${category.toLowerCase()}';
+        String backendType = 'Materials';
+        if (category.toLowerCase() == 'labour') backendType = 'Wages';
+        if (category.toLowerCase() == 'equipment') backendType = 'Expense';
+        endpoint += 'type=$backendType&';
       }
 
       final response = await get(endpoint);
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        if (decoded is List) return decoded;
-        if (decoded is Map) {
-          return decoded['inventory'] ?? decoded['data'] ?? [];
+        List<dynamic> raw = [];
+        if (decoded is List) {
+          raw = decoded;
+        } else if (decoded is Map) {
+          raw = (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
         }
-        return [];
+
+        final Map<String, Map<String, dynamic>> grouped = {};
+
+        for (final t in raw) {
+          final String itemName = (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
+              .toString()
+              .trim();
+
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          String tabType = 'material';
+          if (rawType == 'wages' || rawType == 'labour') {
+            tabType = 'labour';
+          } else if (rawType == 'expense' || rawType == 'equipment') {
+            tabType = 'equipment';
+          } else if (rawType == 'materials') {
+            tabType = 'material';
+          } else {
+            final String originalCategory = (t['category'] ?? t['materialName'] ?? '').toString().trim().toLowerCase();
+            if (originalCategory == 'labour' ||
+                originalCategory == 'wages' ||
+                originalCategory == 'labor' ||
+                originalCategory.contains('labour')) {
+              tabType = 'labour';
+            } else if (originalCategory == 'equipment' ||
+                originalCategory == 'machinery' ||
+                originalCategory == 'expense') {
+              tabType = 'equipment';
+            }
+          }
+
+          String unit = (t['unit'] ?? '').toString().trim();
+          if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
+            unit = '';
+          }
+          final String key = '$itemName||$tabType||$unit';
+          final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+
+          final bool isPositive = t['subType']?.toString().toLowerCase() != 'consumption' &&
+              t['materialType']?.toString().toLowerCase() != 'usage';
+
+          if (grouped.containsKey(key)) {
+            if (isPositive) {
+              grouped[key]!['purchased'] = (grouped[key]!['purchased'] as double) + qty;
+              grouped[key]!['closingStock'] = (grouped[key]!['closingStock'] as double) + qty;
+            } else {
+              grouped[key]!['used'] = (grouped[key]!['used'] as double) + qty;
+              grouped[key]!['closingStock'] = (grouped[key]!['closingStock'] as double) - qty;
+            }
+            (grouped[key]!['transactions'] as List<dynamic>).add(t);
+          } else {
+            grouped[key] = {
+              '_id': t['_id'] ?? key,
+              'materialName': itemName,
+              'category': tabType,
+              'purchased': isPositive ? qty : 0.0,
+              'used': isPositive ? 0.0 : qty,
+              'closingStock': isPositive ? qty : -qty,
+              'threshold': 10.0,
+              'unit': unit,
+              'transactions': [t],
+            };
+          }
+        }
+
+        for (final item in grouped.values) {
+          final txs = item['transactions'] as List<dynamic>;
+          txs.sort((a, b) {
+            final dateA = a['date'] ?? '';
+            final dateB = b['date'] ?? '';
+            return dateB.toString().compareTo(dateA.toString());
+          });
+        }
+
+        return grouped.values.toList();
       } else {
         throw Exception('Search failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      print('Search API Error: $e');
+      if (kDebugMode) {
+        print('Search API Error: $e');
+      }
       return [];
     }
   }
@@ -422,7 +581,9 @@ class ApiService {
         throw Exception('Failed to load daily tasks');
       }
     } catch (e) {
-      print('Tasks API Error: $e');
+      if (kDebugMode) {
+        print('Tasks API Error: $e');
+      }
       return []; // Return empty list on error to prevent UI crash
     }
   }
@@ -445,13 +606,17 @@ class ApiService {
         'threshold': threshold,
       });
       if (response.statusCode != 200 && response.statusCode != 201) {
-        print(
+        if (kDebugMode) {
+          print(
           'addInventoryItem failed (${response.statusCode}): ${response.body}',
         );
+        }
         throw Exception('Failed to add inventory item');
       }
     } catch (e) {
-      print('addInventoryItem Error: $e');
+      if (kDebugMode) {
+        print('addInventoryItem Error: $e');
+      }
       rethrow;
     }
   }
@@ -462,12 +627,20 @@ class ApiService {
   ) async {
     try {
       final response = await put('/transactions/$id', payload);
-      print('=== PUT UPDATE TRANSACTION RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      if (kDebugMode) {
+        print('=== PUT UPDATE TRANSACTION RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Response Body: ${response.body}');
+      }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('PUT /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('PUT /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -475,11 +648,17 @@ class ApiService {
   static Future<bool> deleteTransaction(String id) async {
     try {
       final response = await delete('/transactions/$id');
-      print('=== DELETE TRANSACTION RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        print('=== DELETE TRANSACTION RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('DELETE /transactions/$id Error: $e');
+      if (kDebugMode) {
+        print('DELETE /transactions/$id Error: $e');
+      }
       return false;
     }
   }
@@ -487,12 +666,169 @@ class ApiService {
   static Future<bool> deleteProject(String id) async {
     try {
       final response = await delete('/projects/$id');
-      print('=== DELETE PROJECT RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
+      if (kDebugMode) {
+        print('=== DELETE PROJECT RESPONSE ===');
+      }
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+      }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('DELETE /projects/$id Error: $e');
+      if (kDebugMode) {
+        print('DELETE /projects/$id Error: $e');
+      }
       return false;
+    }
+  }
+
+  static Future<List<dynamic>> fetchRecentTransactions({
+    required String projectId,
+    required String type,
+  }) async {
+    try {
+      final response = await get('/transactions?project=$projectId&type=$type');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map) {
+          return (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+        }
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('fetchRecentTransactions Error: $e');
+      }
+      return [];
+    }
+  }
+
+  // ── SMART AUTOCOMPLETE SUGGESTION ENGINE ────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchSuggestions({
+    required String projectId,
+    required String type, // 'Materials' | 'Wages' | 'Expense'
+  }) async {
+    try {
+      // ── 1. Fetch current-project transactions ──────────────────────────
+      List<dynamic> projectTxs = [];
+      try {
+        final r = await get('/transactions?project=$projectId&type=$type');
+        if (r.statusCode == 200) {
+          final d = json.decode(r.body);
+          if (d is List) {
+            projectTxs = d;
+          } else if (d is Map) {
+            projectTxs = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+          }
+        }
+      } catch (_) {}
+
+      // ── 2. Fetch global transactions (all projects) ────────────────────
+      List<dynamic> globalTxs = [];
+      try {
+        final r = await get('/transactions?type=$type');
+        if (r.statusCode == 200) {
+          final d = json.decode(r.body);
+          if (d is List) {
+            globalTxs = d;
+          } else if (d is Map) {
+            globalTxs = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+          }
+        }
+      } catch (_) {}
+
+      final Map<String, Map<String, dynamic>> byTitle = {};
+      final Map<String, int> frequency = {};
+      final Map<String, bool> isCurrentProject = {};
+
+      // Process current-project first (higher priority)
+      for (final rawTx in projectTxs) {
+        final tx = rawTx as Map<String, dynamic>;
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        final key = title.toLowerCase();
+        frequency[key] = (frequency[key] ?? 0) + 1;
+        isCurrentProject[key] = true;
+
+        if (!byTitle.containsKey(key)) {
+          byTitle[key] = Map<String, dynamic>.from(tx);
+        } else {
+          // Keep most recent record
+          final existingDate = byTitle[key]!['date']?.toString() ?? '';
+          final newDate = tx['date']?.toString() ?? '';
+          if (newDate.compareTo(existingDate) > 0) {
+            byTitle[key] = Map<String, dynamic>.from(tx);
+          }
+        }
+      }
+
+      // Process global transactions — only add if title not already seen
+      for (final rawTx in globalTxs) {
+        final tx = rawTx as Map<String, dynamic>;
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        final key = title.toLowerCase();
+        if (!byTitle.containsKey(key)) {
+          // New title from another project
+          byTitle[key] = Map<String, dynamic>.from(tx);
+          frequency[key] = 1;
+          isCurrentProject[key] = false;
+        } else if (isCurrentProject[key] != true) {
+          // Same title from another project — keep most recent
+          final existingDate = byTitle[key]!['date']?.toString() ?? '';
+          final newDate = tx['date']?.toString() ?? '';
+          if (newDate.compareTo(existingDate) > 0) {
+            byTitle[key] = Map<String, dynamic>.from(tx);
+          }
+          frequency[key] = (frequency[key] ?? 0) + 1;
+        }
+      }
+
+      // ── 4. Sort: current-project > recency > frequency ─────────────────
+      final entries = byTitle.entries.toList()
+        ..sort((a, b) {
+          final aKey = a.key;
+          final bKey = b.key;
+
+          // Current project first
+          final aProj = isCurrentProject[aKey] == true ? 1 : 0;
+          final bProj = isCurrentProject[bKey] == true ? 1 : 0;
+          if (aProj != bProj) return bProj - aProj;
+
+          // Most recent first
+          final aDate = a.value['date']?.toString() ?? '';
+          final bDate = b.value['date']?.toString() ?? '';
+          final dateCmp = bDate.compareTo(aDate);
+          if (dateCmp != 0) return dateCmp;
+
+          // Most frequent first
+          final aFreq = frequency[aKey] ?? 0;
+          final bFreq = frequency[bKey] ?? 0;
+          return bFreq - aFreq;
+        });
+
+      // ── 5. Embed frequency metadata for potential future use ───────────
+      final result = <Map<String, dynamic>>[];
+      for (final e in entries.take(50)) {
+        final record = Map<String, dynamic>.from(e.value)
+          ..['\$freq'] = frequency[e.key] ?? 1
+          ..['\$isCurrentProject'] = isCurrentProject[e.key] ?? false;
+        result.add(record);
+      }
+
+      if (kDebugMode) {
+        print('fetchSuggestions [$type]: ${result.length} unique suggestions');
+      }
+      return result;
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print('fetchSuggestions Error: $e');
+      }
+      if (kDebugMode) {
+        print(stack);
+      }
+      return [];
     }
   }
 }

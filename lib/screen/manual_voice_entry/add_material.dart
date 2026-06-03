@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
@@ -43,6 +44,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
+  List<dynamic> _recentEntries = [];
+  bool _isLoadingRecent = false;
+
+  // ── Autocomplete suggestion cache ───────────────────────────────────────
+  List<Map<String, dynamic>> _suggestions = [];
 
   // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
@@ -152,6 +158,59 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        // Smart pre-fill from latest record
+        final latest = args['latestRecord'] as Map<String, dynamic>?;
+        if (latest != null) {
+          final pId = latest['projectId'] ?? latest['project'];
+          if (pId != null) {
+            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+          }
+          final floor = latest['floor'] ?? latest['zone'];
+          if (floor != null && floor.toString().isNotEmpty) {
+            _selectedFloor = floor.toString();
+          }
+          final phase = latest['phase'];
+          if (phase != null && phase.toString().isNotEmpty) {
+            _selectedPhase = phase;
+          }
+          final activity = latest['activity'];
+          if (activity != null && activity.toString().isNotEmpty) {
+            _selectedActivity = activity.toString();
+          }
+          final materialName = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          if (materialName != null && materialName.toString().isNotEmpty) {
+            _nameCtrl.text = materialName.toString();
+          }
+          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
+          if (rawUnit == 'bag' || rawUnit == 'bags') {
+            _selectedUnit = 'bag';
+          } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+            _selectedUnit = 'Sq.ft';
+          } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+            _selectedUnit = 'ton';
+          } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+            _selectedUnit = 'kg';
+          } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+            _selectedUnit = 'unit';
+          } else if (rawUnit.isNotEmpty) {
+            _selectedUnit = rawUnit;
+          }
+          _brandCtrl.text = latest['brand'] as String? ?? '';
+          _supplierCtrl.text = latest['supplier'] as String? ?? '';
+          
+          final gstVal = latest['gst'] ?? 0;
+          _gstCtrl.text = gstVal.toString();
+          _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+            _isAddAndPay = true;
+            _paymentMethod = latest['paymentMode'] ?? 'Cash';
+            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+          }
+        }
       }
 
       if (args['openPayment'] == true) {
@@ -159,6 +218,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
     } else {
       _selectedProjectId ??= UserSession.projectId;
+    }
+
+    if (_selectedProjectId != null && !_isEditing) {
+      _loadRecentEntries();
     }
   }
 
@@ -260,6 +323,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "project": _selectedProjectId,
       "notes": _notesCtrl.text.trim(),
       "date": _selectedDate.toIso8601String(),
+      "floor": _selectedFloor,
+      "phase": _selectedPhase,
+      "gst": double.tryParse(_gstCtrl.text) ?? 0,
+      "isWithGst": _isWithGst,
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
     };
@@ -321,6 +388,175 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _loadRecentEntries() async {
+    if (_selectedProjectId == null) {
+      setState(() {
+        _recentEntries = [];
+        _suggestions = [];
+      });
+      return;
+    }
+    setState(() => _isLoadingRecent = true);
+
+    // Load recent entries and autocomplete suggestions in parallel
+    final recentFuture = ApiService.fetchRecentTransactions(
+      projectId: _selectedProjectId!,
+      type: 'Materials',
+    );
+    final suggestionFuture = ApiService.fetchSuggestions(
+      projectId: _selectedProjectId!,
+      type: 'Materials',
+    );
+    final recentTxs = await recentFuture;
+    final suggestions = await suggestionFuture;
+
+    if (mounted) {
+      setState(() {
+        _recentEntries = recentTxs.take(5).toList();
+        _suggestions = suggestions;
+        _isLoadingRecent = false;
+      });
+    }
+  }
+
+  void _prefillFromRecent(Map<String, dynamic> tx) {
+    setState(() {
+      _nameCtrl.text = tx['title']?.toString() ?? '';
+      
+      final rawUnit = (tx['unit'] ?? '').toString().trim().toLowerCase();
+      if (rawUnit == 'bag' || rawUnit == 'bags') {
+        _selectedUnit = 'bag';
+      } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+        _selectedUnit = 'Sq.ft';
+      } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+        _selectedUnit = 'ton';
+      } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+        _selectedUnit = 'kg';
+      } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+        _selectedUnit = 'unit';
+      } else if (rawUnit.isNotEmpty) {
+        _selectedUnit = rawUnit;
+      }
+      
+      _brandCtrl.text = tx['brand']?.toString() ?? '';
+      _categoryCtrl.text = tx['category']?.toString() ?? '';
+      _supplierCtrl.text = tx['supplier']?.toString() ?? '';
+      
+      final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+      _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
+      
+      final gstVal = tx['gst'] ?? 0;
+      _gstCtrl.text = gstVal.toString();
+      _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
+      
+      final pStatus = tx['paymentStatus']?.toString().toLowerCase();
+      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+        _isAddAndPay = true;
+        _paymentMethod = tx['paymentMode'] ?? 'Cash';
+        final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+      }
+    });
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    if (month >= 1 && month <= 12) return months[month - 1];
+    return '';
+  }
+
+  Widget _activityTile({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String badgeLabel,
+    required Color badgeBg,
+    required Color badgeColor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: badgeColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -723,6 +959,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
@@ -737,139 +974,232 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
-                    // ── SECTION 2: MATERIAL DETAILS ────────────────────────
+
+                    // ── SECTION 2: MATERIAL PURCHASE ENTRY ────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ── Header ──────────────────────────────────────
                           const EntryCardHeader(
-                            icon: Icons.inventory_2_outlined,
-                            title: 'Material Details',
-                            subtitle: 'Specify the material being logged',
+                            icon: Icons.receipt_long_outlined,
+                            title: 'Material Purchase Entry',
+                            subtitle: 'Date · Item · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Material Name',
-                            required: true,
-                          ),
+
+                          // ── 1. DATE ──────────────────────────────────────
+                          const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                                builder: (ctx, child) => Theme(
+                                  data: Theme.of(ctx).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.primary,
+                                      onPrimary: Colors.white,
+                                      onSurface: AppColors.textDark,
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF173EEA), width: 2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.primary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.primary, size: 22),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 2. MATERIAL / ITEM ───────────────────────────
+                          const EntryFieldLabel('Material / Item',
+                              required: true),
+                          const SizedBox(height: 8),
+                          AutocompleteNameField(
                             controller: _nameCtrl,
                             hint: 'e.g. Ready-Mix Concrete M30',
+                            suggestions: _suggestions,
+                            onChanged: (_) => setState(() {}),
+                            onSuggestionSelected: _prefillFromRecent,
                           ),
                           if (_nameError != null) EntryErrorText(_nameError!),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 3. UNIT ──────────────────────────────────────
+                          const EntryFieldLabel('Unit', required: true),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            onChanged: (u) =>
+                                setState(() => _selectedUnit = u),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 4. QUANTITY ──────────────────────────────────
+                          const EntryFieldLabel('Quantity', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _qtyCtrl,
+                            hint: '0',
+                            suffix: _selectedUnit ?? 'units',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_qtyError != null) EntryErrorText(_qtyError!),
+                          const SizedBox(height: 20),
+
+                          // ── 5. RATE ──────────────────────────────────────
+                          const EntryFieldLabel('Rate (₹)', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _rateCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_rateError != null) EntryErrorText(_rateError!),
+                          const SizedBox(height: 20),
+
+                          // ── 6. AMOUNT (auto-calculated) ──────────────────
+                          const EntryFieldLabel('Amount (₹)', required: false),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F2FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.currency_rupee_rounded,
+                                    size: 16, color: Color(0xFF173EEA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _subtotal() > 0
+                                      ? _subtotal().toStringAsFixed(
+                                          _subtotal() % 1 == 0 ? 0 : 2)
+                                      : '—',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF173EEA),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0E3FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Auto',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF173EEA),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── Divider before optional fields ───────────────
+                          Row(
+                            children: [
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10),
+                                child: Text(
+                                  'OPTIONAL DETAILS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textLight,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 7. BRAND ─────────────────────────────────────
                           const EntryFieldLabel('Brand (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _brandCtrl,
                             hint: 'e.g. UltraTech, Tata Steel',
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 8. CATEGORY ───────────────────────────────────
                           const EntryFieldLabel('Category (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _categoryCtrl,
                             hint: 'e.g. Structural, Finishing',
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 20),
 
+                          // ── 9. SUPPLIER ───────────────────────────────────
                           const EntryFieldLabel('Supplier (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
                             controller: _supplierCtrl,
                             hint: 'e.g. ABC Suppliers Ltd.',
                           ),
-                        ],
-                      ),
-                    ),
+                          const SizedBox(height: 24),
 
-                    // ── SECTION 3: QUANTITY & RATE ─────────────────────────
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.straighten_outlined,
-                            title: 'Quantity & Rate',
-                            subtitle: 'Enter amounts for cost calculation',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-
-                          // ── ROW 1: Rate / Unit  +  Unit selector ──────────
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel('Unit (Optional)'),
-                                    const SizedBox(height: 8),
-                                    UnitSelectorField(
-                                      value: _selectedUnit,
-                                      onChanged: (u) =>
-                                          setState(() => _selectedUnit = u),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          // ── ROW 2: Quantity ───────────────────────────────
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const EntryFieldLabel(
-                                'Quantity',
-                                required: true,
-                              ),
-                              const SizedBox(height: 8),
-                              EntryUnderlineField(
-                                controller: _qtyCtrl,
-                                hint: '0',
-                                suffix: _selectedUnit ?? 'units',
-                                keyboardType: TextInputType.number,
-                                onChanged: (_) => setState(() {}),
-                              ),
-                              if (_qtyError != null)
-                                EntryErrorText(_qtyError!),
-                            ],
-                          ),
-                          const SizedBox(height: 22),
-
-                          // ── GST PRICING MODULE ───────────────────────────
+                          // ── GST PRICING MODULE ────────────────────────────
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -890,7 +1220,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.percent_rounded,
@@ -949,8 +1280,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
+                                                        offset: const Offset(
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -991,8 +1322,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                                             .withValues(
                                                                 alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
+                                                        offset: const Offset(
+                                                            0, 2),
                                                       ),
                                                     ]
                                                   : [],
@@ -1087,6 +1418,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           ),
                           const SizedBox(height: 18),
 
+                          // ── NOTES ─────────────────────────────────────────
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
@@ -1094,75 +1426,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       ),
                     ),
 
-                    // ── PURCHASING DATE ────────────────────────────────────
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Purchasing Date',
-                            subtitle:
-                                'Select when this purchase or transaction took place',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
-                                builder: (ctx, child) => Theme(
-                                  data: Theme.of(ctx).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: AppColors.primary,
-                                      onPrimary: Colors.white,
-                                      onSurface: AppColors.textDark,
-                                    ),
-                                  ),
-                                  child: child!,
-                                ),
-                              );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E5FF),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_month_outlined,
-                                    color: AppColors.primary,
-                                    size: 19,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
 
                     // ── SECTION 4: COST SUMMARY ────────────────────────────
                     CostSummaryCard(
@@ -1215,6 +1478,62 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     // ── PAYMENT SECTION ────────────────────────────────────
                     _buildPaymentSection(),
                     const SizedBox(height: 4),
+
+                    if (_selectedProjectId != null && !_isEditing) ...[
+                      if (_isLoadingRecent)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_recentEntries.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Recent Material Entries',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._recentEntries.map((tx) {
+                          final String title = tx['title']?.toString() ?? '';
+                          final double qty = (tx['quantity'] as num?)?.toDouble() ?? 0.0;
+                          final String unit = tx['unit']?.toString() ?? '';
+                          final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                          
+                          String dateStr = '';
+                          if (tx['date'] != null) {
+                            try {
+                              final parsed = DateTime.parse(tx['date'].toString());
+                              dateStr = '${parsed.day} ${_monthName(parsed.month)} ${parsed.year}';
+                            } catch (_) {}
+                          }
+                          
+                          final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+                          final String rateStr = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
+
+                          return _activityTile(
+                            context: context,
+                            title: title,
+                            subtitle: '$qtyStr $unit • ₹$rateStr • $dateStr',
+                            badgeLabel: 'Material',
+                            badgeBg: const Color(0xFFEEF0FF),
+                            badgeColor: AppColors.primary,
+                            icon: Icons.category_outlined,
+                            onTap: () {
+                              _prefillFromRecent(tx);
+                              _snack('Prefilled details for "$title"');
+                            },
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                    ],
 
                     // ── SUBMIT ─────────────────────────────────────────────
                     EntrySubmitButton(

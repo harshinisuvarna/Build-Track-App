@@ -78,6 +78,19 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       // ✅ Go to home if already logged in, login otherwise
       initialRoute: isLoggedIn ? '/home' : '/',
+      onGenerateInitialRoutes: (initialRouteName) {
+        return [
+          MaterialPageRoute(
+            settings: RouteSettings(name: initialRouteName),
+            builder: (context) {
+              if (initialRouteName == '/home') {
+                return const HomeScreen();
+              }
+              return const LoginScreen();
+            },
+          ),
+        ];
+      },
       routes: {
         '/':                 (_) => const LoginScreen(),
         '/login':            (_) => const LoginScreen(),

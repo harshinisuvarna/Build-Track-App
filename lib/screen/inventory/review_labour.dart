@@ -37,6 +37,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
   dynamic _selectedPhase;
   String? _selectedActivity;
   late TextEditingController _nameCtrl;
+  late TextEditingController _contractorCtrl; // ← NEW: Contractor / Firm
   late TextEditingController _workTypeCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _hoursCtrl;
@@ -59,6 +60,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
+    _contractorCtrl = TextEditingController();
     _workTypeCtrl = TextEditingController();
     _categoryCtrl = TextEditingController();
     _hoursCtrl = TextEditingController();
@@ -100,6 +102,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     if (t.contains('basement')) floor = 'Basement';
 
     _nameCtrl.text = 'Rajesh Kumar & Team (Masonry)';
+    _contractorCtrl.text = 'RK Construction Works';
     _workTypeCtrl.text = 'Masonry';
     _categoryCtrl.text = 'Skilled Labour';
     _hoursCtrl.text = '8';
@@ -115,6 +118,7 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
     _voiceCtrl.removeListener(_onVoiceChanged);
     _voiceCtrl.dispose();
     _nameCtrl.dispose();
+    _contractorCtrl.dispose();
     _workTypeCtrl.dispose();
     _categoryCtrl.dispose();
     _hoursCtrl.dispose();
@@ -388,20 +392,35 @@ class _ReviewLabourEntryScreenState extends State<ReviewLabourEntryScreen> {
                               controller: _nameCtrl,
                               hint: 'Worker or team name',
                             ),
-                            const SizedBox(height: 18),
-                            const EntryFieldLabel('Work Type'),
-                            const SizedBox(height: 8),
-                            EntryUnderlineField(
-                              controller: _workTypeCtrl,
-                              hint: 'e.g. Masonry, Plumbing',
-                            ),
-                            const SizedBox(height: 18),
-                            const EntryFieldLabel('Labour Category'),
-                            const SizedBox(height: 8),
-                            EntryUnderlineField(
-                              controller: _categoryCtrl,
-                              hint: 'e.g. Skilled, Unskilled',
-                            ),
+                             const SizedBox(height: 18),
+                             // ── Contractor (ERP requirement) ────────────────────
+                             Row(
+                               children: [
+                                 const Icon(Icons.business_center_outlined,
+                                   size: 13, color: AppColors.textLight),
+                                 const SizedBox(width: 6),
+                                 const EntryFieldLabel('Contractor / Firm'),
+                               ],
+                             ),
+                             const SizedBox(height: 8),
+                             EntryUnderlineField(
+                               controller: _contractorCtrl,
+                               hint: 'e.g. RK Construction Works',
+                             ),
+                             const SizedBox(height: 18),
+                             const EntryFieldLabel('Work Type'),
+                             const SizedBox(height: 8),
+                             EntryUnderlineField(
+                               controller: _workTypeCtrl,
+                               hint: 'e.g. Masonry, Plumbing',
+                             ),
+                             const SizedBox(height: 18),
+                             const EntryFieldLabel('Category'),
+                             const SizedBox(height: 8),
+                             EntryUnderlineField(
+                               controller: _categoryCtrl,
+                               hint: 'e.g. Skilled, Unskilled',
+                             ),
                             const SizedBox(height: 18),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,

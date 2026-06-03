@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
@@ -41,6 +42,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   bool _argsLoaded = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
+  List<dynamic> _recentEntries = [];
+  bool _isLoadingRecent = false;
+
+  // ── Autocomplete suggestion cache ───────────────────────────────────────
+  List<Map<String, dynamic>> _suggestions = [];
 
   // ── Payment state ───────────────────────────────────────────────────────
   bool _isAddAndPay = false;
@@ -53,7 +59,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
-  String? _workTypeError;
   String? _qtyError;
   String? _rateError;
 
@@ -137,9 +142,57 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           } catch (_) {}
         }
       } else {
+        // ── New entry — default project from session ───────────────────
         _selectedProjectId ??= UserSession.projectId;
+
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        // Smart pre-fill from latest record
+        final latest = args['latestRecord'] as Map<String, dynamic>?;
+        if (latest != null) {
+          final pId = latest['projectId'] ?? latest['project'];
+          if (pId != null) {
+            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+          }
+          final floor = latest['floor'] ?? latest['zone'];
+          if (floor != null && floor.toString().isNotEmpty) {
+            _selectedFloor = floor.toString();
+          }
+          final phase = latest['phase'];
+          if (phase != null && phase.toString().isNotEmpty) {
+            _selectedPhase = phase;
+          }
+          final activity = latest['activity'];
+          if (activity != null && activity.toString().isNotEmpty) {
+            _selectedActivity = activity.toString();
+          }
+          final labourType = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          if (labourType != null && labourType.toString().isNotEmpty) {
+            _nameCtrl.text = labourType.toString();
+          }
+          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
+          if (rawUnit == 'day' || rawUnit == 'days') {
+            _selectedUnit = 'Day';
+          } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+            _selectedUnit = 'Hour';
+          } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
+            _selectedUnit = 'Sq.ft';
+          } else if (rawUnit.isNotEmpty) {
+            _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+          }
+          
+          _categoryCtrl.text = latest['categoryName'] as String? ?? latest['category'] as String? ?? '';
+          _workTypeCtrl.text = latest['workType'] as String? ?? latest['remarks'] as String? ?? latest['notes'] as String? ?? '';
+
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+            _isAddAndPay = true;
+            _paymentMethod = latest['paymentMode'] ?? 'Cash';
+            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+          }
+        }
       }
 
       if (args['openPayment'] == true) {
@@ -147,6 +200,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       }
     } else {
       _selectedProjectId ??= UserSession.projectId;
+    }
+
+    if (_selectedProjectId != null && !_isEditing) {
+      _loadRecentEntries();
     }
   }
 
@@ -218,6 +275,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       : "unit",
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
+      "floor": _selectedFloor,
+      "phase": _selectedPhase,
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
     };
@@ -634,6 +693,168 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     );
   }
 
+  Future<void> _loadRecentEntries() async {
+    if (_selectedProjectId == null) {
+      setState(() {
+        _recentEntries = [];
+        _suggestions = [];
+      });
+      return;
+    }
+    setState(() => _isLoadingRecent = true);
+
+    // Load recent entries and autocomplete suggestions in parallel
+    final recentFuture = ApiService.fetchRecentTransactions(
+      projectId: _selectedProjectId!,
+      type: 'Wages',
+    );
+    final suggestionFuture = ApiService.fetchSuggestions(
+      projectId: _selectedProjectId!,
+      type: 'Wages',
+    );
+    final recentTxs = await recentFuture;
+    final suggestions = await suggestionFuture;
+
+    if (mounted) {
+      setState(() {
+        _recentEntries = recentTxs.take(5).toList();
+        _suggestions = suggestions;
+        _isLoadingRecent = false;
+      });
+    }
+  }
+
+  void _prefillFromRecent(Map<String, dynamic> tx) {
+    setState(() {
+      _nameCtrl.text = tx['title']?.toString() ?? '';
+      
+      final rawUnit = (tx['unit'] ?? '').toString().trim().toLowerCase();
+      if (rawUnit == 'day' || rawUnit == 'days') {
+        _selectedUnit = 'Day';
+      } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+        _selectedUnit = 'Hour';
+      } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
+        _selectedUnit = 'Sq.ft';
+      } else if (rawUnit.isNotEmpty) {
+        _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+      }
+      
+      _categoryCtrl.text = tx['category']?.toString() ?? '';
+      _workTypeCtrl.text = tx['remarks']?.toString() ?? '';
+      
+      final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+      _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
+      
+      final pStatus = tx['paymentStatus']?.toString().toLowerCase();
+      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+        _isAddAndPay = true;
+        _paymentMethod = tx['paymentMode'] ?? 'Cash';
+        final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+      }
+    });
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    if (month >= 1 && month <= 12) {
+      return months[month - 1];
+    }
+    return '';
+  }
+
+  Widget _activityTile({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String badgeLabel,
+    required Color badgeBg,
+    required Color badgeColor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: badgeColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -666,6 +887,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
@@ -680,169 +902,23 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           setState(() => _selectedActivity = v),
                     ),
 
+                    // ── SECTION 2: LABOUR ENTRY ───────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const EntryCardHeader(
                             icon: Icons.people_outline,
-                            title: 'Labour Allocation Details',
-                            subtitle:
-                                'Define working crew parameters or workforce units',
+                            title: 'Labour Entry',
+                            subtitle: 'Date · Labour Type · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          const EntryFieldLabel(
-                            'Labour / Crew Name',
-                            required: true,
-                          ),
+                          // ── 1. DATE ────────────────────────────────────────
+                          const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _nameCtrl,
-                            hint:
-                                'e.g. Rajesh Kumar Team, Steel Fixers Crew',
-                          ),
-                          if (_nameError != null) EntryErrorText(_nameError!),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Trade Classification',
-                            required: true,
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _workTypeCtrl,
-                            hint:
-                                'e.g. Masonry, Barbending, Concrete Crew',
-                          ),
-                          if (_workTypeError != null)
-                            EntryErrorText(_workTypeError!),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Subcontractor / Sub-Group Tag (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _categoryCtrl,
-                            hint: 'e.g. Vertex Infra Contractors',
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.timer_outlined,
-                            title: 'Quantified Effort & Wages',
-                            subtitle:
-                                'Calculate deployment financials via timeline logs',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Work Quantity',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _qtyCtrl,
-                                      hint: '0',
-                                      suffix: _selectedUnit ?? 'Unit',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_qtyError != null)
-                                      EntryErrorText(_qtyError!),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const EntryFieldLabel(
-                                      'Rate / Unit',
-                                      required: true,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    EntryUnderlineField(
-                                      controller: _rateCtrl,
-                                      hint: '0',
-                                      prefix: '₹',
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                    if (_rateError != null)
-                                      EntryErrorText(_rateError!),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel('Unit', required: false),
-                          const SizedBox(height: 8),
-                          UnitSelectorField(
-                            value: _selectedUnit,
-                            units: kLabourUnits,
-                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
-                            onChanged: (u) =>
-                                setState(() => _selectedUnit = u),
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                              'Overtime Amount (Optional)'),
-                          const SizedBox(height: 8),
-                          EntryUnderlineField(
-                            controller: _overtimeCtrl,
-                            hint: '0',
-                            prefix: '₹',
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
-                          ),
-                          const SizedBox(height: 18),
-
-                          const EntryFieldLabel(
-                            'Operational Activity Notes (Optional)',
-                          ),
-                          const SizedBox(height: 8),
-                          EntryNotesField(controller: _notesCtrl),
-                        ],
-                      ),
-                    ),
-
-                    EntrySectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const EntryCardHeader(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Purchase Date',
-                            subtitle:
-                                'Select when this transaction took place',
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(color: Color(0xFFF0EEF8)),
-                          const SizedBox(height: 16),
                           GestureDetector(
                             onTap: () async {
                               final picked = await showDatePicker(
@@ -866,38 +942,206 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E5FF),
-                                  width: 1.5,
-                                ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color(0xFF173EEA), width: 2)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.calendar_month_outlined,
-                                    color: AppColors.primary,
-                                    size: 19,
-                                  ),
+                                  const Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.primary, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                    '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                       color: AppColors.textDark,
                                     ),
                                   ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.primary, size: 22),
                                 ],
                               ),
                             ),
                           ),
+                          const SizedBox(height: 20),
+
+                          // ── 2. LABOUR TYPE ─────────────────────────────────
+                          const EntryFieldLabel('Labour Type', required: true),
+                          const SizedBox(height: 8),
+                          AutocompleteNameField(
+                            controller: _nameCtrl,
+                            hint: 'e.g. Mason, Carpenter, Steel Fixer',
+                            suggestions: _suggestions,
+                            onChanged: (_) => setState(() {}),
+                            onSuggestionSelected: _prefillFromRecent,
+                          ),
+                          if (_nameError != null) EntryErrorText(_nameError!),
+                          const SizedBox(height: 20),
+
+
+                          // ── 3. UNIT ────────────────────────────────────────
+                          const EntryFieldLabel('Unit', required: true),
+                          const SizedBox(height: 8),
+                          UnitSelectorField(
+                            value: _selectedUnit,
+                            units: kLabourUnits,
+                            hint: 'Select unit (e.g. Day, Hour, Sq ft)',
+                            onChanged: (u) =>
+                                setState(() => _selectedUnit = u),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 4. QUANTITY ────────────────────────────────────
+                          const EntryFieldLabel('Quantity', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _qtyCtrl,
+                            hint: '0',
+                            suffix: _selectedUnit ?? 'Unit',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_qtyError != null) EntryErrorText(_qtyError!),
+                          const SizedBox(height: 20),
+
+                          // ── 5. RATE ────────────────────────────────────────
+                          const EntryFieldLabel('Rate (₹)', required: true),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _rateCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_rateError != null) EntryErrorText(_rateError!),
+                          const SizedBox(height: 20),
+
+                          // ── 6. AMOUNT (auto-calculated) ────────────────────
+                          const EntryFieldLabel('Amount (₹)'),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F2FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.currency_rupee_rounded,
+                                    size: 16, color: Color(0xFF173EEA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (() {
+                                    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
+                                    final rate = double.tryParse(_rateCtrl.text) ?? 0;
+                                    final sub = qty * rate;
+                                    return sub > 0
+                                        ? sub.toStringAsFixed(sub % 1 == 0 ? 0 : 2)
+                                        : '—';
+                                  })(),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF173EEA),
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0E3FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Auto',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF173EEA),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── OPTIONAL DETAILS ───────────────────────────────
+                          Row(
+                            children: [
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10),
+                                child: Text(
+                                  'OPTIONAL DETAILS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textLight,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFF0EEF8))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 7. TRADE / WORK TYPE ───────────────────────────
+                          const EntryFieldLabel('Trade / Work Type (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _workTypeCtrl,
+                            hint: 'e.g. Masonry, Barbending, Concrete Crew',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 8. CONTRACTOR / TEAM ──────────────────────────
+                          const EntryFieldLabel('Contractor / Team (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _categoryCtrl,
+                            hint: 'e.g. Vertex Infra Contractors',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 9. OVERTIME ────────────────────────────────────
+                          const EntryFieldLabel('Overtime Amount (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryUnderlineField(
+                            controller: _overtimeCtrl,
+                            hint: '0',
+                            prefix: '₹',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── 10. NOTES ──────────────────────────────────────
+                          const EntryFieldLabel('Notes (Optional)'),
+                          const SizedBox(height: 8),
+                          EntryNotesField(controller: _notesCtrl),
                         ],
                       ),
                     ),
+
+
 
                     CostSummaryCard(
                       totalAmount: _totalCost(),
@@ -937,6 +1181,63 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
                     _buildPaymentSection(),
                     const SizedBox(height: 4),
+
+                    if (_selectedProjectId != null && !_isEditing) ...[
+                      if (_isLoadingRecent) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      ] else if (_recentEntries.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Recent Labour Entries',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._recentEntries.map((tx) {
+                          final String title = tx['title']?.toString() ?? '';
+                          final double qty = (tx['quantity'] as num?)?.toDouble() ?? 0.0;
+                          final String unit = tx['unit']?.toString() ?? '';
+                          final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                          
+                          String dateStr = '';
+                          if (tx['date'] != null) {
+                            try {
+                              final parsed = DateTime.parse(tx['date'].toString());
+                              dateStr = '${parsed.day} ${_monthName(parsed.month)} ${parsed.year}';
+                            } catch (_) {}
+                          }
+                          
+                          final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
+                          final String rateStr = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
+
+                          return _activityTile(
+                            context: context,
+                            title: title,
+                            subtitle: '$qtyStr $unit • ₹$rateStr • $dateStr',
+                            badgeLabel: 'Labour',
+                            badgeBg: const Color(0xFFE8F5E9),
+                            badgeColor: const Color(0xFF2E7D32),
+                            icon: Icons.people_outlined,
+                            onTap: () {
+                              _prefillFromRecent(tx);
+                              _snack('Prefilled details for "$title"');
+                            },
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                    ],
+
                     EntrySubmitButton(
                       label: 'Save Labour Entry',
                       icon: Icons.check_circle,
