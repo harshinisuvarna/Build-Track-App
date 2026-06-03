@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -124,9 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
           label: _loading ? 'Signing in...' : 'Sign In',
           onPressed: _loading ? null : _login,
         ),
-
         const SizedBox(height: 20),
-
         Wrap(
           alignment: WrapAlignment.center,
           children: [
@@ -167,20 +166,16 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = await AuthService.login(email, password);
 
       if (data != null && data['token'] != null) {
-        // 1. Save token FIRST
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', data['token']);
+        final token = data['token'].toString();
+        final user = Map<String, dynamic>.from(data['user'] ?? {});
 
-        UserSession.set(
-          userId: data['userId'] ?? '',
-          role: _parseRole(data['role']),
-        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+
+        UserSession.fromLoginResponse(user);
 
         if (mounted) {
-          // 2. Load ALL data (projects + entries) now that token is saved
           await context.read<ProjectProvider>().load();
-
-          // 3. Navigate
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
@@ -194,18 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _loading = false);
       }
-    }
-  }
-
-  UserRole _parseRole(String? role) {
-    switch (role?.toLowerCase()) {
-      case 'supervisor':
-        return UserRole.supervisor;
-      case 'mason':
-      case 'worker':
-        return UserRole.mason;
-      default:
-        return UserRole.admin;
     }
   }
 

@@ -67,10 +67,10 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     });
 
     try {
-      final response = await ApiService.get('/projects');
+      final response = await ApiService.get('/projects/mine');
 
-      debugPrint('ASSIGN ROLE /projects status => ${response.statusCode}');
-      debugPrint('ASSIGN ROLE /projects body => ${response.body}');
+      debugPrint('ASSIGN ROLE /projects/mine status => ${response.statusCode}');
+      debugPrint('ASSIGN ROLE /projects/mine body   => ${response.body}');
 
       if (!mounted) return;
 
@@ -90,17 +90,13 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
         final parsed = raw.map<Map<String, String>>((p) {
           final map = Map<String, dynamic>.from(p as Map);
-
           final id = (map['_id'] ?? map['id'] ?? '').toString();
-
-          final name = (map['name'] ??
-                  map['projectName'] ??
+          final name = (map['projectName'] ??
+                  map['name'] ??
                   map['title'] ??
-                  map['projectTitle'] ??
                   'Unnamed Project')
               .toString()
               .trim();
-
           return {
             'id': id,
             'name': name.isEmpty ? 'Unnamed Project' : name,
@@ -118,8 +114,6 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         });
       }
     } catch (e) {
-      debugPrint('ASSIGN ROLE /projects error => $e');
-
       if (!mounted) return;
       setState(() {
         _projectsError = 'Network error loading projects';
@@ -237,9 +231,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid email address.'),
-        ),
+        const SnackBar(content: Text('Please enter a valid email address.')),
       );
       return;
     }
@@ -254,14 +246,14 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     final payload = <String, dynamic>{
       'name': name,
       'email': email,
-      'password': pass,
+      'temporaryPassword': pass,
       'role': roleToSend,
       'permissions': selectedPermissions,
       if (_selectedProjectId != null) 'projectId': _selectedProjectId,
     };
 
     try {
-      final response = await ApiService.post('/auth/register', payload);
+      final response = await ApiService.post('/auth/provision', payload);
       if (!mounted) return;
       setState(() => _isLoading = false);
 
@@ -278,10 +270,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         final body = json.decode(response.body);
         final msg = body['message']?.toString() ?? 'Failed to assign role.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );
       }
     } catch (e) {

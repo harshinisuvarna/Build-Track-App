@@ -156,16 +156,11 @@ class ProjectProvider extends ChangeNotifier {
 
       // ── Projects ────────────────────────────────────────────────
       try {
-        // Build a merged completedAt map from two sources:
-        //   1. Current in-memory state (most up-to-date during the session)
-        //   2. SharedPreferences (survives app restarts)
-        // Source 1 wins over source 2; both win over whatever the API returns.
         final Map<String, DateTime> persistedDates =
             await _loadPersistedCompletedAt();
 
         final Map<String, Map<String, DateTime>> prevCompletedAt = {};
 
-        // Seed from persisted storage first (lower priority)
         persistedDates.forEach((key, date) {
           final parts = key.split('|');
           if (parts.length == 2) {
@@ -173,7 +168,6 @@ class ProjectProvider extends ChangeNotifier {
           }
         });
 
-        // Overwrite with current in-memory state (higher priority)
         for (final p in _projects) {
           for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
             for (final act in phase.activities) {
@@ -187,7 +181,19 @@ class ProjectProvider extends ChangeNotifier {
 
         _projects = await ApiService.fetchProjects();
 
-        // Merge completedAt back and apply floor fallback.
+        // ✅ Non-admin users only see their assigned project
+        if (!UserSession.isAdmin) {
+          final assignedId = UserSession.projectId;
+          if (assignedId.isNotEmpty) {
+            _projects = _projects
+                .where((p) => p.id.trim() == assignedId.trim())
+                .toList();
+          } else {
+            // No specific project assigned → show nothing
+            _projects = [];
+          }
+        }
+
         _projects = _projects.map((p) {
           final actDates = prevCompletedAt[p.id];
 
@@ -197,7 +203,6 @@ class ProjectProvider extends ChangeNotifier {
                 (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
               final mergedActivities = phase.activities.map((act) {
                 final savedDate = actDates[act.id];
-                // Use saved date if the API didn't return one
                 if (savedDate != null && act.completedAt == null) {
                   return act.copyWith(completedAt: savedDate);
                 }
@@ -341,7 +346,6 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      // Retain currently selected project
       if (_selectedProject != null) {
         final existingIdx = _projects.indexWhere(
           (p) => p.id.trim() == _selectedProject!.id.trim(),
@@ -376,6 +380,19 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
+
+      // ✅ Non-admin users only see their assigned project
+      if (!UserSession.isAdmin) {
+        final assignedId = UserSession.projectId;
+        if (assignedId.isNotEmpty) {
+          _projects = _projects
+              .where((p) => p.id.trim() == assignedId.trim())
+              .toList();
+        } else {
+          _projects = [];
+        }
+      }
+
       _projects = _projects.map((p) {
         final floors = p.floors;
         if (floors == null || floors.isEmpty) {
@@ -517,13 +534,11 @@ class ProjectProvider extends ChangeNotifier {
       if (aIndex != -1) {
         final current = activities[aIndex];
 
-        // ── GUARD: already done → do nothing ──────────────────────
         if (current.completed) {
           alreadyCompleted = true;
           break;
         }
 
-        // Mark as completed and stamp the date
         stampedDate = completedAt ?? DateTime.now();
         activities[aIndex] = current.copyWith(
           completed: true,
@@ -535,7 +550,6 @@ class ProjectProvider extends ChangeNotifier {
       }
     }
 
-    // If the activity was already done, bail out silently
     if (alreadyCompleted) return;
 
     final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
@@ -554,15 +568,10 @@ class ProjectProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    // Persist the completedAt date to SharedPreferences so it survives
-    // the next load() even if the backend doesn't echo it back.
     if (stampedDate != null) {
       await _saveCompletedAt(projectId, activityId, stampedDate);
     }
 
-    // Push the updated project state to the backend.
-    // Do NOT call load() here — it would re-fetch from API and overwrite
-    // the completedAt stamps if the backend doesn't return them.
     try {
       await ApiService.put('/projects/$projectId', updated.toJson());
     } catch (e) {
