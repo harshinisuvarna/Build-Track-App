@@ -2,28 +2,31 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// NOTE: Do NOT import AuthService here — that creates a circular dependency
-// (AuthService imports UserSession, UserSession imports AuthService).
-// loadFromPrefs() reads SharedPreferences directly instead.
+// NOTE: Do NOT import AuthService here — that creates a circular dependency.
 
 enum UserRole { admin, supervisor, mason }
 
-class UserSession {
+/// A ChangeNotifier so that any widget watching it via
+/// context.watch<UserSession>() rebuilds when session loads.
+class UserSession extends ChangeNotifier {
+  // ── Singleton ──────────────────────────────────────────
+  static final UserSession _instance = UserSession._();
+  factory UserSession() => _instance;
   UserSession._();
 
   static const String _kSessionKey = 'buildtrack_user_session';
 
   // ── In-memory state ────────────────────────────────────
-  static String    _userId      = '';
-  static UserRole  _role        = UserRole.admin;
-  static String    projectId    = '';
+  static String       _userId      = '';
+  static UserRole     _role        = UserRole.admin;
+  static String       projectId    = '';
   static List<String> _permissions = [];
-  static bool      _initialized = false;
+  static bool         _initialized = false;
 
   // ── Getters ────────────────────────────────────────────
-  static String       get userId      => _userId;
-  static UserRole     get role        => _role;
-  static List<String> get permissions => List.unmodifiable(_permissions);
+  static String       get userId        => _userId;
+  static UserRole     get role          => _role;
+  static List<String> get permissions   => List.unmodifiable(_permissions);
   static bool         get isInitialized => _initialized;
 
   static bool get isAdmin      => _role == UserRole.admin;
@@ -39,18 +42,13 @@ class UserSession {
   }
 
   // ── Permission check ───────────────────────────────────
-  // Admin always passes every check.
   static bool hasPermission(String key) {
     if (isAdmin) return true;
     return _permissions.contains(key);
   }
 
-  // ── Called right after a successful login API response ─
-  // Populates memory AND persists to SharedPreferences so
-  // the session survives app restarts.
-  static Future<void> fromLoginResponse(
-      Map<String, dynamic> user) async {
-    // backend safeUser() returns 'id' (not '_id')
+  // ── Called after successful login ──────────────────────
+  static Future<void> fromLoginResponse(Map<String, dynamic> user) async {
     _userId   = user['id']?.toString() ?? '';
     projectId = user['projectId']?.toString() ?? '';
     _role     = _parseRole(user['role']?.toString());
@@ -61,18 +59,16 @@ class UserSession {
         : [];
 
     _initialized = true;
-
     await _persist();
 
+    // Notify all listening widgets
+    _instance.notifyListeners();
+
     debugPrint('[UserSession] fromLoginResponse → '
-        'role=$roleLabel '
-        'projectId=$projectId '
-        'permissions=$_permissions');
+        'role=$roleLabel projectId=$projectId permissions=$_permissions');
   }
 
-  // ── Called on app start (main.dart / splash) ───────────
-  // Restores the full session from SharedPreferences so the
-  // user doesn't have to log in again after a restart.
+  // ── Called on app start ────────────────────────────────
   static Future<void> loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -80,14 +76,15 @@ class UserSession {
 
       if (raw == null || raw.isEmpty) {
         _initialized = true;
+        _instance.notifyListeners();
         return;
       }
 
       final data = json.decode(raw) as Map<String, dynamic>;
 
-      _userId      = data['id']?.toString()        ?? '';
-      projectId    = data['projectId']?.toString() ?? '';
-      _role        = _parseRole(data['role']?.toString());
+      _userId   = data['id']?.toString()        ?? '';
+      projectId = data['projectId']?.toString() ?? '';
+      _role     = _parseRole(data['role']?.toString());
 
       final perms  = data['permissions'];
       _permissions = perms is List
@@ -95,14 +92,14 @@ class UserSession {
           : [];
 
       _initialized = true;
+      _instance.notifyListeners();
 
       debugPrint('[UserSession] loadFromPrefs → '
-          'role=$roleLabel '
-          'projectId=$projectId '
-          'permissions=$_permissions');
+          'role=$roleLabel projectId=$projectId permissions=$_permissions');
     } catch (e) {
       debugPrint('[UserSession] loadFromPrefs error: $e');
-      _initialized = true; // don't block app start
+      _initialized = true;
+      _instance.notifyListeners();
     }
   }
 
@@ -117,21 +114,23 @@ class UserSession {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kSessionKey);
 
+    _instance.notifyListeners();
     debugPrint('[UserSession] cleared');
   }
 
-  // ── Manual set (kept for compatibility / debug sims) ───
+  // ── Manual set (debug / simulation) ───────────────────
   static void set({
     required String   userId,
     required UserRole role,
     String            projectId    = '',
     List<String>      permissions  = const [],
   }) {
-    _userId           = userId;
-    _role             = role;
+    _userId               = userId;
+    _role                 = role;
     UserSession.projectId = projectId;
-    _permissions      = List<String>.from(permissions);
-    _initialized      = true;
+    _permissions          = List<String>.from(permissions);
+    _initialized          = true;
+    _instance.notifyListeners();
   }
 
   // ── Private helpers ────────────────────────────────────
