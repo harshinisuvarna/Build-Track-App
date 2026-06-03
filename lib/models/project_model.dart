@@ -188,8 +188,9 @@ class ProjectActivity {
 
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
-        id: j['id'] as String,
-        name: j['name'] as String,
+        // Backend may return '_id' (MongoDB) or 'id' — handle both safely
+        id: (j['id'] ?? j['_id'])?.toString() ?? '',
+        name: (j['name'] ?? '').toString(),
         isCustom: (j['isCustom'] as bool?) ?? false,
         completed: (j['completed'] as bool?) ?? false,
         completedAt: j['completedAt'] != null
@@ -243,8 +244,9 @@ class ProjectPhase {
 
   factory ProjectPhase.fromJson(Map<String, dynamic> j) {
     return ProjectPhase(
-      id: j['id']?.toString() ?? '',
-      phaseName: j['phaseName']?.toString() ?? '',
+      // Backend may return '_id' (MongoDB) or 'id' — handle both safely
+      id: (j['id'] ?? j['_id'])?.toString() ?? '',
+      phaseName: (j['phaseName'] ?? j['name'] ?? '').toString(),
       isCustom: j['isCustom'] as bool? ?? false,
       activities: (j['activities'] as List<dynamic>?)
               ?.map((e) => ProjectActivity.fromJson(e as Map<String, dynamic>))
@@ -467,9 +469,14 @@ class ProjectModel {
     })();
 
 
-    final mainType = (projectType ?? '').split('/').first.trim();
-    final subType = (projectType ?? '').contains('/')
-        ? projectType!.split('/').last.trim()
+    // projectType may use '→' or '/' as separator — handle both
+    final String ptStr = projectType ?? '';
+    final String separator = ptStr.contains('→') ? '→' : '/';
+    final mainType = ptStr.contains(separator)
+        ? ptStr.split(separator).first.trim()
+        : ptStr.trim();
+    final subType = ptStr.contains(separator)
+        ? ptStr.split(separator).last.trim()
         : '';
 
 
