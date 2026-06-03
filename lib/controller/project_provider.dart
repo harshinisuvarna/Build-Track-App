@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
 import '../models/phase_model.dart';
@@ -7,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kEntriesKey = 'buildtrack_entries_v1';
+
+// Key for persisting completedAt dates locally so they survive API reloads
+// even when the backend doesn't echo them back inside selectedPhases.
+const _kCompletedAtKey = 'buildtrack_completed_at_v1';
 
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
@@ -68,6 +73,45 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   // =========================
+  // PERSIST / LOAD completedAt
+  // Stored as: { "projectId|activityId": "2025-01-15T10:30:00.000" }
+  // =========================
+
+  Future<Map<String, DateTime>> _loadPersistedCompletedAt() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      if (raw == null || raw.isEmpty) return {};
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final result = <String, DateTime>{};
+      decoded.forEach((key, value) {
+        if (value != null) {
+          final dt = DateTime.tryParse(value.toString());
+          if (dt != null) result[key] = dt;
+        }
+      });
+      return result;
+    } catch (e) {
+      dev.log('_loadPersistedCompletedAt error: $e');
+      return {};
+    }
+  }
+
+  Future<void> _saveCompletedAt(
+      String projectId, String activityId, DateTime date) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      final Map<String, dynamic> existing =
+          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      existing['$projectId|$activityId'] = date.toIso8601String();
+      await prefs.setString(_kCompletedAtKey, json.encode(existing));
+    } catch (e) {
+      dev.log('_saveCompletedAt error: $e');
+    }
+  }
+
+  // =========================
   // LOAD
   // =========================
 
@@ -112,15 +156,70 @@ class ProjectProvider extends ChangeNotifier {
 
       // ── Projects ────────────────────────────────────────────────
       try {
-        _projects = await ApiService.fetchProjects();
-        // FIX: use 'Ground' (short label matching chip options) not 'Ground Floor'
-        // Only add default if floors is truly null or empty — never overwrite
-        // a non-empty list coming from the backend
-        _projects = _projects.map((p) {
-          if (p.floors == null || p.floors!.isEmpty) {
-            return p.copyWith(floors: ['Ground']);
+        final Map<String, DateTime> persistedDates =
+            await _loadPersistedCompletedAt();
+
+        final Map<String, Map<String, DateTime>> prevCompletedAt = {};
+
+        persistedDates.forEach((key, date) {
+          final parts = key.split('|');
+          if (parts.length == 2) {
+            prevCompletedAt.putIfAbsent(parts[0], () => {})[parts[1]] = date;
           }
-          return p; // preserve backend floors exactly as received
+        });
+
+        for (final p in _projects) {
+          for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
+            for (final act in phase.activities) {
+              if (act.completedAt != null) {
+                prevCompletedAt.putIfAbsent(p.id, () => {})[act.id] =
+                    act.completedAt!;
+              }
+            }
+          }
+        }
+
+        _projects = await ApiService.fetchProjects();
+
+        // ✅ Non-admin users only see their assigned project
+        if (!UserSession.isAdmin) {
+          final assignedId = UserSession.projectId;
+          if (assignedId.isNotEmpty) {
+            _projects = _projects
+                .where((p) => p.id.trim() == assignedId.trim())
+                .toList();
+          } else {
+            // No specific project assigned → show nothing
+            _projects = [];
+          }
+        }
+
+        _projects = _projects.map((p) {
+          final actDates = prevCompletedAt[p.id];
+
+          List<ProjectPhase>? mergedPhases;
+          if (actDates != null && actDates.isNotEmpty) {
+            mergedPhases =
+                (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
+              final mergedActivities = phase.activities.map((act) {
+                final savedDate = actDates[act.id];
+                if (savedDate != null && act.completedAt == null) {
+                  return act.copyWith(completedAt: savedDate);
+                }
+                return act;
+              }).toList();
+              return phase.copyWith(activities: mergedActivities);
+            }).toList();
+          }
+
+          final floors = (p.floors == null || p.floors!.isEmpty)
+              ? ['Ground']
+              : p.floors!;
+
+          return p.copyWith(
+            selectedPhases: mergedPhases ?? p.selectedPhases,
+            floors: floors,
+          );
         }).toList();
 
         debugPrint('Projects loaded: ${_projects.length}');
@@ -247,7 +346,6 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      // Retain currently selected project
       if (_selectedProject != null) {
         final existingIdx = _projects.indexWhere(
           (p) => p.id.trim() == _selectedProject!.id.trim(),
@@ -282,7 +380,19 @@ class ProjectProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _projects = await ApiService.fetchProjects();
-      // FIX: use 'Ground' short label, not 'Ground Floor'
+
+      // ✅ Non-admin users only see their assigned project
+      if (!UserSession.isAdmin) {
+        final assignedId = UserSession.projectId;
+        if (assignedId.isNotEmpty) {
+          _projects = _projects
+              .where((p) => p.id.trim() == assignedId.trim())
+              .toList();
+        } else {
+          _projects = [];
+        }
+      }
+
       _projects = _projects.map((p) {
         final floors = p.floors;
         if (floors == null || floors.isEmpty) {
@@ -316,9 +426,10 @@ class ProjectProvider extends ChangeNotifier {
     DateTime? expectedEndDate,
     List<String>? floors,
   }) async {
-    // FIX: default to 'Ground' (short label) not 'Ground Floor'
     final finalFloors = (floors == null || floors.isEmpty)
-        ? (project.floors == null || project.floors!.isEmpty ? ['Ground'] : project.floors!)
+        ? (project.floors == null || project.floors!.isEmpty
+            ? ['Ground']
+            : project.floors!)
         : floors;
     final updatedProject = project.copyWith(
       clientName: clientName,
@@ -397,77 +508,93 @@ class ProjectProvider extends ChangeNotifier {
 
   // =========================
   // TOGGLE ACTIVITY
+  // KEY FIX: if the activity is already completed, this is a no-op.
+  // Completion is a one-way action — it can only be set, never unset here.
   // =========================
 
   Future<void> toggleActivityCompletion(
     String projectId,
     String activityId, {
-    int? legacyTotalActivities,
+    DateTime? completedAt,
   }) async {
-    final idx = _projects.indexWhere((p) => p.id == projectId);
-    if (idx == -1) return;
-    final project = _projects[idx];
-    List<String> updatedCompletedKeys = List.from(
-      project.completedActivityKeys ?? [],
+    final projectIndex = _projects.indexWhere((p) => p.id == projectId);
+    if (projectIndex == -1) return;
+
+    final project = _projects[projectIndex];
+    final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
+
+    bool alreadyCompleted = false;
+    DateTime? stampedDate;
+
+    for (var p = 0; p < phases.length; p++) {
+      final phase = phases[p];
+      final activities = List<ProjectActivity>.from(phase.activities);
+
+      final aIndex = activities.indexWhere((a) => a.id == activityId);
+      if (aIndex != -1) {
+        final current = activities[aIndex];
+
+        if (current.completed) {
+          alreadyCompleted = true;
+          break;
+        }
+
+        stampedDate = completedAt ?? DateTime.now();
+        activities[aIndex] = current.copyWith(
+          completed: true,
+          completedAt: stampedDate,
+        );
+
+        phases[p] = phase.copyWith(activities: activities);
+        break;
+      }
+    }
+
+    if (alreadyCompleted) return;
+
+    final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
+    final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
+
+    final updated = project.copyWith(
+      selectedPhases: phases,
+      progress: total == 0 ? project.progress : done / total,
     );
 
-    if (project.selectedPhases != null && project.selectedPhases!.isNotEmpty) {
-      final updatedPhases = project.selectedPhases!.map((phase) {
-        final updatedActivities = phase.activities.map((act) {
-          if (act.id == activityId) {
-            final isNowCompleted = !act.completed;
-            if (isNowCompleted && !updatedCompletedKeys.contains(activityId)) {
-              updatedCompletedKeys.add(activityId);
-            } else if (!isNowCompleted) {
-              updatedCompletedKeys.remove(activityId);
-            }
-            return act.copyWith(completed: isNowCompleted);
-          }
-          return act;
-        }).toList();
-        return phase.copyWith(activities: updatedActivities);
-      }).toList();
-
-      final total =
-          updatedPhases.fold<int>(0, (s, p) => s + p.totalCount);
-      final done =
-          updatedPhases.fold<int>(0, (s, p) => s + p.completedCount);
-      _projects[idx] = project.copyWith(
-        selectedPhases: updatedPhases,
-        completedActivityKeys: updatedCompletedKeys,
-        progress: total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0,
-      );
-    } else {
-      if (updatedCompletedKeys.contains(activityId)) {
-        updatedCompletedKeys.remove(activityId);
-      } else {
-        updatedCompletedKeys.add(activityId);
-      }
-      final totalToUse = legacyTotalActivities ?? 161;
-      _projects[idx] = project.copyWith(
-        completedActivityKeys: updatedCompletedKeys,
-        progress: totalToUse > 0
-            ? (updatedCompletedKeys.length / totalToUse).clamp(0.0, 1.0)
-            : 0.0,
-      );
-    }
+    _projects[projectIndex] = updated;
 
     if (_selectedProject?.id == projectId) {
-      _selectedProject = _projects[idx];
+      _selectedProject = updated;
     }
+
     notifyListeners();
 
-    try {
-      final response = await ApiService.put(
-        '/projects/$projectId',
-        _projects[idx].toJson(),
-      );
-      if (response.statusCode != 200) {
-        dev.log('Failed saving activity: ${response.statusCode}');
-      }
-    } catch (e) {
-      dev.log('Network error saving activity: $e');
+    if (stampedDate != null) {
+      await _saveCompletedAt(projectId, activityId, stampedDate);
     }
+
+    try {
+      await ApiService.put('/projects/$projectId', updated.toJson());
+    } catch (e) {
+      dev.log('Failed to persist activity completion: $e');
+    }
+  }
+
+  // =========================
+  // MARK ACTIVITY COMPLETE (called from update_progress screen)
+  // Uses a specific date (the one the user submitted on the progress form)
+  // rather than DateTime.now().
+  // =========================
+
+  Future<void> markActivityComplete(
+    String projectId,
+    String activityId,
+    DateTime completionDate,
+  ) async {
+    await toggleActivityCompletion(
+      projectId,
+      activityId,
+      completedAt: completionDate,
+    );
   }
 
   // =========================

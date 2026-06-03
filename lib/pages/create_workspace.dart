@@ -1,27 +1,29 @@
+import 'dart:convert';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
+
 class CreateWorkspaceScreen extends StatefulWidget {
   const CreateWorkspaceScreen({super.key});
+
   @override
   State<CreateWorkspaceScreen> createState() => _CreateWorkspaceScreenState();
 }
+
 class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
-  static const _roles = ['Admin', 'Supervisor', 'Mason'];
   final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
-  String _selectedRole = 'Admin';
+
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
-  
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -31,6 +33,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     _confirmCtrl.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return AppScrollLayout(
@@ -55,6 +58,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ),
     );
   }
+
   Widget _buildHeader() {
     return Column(
       children: [
@@ -89,7 +93,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          'Create Account',
+          'Create Workspace',
           style: AppTheme.heading2.copyWith(
             fontSize: 26,
             letterSpacing: -0.5,
@@ -97,13 +101,14 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Set up your admin account to get started.',
+          'Set up your workspace owner account to get started.',
           textAlign: TextAlign.center,
           style: AppTheme.body.copyWith(color: AppColors.textLight),
         ),
       ],
     );
   }
+
   Widget _buildForm() {
     return Column(
       children: [
@@ -126,14 +131,33 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           prefixIcon: Icons.mail_outline,
           keyboardType: TextInputType.emailAddress,
         ),
-        AppDropdownField<String>(
-          label: 'Role (Optional)',
-          value: _selectedRole,
-          hint: 'Select role',
-          items: _roles
-              .map((r) => DropdownMenuItem<String>(value: r, child: Text(r)))
-              .toList(),
-          onChanged: (v) => setState(() => _selectedRole = v ?? _selectedRole),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.primarySurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.admin_panel_settings_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This account will be created as Workspace Admin.',
+                  style: AppTheme.body.copyWith(color: AppColors.textDark),
+                ),
+              ),
+            ],
+          ),
         ),
         AppTextField(
           label: 'Password',
@@ -173,13 +197,14 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
+
   Widget _buildActions() {
     return Column(
       children: [
         _isLoading
             ? const Center(child: CircularProgressIndicator())
             : AppButton(
-                label: 'Create Account',
+                label: 'Create Workspace',
                 icon: Icons.arrow_forward,
                 onPressed: _onCreatePressed,
               ),
@@ -206,31 +231,35 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
+
   void _onCreatePressed() async {
-    // Basic validation
     final name = _nameCtrl.text.trim();
+    final company = _companyCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     final confirm = _confirmCtrl.text;
-    
+
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
+
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address')),
       );
       return;
     }
+
     if (pass.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password must be at least 6 characters')),
       );
       return;
     }
+
     if (pass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
@@ -244,9 +273,10 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
 
     final payload = {
       'name': name,
+      'companyName': company,
       'email': email,
       'password': pass,
-      'role': 'Admin', // CRITICAL: Force the role to be 'Admin'
+      'role': 'Admin',
     };
 
     try {
@@ -261,7 +291,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Account created successfully! Please log in.'),
+            content: Text('Workspace created successfully! Please log in.'),
             backgroundColor: AppColors.success,
           ),
         );

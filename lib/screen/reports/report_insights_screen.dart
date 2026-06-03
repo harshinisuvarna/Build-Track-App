@@ -14,21 +14,28 @@ class ReportInsightsScreen extends StatefulWidget {
   @override
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
+
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   int _unitIndex = 0; // 0 = SQFT, 1 = CUYD
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final passedProjectName = args?['projectName'];
     final isAll = passedProjectName == 'All Active Projects';
+
     ProjectModel? project;
     if (isAll) {
-      final totalBudget = provider.projects.fold(0.0, (s, p) => s + p.totalBudget);
-      final spentAmount = provider.projects.fold(0.0, (s, p) => s + p.spentAmount);
-      final avgProgress = provider.projects.isEmpty 
-          ? 0.0 
-          : provider.projects.fold(0.0, (s, p) => s + p.progress) / provider.projects.length;
+      final totalBudget =
+          provider.projects.fold(0.0, (s, p) => s + p.totalBudget);
+      final spentAmount =
+          provider.projects.fold(0.0, (s, p) => s + p.spentAmount);
+      final avgProgress = provider.projects.isEmpty
+          ? 0.0
+          : provider.projects.fold(0.0, (s, p) => s + p.progress) /
+              provider.projects.length;
       project = ProjectModel(
         id: 'all',
         name: 'All Active Projects',
@@ -39,18 +46,26 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         totalBudget: totalBudget,
         spentAmount: spentAmount,
         startDate: DateTime.now(),
+        // FIX: location is a required field — provide a sensible default
+        location: 'Multiple Locations',
       );
     } else {
-      project = passedProjectName != null 
-          ? provider.projects.firstWhere((p) => p.name == passedProjectName, orElse: () => provider.selectedProject!)
+      project = passedProjectName != null
+          ? provider.projects.firstWhere(
+              (p) => p.name == passedProjectName,
+              orElse: () => provider.selectedProject!,
+            )
           : provider.selectedProject;
     }
+
     if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body:
+            Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
+
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -74,21 +89,30 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         ),
       );
     }
-    final entries = isAll ? provider.entries : provider.entriesForProject(project.id);
-    final matCost = entries.where((e) => e.type == EntryType.material).fold(0.0, (s, e) => s + e.amount);
-    final labCost = entries.where((e) => e.type == EntryType.labour).fold(0.0, (s, e) => s + e.amount);
-    final eqCost  = entries.where((e) => e.type == EntryType.equipment).fold(0.0, (s, e) => s + e.amount);
+
+    final entries =
+        isAll ? provider.entries : provider.entriesForProject(project.id);
+    final matCost = entries
+        .where((e) => e.type == EntryType.material)
+        .fold(0.0, (s, e) => s + e.amount);
+    final labCost = entries
+        .where((e) => e.type == EntryType.labour)
+        .fold(0.0, (s, e) => s + e.amount);
+    final eqCost = entries
+        .where((e) => e.type == EntryType.equipment)
+        .fold(0.0, (s, e) => s + e.amount);
     final categoryCosts = {
-      'Material':     matCost,
-      'Labour':       labCost,
-      'Equipment':    eqCost,
+      'Material': matCost,
+      'Labour': labCost,
+      'Equipment': eqCost,
     };
-    
+
     final categoryBudgets = {
-      'Material':     project.totalBudget * 0.40,
-      'Labour':       project.totalBudget * 0.35,
-      'Equipment':    project.totalBudget * 0.25,
+      'Material': project.totalBudget * 0.40,
+      'Labour': project.totalBudget * 0.35,
+      'Equipment': project.totalBudget * 0.25,
     };
+
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -125,18 +149,19 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                       categoryBudgets: categoryBudgets,
                     ),
                     const SizedBox(height: 20),
-                  
                     AppButton(
                       label: 'Update Progress',
                       icon: Icons.trending_up,
-                      onPressed: () => Navigator.pushNamed(context, '/update-progress'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/update-progress'),
                     ),
                     const SizedBox(height: 12),
                     AppButton(
                       label: 'View Full Logs',
                       icon: Icons.receipt_long_outlined,
                       variant: AppButtonVariant.outline,
-                      onPressed: () => Navigator.pushNamed(context, '/logs'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/logs'),
                     ),
                   ],
                 ),
@@ -152,19 +177,29 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
   const _ProjectSummaryCard({required this.project});
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(project.name, style: AppTheme.heading2.copyWith(fontSize: 18, color: AppColors.textDark)),
+          Text(
+            project.name,
+            style: AppTheme.heading2
+                .copyWith(fontSize: 18, color: AppColors.textDark),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textLight),
+              const Icon(Icons.location_on_outlined,
+                  size: 14, color: AppColors.textLight),
               const SizedBox(width: 4),
-              Text(project.location, style: AppTheme.caption.copyWith(fontSize: 13, color: AppColors.textLight)),
+              Text(
+                project.location,
+                style: AppTheme.caption
+                    .copyWith(fontSize: 13, color: AppColors.textLight),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -172,10 +207,21 @@ class _ProjectSummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (project.id != 'all')
-                Text('Stage: ${project.stage.name.toUpperCase()}', style: AppTheme.label.copyWith(color: AppColors.primary))
+                Text(
+                  'Stage: ${project.stage.name.toUpperCase()}',
+                  style:
+                      AppTheme.label.copyWith(color: AppColors.primary),
+                )
               else
-                Text('Aggregate Portfolio View', style: AppTheme.label.copyWith(color: AppColors.primary)),
-              Text('${(project.progress * 100).toStringAsFixed(1)}% Complete', style: AppTheme.label.copyWith(color: AppColors.textDark)),
+                Text(
+                  'Aggregate Portfolio View',
+                  style:
+                      AppTheme.label.copyWith(color: AppColors.primary),
+                ),
+              Text(
+                '${(project.progress * 100).toStringAsFixed(1)}% Complete',
+                style: AppTheme.label.copyWith(color: AppColors.textDark),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -193,34 +239,48 @@ class _ProjectSummaryCard extends StatelessWidget {
     );
   }
 }
+
 class _CostTrendChartCard extends StatelessWidget {
   final ProjectModel project;
   final List<EntryModel> entries;
   final int unitIndex;
   final ValueChanged<int> onUnitChanged;
+
   const _CostTrendChartCard({
     required this.project,
     required this.entries,
     required this.unitIndex,
     required this.onUnitChanged,
   });
+
   @override
   Widget build(BuildContext context) {
-    final isSqft     = unitIndex == 0;
-    final unitLabel  = isSqft ? 'SQFT' : 'CUYD';
+    final isSqft = unitIndex == 0;
+    final unitLabel = isSqft ? 'SQFT' : 'CUYD';
     final multiplier = isSqft ? 1.0 : 1.5;
-    final baseCost   = (project.spentAmount > 0 ? project.spentAmount / 1000 : 50.0) * multiplier;
+    final baseCost =
+        (project.spentAmount > 0 ? project.spentAmount / 1000 : 50.0) *
+            multiplier;
     final data = [
-      baseCost * 0.60, baseCost * 0.70, baseCost * 0.75,
-      baseCost * 0.85, baseCost * 0.92, baseCost,
+      baseCost * 0.60,
+      baseCost * 0.70,
+      baseCost * 0.75,
+      baseCost * 0.85,
+      baseCost * 0.92,
+      baseCost,
     ];
     final target = data.map((v) => v * 0.93).toList();
-    final spots       = [for (int i = 0; i < data.length;   i++) FlSpot(i.toDouble(), data[i])];
-    final targetSpots = [for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])];
+    final spots = [
+      for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])
+    ];
+    final targetSpots = [
+      for (int i = 0; i < target.length; i++) FlSpot(i.toDouble(), target[i])
+    ];
     final minY = data.reduce((a, b) => a < b ? a : b) * 0.92;
     final maxY = data.reduce((a, b) => a > b ? a : b) * 1.05;
     final currentVal = data.last;
-    final targetVal  = target.last;
+    final targetVal = target.last;
+
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -234,11 +294,14 @@ class _CostTrendChartCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Cost per $unitLabel',
-                      style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
+                      style:
+                          AppTheme.heading3.copyWith(color: AppColors.textDark)),
                   const SizedBox(height: 3),
-                  Text('Spending trend vs target',
-                      style: AppTheme.caption
-                          .copyWith(color: AppColors.textLight, height: 1.4)),
+                  Text(
+                    'Spending trend vs target',
+                    style: AppTheme.caption
+                        .copyWith(color: AppColors.textLight, height: 1.4),
+                  ),
                 ],
               ),
               _InsightUnitToggle(unitIndex: unitIndex, onChanged: onUnitChanged),
@@ -258,18 +321,20 @@ class _CostTrendChartCard extends StatelessWidget {
                 lineTouchData: LineTouchData(
                   handleBuiltInTouches: true,
                   getTouchedSpotIndicator: (barData, spotIndexes) =>
-                      spotIndexes.map((i) => TouchedSpotIndicatorData(
-                            const FlLine(strokeWidth: 0), // no stick
-                            FlDotData(
-                              getDotPainter: (spot, pct, bar, idx) =>
-                                  FlDotCirclePainter(
-                                radius: 6,
-                                color: AppColors.primary,
-                                strokeWidth: 2.5,
-                                strokeColor: Colors.white,
-                              ),
-                            ),
-                          )).toList(),
+                      spotIndexes
+                          .map((i) => TouchedSpotIndicatorData(
+                                const FlLine(strokeWidth: 0),
+                                FlDotData(
+                                  getDotPainter: (spot, pct, bar, idx) =>
+                                      FlDotCirclePainter(
+                                    radius: 6,
+                                    color: AppColors.primary,
+                                    strokeWidth: 2.5,
+                                    strokeColor: Colors.white,
+                                  ),
+                                ),
+                              ))
+                          .toList(),
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) => const Color(0xFF1A1D3A),
                     tooltipRoundedRadius: 12,
@@ -293,8 +358,8 @@ class _CostTrendChartCard extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: (maxY - minY) / 3,
-                  getDrawingHorizontalLine: (_) =>
-                      const FlLine(color: Color(0xFFEEF0F8), strokeWidth: 1),
+                  getDrawingHorizontalLine: (_) => const FlLine(
+                      color: Color(0xFFEEF0F8), strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -313,9 +378,11 @@ class _CostTrendChartCard extends StatelessWidget {
                         final s = v >= 1000
                             ? '${(v / 1000).toStringAsFixed(1)}k'
                             : v.toStringAsFixed(0);
-                        return Text(s,
-                            style: AppTheme.caption.copyWith(
-                                fontSize: 9, color: AppColors.textLight));
+                        return Text(
+                          s,
+                          style: AppTheme.caption.copyWith(
+                              fontSize: 9, color: AppColors.textLight),
+                        );
                       },
                     ),
                   ),
@@ -397,15 +464,19 @@ class _CostTrendChartCard extends StatelessWidget {
       ),
     );
   }
-  Widget _dot(Color c) => Container(
-      width: 10, height: 10,
-      decoration: BoxDecoration(color: c, shape: BoxShape.circle));
 
+  Widget _dot(Color c) => Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: c, shape: BoxShape.circle));
 }
+
 class _InsightUnitToggle extends StatelessWidget {
-  const _InsightUnitToggle({required this.unitIndex, required this.onChanged});
+  const _InsightUnitToggle(
+      {required this.unitIndex, required this.onChanged});
   final int unitIndex;
   final void Function(int) onChanged;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -421,16 +492,19 @@ class _InsightUnitToggle extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
               decoration: BoxDecoration(
                 color: sel ? AppColors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(e.value,
-                  style: TextStyle(
-                      color: sel ? Colors.white : AppColors.textLight,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
+              child: Text(
+                e.value,
+                style: TextStyle(
+                    color: sel ? Colors.white : AppColors.textLight,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700),
+              ),
             ),
           );
         }).toList(),
@@ -438,25 +512,28 @@ class _InsightUnitToggle extends StatelessWidget {
     );
   }
 }
+
 class _CategoryBreakdownCard extends StatelessWidget {
   final ProjectModel project;
   final Map<String, double> categoryCosts;
   final Map<String, double> categoryBudgets;
+
   const _CategoryBreakdownCard({
     required this.project,
     required this.categoryCosts,
     required this.categoryBudgets,
   });
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
         children: categoryCosts.entries.map((e) {
-          final cat    = e.key;
-          final cost   = e.value;
+          final cat = e.key;
+          final cost = e.value;
           final budget = categoryBudgets[cat] ?? 1.0;
-          final pct    = budget > 0 ? (cost / budget).clamp(0.0, 1.0) : 0.0;
+          final pct = budget > 0 ? (cost / budget).clamp(0.0, 1.0) : 0.0;
           final color = pct >= 0.9
               ? Colors.redAccent
               : pct >= 0.6
@@ -474,10 +551,12 @@ class _CategoryBreakdownCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(cat,
-                            style: AppTheme.bodyLarge.copyWith(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w600)),
+                        child: Text(
+                          cat,
+                          style: AppTheme.bodyLarge.copyWith(
+                              color: AppColors.textDark,
+                              fontWeight: FontWeight.w600),
+                        ),
                       ),
                       Text(
                         formatCurrency(cost),
@@ -505,8 +584,7 @@ class _CategoryBreakdownCard extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: pct,
                             backgroundColor: const Color(0xFFEEF0F8),
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(color),
+                            valueColor: AlwaysStoppedAnimation<Color>(color),
                             minHeight: 8,
                           ),
                         ),

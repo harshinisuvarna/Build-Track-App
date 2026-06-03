@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/screen/projects/edit_project.dart';
+
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
   @override
@@ -61,8 +62,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       );
     }
 
-    // ── Execution Tracker data ────────────────────────────────────────────
-    // New projects: use self-contained selectedPhases model
     final selectedPhases = project.selectedPhases;
     final hasNewTracker = selectedPhases != null && selectedPhases.isNotEmpty;
 
@@ -95,7 +94,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Summary Header ─────────────────────────────────
                     _SummaryCard(
                       project: project,
                       progress: progress,
@@ -104,12 +102,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── Project Information ────────────────────────────
                     const AppSectionHeader(title: 'Project Information'),
                     _ProjectInfoCard(project: project),
                     const SizedBox(height: 14),
 
-                    // ── Building Type ───────────────────────────────────
                     if (project.projectType != null &&
                         project.projectType!.isNotEmpty) ...[
                       const AppSectionHeader(title: 'Building Type'),
@@ -117,7 +113,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
-                    // ── Land & Floors ──────────────────────────────────
                     if ((project.landArea != null &&
                             project.landArea!.isNotEmpty) ||
                         (project.floors != null &&
@@ -129,7 +124,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
-                    // ── Rooms & Bathrooms ──────────────────────────────
                     if ((project.room1BHK ?? 0) +
                             (project.room2BHK ?? 0) +
                             (project.room3BHK ?? 0) +
@@ -144,17 +138,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       const SizedBox(height: 14),
                     ],
 
-                    // ── Configuration Sections ─────────────────────────
                     if (project.selectedFeatures != null &&
                         project.selectedFeatures!.isNotEmpty)
                       ..._buildConfigSections(project.selectedFeatures!),
 
-                    // ── Timeline & Status ──────────────────────────────
                     const AppSectionHeader(title: 'Timeline & Status'),
                     _ProjectTimelineCard(project: project),
                     const SizedBox(height: 14),
 
-                    // ── Financial Overview ─────────────────────────────
                     const AppSectionHeader(title: 'Financial Overview'),
                     _FinancialCard(project: project),
                     const SizedBox(height: 14),
@@ -171,6 +162,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         (phase) => _TrackerPhaseCard(
                           phase: phase,
                           projectId: project.id,
+                          projectFloors: project.floors ?? [],
                           isExpanded: _expanded.contains(phase.id),
                           onToggleExpand: () => setState(() {
                             if (_expanded.contains(phase.id)) {
@@ -191,7 +183,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                       const SizedBox(height: 14),
                     ] else ...[
-                      // Empty state for legacy / no-tracker projects
                       Container(
                         margin: const EdgeInsets.only(bottom: 14),
                         padding: const EdgeInsets.symmetric(
@@ -236,11 +227,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                     ],
 
-                    // ── Recent Entries ─────────────────────────────────
                     _RecentEntriesSection(project: project, provider: provider),
                     const SizedBox(height: 14),
 
-                    // ── Actions ────────────────────────────────────────
                     const AppSectionHeader(title: 'Actions'),
                     _ActionButtons(project: project),
                   ],
@@ -254,7 +243,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   List<Widget> _buildConfigSections(List<String> features) {
-    // Split features into their exact named groups (mirrors add_project.dart sections)
     final addl = _grp(features, _kAddlConfig);
     final utility = _grp(features, _kUtility);
     final gas = _grp(features, _kGas);
@@ -262,7 +250,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final electrical = _grp(features, _kElectrical);
     final terrace = _grp(features, _kTerrace);
 
-    // Anything not in any known group goes into Additional Configuration
     final allKnown = [
       ..._kAddlConfig,
       ..._kUtility,
@@ -304,6 +291,7 @@ class _TrackerPhaseCard extends StatelessWidget {
   const _TrackerPhaseCard({
     required this.phase,
     required this.projectId,
+    required this.projectFloors,
     required this.isExpanded,
     required this.onToggleExpand,
     required this.onToggleActivity,
@@ -311,6 +299,7 @@ class _TrackerPhaseCard extends StatelessWidget {
 
   final ProjectPhase phase;
   final String projectId;
+  final List<String> projectFloors;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
   final void Function(String activityId) onToggleActivity;
@@ -347,7 +336,6 @@ class _TrackerPhaseCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  // Phase icon bubble
                   Container(
                     width: 34,
                     height: 34,
@@ -392,7 +380,6 @@ class _TrackerPhaseCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Mini progress + chevron
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -422,7 +409,6 @@ class _TrackerPhaseCard extends StatelessWidget {
               ),
             ),
           ),
-          // ── Phase progress bar ──────────────────────────────────────
           if (total > 0)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -438,7 +424,6 @@ class _TrackerPhaseCard extends StatelessWidget {
                 ),
               ),
             ),
-          // ── Activity list ───────────────────────────────────────────
           AnimatedCrossFade(
             firstChild: const SizedBox(width: double.infinity, height: 0),
             secondChild: Column(
@@ -448,6 +433,9 @@ class _TrackerPhaseCard extends StatelessWidget {
                 ...phase.activities.map(
                   (act) => _TrackerActivityRow(
                     activity: act,
+                    projectId: projectId,
+                    phaseName: phase.phaseName,
+                    projectFloors: projectFloors,
                     onToggle: () => onToggleActivity(act.id),
                   ),
                 ),
@@ -466,18 +454,43 @@ class _TrackerPhaseCard extends StatelessWidget {
 
 // ── Tracker Activity Row ──────────────────────────────────────────────────────
 class _TrackerActivityRow extends StatelessWidget {
-  const _TrackerActivityRow({required this.activity, required this.onToggle});
+  const _TrackerActivityRow({
+    required this.activity,
+    required this.projectId,
+    required this.phaseName,
+    required this.projectFloors,
+    required this.onToggle,
+  });
+
   final ProjectActivity activity;
+  final String projectId;
+  final String phaseName;
+  final List<String> projectFloors;
   final VoidCallback onToggle;
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String? _completedDateLabel() {
+    // completedAt is stored on the activity if available
+    final dt = activity.completedAt;
+    if (dt == null) return null;
+    return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final done = activity.completed;
+    final dateLabel = _completedDateLabel();
+
     return InkWell(
       onTap: onToggle,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // ── Animated checkbox ─────────────────────────────────────
             AnimatedContainer(
@@ -501,21 +514,51 @@ class _TrackerActivityRow extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
-            // ── Activity name ─────────────────────────────────────────
+
+            // ── Activity name + completion date ───────────────────────
             Expanded(
-              child: Text(
-                activity.name,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: done ? FontWeight.w600 : FontWeight.w500,
-                  color: done ? const Color(0xFF9CA3AF) : AppColors.textDark,
-                  decoration: done
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                  decorationColor: const Color(0xFF9CA3AF),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.name,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: done ? FontWeight.w600 : FontWeight.w500,
+                      color: done
+                          ? const Color(0xFF9CA3AF)
+                          : AppColors.textDark,
+                      decoration: done
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      decorationColor: const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                  if (done && dateLabel != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 10,
+                          color: AppColors.success,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Completed $dateLabel',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
+
             // ── Status chip ───────────────────────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -534,10 +577,55 @@ class _TrackerActivityRow extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 6),
+
+            // ── Update Progress button ────────────────────────────────
+            GestureDetector(
+              onTap: () => _openUpdateProgress(context),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _openUpdateProgress(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      '/update-progress',
+      arguments: {
+        'projectId': projectId,
+        'phaseName': phaseName,
+        'activityName': activity.name,
+        'activityId': activity.id,
+        // Pass first available floor as default; user can change in form
+        'floor': projectFloors.isNotEmpty ? projectFloors.first : null,
+        'projectFloors': projectFloors,
+      },
+    ).then((_) {
+      // Reload project so completion state & date are refreshed
+      if (context.mounted) {
+        context.read<ProjectProvider>().load();
+      }
+    });
   }
 }
 
@@ -555,22 +643,11 @@ class _SummaryCard extends StatelessWidget {
   final int doneCount, totalCount;
 
   static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 
-  // ── Resolve real status from project model ──────────────────────
   static Color _statusColor(String? status) {
     switch (status) {
       case 'Completed':
@@ -582,16 +659,13 @@ class _SummaryCard extends StatelessWidget {
       case 'Cancelled':
         return AppColors.error;
       default:
-        return const Color(0xFF6B7280); // Planning / unknown
+        return const Color(0xFF6B7280);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final pct = (progress * 100).toStringAsFixed(1);
-
-    // Use the user-entered project status as primary source of truth.
-    // Fall back to progress-derived label only if no status was set.
     final rawStatus = project.projectStatus;
     final statusLabel = (rawStatus != null && rawStatus.isNotEmpty)
         ? rawStatus
@@ -602,7 +676,6 @@ class _SummaryCard extends StatelessWidget {
               : 'Planning');
     final statusColor = _statusColor(rawStatus);
 
-    // Determine active phase (first phase with incomplete activities)
     final allPhases = buildDefaultPhases();
     final selectedNames = project.selectedPhaseNames;
     final phases = (selectedNames == null || selectedNames.isEmpty)
@@ -635,7 +708,6 @@ class _SummaryCard extends StatelessWidget {
                       style: AppTheme.heading2.copyWith(letterSpacing: -0.3),
                     ),
                     const SizedBox(height: 8),
-                    // Status chip — from real project.projectStatus
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -798,7 +870,7 @@ class _SummaryCard extends StatelessWidget {
   );
 }
 
-// ── Phase Accordion ───────────────────────────────────────────────────────────
+// ── Phase Accordion (legacy) ──────────────────────────────────────────────────
 // ignore: unused_element
 class _PhaseAccordion extends StatelessWidget {
   const _PhaseAccordion({
@@ -902,7 +974,6 @@ class _PhaseAccordion extends StatelessWidget {
             ),
           ),
           if (isExpanded) ...[
-            // Phase progress bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: ClipRRect(
@@ -923,7 +994,6 @@ class _PhaseAccordion extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Flat activities
                   ...phase.activities.map(
                     (a) => _ActivityRow(
                       activity: a,
@@ -931,7 +1001,6 @@ class _PhaseAccordion extends StatelessWidget {
                       onTap: () => onToggleActivity(a.key),
                     ),
                   ),
-                  // Grouped activities (MEP etc.)
                   ...phase.groups.map(
                     (g) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -967,7 +1036,7 @@ class _PhaseAccordion extends StatelessWidget {
   }
 }
 
-// ── Activity Row ──────────────────────────────────────────────────────────────
+// ── Activity Row (legacy) ─────────────────────────────────────────────────────
 class _ActivityRow extends StatelessWidget {
   const _ActivityRow({
     required this.activity,
@@ -1110,7 +1179,6 @@ class _ProjectInfoCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: Column(
         children: [
-          // Project Code chip header (if available)
           if (project.projectCode?.isNotEmpty == true) ...[
             _buildProjectCodeChip(project.projectCode!),
             const AppDivider(verticalPadding: 10),
@@ -1237,12 +1305,10 @@ class _BuildingTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // projectType is stored as "Main → Sub" or just "Main"
     final raw = project.projectType ?? '';
     final parts = raw.split(' → ');
     final mainType = parts.isNotEmpty ? parts[0].trim() : raw;
     final subType = parts.length > 1 ? parts[1].trim() : null;
-
     final IconData mainIcon = _iconForType(mainType);
 
     return AppCard(
@@ -1555,74 +1621,33 @@ class _RoomsBathsCard extends StatelessWidget {
   }
 }
 
-// ── Feature group constants — EXACT mirror of add_project.dart ──────────────
-// Additional Configuration options
 const _kAddlConfig = [
-  'Balcony',
-  'Car Parking',
-  'Lift',
-  'Terrace Access',
-  'Interior Work',
-  'Compound Wall',
-  'Parapet Wall',
-  'Waterproofing',
-  'Putty',
-  'False Ceiling',
-  'Modular Kitchen',
-  'Wardrobes',
-  'Sump',
-  'Septic Tank',
-  'Rainwater',
-  'Borewell',
-  'Solar',
-  'Generator',
-  'CCTV',
-  'Intercom',
-  'Landscaping',
-  'Paving',
-  'Water Tanks',
-  'Stairs',
-  'Security Room',
-  'Cladding',
-  'Elevation',
-  'Gates',
-  'Grills',
-  'Aluminium',
-  'Glass',
+  'Balcony', 'Car Parking', 'Lift', 'Terrace Access', 'Interior Work',
+  'Compound Wall', 'Parapet Wall', 'Waterproofing', 'Putty', 'False Ceiling',
+  'Modular Kitchen', 'Wardrobes', 'Sump', 'Septic Tank', 'Rainwater',
+  'Borewell', 'Solar', 'Generator', 'CCTV', 'Intercom', 'Landscaping',
+  'Paving', 'Water Tanks', 'Stairs', 'Security Room', 'Cladding', 'Elevation',
+  'Gates', 'Grills', 'Aluminium', 'Glass',
 ];
 const _kUtility = [
-  'Main Electricity',
-  'Temporary Connection',
-  'Generator Backup',
-  'Water Connection',
-  'Borewell Motor',
-  'Sump Motor',
+  'Main Electricity', 'Temporary Connection', 'Generator Backup',
+  'Water Connection', 'Borewell Motor', 'Sump Motor',
 ];
 const _kGas = ['Piped Gas', 'Cylinder Bank', 'Gas Pipeline Routing'];
 const _kKitchen = [
-  'Granite Counter',
-  'Quartz Counter',
-  'Stainless Steel Sink',
-  'Chimney Provision',
-  'Exhaust Fan Provision',
+  'Granite Counter', 'Quartz Counter', 'Stainless Steel Sink',
+  'Chimney Provision', 'Exhaust Fan Provision',
 ];
 const _kElectrical = [
-  'Concealed Wiring',
-  'Open Wiring',
-  '3-Phase Connection',
-  'AC Points',
+  'Concealed Wiring', 'Open Wiring', '3-Phase Connection', 'AC Points',
   'Geyser Points',
 ];
 const _kTerrace = [
-  'Weathering Course',
-  'Cool Roof Paint',
-  'Overhead Tank',
-  'Solar Panels',
+  'Weathering Course', 'Cool Roof Paint', 'Overhead Tank', 'Solar Panels',
 ];
 List<String> _grp(List<String> all, List<String> opts) =>
     all.where(opts.contains).toList();
 
-// ── Feature Group Card (self-expanding accordion) ──────────────────────────────
 class _FeatureGroupCard extends StatefulWidget {
   const _FeatureGroupCard({
     required this.icon,
@@ -1669,11 +1694,7 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      widget.icon,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
+                    child: Icon(widget.icon, color: AppColors.primary, size: 16),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1753,18 +1774,8 @@ class _ProjectTimelineCard extends StatelessWidget {
   const _ProjectTimelineCard({required this.project});
   final ProjectModel project;
   static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
   @override
@@ -2005,39 +2016,21 @@ class _FinancialCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (bMat > 0) ...[
-              _catRow(
-                'Material',
-                bMat,
-                AppColors.primary,
-                Icons.category_outlined,
-              ),
+              _catRow('Material', bMat, AppColors.primary, Icons.category_outlined),
               const AppDivider(verticalPadding: 6),
             ],
             if (bLab > 0) ...[
-              _catRow(
-                'Labour',
-                bLab,
-                AppColors.info,
-                Icons.people_outline_rounded,
-              ),
+              _catRow('Labour', bLab, AppColors.info, Icons.people_outline_rounded),
               const AppDivider(verticalPadding: 6),
             ],
             if (bEq > 0) ...[
-              _catRow(
-                'Equipment',
-                bEq,
-                const Color(0xFF7B3FE7),
-                Icons.precision_manufacturing_outlined,
-              ),
+              _catRow('Equipment', bEq, const Color(0xFF7B3FE7),
+                  Icons.precision_manufacturing_outlined),
               const AppDivider(verticalPadding: 6),
             ],
             if (bMisc > 0)
-              _catRow(
-                'Miscellaneous',
-                bMisc,
-                AppColors.warning,
-                Icons.more_horiz_rounded,
-              ),
+              _catRow('Miscellaneous', bMisc, AppColors.warning,
+                  Icons.more_horiz_rounded),
           ],
           const SizedBox(height: 14),
           Row(
@@ -2098,21 +2091,15 @@ class _FinancialCard extends StatelessWidget {
       ),
       const SizedBox(width: 8),
       Expanded(
-        child: Text(
-          label,
-          style: AppTheme.body.copyWith(color: AppColors.textMedium),
-        ),
+        child: Text(label, style: AppTheme.body.copyWith(color: AppColors.textMedium)),
       ),
       Text(
         value,
-        style: AppTheme.bodyLarge.copyWith(
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
+        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: color),
       ),
     ],
   );
-  // Category breakdown row: icon, label, formatted amount
+
   Widget _catRow(String label, double amount, Color c, IconData icon) => Row(
     children: [
       Container(
@@ -2126,18 +2113,11 @@ class _FinancialCard extends StatelessWidget {
       ),
       const SizedBox(width: 10),
       Expanded(
-        child: Text(
-          label,
-          style: AppTheme.body.copyWith(
-            color: AppColors.textMedium,
-            fontSize: 13,
-          ),
-        ),
+        child: Text(label,
+            style: AppTheme.body.copyWith(color: AppColors.textMedium, fontSize: 13)),
       ),
-      Text(
-        formatCurrency(amount),
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c),
-      ),
+      Text(formatCurrency(amount),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c)),
     ],
   );
 }
@@ -2184,18 +2164,8 @@ class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry});
   final EntryModel entry;
   static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 
   (Color, IconData) _style(EntryType t) {
@@ -2215,13 +2185,19 @@ class _EntryTile extends StatelessWidget {
       '/entry-detail',
       arguments: {
         'id': entry.id,
-        'title': entry.description.isEmpty ? entry.type.name.toUpperCase() : entry.description,
-        'ref': entry.id.length > 4 ? '#${entry.id.substring(entry.id.length - 4)}' : '#${entry.id}',
+        'title': entry.description.isEmpty
+            ? entry.type.name.toUpperCase()
+            : entry.description,
+        'ref': entry.id.length > 4
+            ? '#${entry.id.substring(entry.id.length - 4)}'
+            : '#${entry.id}',
         'amount': '+${entry.amount}',
         'date': entry.date.toIso8601String(),
         'isPositive': true,
         'type': entry.type.name,
-        'name': entry.description.isEmpty ? entry.type.name.toUpperCase() : entry.description,
+        'name': entry.description.isEmpty
+            ? entry.type.name.toUpperCase()
+            : entry.description,
         'projectId': entry.projectId,
         'status': 'pending',
         'paymentStatus': PaymentStatus.pending,
@@ -2252,9 +2228,7 @@ class _EntryTile extends StatelessWidget {
 
         try {
           final response = await ApiService.get('/transactions');
-          if (context.mounted) {
-            Navigator.pop(context);
-          }
+          if (context.mounted) Navigator.pop(context);
 
           if (response.statusCode == 200) {
             final decoded = json.decode(response.body);
@@ -2265,8 +2239,7 @@ class _EntryTile extends StatelessWidget {
               raw = (decoded['transactions'] ??
                       decoded['data'] ??
                       decoded['items'] ??
-                      [])
-                  as List<dynamic>;
+                      []) as List<dynamic>;
             }
 
             Map<String, dynamic>? matched;
@@ -2288,8 +2261,10 @@ class _EntryTile extends StatelessWidget {
                 if (lower == 'overdue') payStatus = PaymentStatus.overdue;
               }
 
-              final String rawCat = (matched['category'] ?? '').toString().trim().toLowerCase();
-              final String rawType = (matched['type'] ?? '').toString().trim().toLowerCase();
+              final String rawCat =
+                  (matched['category'] ?? '').toString().trim().toLowerCase();
+              final String rawType =
+                  (matched['type'] ?? '').toString().trim().toLowerCase();
 
               String category = 'material';
               if (rawCat == 'labour' ||
@@ -2308,7 +2283,8 @@ class _EntryTile extends StatelessWidget {
               }
 
               bool isPositive = true;
-              if (matched['subType']?.toString().toLowerCase() == 'consumption') {
+              if (matched['subType']?.toString().toLowerCase() ==
+                  'consumption') {
                 isPositive = false;
               }
 
@@ -2326,7 +2302,8 @@ class _EntryTile extends StatelessWidget {
                 'isPositive': isPositive,
                 'type': category,
                 'name': matched['title'] ?? matched['materialName'] ?? 'Unknown',
-                'receipt': (matched['attachments'] is List && matched['attachments'].isNotEmpty)
+                'receipt': (matched['attachments'] is List &&
+                        matched['attachments'].isNotEmpty)
                     ? matched['attachments'].first?.toString()
                     : null,
                 'attachment': null,
@@ -2362,14 +2339,10 @@ class _EntryTile extends StatelessWidget {
                 });
               }
             } else {
-              if (context.mounted) {
-                _navigateToDetailFallback(context);
-              }
+              if (context.mounted) _navigateToDetailFallback(context);
             }
           } else {
-            if (context.mounted) {
-              _navigateToDetailFallback(context);
-            }
+            if (context.mounted) _navigateToDetailFallback(context);
           }
         } catch (e) {
           if (context.mounted) {
@@ -2434,7 +2407,8 @@ class _ActionButtons extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.redAccent, size: 28),
             const SizedBox(width: 8),
             Text(
               'Delete Project',
@@ -2460,23 +2434,22 @@ class _ActionButtons extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-
               showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (lCtx) => const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child:
+                      CircularProgressIndicator(color: AppColors.primary),
                 ),
               );
-
               final success = await ApiService.deleteProject(project.id);
-
               if (context.mounted) {
-                Navigator.pop(context); // Dismiss loading indicator
+                Navigator.pop(context);
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -2485,9 +2458,7 @@ class _ActionButtons extends StatelessWidget {
                     ),
                   );
                   await context.read<ProjectProvider>().load();
-                  if (context.mounted) {
-                    Navigator.pop(context); // Back to dashboard
-                  }
+                  if (context.mounted) Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -2500,10 +2471,8 @@ class _ActionButtons extends StatelessWidget {
             },
             child: const Text(
               'Delete',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -2531,9 +2500,7 @@ class _ActionButtons extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => EditProjectScreen(project: project),
               ),
-            ).then((_) {
-              context.read<ProjectProvider>().load();
-            });
+            ).then((_) => context.read<ProjectProvider>().load());
           },
         ),
         const SizedBox(height: 10),
@@ -2548,591 +2515,7 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-// ── Entry Details Sheet ────────────────────────────────────────────────────────
-class _EntryDetailsSheet extends StatefulWidget {
-  final EntryModel entry;
-  const _EntryDetailsSheet({required this.entry});
-
-  @override
-  State<_EntryDetailsSheet> createState() => _EntryDetailsSheetState();
-}
-
-class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
-  bool _isLoading = false;
-  Map<String, dynamic>? _transaction;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTransaction();
-  }
-
-  Future<void> _loadTransaction() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response = await ApiService.get('/transactions');
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        List<dynamic> raw = [];
-        if (decoded is List) {
-          raw = decoded;
-        } else if (decoded is Map) {
-          raw = (decoded['transactions'] ?? decoded['data'] ?? decoded['items'] ?? []) as List<dynamic>;
-        }
-
-        Map<String, dynamic>? matchedTx;
-        for (final t in raw) {
-          final tId = t['_id']?.toString() ?? '';
-          if (tId == widget.entry.id) {
-            matchedTx = Map<String, dynamic>.from(t);
-            break;
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _transaction = matchedTx;
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  PaymentStatus _mapPaymentStatus(String? statusStr) {
-    if (statusStr == null) return PaymentStatus.pending;
-    final lower = statusStr.trim().toLowerCase();
-    if (lower == 'paid') return PaymentStatus.paid;
-    if (lower == 'partial') return PaymentStatus.partial;
-    if (lower == 'overdue') return PaymentStatus.overdue;
-    return PaymentStatus.pending;
-  }
-
-  (Color, IconData) _style(EntryType t) {
-    switch (t) {
-      case EntryType.material:
-        return (AppColors.primary, Icons.category_outlined);
-      case EntryType.labour:
-        return (AppColors.info, Icons.people_outline);
-      case EntryType.equipment:
-        return (const Color(0xFF7B3FE7), Icons.construction_outlined);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, icon) = _style(widget.entry.type);
-    final d = widget.entry.date;
-    final dateStr = '${d.day} ${[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ][d.month - 1]} ${d.year}';
-
-    final payStatus = _transaction != null
-        ? _mapPaymentStatus(_transaction!['paymentStatus']?.toString())
-        : PaymentStatus.pending;
-    final billAmt = _transaction != null
-        ? (_transaction!['amount'] ?? 0).toDouble()
-        : widget.entry.amount;
-    final paidAmt = _transaction != null
-        ? (_transaction!['paidAmount'] ?? 0).toDouble()
-        : 0.0;
-    final canSettle = _transaction != null &&
-        (payStatus == PaymentStatus.pending ||
-            payStatus == PaymentStatus.partial ||
-            payStatus == PaymentStatus.overdue);
-
-    final showPaymentSection = true;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFF4F5FF),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFBDBEE8),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Transaction Details',
-                        style: TextStyle(
-                          color: Color(0xFF1E1E2E),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEEFFF),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Color(0xFF173EEA),
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(icon, color: color, size: 24),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.entry.description.isEmpty
-                                    ? widget.entry.type.name.toUpperCase()
-                                    : widget.entry.description,
-                                style: const TextStyle(
-                                  color: Color(0xFF1E1E2E),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$dateStr  ·  ${widget.entry.type.name.toUpperCase()}',
-                                style: const TextStyle(
-                                  color: Color(0xFF6B7280),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(height: 1, color: Color(0xFFF0EEF8)),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Value',
-                          style: TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          formatCurrency(widget.entry.amount),
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  children: [
-                    _buildMetaRow(
-                      Icons.layers_outlined,
-                      'Floor / Zone',
-                      widget.entry.floor ?? 'Ground Floor',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildMetaRow(
-                      Icons.task_alt_outlined,
-                      'Project Phase',
-                      widget.entry.phaseId ?? 'General Works',
-                    ),
-                    if (widget.entry.ratePerUnit != null && widget.entry.ratePerUnit! > 0) ...[
-                      const SizedBox(height: 12),
-                      _buildMetaRow(
-                        Icons.payments_outlined,
-                        'Unit Rate',
-                        '₹${widget.entry.ratePerUnit!.toStringAsFixed(2)} / ${widget.entry.unit ?? "unit"}',
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              if (widget.entry.type == EntryType.material) ...[
-                const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        'DELIVERY STATUS',
-                        style: TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              color: Color(0xFF2E7D32),
-                              size: 14,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Delivered & Verified',
-                              style: TextStyle(
-                                color: Color(0xFF2E7D32),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      const Text(
-                        'Logged in Inventory',
-                        style: TextStyle(
-                          color: Color(0xFF4B5563),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              if (showPaymentSection) ...[
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Text(
-                        'PAYMENT STATUS',
-                        style: TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (_isLoading)
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF173EEA),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: _isLoading
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator(color: Color(0xFF173EEA))),
-                        )
-                      : _transaction == null
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: Center(
-                                child: Text(
-                                  'No payment record found on server',
-                                  style: TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    PaymentStatusChip(status: payStatus),
-                                    const Spacer(),
-                                    Text(
-                                      '${formatCurrency(paidAmt)} paid / ${formatCurrency(billAmt)}',
-                                      style: const TextStyle(
-                                        color: Color(0xFF1E1E2E),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: billAmt > 0 ? paidAmt / billAmt : 0,
-                                    minHeight: 6,
-                                    backgroundColor: const Color(0xFFEEF0FF),
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF173EEA),
-                                    ),
-                                  ),
-                                ),
-                                if (canSettle) ...[
-                                  const SizedBox(height: 16),
-                                  GestureDetector(
-                                    onTap: () {
-                                      showPaymentSheet(
-                                        context,
-                                        entryTitle: _transaction!['title'] as String? ?? widget.entry.description,
-                                        entryRef: _transaction!['ref'] as String? ?? '',
-                                        totalAmount: billAmt,
-                                        alreadyPaid: paidAmt,
-                                        vendorName: _transaction!['supplier'] as String? ?? '',
-                                        category: widget.entry.type.name,
-                                      ).then((result) async {
-                                        if (result != null && mounted) {
-                                          final paid = result['amount'] as double;
-                                          final newStatus = result['status'] as PaymentStatus?;
-                                          final totalPaid = (paidAmt + paid).clamp(0.0, double.infinity);
-
-                                          final newStatusStr = newStatus == PaymentStatus.paid
-                                              ? 'Paid'
-                                              : newStatus == PaymentStatus.partial
-                                                  ? 'Partial'
-                                                  : 'Pending';
-
-                                          String apiPaymentMode = result['method'] ?? '';
-                                          if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
-                                            apiPaymentMode = 'Bank';
-                                          }
-
-                                          final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
-
-                                          setState(() {
-                                            _isLoading = true;
-                                          });
-
-                                          final success = await ApiService.updateTransactionPayment(
-                                            widget.entry.id,
-                                            {
-                                              'paymentStatus': newStatusStr,
-                                              'paidAmount': totalPaid,
-                                              'paymentMode': apiPaymentMode,
-                                              'notes': result['note'] ?? '',
-                                              'paymentDate': customPaymentDate.toIso8601String(),
-                                            },
-                                          );
-
-                                          if (success && mounted) {
-                                            context.read<ProjectProvider>().load();
-                                            _loadTransaction();
-
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  '${formatCurrency(paid)} payment recorded successfully!',
-                                                ),
-                                                backgroundColor: const Color(0xFF173EEA),
-                                                behavior: SnackBarBehavior.floating,
-                                              ),
-                                            );
-                                          } else {
-                                            setState(() {
-                                              _isLoading = false;
-                                            });
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: const Text('Failed to update payment on server'),
-                                                backgroundColor: Colors.red.shade600,
-                                                behavior: SnackBarBehavior.floating,
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      });
-                                    },
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF173EEA).withValues(alpha: 0.2),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          'Record Payment',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                ),
-              ],
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-  Widget _buildMetaRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: const Color(0xFF9CA3AF), size: 18),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF6B7280),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFF1E1E2E),
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
+// ── All Entries Screen ────────────────────────────────────────────────────────
 class _AllProjectEntriesScreen extends StatelessWidget {
   final ProjectModel project;
   final ProjectProvider provider;
@@ -3157,7 +2540,6 @@ class _AllProjectEntriesScreen extends StatelessWidget {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              // ✅ ADD THIS
               rightWidget: IconButton(
                 icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
                 onPressed: () {
@@ -3166,10 +2548,7 @@ class _AllProjectEntriesScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => EditProjectScreen(project: project),
                     ),
-                  ).then((_) {
-                    // Refresh after edit
-                    context.read<ProjectProvider>().load();
-                  });
+                  ).then((_) => context.read<ProjectProvider>().load());
                 },
               ),
             ),
