@@ -6,12 +6,14 @@ import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/models/construction_models.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
-import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -21,52 +23,76 @@ class AddEquipmentScreen extends StatefulWidget {
 }
 
 class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
-  // ── Execution context ────────────────────────────────────────────────────
+  // ── Execution context ─────────────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
   dynamic _selectedPhase;
   String? _selectedActivity;
+  Map<String, dynamic>? _duplicateContext;
+  bool _isDuplicate = false;
+  String? _sourceTransactionId;
+  List<String> _floors = [];
+  List<String> _phases = [];
+  List<String> _activities = [];
 
-  // ── Resource detail controllers ──────────────────────────────────────────
-  final _nameCtrl = TextEditingController();
-  final _typeCtrl = TextEditingController();
+  // ── Resource detail controllers ───────────────────────────────────────────
+  final _nameCtrl     = TextEditingController();
+  final _typeCtrl     = TextEditingController();
   final _operatorCtrl = TextEditingController();
-  final _qtyCtrl = TextEditingController();
+  final _qtyCtrl      = TextEditingController();
   String? _selectedUnit;
-  final _rateCtrl = TextEditingController();
+  final _rateCtrl  = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  // ── UI dynamic state variables ───────────────────────────────────────────
-  bool _isSaving = false;
-  bool _isEditing = false;
+  // ── UI state ──────────────────────────────────────────────────────────────
+  bool _isSaving            = false;
+  bool _isEditing           = false;
   String? _editingTransactionId;
-  bool _argsLoaded = false;
+  bool _argsLoaded          = false;
+  bool _isDatePickerOpen    = false;
   PickedAttachment? _attachment;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate    = DateTime.now();
   List<dynamic> _recentEntries = [];
-  bool _isLoadingRecent = false;
+  bool _isLoadingRecent     = false;
 
-  // ── Autocomplete suggestion cache ───────────────────────────────────────
+  // ── Autocomplete ──────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _suggestions = [];
 
-  // ── GST state ──────────────────────────────────────────────────
+  // ── GST ───────────────────────────────────────────────────────────────────
   bool _isWithGst = false;
-  final _gstCtrl = TextEditingController();
+  final _gstCtrl  = TextEditingController();
 
-  // ── Payment state ───────────────────────────────────────────────────────
-  bool _isAddAndPay = false;
-  bool _recordPaymentNow = false;
+  // ── Payment ───────────────────────────────────────────────────────────────
+  bool _isAddAndPay        = false;
+  bool _recordPaymentNow   = false;
   Map<String, dynamic>? _paymentResult;
   final _paymentAmountCtrl = TextEditingController();
-  final _paymentNoteCtrl = TextEditingController();
-  String _paymentMethod = 'Cash';
-  DateTime _paymentDate = DateTime.now();
+  final _paymentNoteCtrl   = TextEditingController();
+  String   _paymentMethod  = 'Cash';
+  DateTime _paymentDate    = DateTime.now();
 
   // ── Validation ────────────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  String _safeString(dynamic val) {
+    if (val == null) return '';
+    if (val is String) return val;
+    if (val is Map) {
+      return (val['name'] ??
+              val['title'] ??
+              val['phaseName'] ??
+              val['id'] ??
+              val['_id'] ??
+              '')
+          .toString();
+    }
+    return val.toString();
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -81,87 +107,42 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.maybePop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Approved entries cannot be edited')),
+            const SnackBar(
+                content: Text('Approved entries cannot be edited')),
           );
         });
         return;
       }
 
       if (_isEditing) {
-        _editingTransactionId = args['id'] as String?;
-
-        // ── Restore execution context ──────────────────────────────────
-        final projectId = args['projectId'] as String? ??
-            args['project'] as String? ??
-            UserSession.projectId;
-        _selectedProjectId = projectId;
-
-        final floor = args['floor'] as String? ?? args['zone'] as String?;
-        if (floor != null && floor.isNotEmpty) _selectedFloor = floor;
-
-        final phase = args['phase'];
-        if (phase != null) _selectedPhase = phase;
-
-        final activity = args['activity'] as String?;
-        if (activity != null && activity.isNotEmpty) {
-          _selectedActivity = activity;
-        }
-
-        // ── Restore detail fields ──────────────────────────────────────
-        _nameCtrl.text =
-            args['title'] as String? ?? args['name'] as String? ?? '';
-
-        final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text = qty > 0
-            ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
-            : '';
-
-        final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-        _rateCtrl.text = rate > 0
-            ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
-            : '';
-
-        _typeCtrl.text = args['categoryName'] as String? ?? '';
-        _notesCtrl.text = args['notes'] as String? ?? '';
-        _operatorCtrl.text =
-            args['operator'] as String? ?? args['remarks'] as String? ?? '';
-
-        final String rawUnit =
-            (args['unit'] ?? '').toString().trim().toLowerCase();
-        if (rawUnit == 'day' || rawUnit == 'days') {
-          _selectedUnit = 'Day';
-        } else if (rawUnit == 'hour' || rawUnit == 'hours') {
-          _selectedUnit = 'Hour';
-        } else if (rawUnit == 'week' || rawUnit == 'weeks') {
-          _selectedUnit = 'Week';
-        } else if (rawUnit == 'month' || rawUnit == 'months') {
-          _selectedUnit = 'Month';
-        } else if (rawUnit == 'truck' ||
-            rawUnit == 'trip' ||
-            rawUnit == 'load' ||
-            rawUnit == 'shift') {
-          _selectedUnit = 'Trip';
-        } else if (rawUnit.isNotEmpty) {
-          _selectedUnit =
-              rawUnit[0].toUpperCase() + rawUnit.substring(1);
-        }
-
-        if (args['date'] != null) {
-          try {
-            _selectedDate = DateTime.parse(args['date'].toString());
-          } catch (_) {}
-        }
+        _editingTransactionId = args['id']?.toString();
+        final txId = _editingTransactionId!;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _fetchAndRestoreEdit(txId);
+        });
       } else {
         _selectedProjectId ??= UserSession.projectId;
+
+        _isDuplicate         = args['isDuplicate'] as bool? ?? false;
+        _sourceTransactionId = args['sourceTransactionId']?.toString();
+
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
+
+        if (_isDuplicate && _sourceTransactionId != null) {
+          final txId = _sourceTransactionId!;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _fetchAndRestoreDuplicate(txId);
+          });
+        }
 
         // Smart pre-fill from latest record
         final latest = args['latestRecord'] as Map<String, dynamic>?;
         if (latest != null) {
           final pId = latest['projectId'] ?? latest['project'];
           if (pId != null) {
-            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+            _selectedProjectId =
+                pId is Map ? pId['_id']?.toString() : pId.toString();
           }
           final floor = latest['floor'] ?? latest['zone'];
           if (floor != null && floor.toString().isNotEmpty) {
@@ -175,45 +156,39 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           if (activity != null && activity.toString().isNotEmpty) {
             _selectedActivity = activity.toString();
           }
-          final equipName = latest['title'] ?? latest['name'] ?? latest['materialName'];
+          final equipName =
+              latest['title'] ?? latest['name'] ?? latest['materialName'];
           if (equipName != null && equipName.toString().isNotEmpty) {
             _nameCtrl.text = equipName.toString();
           }
-          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
-          if (rawUnit == 'day' || rawUnit == 'days') {
-            _selectedUnit = 'Day';
-          } else if (rawUnit == 'hour' || rawUnit == 'hours') {
-            _selectedUnit = 'Hour';
-          } else if (rawUnit == 'week' || rawUnit == 'weeks') {
-            _selectedUnit = 'Week';
-          } else if (rawUnit == 'month' || rawUnit == 'months') {
-            _selectedUnit = 'Month';
-          } else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') {
-            _selectedUnit = 'Trip';
-          } else if (rawUnit.isNotEmpty) {
-            _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
-          }
-          
-          _typeCtrl.text = latest['categoryName'] as String? ?? latest['category'] as String? ?? '';
-          _operatorCtrl.text = latest['operator'] as String? ?? latest['remarks'] as String? ?? latest['notes'] as String? ?? '';
-
+          _applyUnitFromRaw(
+              (latest['unit'] ?? '').toString().trim().toLowerCase());
+          _typeCtrl.text =
+              latest['categoryName'] as String? ??
+              latest['category'] as String? ??
+              '';
+          _operatorCtrl.text =
+              latest['operator'] as String? ??
+              latest['remarks'] as String? ??
+              latest['notes'] as String? ??
+              '';
           final gstVal = latest['gst'] ?? latest['gstPercentage'] ?? 0;
           _gstCtrl.text = gstVal.toString();
-          _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
-
-          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
+          _isWithGst =
+              latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+          final pStatus =
+              latest['paymentStatus']?.toString().toLowerCase();
           if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-            _isAddAndPay = true;
-            _paymentMethod = latest['paymentMode'] ?? 'Cash';
-            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            _isAddAndPay    = true;
+            _paymentMethod  = latest['paymentMode'] ?? 'Cash';
+            final double paid =
+                (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
             _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
           }
         }
       }
 
-      if (args['openPayment'] == true) {
-        _isAddAndPay = true;
-      }
+      if (args['openPayment'] == true) _isAddAndPay = true;
     } else {
       _selectedProjectId ??= UserSession.projectId;
     }
@@ -221,6 +196,281 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (_selectedProjectId != null && !_isEditing) {
       _loadRecentEntries();
     }
+
+    if (_duplicateContext != null) {
+      final ctx = Map<String, dynamic>.from(_duplicateContext!);
+      _duplicateContext = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _restoreDuplicateEntry(ctx);
+      });
+    }
+  }
+
+  // ── Unit mapping helper ───────────────────────────────────────────────────
+  void _applyUnitFromRaw(String rawUnit) {
+    if (rawUnit == 'day' || rawUnit == 'days') {
+      _selectedUnit = 'Day';
+    } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+      _selectedUnit = 'Hour';
+    } else if (rawUnit == 'week' || rawUnit == 'weeks') {
+      _selectedUnit = 'Week';
+    } else if (rawUnit == 'month' || rawUnit == 'months') {
+      _selectedUnit = 'Month';
+    } else if (rawUnit == 'truck' ||
+        rawUnit == 'trip' ||
+        rawUnit == 'load' ||
+        rawUnit == 'shift') {
+      _selectedUnit = 'Trip';
+    } else if (rawUnit.isNotEmpty) {
+      _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
+    }
+  }
+
+  // ── Project/Floor/Phase/Activity loaders (for edit/duplicate restore) ─────
+  Future<void> _selectProject(String? projectId) async {
+    _selectedProjectId = projectId;
+  }
+
+  Future<void> _loadFloors(String? projectId) async {
+    final pp = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = projectId == null
+        ? null
+        : pp.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == projectId,
+            orElse: () => null);
+
+    const defaultFloors = [
+      'Basement', 'Ground Floor', '1st Floor',
+      '2nd Floor', '3rd Floor', 'Terrace',
+    ];
+
+    _floors = (project != null && project.floors?.isNotEmpty == true)
+        ? List<String>.from(project.floors!)
+        : (project != null ? defaultFloors : []);
+  }
+
+  Future<void> _loadPhases(String? floor) async {
+    final pp = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = _selectedProjectId == null
+        ? null
+        : pp.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null);
+
+    if (project == null) { _phases = []; return; }
+
+    final projectPhases = project.selectedPhases;
+    if (projectPhases != null && projectPhases.isNotEmpty) {
+      _phases = projectPhases
+          .where((p) => p.activities.isNotEmpty)
+          .map((p) => p.phaseName)
+          .toList();
+    } else {
+      final allPhases = buildDefaultPhases();
+      final legacyNames = project.selectedPhaseNames != null
+          ? List<String>.from(project.selectedPhaseNames!)
+          : null;
+      final visible = (legacyNames == null || legacyNames.isEmpty)
+          ? allPhases
+          : allPhases.where((p) => legacyNames.contains(p.name)).toList();
+      _phases = visible.map((p) => p.name).toList();
+    }
+  }
+
+  Future<void> _loadActivities(dynamic phase) async {
+    final pp = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = _selectedProjectId == null
+        ? null
+        : pp.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null);
+
+    if (project == null || phase == null) { _activities = []; return; }
+
+    final phaseName = phase is String
+        ? phase
+        : (phase is Map
+            ? (phase['phaseName'] ?? phase['name'] ?? phase['id'])
+                    ?.toString() ?? ''
+            : phase.toString());
+
+    final projectPhases = project.selectedPhases;
+    if (projectPhases != null && projectPhases.isNotEmpty) {
+      final sel = projectPhases.cast<ProjectPhase?>().firstWhere(
+          (p) => p?.phaseName == phaseName, orElse: () => null);
+      _activities =
+          sel != null ? sel.activities.map((a) => a.name).toList() : [];
+    } else {
+      final allPhases = buildDefaultPhases();
+      final sel = allPhases.cast<ConstructionPhase?>().firstWhere(
+          (p) => p?.name == phaseName, orElse: () => null);
+      _activities =
+          sel != null ? sel.allActivities.map<String>((a) => a.name).toList() : [];
+    }
+  }
+
+  // ── Edit restore ──────────────────────────────────────────────────────────
+  Future<void> _fetchAndRestoreEdit(String txId) async {
+    final ip = Provider.of<InventoryProvider>(context, listen: false);
+    Map<String, dynamic>? latest;
+    for (var item in ip.inventory) {
+      for (var tx in item.transactions) {
+        if (tx is Map &&
+            (tx['_id']?.toString() == txId ||
+                tx['id']?.toString() == txId)) {
+          latest = Map<String, dynamic>.from(tx);
+          break;
+        }
+      }
+      if (latest != null) break;
+    }
+    latest ??= await ApiService.fetchTransactionById(txId);
+    if (latest == null) return;
+
+    final pId = latest['projectId'] ?? latest['project'];
+    if (pId != null) {
+      _selectedProjectId =
+          pId is Map ? pId['_id']?.toString() : pId.toString();
+    }
+    _nameCtrl.text = _safeString(
+        latest['title'] ?? latest['name'] ?? latest['materialName']);
+
+    final double qty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = qty > 0
+        ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+        : '';
+
+    final double rate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    _rateCtrl.text = rate > 0
+        ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+        : '';
+
+    _applyUnitFromRaw(
+        _safeString(latest['unit']).trim().toLowerCase());
+    _typeCtrl.text    = _safeString(latest['categoryName'] ?? latest['category']);
+    _operatorCtrl.text =
+        _safeString(latest['operator'] ?? latest['remarks'] ?? latest['notes']);
+    _notesCtrl.text   = _safeString(latest['notes']);
+
+    if (latest['date'] != null) {
+      try { _selectedDate = DateTime.parse(latest['date'].toString()); }
+      catch (_) {}
+    }
+
+    final gstVal = latest['gst'] ?? latest['gstPercentage'] ?? 0;
+    _gstCtrl.text = gstVal.toString();
+    _isWithGst =
+        latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+    final pStatus =
+        latest['paymentStatus']?.toString().toLowerCase() ??
+        latest['status']?.toString().toLowerCase();
+    if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+      _isAddAndPay   = true;
+      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
+      final double paid =
+          (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+    }
+
+    await _restoreDuplicateEntry({
+      'projectId': _selectedProjectId,
+      'floor':     latest['floor'] ?? latest['zone'],
+      'phase':     latest['phase'],
+      'activity':  latest['activity'],
+    });
+  }
+
+  // ── Duplicate restore ─────────────────────────────────────────────────────
+  Future<void> _fetchAndRestoreDuplicate(String txId) async {
+    final ip = Provider.of<InventoryProvider>(context, listen: false);
+    Map<String, dynamic>? latest;
+    for (var item in ip.inventory) {
+      for (var tx in item.transactions) {
+        if (tx is Map &&
+            (tx['_id']?.toString() == txId ||
+                tx['id']?.toString() == txId)) {
+          latest = Map<String, dynamic>.from(tx);
+          break;
+        }
+      }
+      if (latest != null) break;
+    }
+    latest ??= await ApiService.fetchTransactionById(txId);
+    if (latest == null) return;
+
+    final pId = latest['projectId'] ?? latest['project'];
+    if (pId != null) {
+      _selectedProjectId =
+          pId is Map ? pId['_id']?.toString() : pId.toString();
+    }
+    _nameCtrl.text = _safeString(
+        latest['title'] ?? latest['name'] ?? latest['materialName']);
+    _applyUnitFromRaw(
+        _safeString(latest['unit']).trim().toLowerCase());
+    _typeCtrl.text    = _safeString(latest['categoryName'] ?? latest['category']);
+    _operatorCtrl.text =
+        _safeString(latest['operator'] ?? latest['remarks'] ?? latest['notes']);
+    _notesCtrl.text   = _safeString(latest['notes']);
+
+    final double rateVal =
+        (latest['rate'] as num?)?.toDouble() ??
+        (latest['hourlyRate'] as num?)?.toDouble() ??
+        (latest['dailyWage'] as num?)?.toDouble() ??
+        0.0;
+    if (rateVal > 0) {
+      _rateCtrl.text = rateVal % 1 == 0
+          ? rateVal.toInt().toString()
+          : rateVal.toString();
+    }
+
+    final gstVal = latest['gst'] ?? latest['gstPercentage'] ?? 0;
+    _gstCtrl.text = gstVal.toString();
+    _isWithGst =
+        latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+    // Payment intentionally left blank for duplicates
+
+    await _restoreDuplicateEntry({
+      'projectId': _selectedProjectId,
+      'floor':     latest['floor'] ?? latest['zone'],
+      'phase':     latest['phase'],
+      'activity':  latest['activity'],
+    });
+  }
+
+  Future<void> _restoreDuplicateEntry(Map<String, dynamic> latest) async {
+    final pp = Provider.of<ProjectProvider>(context, listen: false);
+    if (pp.projects.isEmpty) await pp.load();
+
+    final pId = latest['projectId'] ?? latest['project'];
+    String? resolvedProjectId;
+    if (pId != null) {
+      resolvedProjectId =
+          pId is Map ? (pId['_id'] ?? pId['id'])?.toString() : pId.toString();
+    }
+
+    final String floor    = _safeString(latest['floor'] ?? latest['zone']);
+    final String phase    = _safeString(latest['phase']);
+    final String activity = _safeString(latest['activity']);
+
+    await _selectProject(resolvedProjectId);
+    await _loadFloors(resolvedProjectId);
+    if (floor.isNotEmpty) {
+      if (!_floors.contains(floor)) _floors.insert(0, floor);
+      _selectedFloor = floor;
+    }
+    await _loadPhases(_selectedFloor);
+    if (phase.isNotEmpty) {
+      if (!_phases.contains(phase)) _phases.insert(0, phase);
+      _selectedPhase = phase;
+    }
+    await _loadActivities(_selectedPhase);
+    if (activity.isNotEmpty) {
+      if (!_activities.contains(activity)) _activities.insert(0, activity);
+      _selectedActivity = activity;
+    }
+
+    setState(() {});
   }
 
   @override
@@ -237,8 +487,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     super.dispose();
   }
 
+  // ── Calculations ──────────────────────────────────────────────────────────
   double _subtotal() {
-    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
+    final qty  = double.tryParse(_qtyCtrl.text)  ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     return qty * rate;
   }
@@ -251,28 +502,27 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   double _finalTotal() => _subtotal() + _gstAmount();
 
+  // ── Validation ────────────────────────────────────────────────────────────
   bool _validate() {
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
           ? 'Equipment runtime nomenclature is required'
           : null;
-
-      final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError = (qty == null || qty <= 0)
+      final qty  = double.tryParse(_qtyCtrl.text);
+      _qtyError  = (qty == null || qty <= 0)
           ? 'Enter valid asset duration value > 0'
           : null;
-
       final rate = double.tryParse(_rateCtrl.text);
       _rateError = (rate == null || rate <= 0)
           ? 'Rental processing rate index mandatory > 0'
           : null;
-
       ok = _nameError == null && _qtyError == null && _rateError == null;
     });
     return ok;
   }
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   Future<void> _save(BuildContext ctx) async {
     if (_selectedProjectId == null) {
       _snack('Working context deployment site mandatory');
@@ -282,60 +532,58 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     setState(() => _isSaving = true);
 
-    final payload = {
-      "title": _nameCtrl.text.trim(),
-      "type": "Expense",
+    final payload = <String, dynamic>{
+      "title":    _nameCtrl.text.trim(),
+      "type":     "Expense",
       "category": _nameCtrl.text.trim(),
-      "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
-      "rate": double.tryParse(_rateCtrl.text) ?? 0,
+      "quantity": double.tryParse(_qtyCtrl.text)  ?? 0,
+      "rate":     double.tryParse(_rateCtrl.text) ?? 0,
       "unit": _selectedUnit == null
           ? "hour"
-          : _selectedUnit == "Day" || _selectedUnit == "day"
-              ? "day"
-              : _selectedUnit == "Hour" || _selectedUnit == "hour"
-                  ? "hour"
-                  : _selectedUnit == "Trip" ||
-                          _selectedUnit == "Load" ||
-                          _selectedUnit == "Shift"
-                      ? "truck"
-                      : "unit",
-      "project": _selectedProjectId,
-      "date": _selectedDate.toIso8601String(),
-      "floor": _selectedFloor,
-      "phase": _selectedPhase,
-      "gst": double.tryParse(_gstCtrl.text) ?? 0,
-      "isWithGst": _isWithGst,
-      "gstPercentage":
-          _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
-      "totalAmount": _finalTotal(),
+          : _selectedUnit == "Day"  ? "day"
+          : _selectedUnit == "Hour" ? "hour"
+          : (_selectedUnit == "Trip" ||
+              _selectedUnit == "Load" ||
+              _selectedUnit == "Shift")
+              ? "truck"
+              : "unit",
+      "project":         _selectedProjectId,
+      "date":            _selectedDate.toIso8601String(),
+      "floor":           _selectedFloor,
+      "phase":           _selectedPhase,
+      "gst":             double.tryParse(_gstCtrl.text) ?? 0,
+      "isWithGst":       _isWithGst,
+      "gstPercentage":   _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
+      "totalAmount":     _finalTotal(),
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
+      if (_sourceTransactionId != null)
+        "sourceTransactionId": _sourceTransactionId,
     };
 
     if (_isAddAndPay) {
       final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0.0;
       String apiMode = _paymentMethod;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"] = paid;
-      payload["paymentMode"] = apiMode;
-      payload["paymentStatus"] =
+      payload["paidAmount"]     = paid;
+      payload["paymentMode"]    = apiMode;
+      payload["paymentStatus"]  =
           paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
-      payload["paymentDate"] = _paymentDate.toIso8601String();
+      payload["paymentDate"]    = _paymentDate.toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
     } else if (_recordPaymentNow && _paymentResult != null) {
-      final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
-      final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-      final payDate =
-          (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+      final paid   = (_paymentResult!['amount']      as double?)   ?? 0.0;
+      final method = (_paymentResult!['method']      as String?)   ?? 'Cash';
+      final payDate= (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
       String apiMode = method;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"] = paid;
-      payload["paymentMode"] = apiMode;
+      payload["paidAmount"]    = paid;
+      payload["paymentMode"]   = apiMode;
       payload["paymentStatus"] =
           paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
-      payload["paymentDate"] = payDate.toIso8601String();
+      payload["paymentDate"]   = payDate.toIso8601String();
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
       }
@@ -343,8 +591,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
-      success =
-          await ApiService.updateTransaction(_editingTransactionId!, payload);
+      success = await ApiService.updateTransaction(_editingTransactionId!, payload);
     } else {
       success = await ApiService.addMaterial(payload);
     }
@@ -354,7 +601,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (success) {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
-
       _snack(_isEditing
           ? 'Equipment log updated successfully!'
           : 'Equipment log recorded to workspace!');
@@ -372,72 +618,253 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
   }
 
+  // ── Recent entries ────────────────────────────────────────────────────────
+  // FIX: userId passed so only this user's entries are fetched
   Future<void> _loadRecentEntries() async {
     if (_selectedProjectId == null) {
-      setState(() {
-        _recentEntries = [];
-        _suggestions = [];
-      });
+      setState(() { _recentEntries = []; _suggestions = []; });
       return;
     }
     setState(() => _isLoadingRecent = true);
 
-    // Load recent entries and autocomplete suggestions in parallel
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
-      type: 'Expenses', // or 'Materials' / 'Expense'
-      userId: UserSession.userId, // ADD THIS
+      type:      'Expense',
+      userId:    UserSession.userId, // FIX: scope to current user
     );
     final suggestionFuture = ApiService.fetchSuggestions(
       projectId: _selectedProjectId!,
-      type: 'Expense',
-      userId: UserSession.userId,
+      type:      'Expense',
+      userId:    UserSession.userId, // FIX: scope to current user
     );
-    final recentTxs = await recentFuture;
+
+    final recentTxs   = await recentFuture;
     final suggestions = await suggestionFuture;
 
     if (mounted) {
       setState(() {
-        _recentEntries = recentTxs.take(5).toList();
-        _suggestions = suggestions;
-        _isLoadingRecent = false;
+        _recentEntries    = recentTxs.take(5).toList();
+        _suggestions      = suggestions;
+        _isLoadingRecent  = false;
       });
     }
   }
 
+  // ── Recent entries bottom-sheet ───────────────────────────────────────────
+  void _showRecentEntriesSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.60,
+          minChildSize:     0.40,
+          maxChildSize:     0.90,
+          expand: false,
+          builder: (_, scrollCtrl) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 4),
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE65100).withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.history_rounded,
+                              color: Color(0xFFE65100), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Recent Equipment Entries',
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textDark,
+                                    letterSpacing: -0.3)),
+                            Text(
+                              '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textLight,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: Divider(color: Color(0xFFF0EEF8)),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                      itemCount: _recentEntries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final tx        = _recentEntries[i] as Map<String, dynamic>;
+                        final String title     = tx['title']?.toString() ?? 'Untitled';
+                        final double rate      = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                        final String unit      = tx['unit']?.toString() ?? '';
+                        final String category  = tx['category']?.toString() ?? '';
+                        final String operator0 =
+                            tx['operator']?.toString() ?? tx['remarks']?.toString() ?? '';
 
+                        String dateStr = '';
+                        final rawDate = tx['date'] ?? tx['createdAt'];
+                        if (rawDate != null) {
+                          try {
+                            final d = DateTime.parse(rawDate.toString());
+                            dateStr =
+                                '${d.day} ${_monthName(d.month)} ${d.year}';
+                          } catch (_) {}
+                        }
+                        final String rateStr = rate > 0
+                            ? '₹${rate % 1 == 0 ? rate.toInt() : rate}/$unit'
+                            : '';
+
+                        return Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _prefillFromRecent(tx);
+                              _snack('Prefilled from "$title"');
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: const Color(0xFFEEEFF8), width: 1.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44, height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE65100)
+                                          .withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                        Icons.precision_manufacturing_outlined,
+                                        color: Color(0xFFE65100), size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title,
+                                            style: const TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.textDark),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          [
+                                            if (rateStr.isNotEmpty) rateStr,
+                                            if (category.isNotEmpty) category,
+                                            if (operator0.isNotEmpty) operator0,
+                                            if (dateStr.isNotEmpty) dateStr,
+                                          ].join(' · '),
+                                          style: const TextStyle(
+                                              fontSize: 11.5,
+                                              color: AppColors.textLight,
+                                              fontWeight: FontWeight.w500),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE65100)
+                                          .withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text('Use',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFFE65100))),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── Pre-fill from recent ──────────────────────────────────────────────────
   void _prefillFromRecent(Map<String, dynamic> tx) {
     setState(() {
       _nameCtrl.text = tx['title']?.toString() ?? '';
-      
-      final rawUnit = (tx['unit'] ?? '').toString().trim().toLowerCase();
-      if (rawUnit == 'day' || rawUnit == 'days') {
-        _selectedUnit = 'Day';
-      } else if (rawUnit == 'hour' || rawUnit == 'hours') {
-        _selectedUnit = 'Hour';
-      } else if (rawUnit == 'week' || rawUnit == 'weeks') {
-        _selectedUnit = 'Week';
-      } else if (rawUnit == 'month' || rawUnit == 'months') {
-        _selectedUnit = 'Month';
-      } else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') {
-        _selectedUnit = 'Trip';
-      } else if (rawUnit.isNotEmpty) {
-        _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
-      }
-      
-      _typeCtrl.text = tx['category']?.toString() ?? '';
+      _applyUnitFromRaw(
+          (tx['unit'] ?? '').toString().trim().toLowerCase());
+      _typeCtrl.text    = tx['category']?.toString() ?? '';
       _operatorCtrl.text = tx['remarks']?.toString() ?? '';
-      
       final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
-      _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
-      
+      _rateCtrl.text = rateVal > 0
+          ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString())
+          : '';
       final gstVal = tx['gst'] ?? 0;
       _gstCtrl.text = gstVal.toString();
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
-      
       final pStatus = tx['paymentStatus']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-        _isAddAndPay = true;
+        _isAddAndPay   = true;
         _paymentMethod = tx['paymentMode'] ?? 'Cash';
         final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
         _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
@@ -448,127 +875,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String _monthName(int month) {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    if (month >= 1 && month <= 12) {
-      return months[month - 1];
-    }
-    return '';
+    return (month >= 1 && month <= 12) ? months[month - 1] : '';
   }
 
-  Widget _activityTile({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required String badgeLabel,
-    required Color badgeBg,
-    required Color badgeColor,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: badgeColor, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _calcRow(String label, String value, {bool muted = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: muted ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: muted ? const Color(0xFF6B7280) : const Color(0xFF111827),
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
+  // ── Payment section ───────────────────────────────────────────────────────
   Widget _buildPaymentSection() {
     if (_isAddAndPay) return _buildInlinePaymentForm();
 
@@ -579,39 +891,28 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFF15803D).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: const Icon(
-                  Icons.payments_outlined,
-                  color: Color(0xFF15803D),
-                  size: 22,
-                ),
+                child: const Icon(Icons.payments_outlined,
+                    color: Color(0xFF15803D), size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Pay Now',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
+                    const Text('Pay Now',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark)),
                     const SizedBox(height: 2),
-                    Text(
-                      'Optionally log payment while adding',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textLight,
-                      ),
-                    ),
+                    Text('Optionally log payment while adding',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textLight)),
                   ],
                 ),
               ),
@@ -625,10 +926,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       entryTitle: _nameCtrl.text.trim().isEmpty
                           ? 'Equipment'
                           : _nameCtrl.text.trim(),
-                      entryRef: '',
+                      entryRef:    '',
                       totalAmount: _finalTotal(),
                       alreadyPaid: 0,
-                      vendorName: _operatorCtrl.text.trim(),
+                      vendorName:  _operatorCtrl.text.trim(),
                       category: _typeCtrl.text.trim().isEmpty
                           ? 'Equipment'
                           : _typeCtrl.text.trim(),
@@ -637,14 +938,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       setState(() {
                         if (result != null) {
                           _recordPaymentNow = true;
-                          _paymentResult = result;
+                          _paymentResult    = result;
                         }
                       });
                     }
                   } else {
                     setState(() {
                       _recordPaymentNow = false;
-                      _paymentResult = null;
+                      _paymentResult    = null;
                     });
                   }
                 },
@@ -663,25 +964,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   Widget _buildPaymentSummary() {
-    final amount = (_paymentResult!['amount'] as double?) ?? 0.0;
-    final method = (_paymentResult!['method'] as String?) ?? 'Cash';
-    final payDate =
-        (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
-    final note = (_paymentResult!['note'] as String?) ?? '';
+    final amount  = (_paymentResult!['amount']      as double?)   ?? 0.0;
+    final method  = (_paymentResult!['method']      as String?)   ?? 'Cash';
+    final payDate = (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
+    final note    = (_paymentResult!['note']        as String?)   ?? '';
     return GestureDetector(
       onTap: () async {
         final result = await showPaymentSheet(
           context,
-          entryTitle: _nameCtrl.text.trim().isEmpty
-              ? 'Equipment'
-              : _nameCtrl.text.trim(),
-          entryRef: '',
+          entryTitle: _nameCtrl.text.trim().isEmpty ? 'Equipment' : _nameCtrl.text.trim(),
+          entryRef:    '',
           totalAmount: _finalTotal(),
           alreadyPaid: 0,
-          vendorName: _operatorCtrl.text.trim(),
-          category: _typeCtrl.text.trim().isEmpty
-              ? 'Equipment'
-              : _typeCtrl.text.trim(),
+          vendorName:  _operatorCtrl.text.trim(),
+          category: _typeCtrl.text.trim().isEmpty ? 'Equipment' : _typeCtrl.text.trim(),
         );
         if (result != null && mounted) setState(() => _paymentResult = result);
       },
@@ -716,22 +1012,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: _summaryChip(Icons.currency_rupee,
-                      '₹${amount.toStringAsFixed(0)}', 'Amount'),
-                ),
+                Expanded(child: _summaryChip(Icons.currency_rupee,
+                    '₹${amount.toStringAsFixed(0)}', 'Amount')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child:
-                      _summaryChip(Icons.payment_outlined, method, 'Method'),
-                ),
+                Expanded(child: _summaryChip(Icons.payment_outlined, method, 'Method')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _summaryChip(
-                      Icons.calendar_today_outlined,
-                      '${payDate.day}/${payDate.month}/${payDate.year}',
-                      'Date'),
-                ),
+                Expanded(child: _summaryChip(Icons.calendar_today_outlined,
+                    '${payDate.day}/${payDate.month}/${payDate.year}', 'Date')),
               ],
             ),
             if (note.isNotEmpty) ...[
@@ -793,8 +1080,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFF15803D).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(13),
@@ -814,8 +1100,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             color: AppColors.textDark)),
                     SizedBox(height: 2),
                     Text('Log payment details for this entry',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textLight)),
+                        style: TextStyle(fontSize: 12, color: AppColors.textLight)),
                   ],
                 ),
               ),
@@ -845,14 +1130,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 onTap: () => setState(() => _paymentMethod = m),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
                     color: sel ? AppColors.primary : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color:
-                            sel ? AppColors.primary : const Color(0xFFDDE0F0),
+                        color: sel
+                            ? AppColors.primary
+                            : const Color(0xFFDDE0F0),
                         width: 1.5),
                   ),
                   child: Text(m,
@@ -873,7 +1159,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 context: context,
                 initialDate: _paymentDate,
                 firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
+                lastDate:  DateTime(2100),
                 builder: (ctx, child) => Theme(
                   data: Theme.of(ctx).copyWith(
                       colorScheme: const ColorScheme.light(
@@ -890,8 +1176,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+                border: Border.all(
+                    color: const Color(0xFFE0E5FF), width: 1.5),
               ),
               child: Row(
                 children: [
@@ -921,8 +1207,34 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
   }
 
+  // ── Calc row helper ───────────────────────────────────────────────────────
+  Widget _calcRow(String label, String value, {bool muted = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: TextStyle(
+                color: muted
+                    ? const Color(0xFF9CA3AF)
+                    : const Color(0xFF374151),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600)),
+        Text(value,
+            style: TextStyle(
+                color: muted
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF111827),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    context.watch<ProjectProvider>().projects;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.gradientStart,
@@ -933,7 +1245,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             AppTopBar(
               title: _isEditing
                   ? 'Modify Machinery Log'
-                  : 'Deploy Heavy Equipment',
+                  : _isDuplicate
+                      ? 'Repeat Entry'
+                      : 'Deploy Heavy Equipment',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -947,30 +1261,30 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   children: [
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
-                      selectedFloor: _selectedFloor,
-                      selectedPhase: _selectedPhase,
-                      selectedActivity: _selectedActivity,
+                      selectedFloor:     _selectedFloor,
+                      selectedPhase:     _selectedPhase,
+                      selectedActivity:  _selectedActivity,
                       onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
-                        _selectedFloor = null;
-                        _selectedPhase = null;
-                        _selectedActivity = null;
+                        _selectedFloor     = null;
+                        _selectedPhase     = null;
+                        _selectedActivity  = null;
                         _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
-                        _selectedFloor = v;
-                        _selectedPhase = null;
+                        _selectedFloor    = v;
+                        _selectedPhase    = null;
                         _selectedActivity = null;
                       }),
                       onPhaseChanged: (v) => setState(() {
-                        _selectedPhase = v;
+                        _selectedPhase    = v;
                         _selectedActivity = null;
                       }),
                       onActivityChanged: (v) =>
                           setState(() => _selectedActivity = v),
                     ),
 
-                    // ── SECTION 2: EQUIPMENT ENTRY ───────────────────────
+                    // ── SECTION 2: EQUIPMENT ENTRY ─────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -984,16 +1298,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          // ── 1. DATE ────────────────────────────────────────
+                          // 1. DATE
                           const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () async {
+                              setState(() => _isDatePickerOpen = true);
                               final picked = await showDatePicker(
                                 context: context,
                                 initialDate: _selectedDate,
                                 firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
+                                lastDate:  DateTime(2100),
                                 builder: (ctx, child) => Theme(
                                   data: Theme.of(ctx).copyWith(
                                     colorScheme: const ColorScheme.light(
@@ -1005,9 +1320,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   child: child!,
                                 ),
                               );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
+                              if (!mounted) return;
+                              setState(() {
+                                _isDatePickerOpen = false;
+                                if (picked != null) _selectedDate = picked;
+                              });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -1039,9 +1356,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 2. EQUIPMENT NAME ──────────────────────────────
-                          const EntryFieldLabel('Equipment Name',
-                              required: true),
+                          // 2. EQUIPMENT NAME
+                          const EntryFieldLabel('Equipment Name', required: true),
                           const SizedBox(height: 8),
                           AutocompleteNameField(
                             controller: _nameCtrl,
@@ -1053,20 +1369,18 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
 
-
-                          // ── 3. UNIT ────────────────────────────────────────
+                          // 3. UNIT
                           const EntryFieldLabel('Unit', required: true),
                           const SizedBox(height: 8),
                           UnitSelectorField(
                             value: _selectedUnit,
                             units: kEquipmentUnits,
                             hint: 'Select unit (e.g. Hour, Day, Trip)',
-                            onChanged: (u) =>
-                                setState(() => _selectedUnit = u),
+                            onChanged: (u) => setState(() => _selectedUnit = u),
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 4. QUANTITY ────────────────────────────────────
+                          // 4. QUANTITY
                           const EntryFieldLabel('Quantity', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -1079,7 +1393,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           if (_qtyError != null) EntryErrorText(_qtyError!),
                           const SizedBox(height: 20),
 
-                          // ── 5. RATE ────────────────────────────────────────
+                          // 5. RATE
                           const EntryFieldLabel('Rate (₹)', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -1092,7 +1406,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           if (_rateError != null) EntryErrorText(_rateError!),
                           const SizedBox(height: 20),
 
-                          // ── 6. AMOUNT (auto-calculated) ────────────────────
+                          // 6. AMOUNT (auto)
                           const EntryFieldLabel('Amount (₹)'),
                           const SizedBox(height: 8),
                           Container(
@@ -1129,46 +1443,37 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     color: const Color(0xFFE0E3FF),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
-                                    'Auto',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF173EEA),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
+                                  child: const Text('Auto',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF173EEA),
+                                          letterSpacing: 0.5)),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 24),
 
-                          // ── OPTIONAL DETAILS ───────────────────────────────
+                          // OPTIONAL
                           Row(
                             children: [
-                              const Expanded(
-                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              const Expanded(child: Divider(color: Color(0xFFF0EEF8))),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10),
-                                child: Text(
-                                  'OPTIONAL DETAILS',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textLight,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text('OPTIONAL DETAILS',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textLight,
+                                        letterSpacing: 1.0)),
                               ),
-                              const Expanded(
-                                  child: Divider(color: Color(0xFFF0EEF8))),
+                              const Expanded(child: Divider(color: Color(0xFFF0EEF8))),
                             ],
                           ),
                           const SizedBox(height: 16),
 
-                          // ── 7. MACHINERY SUB-CLASS ────────────────────────
+                          // 7. MACHINERY SUB-CLASS
                           const EntryFieldLabel('Machinery Sub-Class / Model (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -1177,7 +1482,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 8. OPERATOR / VENDOR ─────────────────────────
+                          // 8. OPERATOR / VENDOR
                           const EntryFieldLabel('Operator / Vendor (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -1186,16 +1491,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 22),
 
-                          // ── GST PRICING MODULE ────────────────────────────
+                          // GST MODULE
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF7F8FF),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFFDDE0F8),
-                                width: 1.2,
-                              ),
+                                  color: const Color(0xFFDDE0F8), width: 1.2),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1203,29 +1506,21 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 28, height: 28,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEEEFFF),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
-                                        Icons.percent_rounded,
-                                        color: Color(0xFF173EEA),
-                                        size: 15,
-                                      ),
+                                      child: const Icon(Icons.percent_rounded,
+                                          color: Color(0xFF173EEA), size: 15),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text(
-                                      'GST Configuration',
-                                      style: TextStyle(
-                                        color: Color(0xFF1E1E2E),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.2,
-                                      ),
-                                    ),
+                                    const Text('GST Configuration',
+                                        style: TextStyle(
+                                            color: Color(0xFF1E1E2E),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.2)),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -1236,9 +1531,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                     color: const Color(0xFFECEDF8),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: const Color(0xFFD5D7EF),
-                                      width: 1,
-                                    ),
+                                        color: const Color(0xFFD5D7EF),
+                                        width: 1),
                                   ),
                                   child: Row(
                                     children: [
@@ -1249,82 +1543,66 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                             _gstCtrl.clear();
                                           }),
                                           child: AnimatedContainer(
-                                            duration: const Duration(
-                                                milliseconds: 200),
+                                            duration: const Duration(milliseconds: 200),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: !_isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(9),
+                                              borderRadius: BorderRadius.circular(9),
                                               boxShadow: !_isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color: const Color(
-                                                                0xFF173EEA)
-                                                            .withValues(
-                                                                alpha: 0.22),
+                                                        color: const Color(0xFF173EEA)
+                                                            .withValues(alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                            0, 2),
+                                                        offset: const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text(
-                                              'Without GST',
-                                              style: TextStyle(
-                                                color: !_isWithGst
-                                                    ? Colors.white
-                                                    : const Color(0xFF6B7280),
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
+                                            child: Text('Without GST',
+                                                style: TextStyle(
+                                                    color: !_isWithGst
+                                                        ? Colors.white
+                                                        : const Color(0xFF6B7280),
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.w700)),
                                           ),
                                         ),
                                       ),
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () => setState(
-                                              () => _isWithGst = true),
+                                          onTap: () =>
+                                              setState(() => _isWithGst = true),
                                           child: AnimatedContainer(
-                                            duration: const Duration(
-                                                milliseconds: 200),
+                                            duration: const Duration(milliseconds: 200),
                                             curve: Curves.easeInOut,
                                             decoration: BoxDecoration(
                                               color: _isWithGst
                                                   ? const Color(0xFF173EEA)
                                                   : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(9),
+                                              borderRadius: BorderRadius.circular(9),
                                               boxShadow: _isWithGst
                                                   ? [
                                                       BoxShadow(
-                                                        color: const Color(
-                                                                0xFF173EEA)
-                                                            .withValues(
-                                                                alpha: 0.22),
+                                                        color: const Color(0xFF173EEA)
+                                                            .withValues(alpha: 0.22),
                                                         blurRadius: 6,
-                                                        offset: const Offset(
-                                                            0, 2),
+                                                        offset: const Offset(0, 2),
                                                       ),
                                                     ]
                                                   : [],
                                             ),
                                             alignment: Alignment.center,
-                                            child: Text(
-                                              'With GST',
-                                              style: TextStyle(
-                                                color: _isWithGst
-                                                    ? Colors.white
-                                                    : const Color(0xFF6B7280),
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
+                                            child: Text('With GST',
+                                                style: TextStyle(
+                                                    color: _isWithGst
+                                                        ? Colors.white
+                                                        : const Color(0xFF6B7280),
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.w700)),
                                           ),
                                         ),
                                       ),
@@ -1333,15 +1611,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 ),
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 14),
-                                  const Text(
-                                    'GST Percentage',
-                                    style: TextStyle(
-                                      color: Color(0xFF6B7280),
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
+                                  const Text('GST Percentage',
+                                      style: TextStyle(
+                                          color: Color(0xFF6B7280),
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3)),
                                   const SizedBox(height: 6),
                                   EntryUnderlineField(
                                     controller: _gstCtrl,
@@ -1352,48 +1627,38 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                   ),
                                 ],
                                 const SizedBox(height: 14),
-                                const Divider(
-                                    color: Color(0xFFE2E4F6), thickness: 1),
+                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
                                 const SizedBox(height: 10),
-                                _calcRow(
-                                  'Subtotal',
-                                  formatCurrency(_subtotal()),
-                                  muted: true,
-                                ),
+                                _calcRow('Subtotal', formatCurrency(_subtotal()), muted: true),
                                 if (_isWithGst) ...[
                                   const SizedBox(height: 6),
                                   _calcRow(
-                                    'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
-                                    '+ ${formatCurrency(_gstAmount())}',
-                                    muted: true,
-                                  ),
+                                      'GST (${_gstCtrl.text.isEmpty ? "0" : _gstCtrl.text}%)',
+                                      '+ ${formatCurrency(_gstAmount())}',
+                                      muted: true),
                                 ],
                                 const SizedBox(height: 8),
-                                const Divider(
-                                    color: Color(0xFFE2E4F6), thickness: 1),
+                                const Divider(color: Color(0xFFE2E4F6), thickness: 1),
                                 const SizedBox(height: 8),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _isWithGst
                                           ? 'Final Total (incl. GST)'
                                           : 'Total',
                                       style: const TextStyle(
-                                        color: Color(0xFF173EEA),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                          color: Color(0xFF173EEA),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800),
                                     ),
                                     Text(
                                       formatCurrency(_finalTotal()),
                                       style: const TextStyle(
-                                        color: Color(0xFF173EEA),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -0.4,
-                                      ),
+                                          color: Color(0xFF173EEA),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.4),
                                     ),
                                   ],
                                 ),
@@ -1402,7 +1667,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // ── NOTES ────────────────────────────────────────
+                          // NOTES
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
@@ -1451,63 +1716,80 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
+                    // FIX: Payment section only shown when user has approve_payments permission
                     if (RoleManager.canApprovePayments)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 
-                    if (_selectedProjectId != null && !_isEditing) ...[
-                      if (_isLoadingRecent) ...[
+                    // Recent entries — bottom-sheet banner
+                    if (_selectedProjectId != null &&
+                        !_isEditing &&
+                        !_isDatePickerOpen) ...[
+                      if (_isLoadingRecent)
                         const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator()),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2)),
                         )
-                      ] else if (_recentEntries.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            'Recent Equipment Entries',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
-                              letterSpacing: -0.2,
+                      else if (_recentEntries.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: _showRecentEntriesSheet,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: const Color(0xFFFFCCBC), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE65100)
+                                        .withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: const Icon(Icons.history_rounded,
+                                      color: Color(0xFFE65100), size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Recent Equipment Entries',
+                                          style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.textDark)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found · Tap to view',
+                                        style: const TextStyle(
+                                            fontSize: 11.5,
+                                            color: AppColors.textLight,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded,
+                                    color: AppColors.textLight, size: 22),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ..._recentEntries.map((tx) {
-                          final String title = tx['title']?.toString() ?? '';
-                          final double qty = (tx['quantity'] as num?)?.toDouble() ?? 0.0;
-                          final String unit = tx['unit']?.toString() ?? '';
-                          final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
-                          
-                          String dateStr = '';
-                          if (tx['date'] != null) {
-                            try {
-                              final parsed = DateTime.parse(tx['date'].toString());
-                              dateStr = '${parsed.day} ${_monthName(parsed.month)} ${parsed.year}';
-                            } catch (_) {}
-                          }
-                          
-                          final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
-                          final String rateStr = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
-
-                          return _activityTile(
-                            context: context,
-                            title: title,
-                            subtitle: '$qtyStr $unit • ₹$rateStr • $dateStr',
-                            badgeLabel: 'Equipment',
-                            badgeBg: const Color(0xFFFFF3E0),
-                            badgeColor: const Color(0xFFE65100),
-                            icon: Icons.precision_manufacturing_outlined,
-                            onTap: () {
-                              _prefillFromRecent(tx);
-                              _snack('Prefilled details for "$title"');
-                            },
-                          );
-                        }),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                       ],
                     ],
 

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
-
 import 'package:flutter/foundation.dart';
 
 class ApiService {
@@ -19,16 +18,21 @@ class ApiService {
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
+
     return {
       'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
-    return http.get(Uri.parse('$baseUrl$endpoint'), headers: headers);
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [GET]: $url');
+    final response = await http.get(Uri.parse(url), headers: headers);
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> post(
@@ -36,11 +40,17 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     final headers = await _getHeaders();
-    return http.post(
-      Uri.parse('$baseUrl$endpoint'),
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [POST]: $url');
+    debugPrint('Payload: ${jsonEncode(body)}');
+    final response = await http.post(
+      Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
     );
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> put(
@@ -48,16 +58,27 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     final headers = await _getHeaders();
-    return http.put(
-      Uri.parse('$baseUrl$endpoint'),
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [PUT]: $url');
+    debugPrint('Payload: ${jsonEncode(body)}');
+    final response = await http.put(
+      Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
     );
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();
-    return http.delete(Uri.parse('$baseUrl$endpoint'), headers: headers);
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [DELETE]: $url');
+    final response = await http.delete(Uri.parse(url), headers: headers);
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   // ==========================================
@@ -312,6 +333,29 @@ class ApiService {
         print('DELETE /projects/$id Error: $e');
       }
       return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchTransactionById(String id) async {
+    try {
+      final response = await get('/transactions/$id');
+      if (kDebugMode) {
+        print('=== FETCH TRANSACTION BY ID ===');
+        print('Status Code: ${response.statusCode}');
+        print('Body: ${response.body}');
+      }
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return decoded['transaction'] ?? decoded['data'] ?? decoded;
+        }
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('fetchTransactionById error: $e');
+      }
+      return null;
     }
   }
 
@@ -638,26 +682,22 @@ class ApiService {
         throw Exception('Server returned ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Failed to request password reset: $e');
+      if (kDebugMode) {
+        print('resetPassword Error: $e');
+      }
+      rethrow;
     }
   }
-
-  // ==========================================
-  // RECENT TRANSACTIONS — FIX: added userId param
-  // so only the current user's entries are returned.
-  // ==========================================
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
     required String type,
-    String? userId, // FIX: filter to this user's entries only
+    String? userId,
   }) async {
     try {
-      // Build URL — always scope to project + type + limit 5
       String url =
           '/transactions?project=$projectId&type=$type&limit=5';
 
-      // FIX: append createdBy so backend returns only this user's entries
       if (userId != null && userId.isNotEmpty) {
         url += '&createdBy=$userId';
       }
@@ -681,20 +721,17 @@ class ApiService {
   }
 
   // ==========================================
-  // AUTOCOMPLETE SUGGESTIONS — FIX: added userId param
-  // so suggestions are scoped to this user's history.
+  // AUTOCOMPLETE SUGGESTIONS
   // ==========================================
 
   static Future<List<Map<String, dynamic>>> fetchSuggestions({
     required String projectId,
-    required String type, // 'Materials' | 'Wages' | 'Expense'
-    String? userId, // FIX: scope suggestions to this user's entries
+    required String type,
+    String? userId,
   }) async {
     try {
-      // ── 1. Fetch current-project transactions for this user ────────────
       List<dynamic> projectTxs = [];
       try {
-        // FIX: append createdBy when userId is available
         String projectUrl =
             '/transactions?project=$projectId&type=$type';
         if (userId != null && userId.isNotEmpty) {
@@ -712,10 +749,8 @@ class ApiService {
         }
       } catch (_) {}
 
-      // ── 2. Fetch global transactions for this user (all projects) ──────
       List<dynamic> globalTxs = [];
       try {
-        // FIX: append createdBy so global suggestions are also user-scoped
         String globalUrl = '/transactions?type=$type';
         if (userId != null && userId.isNotEmpty) {
           globalUrl += '&createdBy=$userId';
@@ -736,7 +771,6 @@ class ApiService {
       final Map<String, int> frequency = {};
       final Map<String, bool> isCurrentProject = {};
 
-      // Process current-project first (higher priority)
       for (final rawTx in projectTxs) {
         final tx = rawTx as Map<String, dynamic>;
         final title =
@@ -757,7 +791,6 @@ class ApiService {
         }
       }
 
-      // Process global transactions
       for (final rawTx in globalTxs) {
         final tx = rawTx as Map<String, dynamic>;
         final title =
@@ -778,7 +811,6 @@ class ApiService {
         }
       }
 
-      // ── Sort: current-project > recency > frequency ────────────────────
       final entries = byTitle.entries.toList()
         ..sort((a, b) {
           final aKey = a.key;

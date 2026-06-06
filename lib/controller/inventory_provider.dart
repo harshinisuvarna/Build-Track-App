@@ -60,6 +60,8 @@ class InventoryProvider extends ChangeNotifier {
 
     try {
       final rawData = await ApiService.fetchInventory(projectId);
+      debugPrint('RAW INVENTORY JSON');
+      debugPrint(rawData.toString());
       _inventory = rawData.map((json) => InventoryItem.fromJson(json)).toList();
     } catch (e) {
       _error = 'Could not fetch inventory: $e';
@@ -82,6 +84,8 @@ class InventoryProvider extends ChangeNotifier {
         category: category,
         projectId: projectId,
       );
+      debugPrint('RAW INVENTORY JSON');
+      debugPrint(rawData.toString());
       _inventory = rawData.map((json) => InventoryItem.fromJson(json)).toList();
     } catch (e) {
       _error = 'Search failed: $e';

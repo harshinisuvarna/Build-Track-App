@@ -144,12 +144,12 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
   bool    _obscurePass = true;
   String? _selectedRole;
-  bool    _isLoading   = false;
+bool _isLoading = false;
 
-  final Set<String> _selectedProjectIds = {};
-  List<Map<String, String>> _projects          = [];
-  bool                      _isLoadingProjects = true;
-  String?                   _projectsError;
+final Set<String> _selectedProjectIds = {};
+List<Map<String, String>> _projects = [];
+bool _isLoadingProjects = true;
+String? _projectsError;
 
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
