@@ -8,7 +8,12 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/subscription_card.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/services/auth_service.dart';
+import 'package:provider/provider.dart';
 // UserRole enum is defined in user_session.dart — already imported above
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
@@ -79,25 +84,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // API returns { user: { ... } }
         final userJson = decoded['user'] ?? decoded;
         final data = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
-        // Convert role string from API → UserRole enum, then sync into session
-        final roleStr = (userJson['role']?.toString() ?? '').toLowerCase();
-        final UserRole parsedRole;
-        switch (roleStr) {
-          case 'supervisor':
-            parsedRole = UserRole.supervisor;
-            break;
-          case 'mason':
-          case 'worker':
-            parsedRole = UserRole.mason;
-            break;
-          default:
-            parsedRole = UserRole.admin;
-        }
-        UserSession.set(
-          userId: userJson['name']?.toString() ?? UserSession.userId,
-          role: parsedRole,
-          projectId: UserSession.projectId,
-        );
+
+        UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
+
         setState(() {
           _user = data;
           _isLoadingProfile = false;
@@ -423,9 +412,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _onLogoutPressed() {
-    UserSession.clear();
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  void _onLogoutPressed() async {
+    await AuthService.logout();
+    if (mounted) {
+      context.read<ProjectProvider>().clear();
+      context.read<InventoryProvider>().clear();
+      context.read<SubscriptionProvider>().clear();
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
   }
 
   // ── Team access section ────────────────────────────────────────────────────

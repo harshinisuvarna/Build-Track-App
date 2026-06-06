@@ -3,6 +3,8 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
@@ -52,8 +54,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               const Expanded(
                 child: AppEmptyState(
                   icon: Icons.folder_open_outlined,
-                  message:
-                      'No project selected.\nGo back and select a project.',
+                  message: 'No project selected.\nGo back and select a project.',
                 ),
               ),
             ],
@@ -117,9 +118,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                             project.landArea!.isNotEmpty) ||
                         (project.floors != null &&
                             project.floors!.isNotEmpty)) ...[
-                      const AppSectionHeader(
-                        title: 'Land & Floor Configuration',
-                      ),
+                      const AppSectionHeader(title: 'Land & Floor Configuration'),
                       _LandFloorsCard(project: project),
                       const SizedBox(height: 14),
                     ],
@@ -150,7 +149,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     _FinancialCard(project: project),
                     const SizedBox(height: 14),
 
-                    // ── Execution Tracker ──────────────────────────────
                     AppSectionHeader(
                       title: 'Execution Tracker',
                       actionLabel: hasNewTracker
@@ -227,7 +225,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                     ],
 
-                    _RecentEntriesSection(project: project, provider: provider),
+                    // FIX: pass currentUserId so only this user's entries show
+                    _RecentEntriesSection(
+                      project: project,
+                      provider: provider,
+                      currentUserId: UserSession.userId,
+                    ),
                     const SizedBox(height: 14),
 
                     const AppSectionHeader(title: 'Actions'),
@@ -326,7 +329,6 @@ class _TrackerPhaseCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Phase header row ────────────────────────────────────────
           InkWell(
             onTap: onToggleExpand,
             borderRadius: isExpanded
@@ -474,7 +476,6 @@ class _TrackerActivityRow extends StatelessWidget {
   ];
 
   String? _completedDateLabel() {
-    // completedAt is stored on the activity if available
     final dt = activity.completedAt;
     if (dt == null) return null;
     return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
@@ -486,13 +487,12 @@ class _TrackerActivityRow extends StatelessWidget {
     final dateLabel = _completedDateLabel();
 
     return InkWell(
-      onTap: onToggle,
+      onTap: activity.completed ? null : onToggle,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ── Animated checkbox ─────────────────────────────────────
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: 22,
@@ -506,16 +506,10 @@ class _TrackerActivityRow extends StatelessWidget {
                 ),
               ),
               child: done
-                  ? const Icon(
-                      Icons.check_rounded,
-                      size: 14,
-                      color: Colors.white,
-                    )
+                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 12),
-
-            // ── Activity name + completion date ───────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,12 +519,8 @@ class _TrackerActivityRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: done ? FontWeight.w600 : FontWeight.w500,
-                      color: done
-                          ? const Color(0xFF9CA3AF)
-                          : AppColors.textDark,
-                      decoration: done
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
+                      color: done ? const Color(0xFF9CA3AF) : AppColors.textDark,
+                      decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
                       decorationColor: const Color(0xFF9CA3AF),
                     ),
                   ),
@@ -538,11 +528,8 @@ class _TrackerActivityRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.check_circle_outline,
-                          size: 10,
-                          color: AppColors.success,
-                        ),
+                        const Icon(Icons.check_circle_outline,
+                            size: 10, color: AppColors.success),
                         const SizedBox(width: 3),
                         Text(
                           'Completed $dateLabel',
@@ -558,8 +545,6 @@ class _TrackerActivityRow extends StatelessWidget {
                 ],
               ),
             ),
-
-            // ── Status chip ───────────────────────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -578,8 +563,6 @@ class _TrackerActivityRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-
-            // ── Update Progress button ────────────────────────────────
             GestureDetector(
               onTap: () => _openUpdateProgress(context),
               behavior: HitTestBehavior.opaque,
@@ -594,11 +577,7 @@ class _TrackerActivityRow extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
+                child: const Icon(Icons.add_rounded, size: 16, color: AppColors.primary),
               ),
             ),
           ],
@@ -616,12 +595,10 @@ class _TrackerActivityRow extends StatelessWidget {
         'phaseName': phaseName,
         'activityName': activity.name,
         'activityId': activity.id,
-        // Pass first available floor as default; user can change in form
         'floor': projectFloors.isNotEmpty ? projectFloors.first : null,
         'projectFloors': projectFloors,
       },
     ).then((_) {
-      // Reload project so completion state & date are refreshed
       if (context.mounted) {
         context.read<ProjectProvider>().load();
       }
@@ -630,7 +607,6 @@ class _TrackerActivityRow extends StatelessWidget {
 }
 
 // ── Summary Card ─────────────────────────────────────────────────────────────
-
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.project,
@@ -650,16 +626,11 @@ class _SummaryCard extends StatelessWidget {
 
   static Color _statusColor(String? status) {
     switch (status) {
-      case 'Completed':
-        return AppColors.success;
-      case 'In Progress':
-        return AppColors.primary;
-      case 'On Hold':
-        return AppColors.warning;
-      case 'Cancelled':
-        return AppColors.error;
-      default:
-        return const Color(0xFF6B7280);
+      case 'Completed':   return AppColors.success;
+      case 'In Progress': return AppColors.primary;
+      case 'On Hold':     return AppColors.warning;
+      case 'Cancelled':   return AppColors.error;
+      default:            return const Color(0xFF6B7280);
     }
   }
 
@@ -670,10 +641,10 @@ class _SummaryCard extends StatelessWidget {
     final statusLabel = (rawStatus != null && rawStatus.isNotEmpty)
         ? rawStatus
         : (progress >= 1.0
-              ? 'Completed'
-              : progress >= 0.3
-              ? 'In Progress'
-              : 'Planning');
+            ? 'Completed'
+            : progress >= 0.3
+            ? 'In Progress'
+            : 'Planning');
     final statusColor = _statusColor(rawStatus);
 
     final allPhases = buildDefaultPhases();
@@ -703,10 +674,8 @@ class _SummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      project.name,
-                      style: AppTheme.heading2.copyWith(letterSpacing: -0.3),
-                    ),
+                    Text(project.name,
+                        style: AppTheme.heading2.copyWith(letterSpacing: -0.3)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
@@ -714,27 +683,19 @@ class _SummaryCard extends StatelessWidget {
                       children: [
                         _chip(statusLabel, statusColor),
                         if (activePhase != null)
-                          _chip(
-                            activePhase,
-                            AppColors.primary,
-                            icon: Icons.play_circle_outline,
-                            subtle: true,
-                          ),
+                          _chip(activePhase, AppColors.primary,
+                              icon: Icons.play_circle_outline, subtle: true),
                       ],
                     ),
                     const SizedBox(height: 10),
                     _infoRow(Icons.location_on_outlined, project.location),
                     const SizedBox(height: 4),
-                    _infoRow(
-                      Icons.calendar_today_outlined,
-                      'Started ${_fmt(project.startDate)}',
-                    ),
+                    _infoRow(Icons.calendar_today_outlined,
+                        'Started ${_fmt(project.startDate)}'),
                     if (project.expectedEndDate != null) ...[
                       const SizedBox(height: 4),
-                      _infoRow(
-                        Icons.event_available_outlined,
-                        'Due ${_fmt(project.expectedEndDate!)}',
-                      ),
+                      _infoRow(Icons.event_available_outlined,
+                          'Due ${_fmt(project.expectedEndDate!)}'),
                     ],
                     if (project.clientName != null &&
                         project.clientName!.isNotEmpty) ...[
@@ -745,9 +706,7 @@ class _SummaryCard extends StatelessWidget {
                         project.projectCode!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       _infoRow(
-                        Icons.qr_code_scanner_outlined,
-                        project.projectCode!,
-                      ),
+                          Icons.qr_code_scanner_outlined, project.projectCode!),
                     ],
                   ],
                 ),
@@ -760,30 +719,22 @@ class _SummaryCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: project.floors!
-                  .map(
-                    (f) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          width: 1,
+                  .map((f) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              width: 1),
                         ),
-                      ),
-                      child: Text(
-                        f,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  )
+                        child: Text(f,
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ))
                   .toList(),
             ),
           ],
@@ -793,21 +744,14 @@ class _SummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Overall Completion',
-                style: AppTheme.body.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-              ),
-              Text(
-                '$pct%  ($doneCount/$totalCount activities)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
-              ),
+              Text('Overall Completion',
+                  style: AppTheme.body.copyWith(
+                      fontWeight: FontWeight.w700, color: AppColors.textDark)),
+              Text('$pct%  ($doneCount/$totalCount activities)',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary)),
             ],
           ),
           const SizedBox(height: 10),
@@ -842,301 +786,27 @@ class _SummaryCard extends StatelessWidget {
               Icon(icon, size: 11, color: c),
               const SizedBox(width: 4),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                color: c,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                    color: c,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4)),
           ],
         ),
       );
 
   Widget _infoRow(IconData icon, String text) => Row(
-    children: [
-      Icon(icon, color: AppColors.textLight, size: 14),
-      const SizedBox(width: 4),
-      Expanded(
-        child: Text(
-          text,
-          style: AppTheme.caption.copyWith(fontSize: 12),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    ],
-  );
-}
-
-// ── Phase Accordion (legacy) ──────────────────────────────────────────────────
-// ignore: unused_element
-class _PhaseAccordion extends StatelessWidget {
-  const _PhaseAccordion({
-    required this.phase,
-    required this.completed,
-    required this.phaseDone,
-    required this.isExpanded,
-    required this.totalForProject,
-    required this.onToggleExpand,
-    required this.onToggleActivity,
-  });
-  final ConstructionPhase phase;
-  final List<String> completed;
-  final int phaseDone, totalForProject;
-  final bool isExpanded;
-  final VoidCallback onToggleExpand;
-  final void Function(String key) onToggleActivity;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = phase.totalCount;
-    final phasePct = total > 0
-        ? (phaseDone / total * 100).toStringAsFixed(0)
-        : '0';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEF0F5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
         children: [
-          GestureDetector(
-            onTap: onToggleExpand,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              color: Colors.transparent,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          phase.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$phaseDone of $total activities • $phasePct%',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textLight,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (phaseDone > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$phaseDone/$total',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: AppColors.textLight,
-                  ),
-                ],
-              ),
-            ),
+          Icon(icon, color: AppColors.textLight, size: 14),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(text,
+                style: AppTheme.caption.copyWith(fontSize: 12),
+                overflow: TextOverflow.ellipsis),
           ),
-          if (isExpanded) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: total > 0 ? phaseDone / total : 0.0,
-                  minHeight: 5,
-                  backgroundColor: const Color(0xFFE8ECF8),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.primary,
-                  ),
-                ),
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFEEF0F5)),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ...phase.activities.map(
-                    (a) => _ActivityRow(
-                      activity: a,
-                      isDone: completed.contains(a.key),
-                      onTap: () => onToggleActivity(a.key),
-                    ),
-                  ),
-                  ...phase.groups.map(
-                    (g) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        Text(
-                          g.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textLight,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ...g.activities.map(
-                          (a) => _ActivityRow(
-                            activity: a,
-                            isDone: completed.contains(a.key),
-                            onTap: () => onToggleActivity(a.key),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
-      ),
-    );
-  }
-}
-
-// ── Activity Row (legacy) ─────────────────────────────────────────────────────
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({
-    required this.activity,
-    required this.isDone,
-    required this.onTap,
-  });
-  final ConstructionActivity activity;
-  final bool isDone;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          color: isDone ? const Color(0xFFE8F5E9) : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isDone
-                ? AppColors.success.withValues(alpha: 0.4)
-                : const Color(0xFFEEF0F5),
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: isDone ? AppColors.success : Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isDone
-                      ? AppColors.success
-                      : AppColors.textLight.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-              ),
-              child: isDone
-                  ? const Icon(Icons.check, size: 13, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                activity.name,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDone ? AppColors.success : AppColors.textDark,
-                  decoration: isDone ? TextDecoration.lineThrough : null,
-                  decorationColor: AppColors.success,
-                ),
-              ),
-            ),
-            if (!isDone)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Pending',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.warning,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.success,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+      );
 }
 
 // ── Project Info Card ─────────────────────────────────────────────────────────
@@ -1147,25 +817,13 @@ class _ProjectInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = <_InfoRow>[
       if (project.projectCode?.isNotEmpty == true)
-        _InfoRow(
-          Icons.qr_code_scanner_outlined,
-          'Project Code',
-          project.projectCode!,
-        ),
+        _InfoRow(Icons.qr_code_scanner_outlined, 'Project Code', project.projectCode!),
       if (project.clientName?.isNotEmpty == true)
         _InfoRow(Icons.person_outline, 'Client', project.clientName!),
       if (project.contractorName?.isNotEmpty == true)
-        _InfoRow(
-          Icons.engineering_outlined,
-          'Contractor',
-          project.contractorName!,
-        ),
+        _InfoRow(Icons.engineering_outlined, 'Contractor', project.contractorName!),
       if (project.siteEngineer?.isNotEmpty == true)
-        _InfoRow(
-          Icons.construction_outlined,
-          'Engineer',
-          project.siteEngineer!,
-        ),
+        _InfoRow(Icons.construction_outlined, 'Engineer', project.siteEngineer!),
       if (project.contactNumber?.isNotEmpty == true)
         _InfoRow(Icons.phone_outlined, 'Contact', project.contactNumber!),
       if (project.mapAddress?.isNotEmpty == true)
@@ -1185,46 +843,38 @@ class _ProjectInfoCard extends StatelessWidget {
           ],
           ...rows
               .where((r) => r.label != 'Project Code')
-              .map(
-                (r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
+              .map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child:
+                              Icon(r.icon, color: AppColors.primary, size: 16),
                         ),
-                        child: Icon(r.icon, color: AppColors.primary, size: 16),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              r.label,
-                              style: AppTheme.caption.copyWith(
-                                fontSize: 10,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              r.value,
-                              style: AppTheme.body.copyWith(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(r.label,
+                                  style: AppTheme.caption.copyWith(
+                                      fontSize: 10, letterSpacing: 0.5)),
+                              Text(r.value,
+                                  style: AppTheme.body.copyWith(
+                                      color: AppColors.textDark,
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                      ],
+                    ),
+                  )),
         ],
       ),
     );
@@ -1237,36 +887,23 @@ class _ProjectInfoCard extends StatelessWidget {
         color: const Color(0xFFF3F4FF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.18),
-          width: 1.5,
-        ),
+            color: AppColors.primary.withValues(alpha: 0.18), width: 1.5),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.qr_code_scanner_rounded,
-            color: AppColors.primary,
-            size: 18,
-          ),
+          const Icon(Icons.qr_code_scanner_rounded,
+              color: AppColors.primary, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Project Code',
-                  style: AppTheme.caption.copyWith(
-                    fontSize: 10,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                Text(
-                  'Auto-generated',
-                  style: AppTheme.caption.copyWith(
-                    fontSize: 9,
-                    color: AppColors.textLight,
-                  ),
-                ),
+                Text('Project Code',
+                    style:
+                        AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.4)),
+                Text('Auto-generated',
+                    style: AppTheme.caption
+                        .copyWith(fontSize: 9, color: AppColors.textLight)),
               ],
             ),
           ),
@@ -1276,15 +913,12 @@ class _ProjectInfoCard extends StatelessWidget {
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              code,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
+            child: Text(code,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5)),
           ),
         ],
       ),
@@ -1298,7 +932,7 @@ class _InfoRow {
   final String label, value;
 }
 
-// ── Building Type Card ───────────────────────────────────────────────────────
+// ── Building Type Card ────────────────────────────────────────────────────────
 class _BuildingTypeCard extends StatelessWidget {
   const _BuildingTypeCard({required this.project});
   final ProjectModel project;
@@ -1332,44 +966,31 @@ class _BuildingTypeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Main Type',
-                      style: AppTheme.caption.copyWith(
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      mainType,
-                      style: AppTheme.body.copyWith(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    Text('Main Type',
+                        style: AppTheme.caption
+                            .copyWith(fontSize: 10, letterSpacing: 0.5)),
+                    Text(mainType,
+                        style: AppTheme.body.copyWith(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w800)),
                   ],
                 ),
               ),
               if (subType != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                      horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                    ),
+                        color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
-                  child: Text(
-                    subType,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
+                  child: Text(subType,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary)),
                 ),
             ],
           ),
@@ -1384,31 +1005,21 @@ class _BuildingTypeCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.category_outlined,
-                    color: AppColors.primary,
-                    size: 16,
-                  ),
+                  child: const Icon(Icons.category_outlined,
+                      color: AppColors.primary, size: 16),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Sub Type',
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 10,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        subType,
-                        style: AppTheme.body.copyWith(
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text('Sub Type',
+                          style: AppTheme.caption
+                              .copyWith(fontSize: 10, letterSpacing: 0.5)),
+                      Text(subType,
+                          style: AppTheme.body.copyWith(
+                              color: AppColors.textDark,
+                              fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
@@ -1422,18 +1033,12 @@ class _BuildingTypeCard extends StatelessWidget {
 
   IconData _iconForType(String type) {
     switch (type) {
-      case 'Residential':
-        return Icons.home_rounded;
-      case 'Educational':
-        return Icons.school_rounded;
-      case 'Institutional':
-        return Icons.account_balance_rounded;
-      case 'Business / Commercial':
-        return Icons.store_rounded;
-      case 'Industrial':
-        return Icons.factory_rounded;
-      default:
-        return Icons.apartment_rounded;
+      case 'Residential':    return Icons.home_rounded;
+      case 'Educational':    return Icons.school_rounded;
+      case 'Institutional':  return Icons.account_balance_rounded;
+      case 'Business / Commercial': return Icons.store_rounded;
+      case 'Industrial':     return Icons.factory_rounded;
+      default:               return Icons.apartment_rounded;
     }
   }
 }
@@ -1459,27 +1064,19 @@ class _LandFloorsCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.landscape_outlined,
-                    color: AppColors.primary,
-                    size: 16,
-                  ),
+                  child: const Icon(Icons.landscape_outlined,
+                      color: AppColors.primary, size: 16),
                 ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Total Land Area',
-                      style: AppTheme.caption.copyWith(fontSize: 10),
-                    ),
-                    Text(
-                      '${project.landArea} ${project.landUnit ?? ""}',
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
+                    Text('Total Land Area',
+                        style: AppTheme.caption.copyWith(fontSize: 10)),
+                    Text('${project.landArea} ${project.landUnit ?? ""}',
+                        style: AppTheme.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark)),
                   ],
                 ),
               ],
@@ -1487,41 +1084,29 @@ class _LandFloorsCard extends StatelessWidget {
             const SizedBox(height: 14),
           ],
           if (project.floors != null && project.floors!.isNotEmpty) ...[
-            Text(
-              'Floors Included',
-              style: AppTheme.caption.copyWith(
-                fontSize: 10,
-                letterSpacing: 0.5,
-              ),
-            ),
+            Text('Floors Included',
+                style: AppTheme.caption
+                    .copyWith(fontSize: 10, letterSpacing: 0.5)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: project.floors!
-                  .map(
-                    (f) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                  .map((f) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2)),
                         ),
-                      ),
-                      child: Text(
-                        f,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  )
+                        child: Text(f,
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                      ))
                   .toList(),
             ),
           ],
@@ -1545,38 +1130,29 @@ class _RoomsBathsCard extends StatelessWidget {
     };
     final baths = <String, int?>{
       'Western': project.bathWestern,
-      'Indian': project.bathIndian,
-      'Common': project.bathCommon,
+      'Indian':  project.bathIndian,
+      'Common':  project.bathCommon,
       'Attached': project.bathAttached,
     };
     Widget tile(String label, int? count, Color c) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label ',
-            style: AppTheme.caption.copyWith(
-              fontSize: 12,
-              color: AppColors.textMedium,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: c.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: c.withValues(alpha: 0.15)),
           ),
-          Text(
-            '${count ?? 0}',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: c,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$label ',
+                  style: AppTheme.caption
+                      .copyWith(fontSize: 12, color: AppColors.textMedium)),
+              Text('${count ?? 0}',
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w900, color: c)),
+            ],
           ),
-        ],
-      ),
-    );
+        );
     final roomTiles = rooms.entries
         .where((e) => (e.value ?? 0) > 0)
         .map((e) => tile(e.key, e.value, AppColors.primary))
@@ -1591,27 +1167,21 @@ class _RoomsBathsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (roomTiles.isNotEmpty) ...[
-            Text(
-              'ROOMS',
-              style: AppTheme.caption.copyWith(
-                fontSize: 10,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text('ROOMS',
+                style: AppTheme.caption.copyWith(
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: roomTiles),
             if (bathTiles.isNotEmpty) const SizedBox(height: 16),
           ],
           if (bathTiles.isNotEmpty) ...[
-            Text(
-              'BATHROOMS',
-              style: AppTheme.caption.copyWith(
-                fontSize: 10,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text('BATHROOMS',
+                style: AppTheme.caption.copyWith(
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: bathTiles),
           ],
@@ -1694,34 +1264,31 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(widget.icon, color: AppColors.primary, size: 16),
+                    child:
+                        Icon(widget.icon, color: AppColors.primary, size: 16),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        Text(
-                          '${widget.features.length} selected',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textLight,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        Text(widget.title,
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark)),
+                        Text('${widget.features.length} selected',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textLight,
+                                fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
                   Icon(
-                    _open ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    _open
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: AppColors.textLight,
                   ),
                 ],
@@ -1736,29 +1303,22 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
                 spacing: 6,
                 runSpacing: 6,
                 children: widget.features
-                    .map(
-                      (f) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.18),
+                    .map((f) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.18)),
                           ),
-                        ),
-                        child: Text(
-                          f,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    )
+                          child: Text(f,
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary)),
+                        ))
                     .toList(),
               ),
             ),
@@ -1805,61 +1365,45 @@ class _ProjectTimelineCard extends StatelessWidget {
                     color: statusColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: Icon(Icons.flag_rounded, color: statusColor, size: 17),
+                  child:
+                      Icon(Icons.flag_rounded, color: statusColor, size: 17),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  'Project Status',
-                  style: AppTheme.body.copyWith(color: AppColors.textMedium),
-                ),
+                Text('Project Status',
+                    style:
+                        AppTheme.body.copyWith(color: AppColors.textMedium)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
+                      horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: statusColor,
-                    ),
-                  ),
+                  child: Text(status,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: statusColor)),
                 ),
               ],
             ),
             const AppDivider(verticalPadding: 12),
           ],
-          Text(
-            'PROJECT TIMELINE',
-            style: AppTheme.caption.copyWith(
-              fontSize: 10,
-              letterSpacing: 1.1,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text('PROJECT TIMELINE',
+              style: AppTheme.caption.copyWith(
+                  fontSize: 10,
+                  letterSpacing: 1.1,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
           Row(
             children: [
-              _dateBox(
-                'Start Date',
-                _fmt(project.startDate),
-                Icons.play_circle_outline,
-                AppColors.primary,
-              ),
+              _dateBox('Start Date', _fmt(project.startDate),
+                  Icons.play_circle_outline, AppColors.primary),
               if (project.expectedEndDate != null) ...[
                 const SizedBox(width: 10),
-                _dateBox(
-                  'Expected End',
-                  _fmt(project.expectedEndDate!),
-                  Icons.event_outlined,
-                  AppColors.warning,
-                ),
+                _dateBox('Expected End', _fmt(project.expectedEndDate!),
+                    Icons.event_outlined, AppColors.warning),
               ],
             ],
           ),
@@ -1867,12 +1411,8 @@ class _ProjectTimelineCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                _dateBox(
-                  'Actual End Date',
-                  _fmt(project.actualEndDate!),
-                  Icons.event_available_rounded,
-                  AppColors.success,
-                ),
+                _dateBox('Actual End Date', _fmt(project.actualEndDate!),
+                    Icons.event_available_rounded, AppColors.success),
               ],
             ),
           ],
@@ -1881,43 +1421,37 @@ class _ProjectTimelineCard extends StatelessWidget {
     );
   }
 
-  Widget _dateBox(String label, String val, IconData icon, Color c) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: c, size: 15),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTheme.caption.copyWith(
-                    fontSize: 9,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                Text(
-                  val,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: c,
-                  ),
-                ),
-              ],
-            ),
+  Widget _dateBox(String label, String val, IconData icon, Color c) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: c.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
-      ),
-    ),
-  );
+          child: Row(
+            children: [
+              Icon(icon, color: c, size: 15),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: AppTheme.caption
+                            .copyWith(fontSize: 9, letterSpacing: 0.4)),
+                    Text(val,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: c)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 // ── Financial Card ────────────────────────────────────────────────────────────
@@ -1943,8 +1477,7 @@ class _FinancialCard extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
+                  color: AppColors.primary.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -1956,32 +1489,24 @@ class _FinancialCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
+                      Icons.account_balance_wallet_rounded,
+                      color: AppColors.primary,
+                      size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'TOTAL BUDGET',
-                        style: AppTheme.caption.copyWith(
-                          fontSize: 10,
-                          letterSpacing: 1.0,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                      Text(
-                        project.formattedBudget,
-                        style: AppTheme.heading2.copyWith(
-                          color: AppColors.primary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
+                      Text('TOTAL BUDGET',
+                          style: AppTheme.caption.copyWith(
+                              fontSize: 10,
+                              letterSpacing: 1.0,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textLight)),
+                      Text(project.formattedBudget,
+                          style: AppTheme.heading2
+                              .copyWith(color: AppColors.primary, letterSpacing: -0.3)),
                     ],
                   ),
                 ),
@@ -1989,31 +1514,23 @@ class _FinancialCard extends StatelessWidget {
             ),
           ),
           const AppDivider(verticalPadding: 12),
-          _frow(
-            'Spent Amount',
-            project.formattedSpent,
-            over ? AppColors.error : AppColors.primary,
-            Icons.payments_outlined,
-          ),
+          _frow('Spent Amount', project.formattedSpent,
+              over ? AppColors.error : AppColors.primary, Icons.payments_outlined),
           const AppDivider(verticalPadding: 8),
           _frow(
-            'Remaining',
-            project.formattedRemaining,
-            project.remainingBudget >= 0 ? AppColors.success : AppColors.error,
-            Icons.savings_outlined,
-          ),
+              'Remaining',
+              project.formattedRemaining,
+              project.remainingBudget >= 0 ? AppColors.success : AppColors.error,
+              Icons.savings_outlined),
           if (hasBrk) ...[
             const SizedBox(height: 14),
             const Divider(color: Color(0xFFEEF0F8), height: 1),
             const SizedBox(height: 10),
-            Text(
-              'BUDGET BREAKDOWN',
-              style: AppTheme.caption.copyWith(
-                fontSize: 10,
-                letterSpacing: 1.1,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text('BUDGET BREAKDOWN',
+                style: AppTheme.caption.copyWith(
+                    fontSize: 10,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             if (bMat > 0) ...[
               _catRow('Material', bMat, AppColors.primary, Icons.category_outlined),
@@ -2036,25 +1553,18 @@ class _FinancialCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Budget Used',
-                style: AppTheme.label.copyWith(
-                  color: AppColors.textLight,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              Text(
-                '${(util * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: util >= 1.0
-                      ? AppColors.error
-                      : util >= 0.8
-                      ? AppColors.warning
-                      : AppColors.primary,
-                ),
-              ),
+              Text('Budget Used',
+                  style: AppTheme.label
+                      .copyWith(color: AppColors.textLight, letterSpacing: 0.3)),
+              Text('${(util * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: util >= 1.0
+                          ? AppColors.error
+                          : util >= 0.8
+                          ? AppColors.warning
+                          : AppColors.primary)),
             ],
           ),
           const SizedBox(height: 6),
@@ -2079,62 +1589,91 @@ class _FinancialCard extends StatelessWidget {
   }
 
   Widget _frow(String label, String value, Color color, IconData icon) => Row(
-    children: [
-      Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(9),
-        ),
-        child: Icon(icon, color: color, size: 17),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(label, style: AppTheme.body.copyWith(color: AppColors.textMedium)),
-      ),
-      Text(
-        value,
-        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: color),
-      ),
-    ],
-  );
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 17),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label,
+                style: AppTheme.body.copyWith(color: AppColors.textMedium)),
+          ),
+          Text(value,
+              style: AppTheme.bodyLarge
+                  .copyWith(fontWeight: FontWeight.w800, color: color)),
+        ],
+      );
 
   Widget _catRow(String label, double amount, Color c, IconData icon) => Row(
-    children: [
-      Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: c.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: c, size: 15),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Text(label,
-            style: AppTheme.body.copyWith(color: AppColors.textMedium, fontSize: 13)),
-      ),
-      Text(formatCurrency(amount),
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c)),
-    ],
-  );
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: c, size: 15),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+                style: AppTheme.body
+                    .copyWith(color: AppColors.textMedium, fontSize: 13)),
+          ),
+          Text(formatCurrency(amount),
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w800, color: c)),
+        ],
+      );
 }
 
-// ── Recent Entries Section ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// RECENT ENTRIES SECTION
+// FIX: Filter entries to show only the current user's own entries.
+//      Admins see all entries (no filter); non-admins see only their own.
+// ══════════════════════════════════════════════════════════════════════════════
 class _RecentEntriesSection extends StatelessWidget {
-  const _RecentEntriesSection({required this.project, required this.provider});
+  const _RecentEntriesSection({
+    required this.project,
+    required this.provider,
+    this.currentUserId,
+  });
   final ProjectModel project;
   final ProjectProvider provider;
+  // FIX: userId passed in from ProjectDetailScreen via UserSession.userId
+  final String? currentUserId;
+
   @override
   Widget build(BuildContext context) {
-    final entries = provider.entriesForProject(project.id).take(3).toList();
+    final isAdmin = UserSession.isAdmin;
+
+    // FIX: Admins see all entries; non-admins see only their own
+    final allEntries = provider.entriesForProject(project.id).toList();
+    final filtered = isAdmin
+        ? allEntries
+        : (currentUserId != null && currentUserId!.isNotEmpty)
+            ? allEntries
+                .where((e) => e.createdBy == currentUserId)
+                .toList()
+            : allEntries;
+
+    // Sort newest first, take 3 for the preview
+    filtered.sort((a, b) => b.date.compareTo(a.date));
+    final entries = filtered.take(3).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSectionHeader(
-          title: 'Recent Entries',
+          // FIX: label differentiates admin vs user view
+          title: isAdmin ? 'Recent Entries' : 'My Recent Entries',
           actionLabel: entries.isEmpty ? null : 'View All',
           onAction: () {
             Navigator.push(
@@ -2143,6 +1682,8 @@ class _RecentEntriesSection extends StatelessWidget {
                 builder: (context) => _AllProjectEntriesScreen(
                   project: project,
                   provider: provider,
+                  currentUserId: currentUserId,
+                  isAdmin: isAdmin,
                 ),
               ),
             );
@@ -2283,8 +1824,7 @@ class _EntryTile extends StatelessWidget {
               }
 
               bool isPositive = true;
-              if (matched['subType']?.toString().toLowerCase() ==
-                  'consumption') {
+              if (matched['subType']?.toString().toLowerCase() == 'consumption') {
                 isPositive = false;
               }
 
@@ -2373,9 +1913,7 @@ class _EntryTile extends StatelessWidget {
                         ? entry.type.label.toUpperCase()
                         : entry.description,
                     style: AppTheme.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
+                        fontWeight: FontWeight.w700, color: AppColors.textDark),
                   ),
                   Text(dateStr, style: AppTheme.caption),
                 ],
@@ -2383,10 +1921,8 @@ class _EntryTile extends StatelessWidget {
             ),
             Text(
               formatCurrency(entry.amount),
-              style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+              style: AppTheme.bodyLarge
+                  .copyWith(fontWeight: FontWeight.w800, color: color),
             ),
           ],
         ),
@@ -2395,7 +1931,10 @@ class _EntryTile extends StatelessWidget {
   }
 }
 
-// ── Action Buttons ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// ACTION BUTTONS
+// FIX: All three buttons are permission-gated via RoleManager.
+// ══════════════════════════════════════════════════════════════════════════════
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
   final ProjectModel project;
@@ -2410,26 +1949,21 @@ class _ActionButtons extends StatelessWidget {
             const Icon(Icons.warning_amber_rounded,
                 color: Colors.redAccent, size: 28),
             const SizedBox(width: 8),
-            Text(
-              'Delete Project',
-              style: AppTheme.heading2.copyWith(color: AppColors.textDark),
-            ),
+            Text('Delete Project',
+                style: AppTheme.heading2.copyWith(color: AppColors.textDark)),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete "${project.name}"? This action cannot be undone and all associated entries will be permanently removed.',
+          'Are you sure you want to delete "${project.name}"? This action '
+          'cannot be undone and all associated entries will be permanently removed.',
           style: AppTheme.bodyLarge.copyWith(color: AppColors.textLight),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text('Cancel',
+                style: TextStyle(
+                    color: AppColors.textLight, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -2469,11 +2003,9 @@ class _ActionButtons extends StatelessWidget {
                 }
               }
             },
-            child: const Text(
-              'Delete',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
+            child: const Text('Delete',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -2482,52 +2014,94 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canAddEntry = RoleManager.canManageExpenses;
+    final canEdit     = RoleManager.canEditProject;
+    final canDelete   = RoleManager.canDeleteProject;
+
+    if (!canAddEntry && !canEdit && !canDelete) {
+      return AppCard(
+        child: Row(
+          children: [
+            const Icon(Icons.lock_outline,
+                color: AppColors.textLight, size: 18),
+            const SizedBox(width: 10),
+            Text('No project actions permitted',
+                style: TextStyle(color: AppColors.textLight, fontSize: 13)),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
-        AppButton(
-          label: 'Add Entry',
-          icon: Icons.add_circle_outline,
-          onPressed: () => Navigator.pushNamed(context, '/add-entry'),
-        ),
-        const SizedBox(height: 10),
-        AppButton(
-          label: 'Edit Project',
-          icon: Icons.edit_outlined,
-          variant: AppButtonVariant.outline,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EditProjectScreen(project: project),
-              ),
-            ).then((_) => context.read<ProjectProvider>().load());
-          },
-        ),
-        const SizedBox(height: 10),
-        AppButton(
-          label: 'Delete Project',
-          icon: Icons.delete_outline_outlined,
-          variant: AppButtonVariant.danger,
-          onPressed: () => _showDeleteConfirmation(context),
-        ),
+        if (canAddEntry) ...[
+          AppButton(
+            label: 'Add Entry',
+            icon: Icons.add_circle_outline,
+            onPressed: () => Navigator.pushNamed(context, '/add-entry'),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (canEdit) ...[
+          AppButton(
+            label: 'Edit Project',
+            icon: Icons.edit_outlined,
+            variant: AppButtonVariant.outline,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => EditProjectScreen(project: project)),
+              ).then((_) => context.read<ProjectProvider>().load());
+            },
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (canDelete)
+          AppButton(
+            label: 'Delete Project',
+            icon: Icons.delete_outline_outlined,
+            variant: AppButtonVariant.danger,
+            onPressed: () => _showDeleteConfirmation(context),
+          ),
       ],
     );
   }
 }
 
-// ── All Entries Screen ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// ALL ENTRIES SCREEN
+// FIX: Filters entries by current user (non-admins see only their own).
+//      Edit icon in top bar hidden unless user has edit_project permission.
+// ══════════════════════════════════════════════════════════════════════════════
 class _AllProjectEntriesScreen extends StatelessWidget {
-  final ProjectModel project;
-  final ProjectProvider provider;
-
   const _AllProjectEntriesScreen({
     required this.project,
     required this.provider,
+    this.currentUserId,
+    this.isAdmin = false,
   });
+
+  final ProjectModel project;
+  final ProjectProvider provider;
+  final String? currentUserId;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context) {
-    final entries = provider.entriesForProject(project.id);
+    // FIX: admins see all entries; others see only their own
+    final allEntries = provider.entriesForProject(project.id).toList();
+    final entries = isAdmin
+        ? allEntries
+        : (currentUserId != null && currentUserId!.isNotEmpty)
+            ? allEntries
+                .where((e) => e.createdBy == currentUserId)
+                .toList()
+            : allEntries;
+
+    entries.sort((a, b) => b.date.compareTo(a.date));
+
+    final canEdit = RoleManager.canEditProject;
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -2540,17 +2114,22 @@ class _AllProjectEntriesScreen extends StatelessWidget {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: IconButton(
-                icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditProjectScreen(project: project),
-                    ),
-                  ).then((_) => context.read<ProjectProvider>().load());
-                },
-              ),
+              // FIX: edit icon only shown when user has edit_project permission
+              rightWidget: canEdit
+                  ? IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          color: AppColors.primary),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  EditProjectScreen(project: project)),
+                        ).then(
+                            (_) => context.read<ProjectProvider>().load());
+                      },
+                    )
+                  : null,
             ),
             Expanded(
               child: entries.isEmpty

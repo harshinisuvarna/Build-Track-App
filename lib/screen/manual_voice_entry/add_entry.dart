@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
@@ -11,29 +12,41 @@ class AddEntryScreen extends StatelessWidget {
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-  static const List<Map<String, dynamic>> _entries = [
-    {
+  List<Map<String, dynamic>> get _entries {
+  final items = <Map<String, dynamic>>[];
+
+  if (RoleManager.canManageExpenses) {
+    items.add({
       'icon': Icons.category,
       'title': 'Material',
       'subtitle':
           'Log concrete, steel, lumber, or site-specific procurement items.',
       'type': 'material',
-    },
-    {
+    });
+  }
+
+  if (RoleManager.canAddEntries) {
+    items.add({
       'icon': Icons.people,
       'title': 'Labour',
       'subtitle':
           'Track crew hours, specialized trade performance, and site presence.',
       'type': 'labour',
-    },
-    {
+    });
+  }
+
+  if (RoleManager.canManageEquipmentMaster) {
+    items.add({
       'icon': Icons.precision_manufacturing,
       'title': 'Equipment',
       'subtitle':
           'Record heavy machinery runtime, fuel logs, and maintenance events.',
       'type': 'equipment',
-    },
-  ];
+    });
+  }
+
+  return items;
+}
 
   void _showEntryOptions(BuildContext context, String type) {
     const Map<String, String> voiceRoutes = {

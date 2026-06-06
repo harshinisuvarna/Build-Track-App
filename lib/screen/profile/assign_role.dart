@@ -16,29 +16,140 @@ class AssignRoleScreen extends StatefulWidget {
 }
 
 class _AssignRoleScreenState extends State<AssignRoleScreen> {
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _nameCtrl       = TextEditingController();
+  final _emailCtrl      = TextEditingController();
+  final _passCtrl       = TextEditingController();
   final _customRoleCtrl = TextEditingController();
 
+  // ── Permission model: each feature has up to 3 axes ───────────────────
+  // key → { 'view': bool, 'edit': bool, 'delete': bool }
+  // For toggle-only rows (no view/edit/delete columns), we use 'enabled'.
+  // The backend still receives the flat permission key strings.
+
+  // ── Table rows definition ──────────────────────────────────────────────
+  // type: 'table'  → renders View / Edit / Delete columns
+  // type: 'toggle' → renders a single on/off switch
+  static const List<Map<String, dynamic>> _featureRows = [
+    // ── Project ────────────────────────────────────────────────────────
+    {
+      'section': 'Project',
+    },
+    {
+      'type':    'table',
+      'label':   'Project Status',
+      'desc':    'View progress, budget, and project details',
+      'view':    'view_assigned_project',
+      'edit':    'edit_project',
+      'delete':  null,               // delete project is admin-only, not shown
+    },
+    {
+      'type':    'table',
+      'label':   'Activities & Entries',
+      'desc':    'View, edit or delete material/labour/equipment entries',
+      'view':    'view_assigned_project', // reuses same view flag
+      'edit':    'manage_expenses',
+      'delete':  'delete_entry',
+    },
+
+    // ── Daily Work ──────────────────────────────────────────────────────
+    {
+      'section': 'Daily Work',
+    },
+    {
+      'type':    'toggle',
+      'label':   'Add Entries',
+      'desc':    'Can add material, labour, and equipment entries',
+      'key':     'manage_expenses',
+    },
+    {
+      'type':    'toggle',
+      'label':   'Add Equipment Entries',
+      'desc':    'Can specifically add and manage equipment entries',
+      'key':     'manage_equipment_master',
+    },
+    {
+      'type':    'toggle',
+      'label':   'Submit Daily Progress Update',
+      'desc':    'Can file a daily update with photos and checklist',
+      'key':     'submit_daily_update',
+    },
+
+    // ── Approvals & Payments ────────────────────────────────────────────
+    {
+      'section': 'Approvals & Payments',
+    },
+    {
+      'type':    'toggle',
+      'label':   'Approve Payments',
+      'desc':    'Can mark entries as paid and record payment details',
+      'key':     'approve_payments',
+    },
+    {
+      'type':    'toggle',
+      'label':   'Approve Updates',
+      'desc':    'Can approve or reject daily progress submissions',
+      'key':     'approve_updates',
+    },
+
+    // ── Visibility ──────────────────────────────────────────────────────
+    {
+      'section': 'Visibility',
+    },
+    {
+      'type':    'table',
+      'label':   'Reports & Analytics',
+      'desc':    'Access to charts, cost summaries and analytics',
+      'view':    'view_reports',
+      'edit':    null,
+      'delete':  null,
+    },
+    {
+      'type':    'table',
+      'label':   'Transaction Logs',
+      'desc':    'Access to the full list of expense entries',
+      'view':    'view_payment_reports',
+      'edit':    null,
+      'delete':  null,
+    },
+
+    // ── Administration ──────────────────────────────────────────────────
+    {
+      'section': 'Administration',
+    },
+    {
+      'type':    'table',
+      'label':   'Assign Roles',
+      'desc':    'Can create accounts and assign roles to team members',
+      'view':    null,
+      'edit':    'assign_roles',
+      'delete':  null,
+    },
+  ];
+
+  // ── Flat permission map (sent to backend) ──────────────────────────────
+  // Only the keys that actually appear in _featureRows
   final Map<String, bool> _permissions = {
-    'view_projects': false,
-    'add_entries': false,
-    'approve_payments': false,
-    'mark_paid': false,
-    'view_reports': false,
-    'manage_team': false,
+    'view_assigned_project':   false,
+    'edit_project':            false,
+    'delete_entry':            false,
+    'manage_expenses':         false,
+    'manage_equipment_master': false,
+    'submit_daily_update':     false,
+    'approve_payments':        false,
+    'approve_updates':         false,
+    'view_reports':            false,
+    'view_payment_reports':    false,
+    'assign_roles':            false,
   };
 
-  bool _obscurePass = true;
+  bool    _obscurePass = true;
   String? _selectedRole;
-  String? _selectedProjectId;
-  String? _selectedProjectName;
-  bool _isLoading = false;
+  bool    _isLoading   = false;
 
-  List<Map<String, String>> _projects = [];
-  bool _isLoadingProjects = true;
-  String? _projectsError;
+  final Set<String> _selectedProjectIds = {};
+  List<Map<String, String>> _projects          = [];
+  bool                      _isLoadingProjects = true;
+  String?                   _projectsError;
 
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
@@ -65,18 +176,11 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       _isLoadingProjects = true;
       _projectsError = null;
     });
-
     try {
       final response = await ApiService.get('/projects/mine');
-
-      debugPrint('ASSIGN ROLE /projects/mine status => ${response.statusCode}');
-      debugPrint('ASSIGN ROLE /projects/mine body   => ${response.body}');
-
       if (!mounted) return;
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
         List<dynamic> raw = [];
         if (decoded is List) {
           raw = decoded;
@@ -87,36 +191,27 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
               decoded['results'] ??
               []) as List<dynamic>;
         }
-
         final parsed = raw.map<Map<String, String>>((p) {
-          final map = Map<String, dynamic>.from(p as Map);
-          final id = (map['_id'] ?? map['id'] ?? '').toString();
-          final name = (map['projectName'] ??
-                  map['name'] ??
-                  map['title'] ??
-                  'Unnamed Project')
-              .toString()
-              .trim();
-          return {
-            'id': id,
-            'name': name.isEmpty ? 'Unnamed Project' : name,
-          };
+          final map  = Map<String, dynamic>.from(p as Map);
+          final id   = (map['_id'] ?? map['id'] ?? '').toString();
+          final name = (map['projectName'] ?? map['name'] ?? map['title'] ??
+              'Unnamed Project').toString().trim();
+          return {'id': id, 'name': name.isEmpty ? 'Unnamed Project' : name};
         }).where((p) => p['id']!.isNotEmpty).toList();
-
         setState(() {
-          _projects = parsed;
+          _projects          = parsed;
           _isLoadingProjects = false;
         });
       } else {
         setState(() {
-          _projectsError = 'Could not load projects (${response.statusCode})';
+          _projectsError     = 'Could not load projects (${response.statusCode})';
           _isLoadingProjects = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _projectsError = 'Network error loading projects';
+        _projectsError     = 'Network error loading projects';
         _isLoadingProjects = false;
       });
     }
@@ -124,98 +219,41 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
   void _applyDefaultPermissionsForRole(String? role) {
     if (role == null) return;
-
-    final defaults = <String, bool>{
-      'view_projects': true,
-      'add_entries': true,
-      'approve_payments': false,
-      'mark_paid': false,
-      'view_reports': false,
-      'manage_team': false,
-    };
-
-    if (role == 'Supervisor') {
-      defaults['view_projects'] = true;
-      defaults['add_entries'] = true;
-      defaults['approve_payments'] = true;
-      defaults['mark_paid'] = true;
-      defaults['view_reports'] = true;
-      defaults['manage_team'] = false;
-    } else if (role == 'Mason') {
-      defaults['view_projects'] = true;
-      defaults['add_entries'] = true;
-      defaults['approve_payments'] = false;
-      defaults['mark_paid'] = false;
-      defaults['view_reports'] = false;
-      defaults['manage_team'] = false;
-    } else if (role == _customRoleValue) {
-      defaults['view_projects'] = true;
-      defaults['add_entries'] = false;
-      defaults['approve_payments'] = false;
-      defaults['mark_paid'] = false;
-      defaults['view_reports'] = false;
-      defaults['manage_team'] = false;
+    for (final k in _permissions.keys) {
+      _permissions[k] = false;
     }
-
+    if (role == 'Supervisor') {
+      for (final k in [
+        'view_assigned_project',
+        'manage_expenses',
+        'manage_equipment_master',
+        'submit_daily_update',
+        'approve_payments',
+        'approve_updates',
+        'view_reports',
+        'view_payment_reports',
+      ]) {
+        if (_permissions.containsKey(k)) _permissions[k] = true;
+      }
+    } else if (role == 'Mason') {
+      for (final k in [
+        'view_assigned_project',
+        'manage_expenses',
+        'submit_daily_update',
+      ]) {
+        if (_permissions.containsKey(k)) _permissions[k] = true;
+      }
+    }
     setState(() {
       _selectedRole = role;
-      if (role != _customRoleValue) {
-        _customRoleCtrl.clear();
-      }
-      _permissions
-        ..clear()
-        ..addAll(defaults);
+      if (role != _customRoleValue) _customRoleCtrl.clear();
     });
-  }
-
-  List<Widget> _buildPermissionTiles(bool isAdmin) {
-    final permissionLabels = <String, String>{
-      'view_projects': 'View projects',
-      'add_entries': 'Add entries',
-      'approve_payments': 'Approve payments',
-      'mark_paid': 'Mark as paid',
-      'view_reports': 'View reports',
-      'manage_team': 'Manage team',
-    };
-
-    final permissionSubtitles = <String, String>{
-      'view_projects': 'Can open project lists and details',
-      'add_entries': 'Can add labour, material, and equipment entries',
-      'approve_payments': 'Can approve payment-related actions',
-      'mark_paid': 'Can mark pending items as paid or partial',
-      'view_reports': 'Can access reports and analytics',
-      'manage_team': 'Can assign roles and manage user access',
-    };
-
-    return _permissions.keys.map((key) {
-      return CheckboxListTile(
-        value: _permissions[key],
-        onChanged: isAdmin
-            ? (value) {
-                setState(() {
-                  _permissions[key] = value ?? false;
-                });
-              }
-            : null,
-        activeColor: AppColors.primary,
-        controlAffinity: ListTileControlAffinity.leading,
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-          permissionLabels[key]!,
-          style: AppTheme.body.copyWith(color: AppColors.textDark),
-        ),
-        subtitle: Text(
-          permissionSubtitles[key]!,
-          style: AppTheme.caption.copyWith(color: AppColors.textLight),
-        ),
-      );
-    }).toList();
   }
 
   Future<void> _onAssignPressed() async {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
-    final pass = _passCtrl.text;
+    final pass  = _passCtrl.text;
     final roleToSend = _isCustomRoleSelected
         ? _customRoleCtrl.text.trim()
         : (_selectedRole ?? '').trim();
@@ -223,12 +261,10 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     if (name.isEmpty || email.isEmpty || pass.isEmpty || roleToSend.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in all required fields and select a role.'),
-        ),
+            content: Text('Please fill in all required fields and select a role.')),
       );
       return;
     }
-
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address.')),
@@ -244,23 +280,27 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     setState(() => _isLoading = true);
 
     final payload = <String, dynamic>{
-      'name': name,
-      'email': email,
+      'name':              name,
+      'email':             email,
       'temporaryPassword': pass,
-      'role': roleToSend,
-      'permissions': selectedPermissions,
-      if (_selectedProjectId != null) 'projectId': _selectedProjectId,
+      'role':              roleToSend,
+      'permissions':       selectedPermissions,
+      if (_selectedProjectIds.isNotEmpty)
+        'projectIds': _selectedProjectIds.toList(),
     };
 
     try {
       final response = await ApiService.post('/auth/provision', payload);
       if (!mounted) return;
       setState(() => _isLoading = false);
-
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final projCount = _selectedProjectIds.length;
+        final projLabel = projCount == 0
+            ? 'all projects'
+            : '$projCount project${projCount > 1 ? 's' : ''}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$name has been assigned as $roleToSend.'),
+            content: Text('$name assigned as $roleToSend ($projLabel).'),
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
           ),
@@ -268,7 +308,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         Navigator.pop(context);
       } else {
         final body = json.decode(response.body);
-        final msg = body['message']?.toString() ?? 'Failed to assign role.';
+        final msg  = body['message']?.toString() ?? 'Failed to assign role.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );
@@ -277,10 +317,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -288,7 +325,6 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = RoleManager.canAssignRole;
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -311,7 +347,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Only Admins can assign roles and manage team access.',
-                      style: AppTheme.body.copyWith(color: AppColors.textLight),
+                      style:
+                          AppTheme.body.copyWith(color: AppColors.textLight),
                     ),
                     const SizedBox(height: 20),
                     _formCard(isAdmin),
@@ -334,9 +371,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.25),
-        ),
+        border:
+            Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -381,23 +417,20 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Temporary Password',
-                style: AppTheme.label.copyWith(color: AppTheme.textMedium),
-              ),
+              Text('Temporary Password',
+                  style:
+                      AppTheme.label.copyWith(color: AppTheme.textMedium)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passCtrl,
                 obscureText: _obscurePass,
                 enabled: true,
-                style: AppTheme.bodyLarge.copyWith(color: AppTheme.textDark),
+                style: AppTheme.bodyLarge
+                    .copyWith(color: AppTheme.textDark),
                 decoration: InputDecoration(
                   hintText: 'Enter temporary password',
-                  prefixIcon: const Icon(
-                    Icons.lock_outline,
-                    color: AppColors.textLight,
-                    size: 20,
-                  ),
+                  prefixIcon: const Icon(Icons.lock_outline,
+                      color: AppColors.textLight, size: 20),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePass
@@ -421,16 +454,15 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             value: _selectedRole,
             hint: 'Select role',
             items: _roles
-                .map(
-                  (r) => DropdownMenuItem<String>(
-                    value: r,
-                    child: Text(
-                      r == _customRoleValue ? 'Custom Role' : r,
-                    ),
-                  ),
-                )
+                .map((r) => DropdownMenuItem<String>(
+                      value: r,
+                      child:
+                          Text(r == _customRoleValue ? 'Custom Role' : r),
+                    ))
                 .toList(),
-            onChanged: isAdmin ? (v) => _applyDefaultPermissionsForRole(v) : (_) {},
+            onChanged: isAdmin
+                ? (v) => _applyDefaultPermissionsForRole(v)
+                : (_) {},
           ),
           if (_isCustomRoleSelected) ...[
             const SizedBox(height: AppTheme.spacingMd),
@@ -444,111 +476,435 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
           ],
           _roleHints(),
           const SizedBox(height: AppTheme.spacingMd),
+
+          // ── Permissions table ──────────────────────────────────────
+          Text('Permissions',
+              style: AppTheme.heading3
+                  .copyWith(color: AppColors.textDark, fontSize: 15)),
+          const SizedBox(height: 4),
           Text(
-            'Permissions',
-            style: AppTheme.heading3.copyWith(
-              color: AppColors.textDark,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ..._buildPermissionTiles(isAdmin),
-          const SizedBox(height: AppTheme.spacingMd),
-          _buildProjectDropdown(isAdmin),
-          Text(
-            'Leave blank for organisation-wide access',
+            'Configure what this user can see and do.',
             style: AppTheme.caption.copyWith(color: AppColors.textLight),
           ),
+          const SizedBox(height: 14),
+          _buildPermissionsTable(isAdmin),
+          const SizedBox(height: AppTheme.spacingMd),
+
+          // ── Project access ─────────────────────────────────────────
+          _buildProjectMultiSelect(isAdmin),
         ],
       ),
     );
   }
 
-  Widget _buildProjectDropdown(bool isAdmin) {
-    if (_isLoadingProjects) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
+  // ── Permissions table ──────────────────────────────────────────────────
+  Widget _buildPermissionsTable(bool isAdmin) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0E5FF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Column header row ──────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  flex: 5,
+                  child: Text(
+                    'Feature',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textLight,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+                _colHeader('View'),
+                _colHeader('Edit'),
+                _colHeader('Delete'),
+              ],
+            ),
+          ),
+
+          // ── Feature rows ───────────────────────────────────────────
+          ..._featureRows.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final row = entry.value;
+
+            // Section header
+            if (row.containsKey('section')) {
+              return _sectionDivider(row['section'] as String);
+            }
+
+            final type    = row['type'] as String;
+            final label   = row['label'] as String;
+            final desc    = row['desc'] as String;
+            final isLast  = idx == _featureRows.length - 1;
+
+            if (type == 'table') {
+              final viewKey   = row['view'] as String?;
+              final editKey   = row['edit'] as String?;
+              final deleteKey = row['delete'] as String?;
+              return _tableRow(
+                label: label,
+                desc: desc,
+                viewKey: viewKey,
+                editKey: editKey,
+                deleteKey: deleteKey,
+                isLast: isLast,
+                isAdmin: isAdmin,
+              );
+            } else {
+              // toggle row
+              final key = row['key'] as String;
+              return _toggleRow(
+                label: label,
+                desc: desc,
+                permKey: key,
+                isLast: isLast,
+                isAdmin: isAdmin,
+              );
+            }
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _colHeader(String label) {
+    return SizedBox(
+      width: 52,
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textLight,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionDivider(String label) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      color: const Color(0xFFF8F9FF),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textLight,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _tableRow({
+    required String label,
+    required String desc,
+    required String? viewKey,
+    required String? editKey,
+    required String? deleteKey,
+    required bool isLast,
+    required bool isAdmin,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Label + desc
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      desc,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textLight,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // View checkbox
+              _permCheckbox(viewKey, isAdmin),
+              // Edit checkbox
+              _permCheckbox(editKey, isAdmin),
+              // Delete checkbox
+              _permCheckbox(deleteKey, isAdmin),
+            ],
+          ),
+        ),
+        if (!isLast)
+          const Divider(height: 1, color: Color(0xFFF0EEF8)),
+      ],
+    );
+  }
+
+  Widget _toggleRow({
+    required String label,
+    required String desc,
+    required String permKey,
+    required bool isLast,
+    required bool isAdmin,
+  }) {
+    final enabled = _permissions[permKey] ?? false;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      desc,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textLight,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: enabled,
+                activeColor: AppColors.primary,
+                onChanged: isAdmin
+                    ? (v) => setState(() => _permissions[permKey] = v)
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        if (!isLast)
+          const Divider(height: 1, color: Color(0xFFF0EEF8)),
+      ],
+    );
+  }
+
+  Widget _permCheckbox(String? key, bool isAdmin) {
+    // If this column doesn't apply to the row, show a dash
+    if (key == null) {
+      return const SizedBox(
+        width: 52,
+        child: Center(
+          child: Text(
+            '—',
+            style: TextStyle(
+              color: AppColors.textLight,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    final value = _permissions[key] ?? false;
+    return SizedBox(
+      width: 52,
+      child: Checkbox(
+        value: value,
+        activeColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.textLight, width: 1.5),
+        onChanged: isAdmin
+            ? (v) => setState(() => _permissions[key] = v ?? false)
+            : null,
+      ),
+    );
+  }
+
+  // ── Project multi-select ───────────────────────────────────────────────
+  Widget _buildProjectMultiSelect(bool isAdmin) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Text('Project Access',
+              style: AppTheme.heading3
+                  .copyWith(color: AppColors.textDark, fontSize: 15)),
+          const SizedBox(width: 8),
+          Text('(Optional)',
+              style:
+                  AppTheme.caption.copyWith(color: AppColors.textLight)),
+        ]),
+        const SizedBox(height: 4),
+        Text(
+          'Select one or more projects. Leave all unchecked for org-wide access.',
+          style: AppTheme.caption.copyWith(color: AppColors.textLight),
+        ),
+        const SizedBox(height: 10),
+        if (_isLoadingProjects)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.primary),
+              ),
+              const SizedBox(width: 10),
+              Text('Loading projects…',
+                  style: AppTheme.body
+                      .copyWith(color: AppColors.textLight)),
+            ]),
+          )
+        else if (_projectsError != null && _projects.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: AppColors.warning, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(_projectsError!,
+                    style: AppTheme.caption
+                        .copyWith(color: AppColors.warning)),
+              ),
+              TextButton(
+                  onPressed: _fetchProjects,
+                  child: const Text('Retry')),
+            ]),
+          )
+        else if (_projects.isEmpty)
+          Text('No projects found.',
+              style:
+                  AppTheme.caption.copyWith(color: AppColors.textLight))
+        else
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.15)),
+            ),
+            child: Column(
+              children: _projects.asMap().entries.map((entry) {
+                final idx     = entry.key;
+                final project = entry.value;
+                final pid     = project['id']!;
+                final checked = _selectedProjectIds.contains(pid);
+                final isLast  = idx == _projects.length - 1;
+                return Column(children: [
+                  CheckboxListTile(
+                    value: checked,
+                    onChanged: isAdmin
+                        ? (value) => setState(() {
+                              if (value == true) {
+                                _selectedProjectIds.add(pid);
+                              } else {
+                                _selectedProjectIds.remove(pid);
+                              }
+                            })
+                        : null,
+                    activeColor: AppColors.primary,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12),
+                    dense: true,
+                    title: Text(
+                      project['name']!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: checked
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: checked
+                            ? AppColors.primary
+                            : AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                  if (!isLast)
+                    Divider(
+                        height: 1,
+                        color: AppColors.primary.withValues(alpha: 0.1)),
+                ]);
+              }).toList(),
+            ),
+          ),
+        if (_selectedProjectIds.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
                 color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Loading projects…',
-              style: AppTheme.body.copyWith(color: AppColors.textLight),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_projectsError != null && _projects.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              color: AppColors.warning,
-              size: 16,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
               child: Text(
-                _projectsError!,
-                style: AppTheme.caption.copyWith(color: AppColors.warning),
+                '${_selectedProjectIds.length} project${_selectedProjectIds.length > 1 ? 's' : ''} selected',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700),
               ),
             ),
-            TextButton(
-              onPressed: _fetchProjects,
-              child: const Text('Retry'),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => setState(() => _selectedProjectIds.clear()),
+              child: Text('Clear',
+                  style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
             ),
-          ],
-        ),
-      );
-    }
-
-    final items = [
-      DropdownMenuItem<String>(
-        value: '__none__',
-        child: Text(
-          'No specific project',
-          style: AppTheme.body.copyWith(color: AppColors.textLight),
-        ),
-      ),
-      ..._projects.map(
-        (p) => DropdownMenuItem<String>(
-          value: p['id'],
-          child: Text(p['name']!),
-        ),
-      ),
-    ];
-
-    return AppDropdownField<String>(
-      label: 'Project Access (Optional)',
-      value: _selectedProjectId,
-      hint: 'Select project',
-      items: items,
-      onChanged: isAdmin
-          ? (v) => setState(() {
-                if (v == '__none__') {
-                  _selectedProjectId = null;
-                  _selectedProjectName = null;
-                } else {
-                  _selectedProjectId = v;
-                  _selectedProjectName = _projects.firstWhere(
-                    (p) => p['id'] == v,
-                    orElse: () => {'name': v ?? ''},
-                  )['name'];
-                }
-              })
-          : (_) {},
+          ]),
+        ],
+        const SizedBox(height: AppTheme.spacingMd),
+      ],
     );
   }
 
@@ -563,11 +919,14 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _roleHintRow('Supervisor', 'Manage work, approve payments, view reports'),
+          _roleHintRow('Supervisor',
+              'Approve updates, view reports, manage expenses'),
           const SizedBox(height: 4),
-          _roleHintRow('Mason', 'Add and update own work only'),
+          _roleHintRow(
+              'Mason', 'Submit updates, upload photos, report issues'),
           const SizedBox(height: 4),
-          _roleHintRow('Custom Role', 'Create a role name and choose permissions manually'),
+          _roleHintRow('Custom Role',
+              'Pick a name and configure permissions manually'),
         ],
       ),
     );
@@ -579,23 +938,19 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         style: const TextStyle(fontSize: 12.5, height: 1.4),
         children: [
           TextSpan(
-            text: '• ',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+              text: '• ',
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800)),
           TextSpan(
-            text: '$role: ',
-            style: const TextStyle(
-              color: AppColors.textDark,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+              text: '$role: ',
+              style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w700)),
           TextSpan(
-            text: desc,
-            style: const TextStyle(color: AppColors.textLight),
-          ),
+              text: desc,
+              style:
+                  const TextStyle(color: AppColors.textLight)),
         ],
       ),
     );
@@ -612,7 +967,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryPurple.withValues(alpha: 0.35),
+              color:
+                  AppColors.primaryPurple.withValues(alpha: 0.35),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -624,28 +980,19 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
+                      strokeWidth: 2.5, color: Colors.white))
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.person_add_outlined,
-                      color: Colors.white,
-                      size: 19,
-                    ),
+                    Icon(Icons.person_add_outlined,
+                        color: Colors.white, size: 19),
                     SizedBox(width: 9),
-                    Text(
-                      'Assign Role',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15.5,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+                    Text('Assign Role',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15.5,
+                            letterSpacing: 0.3)),
                   ],
                 ),
         ),

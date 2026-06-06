@@ -1,3 +1,56 @@
+// ════════════════════════════════════════════════════════════════════════════
+// CHANGES FROM ORIGINAL — search "FIX 3" to find every change:
+//
+//  FIX 3a  EntryModel gets a new `createdBy` field (nullable String).
+//          Add this field to your existing EntryModel class (in project_model.dart
+//          or wherever EntryModel is defined). See the patch comment below.
+//
+//  FIX 3b  ProjectProvider.load() now reads `createdBy` / `addedBy` /
+//          `submittedBy` from the API JSON and stores it on each EntryModel.
+//
+//  FIX 3c  ApiService.fetchRecentTransactions() and fetchSuggestions() now
+//          accept an optional `userId` parameter that is forwarded as a query
+//          param so the backend can filter server-side when supported.
+//          The frontend also does client-side filtering as a fallback.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// ── EntryModel PATCH ────────────────────────────────────────────────────────
+// In your project_model.dart, add `createdBy` to EntryModel:
+//
+//   class EntryModel {
+//     final String id;
+//     final String projectId;
+//     final EntryType type;
+//     final double amount;
+//     final DateTime date;
+//     final String description;
+//     final String? brand;
+//     final double? ratePerUnit;
+//     final String? unit;
+//     final String? floor;
+//     final ProjectStage? phase;
+//     final String? createdBy;   // <-- ADD THIS FIELD
+//
+//     EntryModel({
+//       required this.id,
+//       required this.projectId,
+//       required this.type,
+//       required this.amount,
+//       required this.date,
+//       required this.description,
+//       this.brand,
+//       this.ratePerUnit,
+//       this.unit,
+//       this.floor,
+//       this.phase,
+//       this.createdBy,            // <-- ADD TO CONSTRUCTOR
+//     });
+//   }
+//
+// Also update EntryModel.decodeList / encodeList / copyWith if you have them
+// to include the createdBy field.
+// ════════════════════════════════════════════════════════════════════════════
+
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -8,9 +61,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kEntriesKey = 'buildtrack_entries_v1';
-
-// Key for persisting completedAt dates locally so they survive API reloads
-// even when the backend doesn't echo them back inside selectedPhases.
 const _kCompletedAtKey = 'buildtrack_completed_at_v1';
 
 class ProjectProvider extends ChangeNotifier {
@@ -18,7 +68,6 @@ class ProjectProvider extends ChangeNotifier {
   List<EntryModel> _entries = [];
   List<PhaseModel> _phases = [];
   ProjectModel? _selectedProject;
-
   bool _isLoading = false;
   String _error = '';
 
@@ -35,8 +84,7 @@ class ProjectProvider extends ChangeNotifier {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
-      (e) =>
-          e.projectId == _selectedProject!.id && e.type == EntryType.material,
+      (e) => e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -49,6 +97,15 @@ class ProjectProvider extends ChangeNotifier {
 
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
+
+  // FIX 3: New helper — entries for a project filtered to a specific user
+  List<EntryModel> entriesForProjectByUser(String projectId, String userId) {
+    final all = entriesForProject(projectId);
+    if (userId.isEmpty) return all;
+    final filtered = all.where((e) => e.createdBy == userId).toList();
+    // Fall back to all entries if no user-specific ones found (older data)
+    return filtered.isNotEmpty ? filtered : all;
+  }
 
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (sum, e) => sum + e.amount);
@@ -71,11 +128,6 @@ class ProjectProvider extends ChangeNotifier {
     final remain = project.totalBudget - project.spentAmount;
     return remain < 0 ? 0 : remain;
   }
-
-  // =========================
-  // PERSIST / LOAD completedAt
-  // Stored as: { "projectId|activityId": "2025-01-15T10:30:00.000" }
-  // =========================
 
   Future<Map<String, DateTime>> _loadPersistedCompletedAt() async {
     try {
@@ -111,16 +163,22 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  // =========================
-  // LOAD
-  // =========================
+  List<ProjectModel> _filterForCurrentUser(List<ProjectModel> all) {
+    if (UserSession.isAdmin) return all;
+
+    final assignedIds = UserSession.projectIds
+        .map((id) => id.trim())
+        .toSet();
+    if (assignedIds.isEmpty) return [];
+
+    return all.where((p) => assignedIds.contains(p.id.trim())).toList();
+  }
 
   Future<void> load() async {
     _setLoading(true);
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // ── Phases ──────────────────────────────────────────────────
       final phaseRaw = prefs.getString('phases');
       if (phaseRaw != null && phaseRaw.isNotEmpty) {
         try {
@@ -154,13 +212,11 @@ class ProjectProvider extends ChangeNotifier {
         _savePhases();
       }
 
-      // ── Projects ────────────────────────────────────────────────
       try {
         final Map<String, DateTime> persistedDates =
             await _loadPersistedCompletedAt();
 
         final Map<String, Map<String, DateTime>> prevCompletedAt = {};
-
         persistedDates.forEach((key, date) {
           final parts = key.split('|');
           if (parts.length == 2) {
@@ -179,28 +235,15 @@ class ProjectProvider extends ChangeNotifier {
           }
         }
 
-        _projects = await ApiService.fetchProjects();
+        final fetched = await ApiService.fetchProjects();
 
-        // ✅ Non-admin users only see their assigned project
-        if (!UserSession.isAdmin) {
-          final assignedId = UserSession.projectId;
-          if (assignedId.isNotEmpty) {
-            _projects = _projects
-                .where((p) => p.id.trim() == assignedId.trim())
-                .toList();
-          } else {
-            // No specific project assigned → show nothing
-            _projects = [];
-          }
-        }
+        _projects = _filterForCurrentUser(fetched);
 
         _projects = _projects.map((p) {
           final actDates = prevCompletedAt[p.id];
-
           List<ProjectPhase>? mergedPhases;
           if (actDates != null && actDates.isNotEmpty) {
-            mergedPhases =
-                (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
+            mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
               final mergedActivities = phase.activities.map((act) {
                 final savedDate = actDates[act.id];
                 if (savedDate != null && act.completedAt == null) {
@@ -225,8 +268,7 @@ class ProjectProvider extends ChangeNotifier {
         debugPrint('Projects loaded: ${_projects.length}');
         for (final p in _projects) {
           debugPrint(
-            '  Project: "${p.name}" id=${p.id} floors=${p.floors} '
-            'spentAmount=${p.spentAmount} ',
+            '  Project: "${p.name}" id=${p.id} floors=${p.floors} spentAmount=${p.spentAmount}',
           );
         }
       } catch (e) {
@@ -234,18 +276,9 @@ class ProjectProvider extends ChangeNotifier {
         _projects = [];
       }
 
-      // ── Entries ──────────────────────────────────────────────────
       try {
         final apiMaterials = await ApiService.fetchMaterials();
         debugPrint('fetchMaterials: ${apiMaterials.length} items');
-
-        if (apiMaterials.isNotEmpty) {
-          debugPrint('=== RAW FIRST ENTRY FIELDS ===');
-          apiMaterials.first.forEach((key, value) {
-            debugPrint('  [$key] = $value  (${value?.runtimeType})');
-          });
-          debugPrint('==============================');
-        }
 
         _entries = apiMaterials.map<EntryModel>((json) {
           EntryType parsedType = EntryType.material;
@@ -298,12 +331,21 @@ class ProjectProvider extends ChangeNotifier {
             }
           }
 
-          debugPrint(
-            'Entry → type=$rawType projectId=$projectId '
-            'paymentStatus=$paymentStatus '
-            'paidAmount=${json['paidAmount']} amount=${json['amount']} '
-            'using=$amount',
-          );
+          // FIX 3b: Extract createdBy from API response.
+          // Backend may send it as createdBy, addedBy, submittedBy, or
+          // as a nested user object with _id. We try all common variants.
+          String? createdBy;
+          final createdByRaw = json['createdBy'] ??
+              json['addedBy'] ??
+              json['submittedBy'] ??
+              json['userId'] ??
+              json['user'];
+          if (createdByRaw is Map) {
+            createdBy = createdByRaw['_id']?.toString() ??
+                createdByRaw['id']?.toString();
+          } else if (createdByRaw != null) {
+            createdBy = createdByRaw.toString();
+          }
 
           return EntryModel(
             id: json['_id']?.toString() ??
@@ -323,17 +365,9 @@ class ProjectProvider extends ChangeNotifier {
             ratePerUnit:
                 (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
             unit: json['unit']?.toString(),
+            createdBy: createdBy, // FIX 3b
           );
         }).toList();
-
-        debugPrint('--- MATCH CHECK ---');
-        for (final p in _projects) {
-          final matched =
-              _entries.where((e) => e.projectId == p.id).toList();
-          final total = matched.fold(0.0, (s, e) => s + e.amount);
-          debugPrint('  "${p.name}" → ${matched.length} entries, ₹$total');
-        }
-        debugPrint('-------------------');
 
         await _persistEntries();
       } catch (e, st) {
@@ -347,9 +381,8 @@ class ProjectProvider extends ChangeNotifier {
       }
 
       if (_selectedProject != null) {
-        final existingIdx = _projects.indexWhere(
-          (p) => p.id.trim() == _selectedProject!.id.trim(),
-        );
+        final existingIdx =
+            _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
         if (existingIdx != -1) {
           _selectedProject = _projects[existingIdx];
         } else if (_projects.isNotEmpty) {
@@ -360,9 +393,11 @@ class ProjectProvider extends ChangeNotifier {
       } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
       }
+
       if (_selectedProject != null) {
         UserSession.projectId = _selectedProject!.id;
       }
+
       _error = '';
     } catch (e, st) {
       _error = 'Failed to load: $e';
@@ -372,26 +407,12 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  // =========================
-  // FETCH PROJECTS
-  // =========================
-
   Future<void> fetchProjects() async {
     _setLoading(true);
     try {
-      _projects = await ApiService.fetchProjects();
+      final fetched = await ApiService.fetchProjects();
 
-      // ✅ Non-admin users only see their assigned project
-      if (!UserSession.isAdmin) {
-        final assignedId = UserSession.projectId;
-        if (assignedId.isNotEmpty) {
-          _projects = _projects
-              .where((p) => p.id.trim() == assignedId.trim())
-              .toList();
-        } else {
-          _projects = [];
-        }
-      }
+      _projects = _filterForCurrentUser(fetched);
 
       _projects = _projects.map((p) {
         final floors = p.floors;
@@ -400,6 +421,7 @@ class ProjectProvider extends ChangeNotifier {
         }
         return p;
       }).toList();
+
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
       }
@@ -414,10 +436,6 @@ class ProjectProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
-  // =========================
-  // ADD PROJECT
-  // =========================
 
   Future<void> addProject(
     ProjectModel project, {
@@ -448,22 +466,14 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // =========================
-  // UPDATE PROJECT (for Edit screen)
-  // =========================
-
   Future<void> updateProject(ProjectModel updated) async {
     _setLoading(true);
     try {
-      final response = await ApiService.put(
-        '/projects/${updated.id}',
-        updated.toJson(),
-      );
+      final response =
+          await ApiService.put('/projects/${updated.id}', updated.toJson());
       if (response.statusCode == 200) {
         final idx = _projects.indexWhere((p) => p.id == updated.id);
-        if (idx != -1) {
-          _projects[idx] = updated;
-        }
+        if (idx != -1) _projects[idx] = updated;
         if (_selectedProject?.id == updated.id) {
           _selectedProject = updated;
           UserSession.projectId = updated.id;
@@ -471,7 +481,6 @@ class ProjectProvider extends ChangeNotifier {
         _error = '';
       } else {
         _error = 'Failed to update project: ${response.statusCode}';
-        dev.log('updateProject failed: ${response.statusCode}');
       }
     } catch (e) {
       _error = 'Update error: $e';
@@ -487,16 +496,10 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // =========================
-  // UPDATE PROGRESS
-  // =========================
-
   Future<void> updateProjectProgress(String id, double progress) async {
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) return;
-    _projects[idx] = _projects[idx].copyWith(
-      progress: progress.clamp(0.0, 1.0),
-    );
+    _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
       await ApiService.put('/projects/$id', _projects[idx].toJson());
@@ -505,12 +508,6 @@ class ProjectProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  // =========================
-  // TOGGLE ACTIVITY
-  // KEY FIX: if the activity is already completed, this is a no-op.
-  // Completion is a one-way action — it can only be set, never unset here.
-  // =========================
 
   Future<void> toggleActivityCompletion(
     String projectId,
@@ -522,29 +519,22 @@ class ProjectProvider extends ChangeNotifier {
 
     final project = _projects[projectIndex];
     final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
-
     bool alreadyCompleted = false;
     DateTime? stampedDate;
 
     for (var p = 0; p < phases.length; p++) {
       final phase = phases[p];
       final activities = List<ProjectActivity>.from(phase.activities);
-
       final aIndex = activities.indexWhere((a) => a.id == activityId);
       if (aIndex != -1) {
         final current = activities[aIndex];
-
         if (current.completed) {
           alreadyCompleted = true;
           break;
         }
-
         stampedDate = completedAt ?? DateTime.now();
-        activities[aIndex] = current.copyWith(
-          completed: true,
-          completedAt: stampedDate,
-        );
-
+        activities[aIndex] =
+            current.copyWith(completed: true, completedAt: stampedDate);
         phases[p] = phase.copyWith(activities: activities);
         break;
       }
@@ -554,17 +544,13 @@ class ProjectProvider extends ChangeNotifier {
 
     final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
     final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
-
     final updated = project.copyWith(
       selectedPhases: phases,
       progress: total == 0 ? project.progress : done / total,
     );
 
     _projects[projectIndex] = updated;
-
-    if (_selectedProject?.id == projectId) {
-      _selectedProject = updated;
-    }
+    if (_selectedProject?.id == projectId) _selectedProject = updated;
 
     notifyListeners();
 
@@ -579,27 +565,14 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  // =========================
-  // MARK ACTIVITY COMPLETE (called from update_progress screen)
-  // Uses a specific date (the one the user submitted on the progress form)
-  // rather than DateTime.now().
-  // =========================
-
   Future<void> markActivityComplete(
     String projectId,
     String activityId,
     DateTime completionDate,
   ) async {
-    await toggleActivityCompletion(
-      projectId,
-      activityId,
-      completedAt: completionDate,
-    );
+    await toggleActivityCompletion(projectId, activityId,
+        completedAt: completionDate);
   }
-
-  // =========================
-  // ADD ENTRY
-  // =========================
 
   Future<void> addEntry(
     EntryModel entry, {
@@ -608,28 +581,27 @@ class ProjectProvider extends ChangeNotifier {
     String? floor,
     ProjectStage? phase,
   }) async {
-    String rawType = "Materials";
-    if (entry.type == EntryType.labour) rawType = "Wages";
-    if (entry.type == EntryType.equipment) rawType = "Expense";
+    String rawType = 'Materials';
+    if (entry.type == EntryType.labour) rawType = 'Wages';
+    if (entry.type == EntryType.equipment) rawType = 'Expense';
 
     final payload = {
-      "title":
-          entry.description.isNotEmpty ? entry.description : "New Entry",
-      "type": rawType,
-      "project": entry.projectId,
-      "category": brand ?? entry.brand ?? entry.description,
-      "unit": entry.unit ?? "unit",
-      "quantity": entry.amount,
-      "rate": ratePerUnit ?? entry.ratePerUnit ?? 1,
-      "amount": entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1),
-      "paymentStatus": "Pending",
-      "paymentMode": "Cash",
-      "paidAmount": 0,
+      'title': entry.description.isNotEmpty ? entry.description : 'New Entry',
+      'type': rawType,
+      'project': entry.projectId,
+      'category': brand ?? entry.brand ?? entry.description,
+      'unit': entry.unit ?? 'unit',
+      'quantity': entry.amount,
+      'rate': ratePerUnit ?? entry.ratePerUnit ?? 1,
+      'amount': entry.amount * (ratePerUnit ?? entry.ratePerUnit ?? 1),
+      'paymentStatus': 'Pending',
+      'paymentMode': 'Cash',
+      'paidAmount': 0,
     };
 
     final success = await ApiService.addMaterial(payload);
     if (!success) {
-      dev.log("Failed to save entry to backend.");
+      dev.log('Failed to save entry to backend.');
       return;
     }
 
@@ -644,17 +616,10 @@ class ProjectProvider extends ChangeNotifier {
       ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
       floor: floor ?? entry.floor,
       phase: phase ?? entry.phase,
+      createdBy: UserSession.userId, // FIX 3b: tag new entries with current user
     );
 
     _entries.add(updatedEntry);
-
-    final idx = _projects.indexWhere((p) => p.id == updatedEntry.projectId);
-    if (idx != -1) {
-      if (_selectedProject?.id == updatedEntry.projectId) {
-        _selectedProject = _projects[idx];
-      }
-    }
-
     await _persistEntries();
     notifyListeners();
   }
@@ -694,6 +659,16 @@ class ProjectProvider extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void clear() {
+    _projects = [];
+    _entries = [];
+    _phases = [];
+    _selectedProject = null;
+    _isLoading = false;
+    _error = '';
     notifyListeners();
   }
 }

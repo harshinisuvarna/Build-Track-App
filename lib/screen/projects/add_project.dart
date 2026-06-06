@@ -1758,8 +1758,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                     ),
                   ),
                 ),
-                onReorder: (oldIndex, newIndex) => setState(() {
-                  if (newIndex > oldIndex) newIndex--;
+                onReorderItem: (oldIndex, newIndex) => setState(() {
                   final list = phase.activities;
                   list.insert(newIndex, list.removeAt(oldIndex));
                 }),

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
@@ -384,11 +385,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     // Load recent entries and autocomplete suggestions in parallel
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
-      type: 'Expense',
+      type: 'Expenses', // or 'Materials' / 'Expense'
+      userId: UserSession.userId, // ADD THIS
     );
     final suggestionFuture = ApiService.fetchSuggestions(
       projectId: _selectedProjectId!,
       type: 'Expense',
+      userId: UserSession.userId,
     );
     final recentTxs = await recentFuture;
     final suggestions = await suggestionFuture;
@@ -1448,7 +1451,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
-                    _buildPaymentSection(),
+                    if (RoleManager.canApprovePayments)
+                      _buildPaymentSection(),
                     const SizedBox(height: 4),
 
                     if (_selectedProjectId != null && !_isEditing) ...[

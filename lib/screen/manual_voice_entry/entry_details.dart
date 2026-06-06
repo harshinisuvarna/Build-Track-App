@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class EntryDetailScreen extends StatefulWidget {
   const EntryDetailScreen({super.key});
@@ -480,7 +481,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     const SizedBox(height: 20),
 
                     // ── RECORD PAYMENT CTA ──────────────────────────────────
-                    if (canSettle)
+                    if (canSettle && RoleManager.canApprovePayments)
                       _buildRecordPaymentCTA(
                         context,
                         id: args['id'] as String? ?? '',

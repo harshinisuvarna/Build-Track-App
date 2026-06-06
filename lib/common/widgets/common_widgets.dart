@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
@@ -95,13 +95,17 @@ class AppBottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _navItem(context, nav, 0, Icons.home_rounded, 'HOME'),
-              _navItem(
-                  context, nav, 1, Icons.architecture_outlined, 'PROJECTS'),
-              _entryButton(context, nav),
-              _navItem(
-                  context, nav, 3, Icons.inventory_2_outlined, 'INVENTORY'),
-              _navItem(context, nav, 4, Icons.bar_chart_outlined, 'REPORTS'),
+              _navItem(context, nav, '/home', Icons.home_rounded, 'HOME'),
+              if (nav.isRouteEnabled('/projects'))
+                _navItem(
+                    context, nav, '/projects', Icons.architecture_outlined, 'PROJECTS'),
+              if (nav.isRouteEnabled('/add-entry'))
+                _entryButton(context, nav),
+              if (nav.isRouteEnabled('/inventory'))
+                _navItem(
+                    context, nav, '/inventory', Icons.inventory_2_outlined, 'INVENTORY'),
+              if (nav.isRouteEnabled('/reports'))
+                _navItem(context, nav, '/reports', Icons.bar_chart_outlined, 'REPORTS'),
             ],
           ),
         ),
@@ -112,13 +116,13 @@ class AppBottomNav extends StatelessWidget {
   Widget _navItem(
     BuildContext context,
     NavController nav,
-    int index,
+    String route,
     IconData icon,
     String label,
   ) {
-    final isActive = nav.index == index;
+    final isActive = nav.currentRoute == route;
     return InkWell(
-      onTap: () => nav.setIndex(index, context),
+      onTap: () => nav.setRoute(route, context),
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: 64,
@@ -151,9 +155,9 @@ class AppBottomNav extends StatelessWidget {
   }
 
   Widget _entryButton(BuildContext context, NavController nav) {
-    final isActive = nav.index == 2;
+    final isActive = nav.currentRoute == '/add-entry';
     return InkWell(
-      onTap: () => nav.setIndex(2, context),
+      onTap: () => nav.setRoute('/add-entry', context),
       borderRadius: BorderRadius.circular(22),
       child: Column(
         mainAxisSize: MainAxisSize.min,

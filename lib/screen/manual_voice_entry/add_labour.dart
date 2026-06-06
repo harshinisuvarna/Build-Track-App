@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class AddLabourScreen extends StatefulWidget {
   const AddLabourScreen({super.key});
@@ -706,11 +707,13 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     // Load recent entries and autocomplete suggestions in parallel
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
-      type: 'Wages',
+      type: 'Wages', // or 'Materials' / 'Expense'
+      userId: UserSession.userId, // ADD THIS
     );
     final suggestionFuture = ApiService.fetchSuggestions(
       projectId: _selectedProjectId!,
       type: 'Wages',
+      userId: UserSession.userId, // ADD THIS
     );
     final recentTxs = await recentFuture;
     final suggestions = await suggestionFuture;
@@ -1179,7 +1182,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    _buildPaymentSection(),
+                    if (RoleManager.canApprovePayments)
+                      _buildPaymentSection(),
                     const SizedBox(height: 4),
 
                     if (_selectedProjectId != null && !_isEditing) ...[

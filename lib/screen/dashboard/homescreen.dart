@@ -161,12 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: AppColors.textDark)),
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style:
-                            TextStyle(fontSize: 13.5, color: AppColors.textLight)),
+                        style: TextStyle(
+                            fontSize: 13.5, color: AppColors.textLight)),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.textLight, size: 20),
             ],
           ),
         ),
@@ -181,7 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20, right: 20),
+            padding: const EdgeInsets.only(
+                top: 60, bottom: 20, left: 20, right: 20),
             decoration: const BoxDecoration(color: AppColors.primary),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text('Role: ${UserSession.roleLabel}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 14)),
               ],
             ),
           ),
@@ -211,30 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(color: AppColors.textDark)),
               onTap: () => Navigator.pushNamed(context, '/reports'),
             ),
-          if (UserSession.isAdmin) ...[
-            const Divider(),
-            const Padding(
-              padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
-              child: Text('Admin Controls',
-                  style: TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.bold)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.workspaces_outline,
-                  color: AppColors.textDark),
-              title: const Text('Create Workspace',
-                  style: TextStyle(color: AppColors.textDark)),
-              onTap: () =>
-                  Navigator.pushNamed(context, '/create-workspace'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.manage_accounts_outlined,
-                  color: AppColors.textDark),
-              title: const Text('Assign Roles',
-                  style: TextStyle(color: AppColors.textDark)),
-              onTap: () => Navigator.pushNamed(context, '/assign-role'),
-            ),
+          if (RoleManager.canViewProjects)
             ListTile(
               leading: const Icon(Icons.receipt_long_outlined,
                   color: AppColors.textDark),
@@ -242,6 +222,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(color: AppColors.textDark)),
               onTap: () => Navigator.pushNamed(context, '/logs'),
             ),
+          if (UserSession.isAdmin || RoleManager.canAssignRoles) ...[
+            const Divider(),
+            const Padding(
+              padding:
+                  EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
+              child: Text('Admin Controls',
+                  style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.bold)),
+            ),
+            if (UserSession.isAdmin)
+              ListTile(
+                leading: const Icon(Icons.workspaces_outline,
+                    color: AppColors.textDark),
+                title: const Text('Create Workspace',
+                    style: TextStyle(color: AppColors.textDark)),
+                onTap: () =>
+                    Navigator.pushNamed(context, '/create-workspace'),
+              ),
+            if (RoleManager.canAssignRoles)
+              ListTile(
+                leading: const Icon(Icons.manage_accounts_outlined,
+                    color: AppColors.textDark),
+                title: const Text('Assign Roles',
+                    style: TextStyle(color: AppColors.textDark)),
+                onTap: () =>
+                    Navigator.pushNamed(context, '/assign-role'),
+              ),
           ],
         ],
       ),
@@ -250,15 +258,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ── KEY FIX ────────────────────────────────────────────────────────────
-    // Watch the UserSession ChangeNotifier so this widget rebuilds the moment
-    // loadFromPrefs() or fromLoginResponse() calls notifyListeners().
-    // Without this, Flutter renders HomeScreen once (session not yet loaded →
-    // all RoleManager checks return false → "Limited access"), then never
-    // rebuilds because it has no way to know the session changed.
     context.watch<UserSession>();
 
-    // Show a loading screen until the session is fully hydrated.
     if (!UserSession.isInitialized) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -285,7 +286,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color:
+                              AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -317,11 +319,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (UserSession.isAdmin)
-                        _AdminDashboard(onEntryTap: _showEntryOptions),
-                      if (UserSession.isSupervisor)
+                        _AdminDashboard(onEntryTap: _showEntryOptions)
+                      else if (UserSession.isSupervisor)
                         _SupervisorDashboard(
-                            onEntryTap: _showEntryOptions),
-                      if (UserSession.isMason)
+                            onEntryTap: _showEntryOptions)
+                      else
                         _MasonDashboard(onEntryTap: _showEntryOptions),
                     ],
                   ),
@@ -394,13 +396,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                               fontWeight: FontWeight.w700,
                               fontSize: 13)),
                       Text(project != null ? project.city : '',
-                          style: TextStyle(color: textGray, fontSize: 13)),
+                          style:
+                              TextStyle(color: textGray, fontSize: 13)),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              AppProgressBar(label: '', percent: project?.progress ?? 0),
+              AppProgressBar(
+                  label: '', percent: project?.progress ?? 0),
             ],
           ),
         ),
@@ -421,7 +425,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             .totalSpentForProject(project.id);
                         final budget = project.totalBudget;
                         final pct = budget > 0
-                            ? (paid / budget * 100).toStringAsFixed(0)
+                            ? (paid / budget * 100)
+                                .toStringAsFixed(0)
                             : '0';
                         return '$pct% Used';
                       }()
@@ -561,7 +566,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                               ? Icons.radio_button_checked
                               : Icons.radio_button_off,
                           size: 18,
-                          color: selected ? primaryBlue : textGray),
+                          color:
+                              selected ? primaryBlue : textGray),
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(p.name,
@@ -570,8 +576,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                 fontWeight: selected
                                     ? FontWeight.w700
                                     : FontWeight.w500,
-                                color:
-                                    selected ? primaryBlue : textDark)),
+                                color: selected
+                                    ? primaryBlue
+                                    : textDark)),
                       ),
                     ]),
                   ),
@@ -618,7 +625,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   color: textDark)),
           const SizedBox(height: 4),
           Row(children: [
-            Icon(isInvoice ? Icons.receipt_outlined : Icons.trending_up,
+            Icon(
+                isInvoice
+                    ? Icons.receipt_outlined
+                    : Icons.trending_up,
                 size: 13,
                 color: isOver ? Colors.redAccent : purple),
             const SizedBox(width: 4),
@@ -655,15 +665,17 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Column(children: [
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.mic, color: Colors.white, size: 24),
-                SizedBox(width: 8),
-                Text('Speak Update',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800)),
-              ]),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.mic, color: Colors.white, size: 24),
+                    SizedBox(width: 8),
+                    Text('Speak Update',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800)),
+                  ]),
               SizedBox(height: 6),
               Text('AI FOREMAN IS LISTENING',
                   style: TextStyle(
@@ -761,7 +773,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         entry.description.isNotEmpty ? entry.description : badgeLabel;
     final subtitle =
         '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -803,8 +814,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             color: textDark)),
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style:
-                            TextStyle(fontSize: 12.5, color: textGray)),
+                        style: TextStyle(
+                            fontSize: 12.5, color: textGray)),
                   ],
                 ),
               ),
@@ -831,16 +842,109 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 // ════════════════════════════════════════════════════════
 // SUPERVISOR DASHBOARD
 // ════════════════════════════════════════════════════════
-class _SupervisorDashboard extends StatelessWidget {
+class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
+  @override
+  State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
+}
+
+class _SupervisorDashboardState extends State<_SupervisorDashboard> {
+  void Function(BuildContext, String) get onEntryTap => widget.onEntryTap;
+
+  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
+    final projects = provider.projects;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFDDE0F0),
+                      borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+              const Text('Select Project',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark)),
+              const SizedBox(height: 12),
+              ...projects.map((p) {
+                final selected = p.id == provider.selectedProject?.id;
+                return InkWell(
+                  onTap: () {
+                    provider.selectProject(p);
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.primary.withValues(alpha: 0.08)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          width: 1.5),
+                    ),
+                    child: Row(children: [
+                      Icon(
+                          selected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 18,
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.textLight),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(p.name,
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.textDark)),
+                      ),
+                    ]),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Watch UserSession so permission chips update reactively
     context.watch<UserSession>();
 
     final provider = context.watch<ProjectProvider>();
+    final projects = provider.projects;
     final project = provider.selectedProject;
 
     return Column(
@@ -848,22 +952,63 @@ class _SupervisorDashboard extends StatelessWidget {
       children: [
         _roleBanner(),
         const SizedBox(height: 14),
-
+        if (projects.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              elevation: 0,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _showProjectPicker(context, provider),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.architecture,
+                            color: AppColors.primary, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          project?.name ?? 'Select Project',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: AppColors.textDark),
+                        ),
+                      ]),
+                      const Icon(Icons.keyboard_arrow_down,
+                          color: AppColors.textLight),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (project == null)
           _emptyState('No project assigned',
               'Your admin has not assigned a project yet.')
         else ...[
-
           if (RoleManager.canViewProjects) ...[
             _projectCard(context, project, provider),
             const SizedBox(height: 12),
           ],
-
           if (RoleManager.canViewReports) ...[
             _budgetRow(context, project, provider),
             const SizedBox(height: 14),
           ],
-
           if (RoleManager.canAddEntries) ...[
             _sectionLabel('Add Entry'),
             const SizedBox(height: 8),
@@ -897,17 +1042,16 @@ class _SupervisorDashboard extends StatelessWidget {
             ]),
             const SizedBox(height: 14),
           ],
-
           if (RoleManager.canApprovePayments) ...[
             _sectionLabel('Pending Approvals'),
             const SizedBox(height: 8),
             _pendingApprovalsList(context, provider, project),
             const SizedBox(height: 14),
           ],
-
+          // FIX 3: Pass current userId so only this user's entries are shown
           if (RoleManager.canViewProjects)
-            _recentActivitySection(context, provider, project),
-
+            _recentActivitySection(context, provider, project,
+                currentUserId: UserSession.userId),
           if (!RoleManager.canViewProjects &&
               !RoleManager.canAddEntries &&
               !RoleManager.canApprovePayments)
@@ -931,15 +1075,16 @@ class _SupervisorDashboard extends StatelessWidget {
         const Icon(Icons.verified_user_outlined,
             color: AppColors.primary, size: 18),
         const SizedBox(width: 8),
-        Text('Logged in as Supervisor',
+        // FIX 1: Use roleLabel which now returns the correct display name
+        Text('Logged in as ${UserSession.roleLabel}',
             style: TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w700,
                 fontSize: 13)),
         const Spacer(),
-        if (RoleManager.canAddEntries)      _permChip('Add'),
+        if (RoleManager.canAddEntries) _permChip('Add'),
         if (RoleManager.canApprovePayments) _permChip('Approve'),
-        if (RoleManager.canViewReports)     _permChip('Reports'),
+        if (RoleManager.canViewReports) _permChip('Reports'),
       ]),
     );
   }
@@ -1019,7 +1164,6 @@ class _SupervisorDashboard extends StatelessWidget {
     final budget = project.totalBudget;
     final pct =
         budget > 0 ? (spent / budget * 100).toStringAsFixed(0) : '0';
-
     return Row(children: [
       Expanded(
         child: _miniCard(
@@ -1028,7 +1172,9 @@ class _SupervisorDashboard extends StatelessWidget {
       ),
       const SizedBox(width: 12),
       Expanded(
-        child: _miniCard('BUDGET', formatCurrency(budget),
+        child: _miniCard(
+            'BUDGET',
+            formatCurrency(budget),
             'Remaining: ${formatCurrency((budget - spent).clamp(0, double.infinity))}',
             isOver: false),
       ),
@@ -1068,13 +1214,15 @@ class _SupervisorDashboard extends StatelessWidget {
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: isOver ? Colors.red : AppColors.textDark)),
+                  color:
+                      isOver ? Colors.red : AppColors.textDark)),
           const SizedBox(height: 4),
           Text(sub,
               style: TextStyle(
                   fontSize: 11,
-                  color:
-                      isOver ? Colors.redAccent : AppColors.primary,
+                  color: isOver
+                      ? Colors.redAccent
+                      : AppColors.primary,
                   fontWeight: FontWeight.w600)),
         ],
       ),
@@ -1175,19 +1323,30 @@ class _SupervisorDashboard extends StatelessWidget {
     );
   }
 
+  // FIX 3: Added currentUserId parameter to filter entries by the logged-in user
   Widget _recentActivitySection(BuildContext context,
-      ProjectProvider provider, ProjectModel project) {
-    final entries = provider
+      ProjectProvider provider, ProjectModel project,
+      {String? currentUserId}) {
+    var entries = provider
         .entriesForProject(project.id)
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+        .toList();
+
+    // FIX 3: Filter to only this user's entries when userId is available
+    // FIXED — strictly show only this user's entries, empty if none
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      entries = entries
+        .where((e) => e.createdBy == currentUserId)
+        .toList();
+    }
+
+    entries.sort((a, b) => b.date.compareTo(a.date));
     final recent = entries.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSectionHeader(
-          title: 'Recent Activity',
+          title: 'My Recent Activity',
           actionLabel: RoleManager.canViewReports ? 'View All' : null,
           onAction: RoleManager.canViewReports
               ? () => Navigator.pushNamed(context, '/logs',
@@ -1200,7 +1359,7 @@ class _SupervisorDashboard extends StatelessWidget {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('No entries yet for this project',
+                child: Text('No entries yet',
                     style: TextStyle(color: AppColors.textLight)),
               ),
             ),
@@ -1306,16 +1465,109 @@ class _MasonDashboard extends StatelessWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
 
+  // FIX 2: Project picker for Mason (same pattern as Supervisor)
+  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
+    final projects = provider.projects;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFDDE0F0),
+                      borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+              const Text('Select Project',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark)),
+              const SizedBox(height: 12),
+              ...projects.map((p) {
+                final selected = p.id == provider.selectedProject?.id;
+                return InkWell(
+                  onTap: () {
+                    provider.selectProject(p);
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.primary.withValues(alpha: 0.08)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          width: 1.5),
+                    ),
+                    child: Row(children: [
+                      Icon(
+                          selected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 18,
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.textLight),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(p.name,
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.textDark)),
+                      ),
+                    ]),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<UserSession>();
 
     final provider = context.watch<ProjectProvider>();
+    final projects = provider.projects;
     final project = provider.selectedProject;
+
+    // FIX 1: Use roleLabel which now returns correct name for custom roles
+    final String greeting = 'Good Morning, ${UserSession.roleLabel}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Greeting card ──────────────────────────────────────────────
         AppCard(
           child: Row(children: [
             CircleAvatar(
@@ -1326,17 +1578,66 @@ class _MasonDashboard extends StatelessWidget {
                   color: AppTheme.primary, size: 26),
             ),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Good Morning, Mason', style: AppTheme.heading3),
-                Text('Ready for today\'s tasks',
-                    style: AppTheme.caption),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(greeting, style: AppTheme.heading3),
+                  // FIX 1: roleLabel returns correct display name
+                  Text(UserSession.roleLabel, style: AppTheme.caption),
+                ],
+              ),
             ),
           ]),
         ),
         const SizedBox(height: 12),
+
+        // FIX 2: Show project picker when Mason has multiple assigned projects
+        if (projects.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              elevation: 0,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _showProjectPicker(context, provider),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.architecture,
+                            color: AppColors.primary, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          project?.name ?? 'Select Project',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: AppColors.textDark),
+                        ),
+                      ]),
+                      const Icon(Icons.keyboard_arrow_down,
+                          color: AppColors.textLight),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
 
         if (project == null)
           AppCard(
@@ -1344,8 +1645,7 @@ class _MasonDashboard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text('No project assigned by admin.',
-                    style:
-                        TextStyle(color: AppColors.textLight)),
+                    style: TextStyle(color: AppColors.textLight)),
               ),
             ),
           )
@@ -1390,6 +1690,24 @@ class _MasonDashboard extends StatelessWidget {
               variant: AppButtonVariant.outline,
               onPressed: () => onEntryTap(context, 'labour'),
             ),
+            const SizedBox(height: 8),
+            if (RoleManager.canManageEquipmentMaster)
+              AppButton(
+                label: 'Add Equipment Entry',
+                icon: Icons.precision_manufacturing_outlined,
+                variant: AppButtonVariant.outline,
+                onPressed: () => onEntryTap(context, 'equipment'),
+              ),
+            if (RoleManager.canApprovePayments) ...[
+              const SizedBox(height: 8),
+              AppButton(
+                label: 'Mark Payment',
+                icon: Icons.payments_outlined,
+                variant: AppButtonVariant.outline,
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/mark-payment'),
+              ),
+            ],
             const SizedBox(height: 16),
           ] else
             AppCard(
@@ -1399,12 +1717,132 @@ class _MasonDashboard extends StatelessWidget {
                 const SizedBox(width: 10),
                 const Text('Adding entries is not permitted',
                     style: TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 13)),
+                        color: AppColors.textLight, fontSize: 13)),
               ]),
             ),
+
+          // FIX 3: Pass currentUserId to filter entries for this user only
+          if (RoleManager.canViewProjects)
+            _recentActivitySection(context, provider, project,
+                currentUserId: UserSession.userId),
         ],
       ],
+    );
+  }
+
+  // FIX 3: Added currentUserId parameter — only show entries belonging to this user
+  Widget _recentActivitySection(BuildContext context,
+      ProjectProvider provider, ProjectModel project,
+      {String? currentUserId}) {
+    var entries = provider
+        .entriesForProject(project.id)
+        .toList();
+
+    // FIXED — strictly show only this user's entries, empty if none
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      entries = entries
+        .where((e) => e.createdBy == currentUserId)
+        .toList();
+    }
+
+    entries.sort((a, b) => b.date.compareTo(a.date));
+    final recent = entries.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionHeader(
+          title: 'My Recent Entries',
+          actionLabel: null,
+          onAction: null,
+        ),
+        const SizedBox(height: 8),
+        if (recent.isEmpty)
+          AppCard(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('You have no entries yet.',
+                    style: TextStyle(color: AppColors.textLight)),
+              ),
+            ),
+          )
+        else
+          ...recent.map((e) => _entryTile(e)),
+      ],
+    );
+  }
+
+  Widget _entryTile(EntryModel entry) {
+    final String label;
+    final Color color;
+    switch (entry.type) {
+      case EntryType.labour:
+        label = 'Labour';
+        color = const Color(0xFF2E7D32);
+        break;
+      case EntryType.equipment:
+        label = 'Equipment';
+        color = Colors.orange;
+        break;
+      case EntryType.material:
+        label = 'Material';
+        color = AppColors.primary;
+        break;
+    }
+    final now = DateTime.now();
+    final diff = now.difference(entry.date);
+    final String timeLabel;
+    if (diff.inMinutes < 60) {
+      timeLabel = '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      timeLabel = '${diff.inHours}h ago';
+    } else if (diff.inDays == 1) {
+      timeLabel = 'Yesterday';
+    } else {
+      timeLabel = '${diff.inDays}d ago';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        child: Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    entry.description.isNotEmpty
+                        ? entry.description
+                        : label,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        color: AppColors.textDark)),
+                const SizedBox(height: 2),
+                Text(
+                    '₹${entry.amount.toStringAsFixed(0)} • $timeLabel',
+                    style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textLight)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      ),
     );
   }
 }

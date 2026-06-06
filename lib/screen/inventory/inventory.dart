@@ -1632,41 +1632,46 @@ class _ProjectSelectorSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
                     color: AppColors.textDark)),
               const SizedBox(height: 12),
-              ...allItems.map((label) {
-                final id = label == 'All Active Projects' ? null : idMap[label];
-                final isSel = selectedId == id;
-                return InkWell(
-                  onTap: () => onSelect(id),
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: isSel
-                          ? AppColors.primaryBlue.withValues(alpha: 0.08)
-                          : Colors.transparent,
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: allItems.map((label) {
+                    final id = label == 'All Active Projects' ? null : idMap[label];
+                    final isSel = selectedId == id;
+                    return InkWell(
+                      onTap: () => onSelect(id),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSel ? AppColors.primaryBlue : Colors.transparent,
-                        width: 1.5),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                        isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-                        size: 18,
-                        color: isSel ? AppColors.primaryBlue : AppColors.textLight),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(label,
-                          style: TextStyle(fontSize: 15,
-                            color: isSel ? AppColors.primaryBlue : AppColors.textDark,
-                            fontWeight: isSel ? FontWeight.w700 : FontWeight.w500)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: isSel
+                              ? AppColors.primaryBlue.withValues(alpha: 0.08)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSel ? AppColors.primaryBlue : Colors.transparent,
+                            width: 1.5),
+                        ),
+                        child: Row(children: [
+                          Icon(
+                            isSel ? Icons.radio_button_checked : Icons.radio_button_off,
+                            size: 18,
+                            color: isSel ? AppColors.primaryBlue : AppColors.textLight),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(label,
+                              style: TextStyle(fontSize: 15,
+                                color: isSel ? AppColors.primaryBlue : AppColors.textDark,
+                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500)),
+                          ),
+                        ]),
                       ),
-                    ]),
-                  ),
-                );
-              }),
+                    );
+                  }).toList(),
+                ),
+              ),
               const SizedBox(height: 8),
             ],
           ),

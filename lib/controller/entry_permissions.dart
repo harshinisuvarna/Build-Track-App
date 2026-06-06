@@ -11,7 +11,7 @@ class EntryPermissions {
     if (status == 'approved') return false;
     if (UserSession.isAdmin) return true;
     if (UserSession.isSupervisor) {
-      return projectId == UserSession.projectId;
+      return UserSession.hasProjectAccess(projectId);
     }
     if (UserSession.isMason) {
       return createdBy == UserSession.userId;
@@ -38,7 +38,7 @@ class EntryPermissions {
     required String projectId,
   }) {
     if (UserSession.isAdmin) return true;
-    if (UserSession.isSupervisor) return projectId == UserSession.projectId;
+    if (UserSession.isSupervisor) return UserSession.hasProjectAccess(projectId);
     if (UserSession.isMason) return createdBy == UserSession.userId;
     return false;
   }

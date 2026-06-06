@@ -72,6 +72,7 @@ class EntryModel {
     this.phase,
     this.phaseId,
     this.unit,
+    this.createdBy, // ADD: ID of the user who created this entry
   });
 
 
@@ -87,6 +88,7 @@ class EntryModel {
   final ProjectStage? phase;
   final String? phaseId;
   final String? unit;
+  final String? createdBy; // ADD: nullable — older entries won't have this
 
 
   Map<String, dynamic> toJson() => {
@@ -102,10 +104,20 @@ class EntryModel {
         'phase': phase?.name,
         'phaseId': phaseId,
         'unit': unit,
+        'createdBy': createdBy, // ADD
       };
 
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
+    // ADD: read createdBy from persisted cache (stored by project_provider)
+    String? createdBy;
+    final raw = j['createdBy'];
+    if (raw is Map) {
+      createdBy = raw['_id']?.toString() ?? raw['id']?.toString();
+    } else if (raw != null) {
+      createdBy = raw.toString();
+    }
+
     return EntryModel(
       id: j['id']?.toString() ?? '',
       projectId: j['projectId']?.toString() ?? '',
@@ -127,6 +139,7 @@ class EntryModel {
           : null,
       phaseId: j['phaseId']?.toString(),
       unit: j['unit']?.toString(),
+      createdBy: createdBy, // ADD
     );
   }
 
@@ -136,7 +149,7 @@ class EntryModel {
 
 
   static List<EntryModel> decodeList(String raw) {
-    final decoded = jsonDecode(raw as String) as List<dynamic>;
+    final decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
         .map((e) => EntryModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -188,8 +201,8 @@ class ProjectActivity {
 
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
-        id: j['id'] as String,
-        name: j['name'] as String,
+        id: (j['id'] ?? j['_id'])?.toString() ?? '',
+        name: (j['name'] ?? '').toString(),
         isCustom: (j['isCustom'] as bool?) ?? false,
         completed: (j['completed'] as bool?) ?? false,
         completedAt: j['completedAt'] != null
@@ -243,8 +256,8 @@ class ProjectPhase {
 
   factory ProjectPhase.fromJson(Map<String, dynamic> j) {
     return ProjectPhase(
-      id: j['id']?.toString() ?? '',
-      phaseName: j['phaseName']?.toString() ?? '',
+      id: (j['id'] ?? j['_id'])?.toString() ?? '',
+      phaseName: (j['phaseName'] ?? j['name'] ?? '').toString(),
       isCustom: j['isCustom'] as bool? ?? false,
       activities: (j['activities'] as List<dynamic>?)
               ?.map((e) => ProjectActivity.fromJson(e as Map<String, dynamic>))
@@ -467,9 +480,13 @@ class ProjectModel {
     })();
 
 
-    final mainType = (projectType ?? '').split('/').first.trim();
-    final subType = (projectType ?? '').contains('/')
-        ? projectType!.split('/').last.trim()
+    final String ptStr = projectType ?? '';
+    final String separator = ptStr.contains('→') ? '→' : '/';
+    final mainType = ptStr.contains(separator)
+        ? ptStr.split(separator).first.trim()
+        : ptStr.trim();
+    final subType = ptStr.contains(separator)
+        ? ptStr.split(separator).last.trim()
         : '';
 
 

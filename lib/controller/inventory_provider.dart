@@ -90,4 +90,11 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void clear() {
+    _inventory = [];
+    _isLoading = false;
+    _error = '';
+    notifyListeners();
+  }
 }

@@ -298,4 +298,14 @@ class SubscriptionProvider extends ChangeNotifier {
 
   @override
   void dispose() { _billing.dispose(); super.dispose(); }
+
+  void clear() {
+    _plan         = SubscriptionPlan.free;
+    _status       = SubscriptionStatus.active;
+    _renewalDate  = null;
+    _error        = '';
+    _isLoading    = false;
+    _isPurchasing = false;
+    notifyListeners();
+  }
 }

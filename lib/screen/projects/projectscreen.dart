@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
@@ -52,15 +53,15 @@ enum _ProjectStatus {
   Color get bg {
     switch (this) {
       case _ProjectStatus.planning:
-        return const Color(0xFFFFF8E1); // amber/yellow soft
+        return const Color(0xFFFFF8E1);
       case _ProjectStatus.inProgress:
-        return const Color(0xFFE8F0FE); // blue soft
+        return const Color(0xFFE8F0FE);
       case _ProjectStatus.onHold:
-        return const Color(0xFFFFF3E0); // orange soft
+        return const Color(0xFFFFF3E0);
       case _ProjectStatus.completed:
-        return const Color(0xFFE8F5E9); // green soft
+        return const Color(0xFFE8F5E9);
       case _ProjectStatus.cancelled:
-        return const Color(0xFFFFEBEE); // red/pink soft
+        return const Color(0xFFFFEBEE);
     }
   }
 
@@ -145,18 +146,26 @@ class ProjectsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
+
+    // FIX: Only show the "+" FAB when the user has the create_project
+    // permission (or is Admin via RoleManager.canCreateProject).
+    final canCreate = RoleManager.canCreateProject;
+
     return Scaffold(
       backgroundColor: bgColor,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddProjectScreen()),
-        ),
-        backgroundColor: primaryBlue,
-        shape: const CircleBorder(),
-        elevation: 4,
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
-      ),
+      // FIX: FAB is null (hidden) when the user lacks create_project permission
+      floatingActionButton: canCreate
+          ? FloatingActionButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddProjectScreen()),
+              ),
+              backgroundColor: primaryBlue,
+              shape: const CircleBorder(),
+              elevation: 4,
+              child: const Icon(Icons.add, color: Colors.white, size: 30),
+            )
+          : null,
       body: SafeArea(
         bottom: false,
         child: Column(
