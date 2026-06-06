@@ -366,6 +366,11 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'quantity': (t['quantity'] ?? 0).toDouble(),
             'subType': t['subType'] ?? '',
             'materialType': t['materialType'] ?? '',
+            'floor': t['floor'],
+            'phase': t['phase'],
+            'activity': t['activity'],
+            'gst': t['gst'],
+            'isWithGst': t['isWithGst'],
           });
         }
 
@@ -1025,6 +1030,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               context,
               '/entry-detail',
               arguments: {
+                ...log,
                 'id': log['id'],
                 'title': log['title'],
                 'ref': log['ref'],

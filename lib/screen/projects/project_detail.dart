@@ -2294,6 +2294,7 @@ class _EntryTile extends StatelessWidget {
                   : '#${tId.isNotEmpty ? tId : DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
 
               final Map<String, dynamic> mappedArgs = {
+                ...matched,
                 'id': tId,
                 'title': matched['title'] ?? matched['materialName'] ?? 'Unknown',
                 'ref': ref,

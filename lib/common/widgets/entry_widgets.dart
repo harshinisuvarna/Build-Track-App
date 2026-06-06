@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/models/phase_model.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -799,9 +800,22 @@ class ExecutionContextCard extends StatelessWidget {
 
         // ── Phase & Activity — project-driven architecture ─────────────────────
         // Resolve the selected phase name (always stored as String in dropdowns)
-        final String? selPhaseName = selectedPhase is String
-            ? selectedPhase as String
-            : null;
+        String? selPhaseName;
+        if (selectedPhase is String) {
+          selPhaseName = selectedPhase as String;
+        } else if (selectedPhase is ProjectPhase) {
+          selPhaseName = selectedPhase.phaseName;
+        } else if (selectedPhase is PhaseModel) {
+          selPhaseName = selectedPhase.name;
+        } else if (selectedPhase is Map) {
+          selPhaseName = (selectedPhase['phaseName'] ?? selectedPhase['name'] ?? selectedPhase['title'] ?? selectedPhase['id'] ?? selectedPhase['_id'] ?? '').toString();
+        } else if (selectedPhase != null) {
+          try {
+            selPhaseName = (selectedPhase.phaseName ?? selectedPhase.name ?? selectedPhase.title).toString();
+          } catch (_) {
+            selPhaseName = selectedPhase.toString();
+          }
+        }
 
         List<String> visiblePhaseNames;
         List<String> activities;
@@ -851,6 +865,13 @@ class ExecutionContextCard extends StatelessWidget {
           activities = selPhase != null
               ? selPhase.allActivities.map<String>((a) => a.name).toList()
               : <String>[];
+        }
+
+        if (selPhaseName != null && !visiblePhaseNames.contains(selPhaseName)) {
+          visiblePhaseNames.insert(0, selPhaseName);
+        }
+        if (selectedActivity != null && !activities.contains(selectedActivity)) {
+          activities.insert(0, selectedActivity!);
         }
 
         return EntrySectionCard(
@@ -1320,13 +1341,13 @@ class PaymentStatusChip extends StatelessWidget {
   String get _label {
     switch (status) {
       case PaymentStatus.paid:
-        return 'PAID';
+        return 'Paid';
       case PaymentStatus.partial:
-        return 'PARTIAL';
+        return 'Partial';
       case PaymentStatus.pending:
-        return 'PENDING';
+        return 'Pending';
       case PaymentStatus.overdue:
-        return 'OVERDUE';
+        return 'Overdue';
     }
   }
 
@@ -1335,7 +1356,7 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFF15803D);
       case PaymentStatus.partial:
-        return const Color(0xFFB45309);
+        return const Color(0xFF1D4ED8); // blue
       case PaymentStatus.pending:
         return const Color(0xFFDC2626);
       case PaymentStatus.overdue:
@@ -1348,7 +1369,7 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFFDCFCE7);
       case PaymentStatus.partial:
-        return const Color(0xFFFEF3C7);
+        return const Color(0xFFEFF6FF); // blue bg
       case PaymentStatus.pending:
         return const Color(0xFFFEE2E2);
       case PaymentStatus.overdue:

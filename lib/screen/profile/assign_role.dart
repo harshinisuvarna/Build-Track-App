@@ -33,7 +33,6 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   bool _obscurePass = true;
   String? _selectedRole;
   String? _selectedProjectId;
-  String? _selectedProjectName;
   bool _isLoading = false;
 
   List<Map<String, String>> _projects = [];
@@ -539,13 +538,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
           ? (v) => setState(() {
                 if (v == '__none__') {
                   _selectedProjectId = null;
-                  _selectedProjectName = null;
                 } else {
                   _selectedProjectId = v;
-                  _selectedProjectName = _projects.firstWhere(
-                    (p) => p['id'] == v,
-                    orElse: () => {'name': v ?? ''},
-                  )['name'];
                 }
               })
           : (_) {},

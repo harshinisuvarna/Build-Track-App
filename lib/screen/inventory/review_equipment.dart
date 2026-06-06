@@ -269,6 +269,28 @@ class _ReviewEquipmentEntryScreenState
       category: 'equipment',
     );
 
+    final projectProvider = Provider.of<ProjectProvider>(ctx, listen: false);
+    final ProjectModel? project = _selectedProjectId == null
+        ? null
+        : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null,
+          );
+
+    String? phaseId;
+    if (_selectedPhase is PhaseModel) {
+      phaseId = (_selectedPhase as PhaseModel).id;
+    } else if (_selectedPhase is String) {
+      final phaseStr = _selectedPhase as String;
+      final match = project?.selectedPhases?.cast<ProjectPhase?>().firstWhere(
+        (p) => p?.phaseName == phaseStr,
+        orElse: () => null,
+      );
+      phaseId = match?.id;
+    } else if (_selectedPhase is Map) {
+      phaseId = (_selectedPhase['id'] ?? _selectedPhase['_id'])?.toString();
+    }
+
     if (!mounted) return;
     ctx.read<ProjectProvider>().addEntry(
       EntryModel(
@@ -280,7 +302,7 @@ class _ReviewEquipmentEntryScreenState
         description: _nameCtrl.text,
         ratePerUnit: rate,
         floor: _selectedFloor!,
-        phaseId: (_selectedPhase as PhaseModel?)?.id,
+        phaseId: phaseId,
         unit: 'day',
       ),
     );

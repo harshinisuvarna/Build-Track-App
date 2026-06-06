@@ -136,7 +136,7 @@ class EntryModel {
 
 
   static List<EntryModel> decodeList(String raw) {
-    final decoded = jsonDecode(raw as String) as List<dynamic>;
+    final decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
         .map((e) => EntryModel.fromJson(e as Map<String, dynamic>))
         .toList();

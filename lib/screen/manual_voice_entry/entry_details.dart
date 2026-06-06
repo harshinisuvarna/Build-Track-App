@@ -338,96 +338,22 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                           const AppDivider(verticalPadding: 12),
                           _fieldLabel('PURCHASE DATE'),
                           const SizedBox(height: 6),
-                          GestureDetector(
-                            onTap: () async {
-                              DateTime parsedInitial = DateTime.now();
-                              try {
-                                parsedInitial = DateTime.parse(args['date'].toString());
-                              } catch (_) {
-                                try {
-                                  parsedInitial = DateTime.parse(date);
-                                } catch (_) {}
-                              }
-                              
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: parsedInitial,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
-                                builder: (c, child) => Theme(
-                                  data: Theme.of(c).copyWith(
-                                    colorScheme: ColorScheme.light(
-                                      primary: _typeColor(type),
-                                      onPrimary: Colors.white,
-                                      onSurface: textDark,
-                                    ),
-                                  ),
-                                  child: child!,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                color: _typeColor(type),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                displayDate,
+                                style: AppTheme.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: textDark,
                                 ),
-                              );
-                              
-                              if (picked != null && context.mounted) {
-                                final success = await ApiService.updateTransaction(
-                                  args['id'] as String? ?? '',
-                                  {
-                                    'date': picked.toIso8601String(),
-                                  },
-                                );
-                                
-                                if (success && context.mounted) {
-                                  setState(() {
-                                    _customDate = picked.toIso8601String();
-                                    args['date'] = picked.toIso8601String();
-                                  });
-                                  
-                                  context.read<InventoryProvider>().loadInventory(projectId);
-                                  context.read<ProjectProvider>().load();
-                                  
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Date updated successfully'),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                } else if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Failed to update date'),
-                                      backgroundColor: Colors.red,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            behavior: HitTestBehavior.opaque,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  color: _typeColor(type),
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  displayDate,
-                                  style: AppTheme.bodyLarge.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: textDark,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: _typeColor(type).withValues(alpha: 0.4),
-                                    decorationStyle: TextDecorationStyle.dashed,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.edit_outlined,
-                                  color: _typeColor(type).withValues(alpha: 0.6),
-                                  size: 12,
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

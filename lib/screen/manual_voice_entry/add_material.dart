@@ -11,6 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/models/construction_models.dart';
+import 'package:buildtrack_mobile/models/project_model.dart';
+
+
 
 class AddMaterialScreen extends StatefulWidget {
   const AddMaterialScreen({super.key});
@@ -24,6 +28,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   String? _selectedFloor;
   dynamic _selectedPhase; // PhaseModel
   String? _selectedActivity;
+  Map<String, dynamic>? _duplicateContext;
+  List<String> _floors = [];
+  List<String> _phases = [];
+  List<String> _activities = [];
 
   // ── Resource detail controllers ─────────────────────────────────────────
   final _nameCtrl = TextEditingController();
@@ -40,8 +48,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── UI state ────────────────────────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
+  bool _isDuplicate = false;           // true when opened via Add More
   String? _editingTransactionId;
+  String? _sourceTransactionId;        // audit: which tx this duplicates
   bool _argsLoaded = false;
+  bool _isDatePickerOpen = false;      // guards against dialog/card overlap
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
@@ -68,6 +79,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   String? _qtyError;
   String? _rateError;
 
+  String _safeString(dynamic val) {
+    if (val == null) return '';
+    if (val is String) return val;
+    if (val is Map) {
+      return (val['name'] ?? val['title'] ?? val['phaseName'] ?? val['id'] ?? val['_id'] ?? '').toString();
+    }
+    return val.toString();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -89,127 +109,30 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
 
       if (_isEditing) {
-        _editingTransactionId = args['id'] as String?;
+        debugPrint('EDIT RECORD args');
+        debugPrint(args.toString());
+        _editingTransactionId = args['id']?.toString();
 
-        // ── Restore execution context ──────────────────────────────────
-        // projectId comes in as either 'projectId' or 'project'
-        final projectId = args['projectId'] as String? ??
-            args['project'] as String? ??
-            UserSession.projectId;
-        _selectedProjectId = projectId;
-
-        // floor / zone
-        final floor = args['floor'] as String? ?? args['zone'] as String?;
-        if (floor != null && floor.isNotEmpty) _selectedFloor = floor;
-
-        // phase — stored as the full object if available, else null
-        final phase = args['phase'];
-        if (phase != null) _selectedPhase = phase;
-
-        // activity
-        final activity = args['activity'] as String?;
-        if (activity != null && activity.isNotEmpty) {
-          _selectedActivity = activity;
-        }
-
-        // ── Restore detail fields ──────────────────────────────────────
-        _nameCtrl.text =
-            args['title'] as String? ?? args['name'] as String? ?? '';
-
-        final double qty = (args['quantity'] as num?)?.toDouble() ?? 0.0;
-        _qtyCtrl.text = qty > 0
-            ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
-            : '';
-
-        final double rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-        _rateCtrl.text = rate > 0
-            ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
-            : '';
-
-        _brandCtrl.text = args['brand'] as String? ?? '';
-        _categoryCtrl.text = args['categoryName'] as String? ?? '';
-        _notesCtrl.text = args['notes'] as String? ?? '';
-        _supplierCtrl.text = args['supplier'] as String? ?? '';
-
-        final String rawUnit =
-            (args['unit'] ?? '').toString().trim().toLowerCase();
-        if (rawUnit == 'bag' || rawUnit == 'bags') {
-          _selectedUnit = 'bag';
-        } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
-          _selectedUnit = 'Sq.ft';
-        } else if (rawUnit == 'ton' || rawUnit == 'tons') {
-          _selectedUnit = 'ton';
-        } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
-          _selectedUnit = 'kg';
-        } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
-          _selectedUnit = 'unit';
-        } else if (rawUnit.isNotEmpty) {
-          _selectedUnit = rawUnit;
-        }
-
-        if (args['date'] != null) {
-          try {
-            _selectedDate = DateTime.parse(args['date'].toString());
-          } catch (_) {}
-        }
+        final txId = _editingTransactionId!;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _fetchAndRestoreEdit(txId);
+        });
       } else {
         // ── New entry — default project from session ───────────────────
         _selectedProjectId ??= UserSession.projectId;
 
+        // ── Detect duplicate / Add More mode ──────────────────────────
+        _isDuplicate = args['isDuplicate'] as bool? ?? false;
+        _sourceTransactionId = args['sourceTransactionId']?.toString();
+
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
 
-        // Smart pre-fill from latest record
-        final latest = args['latestRecord'] as Map<String, dynamic>?;
-        if (latest != null) {
-          final pId = latest['projectId'] ?? latest['project'];
-          if (pId != null) {
-            _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
-          }
-          final floor = latest['floor'] ?? latest['zone'];
-          if (floor != null && floor.toString().isNotEmpty) {
-            _selectedFloor = floor.toString();
-          }
-          final phase = latest['phase'];
-          if (phase != null && phase.toString().isNotEmpty) {
-            _selectedPhase = phase;
-          }
-          final activity = latest['activity'];
-          if (activity != null && activity.toString().isNotEmpty) {
-            _selectedActivity = activity.toString();
-          }
-          final materialName = latest['title'] ?? latest['name'] ?? latest['materialName'];
-          if (materialName != null && materialName.toString().isNotEmpty) {
-            _nameCtrl.text = materialName.toString();
-          }
-          final rawUnit = (latest['unit'] ?? '').toString().trim().toLowerCase();
-          if (rawUnit == 'bag' || rawUnit == 'bags') {
-            _selectedUnit = 'bag';
-          } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
-            _selectedUnit = 'Sq.ft';
-          } else if (rawUnit == 'ton' || rawUnit == 'tons') {
-            _selectedUnit = 'ton';
-          } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
-            _selectedUnit = 'kg';
-          } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
-            _selectedUnit = 'unit';
-          } else if (rawUnit.isNotEmpty) {
-            _selectedUnit = rawUnit;
-          }
-          _brandCtrl.text = latest['brand'] as String? ?? '';
-          _supplierCtrl.text = latest['supplier'] as String? ?? '';
-          
-          final gstVal = latest['gst'] ?? 0;
-          _gstCtrl.text = gstVal.toString();
-          _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
-
-          final pStatus = latest['paymentStatus']?.toString().toLowerCase();
-          if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-            _isAddAndPay = true;
-            _paymentMethod = latest['paymentMode'] ?? 'Cash';
-            final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-            _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
-          }
+        if (_isDuplicate && _sourceTransactionId != null) {
+          final txId = _sourceTransactionId!;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _fetchAndRestoreDuplicate(txId);
+          });
         }
       }
 
@@ -223,6 +146,384 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (_selectedProjectId != null && !_isEditing) {
       _loadRecentEntries();
     }
+
+    if (_duplicateContext != null) {
+      final contextToRestore = Map<String, dynamic>.from(_duplicateContext!);
+      _duplicateContext = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _restoreDuplicateEntry(contextToRestore);
+      });
+    }
+  }
+
+  Future<void> _selectProject(String? projectId) async {
+    _selectedProjectId = projectId;
+  }
+
+  Future<void> _loadFloors(String? projectId) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = projectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == projectId,
+      orElse: () => null,
+    );
+
+    const List<String> defaultFloors = [
+      'Basement',
+      'Ground Floor',
+      '1st Floor',
+      '2nd Floor',
+      '3rd Floor',
+      'Terrace',
+    ];
+
+    if (project != null) {
+      _floors = (project.floors?.isNotEmpty == true)
+          ? List<String>.from(project.floors!)
+          : defaultFloors;
+    } else {
+      _floors = [];
+    }
+  }
+
+  Future<void> _loadPhases(String? floor) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = _selectedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
+
+    if (project == null) {
+      _phases = [];
+      return;
+    }
+
+    final List<ProjectPhase>? projectPhases = project.selectedPhases;
+    final bool hasNewWorkflow = projectPhases != null && projectPhases.isNotEmpty;
+
+    if (hasNewWorkflow) {
+      _phases = projectPhases
+          .where((p) => p.activities.isNotEmpty)
+          .map((p) => p.phaseName)
+          .toList();
+    } else {
+      final List<ConstructionPhase> allPhases = buildDefaultPhases();
+      final List<String>? legacyPhaseNames = project.selectedPhaseNames != null
+          ? List<String>.from(project.selectedPhaseNames!)
+          : null;
+      final List<ConstructionPhase> visiblePhases = (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
+          ? allPhases
+          : allPhases.where((p) => legacyPhaseNames.contains(p.name)).toList();
+      _phases = visiblePhases.map((p) => p.name).toList();
+    }
+  }
+
+  Future<void> _loadActivities(dynamic phase) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final ProjectModel? project = _selectedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
+
+    if (project == null || phase == null) {
+      _activities = [];
+      return;
+    }
+
+    final String phaseName = phase is String
+        ? phase
+        : (phase is Map ? (phase['phaseName'] ?? phase['name'] ?? phase['id'])?.toString() ?? '' : phase.toString());
+
+    final List<ProjectPhase>? projectPhases = project.selectedPhases;
+    final bool hasNewWorkflow = projectPhases != null && projectPhases.isNotEmpty;
+
+    if (hasNewWorkflow) {
+      final ProjectPhase? selPhase = projectPhases.cast<ProjectPhase?>().firstWhere(
+        (p) => p?.phaseName == phaseName,
+        orElse: () => null,
+      );
+      _activities = selPhase != null
+          ? selPhase.activities.map((a) => a.name).toList()
+          : <String>[];
+    } else {
+      final List<ConstructionPhase> allPhases = buildDefaultPhases();
+      final ConstructionPhase? selPhase = allPhases.cast<ConstructionPhase?>().firstWhere(
+        (p) => p?.name == phaseName,
+        orElse: () => null,
+      );
+      _activities = selPhase != null
+          ? selPhase.allActivities.map<String>((a) => a.name).toList()
+          : <String>[];
+    }
+  }
+
+  Future<void> _fetchAndRestoreEdit(String txId) async {
+    // 1. Search locally in InventoryProvider
+    final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
+    Map<String, dynamic>? latest;
+    for (var item in inventoryProvider.inventory) {
+      for (var tx in item.transactions) {
+        if (tx is Map && (tx['_id']?.toString() == txId || tx['id']?.toString() == txId)) {
+          latest = Map<String, dynamic>.from(tx);
+          break;
+        }
+      }
+      if (latest != null) break;
+    }
+
+    // 2. Fallback to API if not found
+    if (latest == null) {
+      debugPrint('Edit lookup: ID $txId not found in local inventory, calling ApiService...');
+      latest = await ApiService.fetchTransactionById(txId);
+    }
+
+    if (latest == null) {
+      debugPrint('Edit lookup: Failed to fetch transaction details for ID $txId');
+      return;
+    }
+
+    debugPrint('========================');
+    debugPrint('RESOLVED EDIT PAYLOAD');
+    debugPrint(latest.toString());
+    debugPrint('========================');
+
+    // Prefill fields
+    final pId = latest['projectId'] ?? latest['project'];
+    if (pId != null) {
+      _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+    }
+    
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    
+    final double qty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = qty > 0
+        ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+        : '';
+
+    final double rate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    _rateCtrl.text = rate > 0
+        ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+        : '';
+    
+    final rawUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (rawUnit == 'bag' || rawUnit == 'bags') {
+      _selectedUnit = 'bag';
+    } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+      _selectedUnit = 'Sq.ft';
+    } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+      _selectedUnit = 'ton';
+    } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+      _selectedUnit = 'kg';
+    } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+      _selectedUnit = 'unit';
+    } else if (rawUnit.isNotEmpty) {
+      _selectedUnit = rawUnit;
+    }
+    
+    _brandCtrl.text = _safeString(latest['brand']);
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
+    _notesCtrl.text = _safeString(latest['notes']);
+
+    if (latest['date'] != null) {
+      try {
+        _selectedDate = DateTime.parse(latest['date'].toString());
+      } catch (_) {}
+    }
+
+    final gstVal = latest['gst'] ?? 0;
+    _gstCtrl.text = gstVal.toString();
+    _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+    // Restore payment fields
+    final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
+    if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+      _isAddAndPay = true;
+      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
+      final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+    }
+
+    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
+    final contextToRestore = {
+      'projectId': _selectedProjectId,
+      'floor': latest['floor'] ?? latest['zone'],
+      'phase': latest['phase'],
+      'activity': latest['activity'],
+    };
+
+    await _restoreDuplicateEntry(contextToRestore);
+  }
+
+  Future<void> _fetchAndRestoreDuplicate(String txId) async {
+    // 1. Search locally in InventoryProvider
+    final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
+    Map<String, dynamic>? latest;
+    for (var item in inventoryProvider.inventory) {
+      for (var tx in item.transactions) {
+        if (tx is Map && (tx['_id']?.toString() == txId || tx['id']?.toString() == txId)) {
+          latest = Map<String, dynamic>.from(tx);
+          break;
+        }
+      }
+      if (latest != null) break;
+    }
+
+    // 2. Fallback to API if not found
+    if (latest == null) {
+      debugPrint('Duplicate lookup: ID $txId not found in local inventory, calling ApiService...');
+      latest = await ApiService.fetchTransactionById(txId);
+    }
+
+    if (latest == null) {
+      debugPrint('Duplicate lookup: Failed to fetch transaction details for ID $txId');
+      return;
+    }
+
+    debugPrint('========================');
+    debugPrint('RESOLVED DUPLICATE PAYLOAD');
+    debugPrint(latest.toString());
+    debugPrint('========================');
+
+    // Prefill fields
+    final pId = latest['projectId'] ?? latest['project'];
+    if (pId != null) {
+      _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
+    }
+    
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    
+    final rawUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (rawUnit == 'bag' || rawUnit == 'bags') {
+      _selectedUnit = 'bag';
+    } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft') {
+      _selectedUnit = 'Sq.ft';
+    } else if (rawUnit == 'ton' || rawUnit == 'tons') {
+      _selectedUnit = 'ton';
+    } else if (rawUnit == 'kg' || rawUnit == 'kgs') {
+      _selectedUnit = 'kg';
+    } else if (rawUnit == 'unit' || rawUnit == 'pcs') {
+      _selectedUnit = 'unit';
+    } else if (rawUnit.isNotEmpty) {
+      _selectedUnit = rawUnit;
+    }
+    
+    _brandCtrl.text = _safeString(latest['brand']);
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
+    _notesCtrl.text = _safeString(latest['notes']);
+
+    final double rateVal = (latest['rate'] as num?)?.toDouble()
+        ?? (latest['dailyWage'] as num?)?.toDouble()
+        ?? (latest['hourlyRate'] as num?)?.toDouble()
+        ?? 0.0;
+    if (rateVal > 0) {
+      _rateCtrl.text = rateVal % 1 == 0
+          ? rateVal.toInt().toString()
+          : rateVal.toString();
+    }
+
+    final gstVal = latest['gst'] ?? 0;
+    _gstCtrl.text = gstVal.toString();
+    _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+
+    // Payment fields are intentionally left blank (clean slate) for duplicates
+
+    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
+    final contextToRestore = {
+      'projectId': _selectedProjectId,
+      'floor': latest['floor'] ?? latest['zone'],
+      'phase': latest['phase'],
+      'activity': latest['activity'],
+    };
+
+    await _restoreDuplicateEntry(contextToRestore);
+  }
+
+  Future<void> _restoreDuplicateEntry(Map<String, dynamic> latest) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    if (projectProvider.projects.isEmpty) {
+      await projectProvider.load();
+    }
+
+    final pId = latest['projectId'] ?? latest['project'];
+    String? resolvedProjectId;
+    if (pId != null) {
+      resolvedProjectId = pId is Map ? (pId['_id'] ?? pId['id'])?.toString() : pId.toString();
+    }
+
+    final String floor = _safeString(latest['floor'] ?? latest['zone']);
+    final String phase = _safeString(latest['phase']);
+    final String activity = _safeString(latest['activity']);
+
+    final ProjectModel? project = resolvedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == resolvedProjectId,
+      orElse: () => null,
+    );
+
+    if (project != null) {
+      debugPrint('========================');
+      debugPrint('PROJECT JSON MODEL');
+      debugPrint(project.toJson().toString());
+      debugPrint('========================');
+    }
+
+    // 1. Project
+    await _selectProject(resolvedProjectId);
+
+    // 2. Floors
+    await _loadFloors(resolvedProjectId);
+
+    // 3. Floor
+    if (floor.isNotEmpty) {
+      if (!_floors.contains(floor)) {
+        _floors.insert(0, floor);
+      }
+      _selectedFloor = floor;
+    }
+
+    // 4. Phases
+    await _loadPhases(_selectedFloor);
+
+    // 5. Phase
+    if (phase.isNotEmpty) {
+      if (!_phases.contains(phase)) {
+        _phases.insert(0, phase);
+      }
+      _selectedPhase = phase;
+    }
+
+    // 6. Activities
+    await _loadActivities(_selectedPhase);
+
+    // 7. Activity
+    if (activity.isNotEmpty) {
+      if (!_activities.contains(activity)) {
+        _activities.insert(0, activity);
+      }
+      _selectedActivity = activity;
+    }
+
+    // STEP 5 - ADD VERIFICATION LOGS
+    debugPrint('Selected Project: $_selectedProjectId');
+    debugPrint('Selected Floor: $_selectedFloor');
+    debugPrint('Selected Phase: $_selectedPhase');
+    debugPrint('Selected Activity: $_selectedActivity');
+
+    debugPrint('Floors Loaded: ${_floors.length}');
+    debugPrint('Phases Loaded: ${_phases.length}');
+    debugPrint('Activities Loaded: ${_activities.length}');
+
+    // Temporary logs from prompt:
+    debugPrint('Project restored: $resolvedProjectId');
+    debugPrint('Floor restored: $floor');
+    debugPrint('Phase restored: $phase');
+    debugPrint('Activity restored: $activity');
+
+    debugPrint('Available Floors: ${_floors.length}');
+    debugPrint('Available Phases: ${_phases.length}');
+    debugPrint('Available Activities: ${_activities.length}');
+
+    setState(() {});
   }
 
   @override
@@ -329,6 +630,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "isWithGst": _isWithGst,
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
+      if (_sourceTransactionId != null)
+        "sourceTransactionId": _sourceTransactionId,
     };
 
     if (_isAddAndPay) {
@@ -360,6 +663,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
     }
 
+    debugPrint('===== SAVE PAYLOAD =====');
+    debugPrint(payload.toString());
+    debugPrint('========================');
+
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
       success =
@@ -388,6 +695,233 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  // ── Recent Entries bottom sheet ────────────────────────────────
+  void _showRecentEntriesSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.60,
+          minChildSize: 0.40,
+          maxChildSize: 0.90,
+          expand: false,
+          builder: (_, scrollCtrl) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Handle + header ─────────────────────────────────
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 4),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.history_rounded,
+                              color: AppColors.primary, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Recent Entries',
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textDark,
+                                    letterSpacing: -0.3)),
+                            Text(
+                              '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textLight,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: Divider(color: Color(0xFFF0EEF8)),
+                  ),
+
+                  // ── Entry list ────────────────────────────────────
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                      itemCount: _recentEntries.length,
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final tx = _recentEntries[i] as Map<String, dynamic>;
+                        final String title =
+                            tx['title']?.toString() ?? 'Untitled';
+                        final double rate =
+                            (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                        final String unit =
+                            tx['unit']?.toString() ?? '';
+                        final String brand =
+                            tx['brand']?.toString() ?? '';
+                        final String supplier =
+                            tx['supplier']?.toString() ?? '';
+
+                        String dateStr = '';
+                        final rawDate =
+                            tx['date'] ?? tx['createdAt'];
+                        if (rawDate != null) {
+                          try {
+                            final d = DateTime.parse(
+                                rawDate.toString());
+                            dateStr =
+                                '${d.day} ${_monthName(d.month)} ${d.year}';
+                          } catch (_) {}
+                        }
+
+                        final String rateStr = rate > 0
+                            ? '₹${rate % 1 == 0 ? rate.toInt() : rate}/$unit'
+                            : '';
+
+                        return Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _prefillFromRecent(tx);
+                              _snack('Prefilled from "$title"');
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: const Color(0xFFEEEFF8),
+                                    width: 1.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black
+                                        .withValues(alpha: 0.04),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.08),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                        Icons.category_outlined,
+                                        color: AppColors.primary,
+                                        size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title,
+                                            style: const TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight:
+                                                    FontWeight.w700,
+                                                color:
+                                                    AppColors.textDark),
+                                            maxLines: 1,
+                                            overflow:
+                                                TextOverflow.ellipsis),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          [
+                                            if (rateStr.isNotEmpty)
+                                              rateStr,
+                                            if (brand.isNotEmpty)
+                                              brand,
+                                            if (supplier.isNotEmpty)
+                                              supplier,
+                                            if (dateStr.isNotEmpty)
+                                              dateStr,
+                                          ].join(' · '),
+                                          style: const TextStyle(
+                                              fontSize: 11.5,
+                                              color: AppColors.textLight,
+                                              fontWeight:
+                                                  FontWeight.w500),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // Use button
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.08),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    child: const Text('Use',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primary)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -471,94 +1005,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return '';
   }
 
-  Widget _activityTile({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required String badgeLabel,
-    required Color badgeBg,
-    required Color badgeColor,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: badgeColor, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _calcRow(String label, String value, {bool muted = false}) {
     return Row(
@@ -928,6 +1375,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<ProjectProvider>().projects;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.gradientStart,
@@ -936,7 +1385,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         child: Column(
           children: [
             AppTopBar(
-              title: _isEditing ? 'Edit Material' : 'Add Material',
+              title: _isEditing
+                  ? 'Edit Material'
+                  : _isDuplicate
+                      ? 'Repeat Entry'
+                      : 'Add Material',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -948,6 +1401,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+
+
+
                     // ── SECTION 1: EXECUTION CONTEXT ──────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
@@ -996,6 +1452,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () async {
+                              setState(() => _isDatePickerOpen = true);
                               final picked = await showDatePicker(
                                 context: context,
                                 initialDate: _selectedDate,
@@ -1012,9 +1469,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                                   child: child!,
                                 ),
                               );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
+                              if (!mounted) return;
+                              setState(() {
+                                _isDatePickerOpen = false;
+                                if (picked != null) _selectedDate = picked;
+                              });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -1479,59 +1938,78 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     _buildPaymentSection(),
                     const SizedBox(height: 4),
 
-                    if (_selectedProjectId != null && !_isEditing) ...[
+                    // ── RECENT ENTRIES COMPACT BANNER (bottom-sheet) ────
+                    if (_selectedProjectId != null &&
+                        !_isEditing &&
+                        !_isDatePickerOpen) ...[
                       if (_isLoadingRecent)
                         const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator()),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2)),
                         )
                       else if (_recentEntries.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            'Recent Material Entries',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
-                              letterSpacing: -0.2,
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: _showRecentEntriesSheet,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: const Color(0xFFE8E5F6), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: const Icon(Icons.history_rounded,
+                                      color: AppColors.primary, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Recent Entries',
+                                          style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.textDark)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found · Tap to view',
+                                        style: const TextStyle(
+                                            fontSize: 11.5,
+                                            color: AppColors.textLight,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded,
+                                    color: AppColors.textLight, size: 22),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ..._recentEntries.map((tx) {
-                          final String title = tx['title']?.toString() ?? '';
-                          final double qty = (tx['quantity'] as num?)?.toDouble() ?? 0.0;
-                          final String unit = tx['unit']?.toString() ?? '';
-                          final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
-                          
-                          String dateStr = '';
-                          if (tx['date'] != null) {
-                            try {
-                              final parsed = DateTime.parse(tx['date'].toString());
-                              dateStr = '${parsed.day} ${_monthName(parsed.month)} ${parsed.year}';
-                            } catch (_) {}
-                          }
-                          
-                          final String qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toString();
-                          final String rateStr = rate % 1 == 0 ? rate.toInt().toString() : rate.toString();
-
-                          return _activityTile(
-                            context: context,
-                            title: title,
-                            subtitle: '$qtyStr $unit • ₹$rateStr • $dateStr',
-                            badgeLabel: 'Material',
-                            badgeBg: const Color(0xFFEEF0FF),
-                            badgeColor: AppColors.primary,
-                            icon: Icons.category_outlined,
-                            onTap: () {
-                              _prefillFromRecent(tx);
-                              _snack('Prefilled details for "$title"');
-                            },
-                          );
-                        }),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                       ],
                     ],
 

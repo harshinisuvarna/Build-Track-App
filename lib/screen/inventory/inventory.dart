@@ -23,23 +23,28 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   // ── Design tokens ──────────────────────────────────────────────────────────
-  static const _blue   = AppColors.primary;
-  static const _bg     = AppColors.gradientStart;
-  static const _dark   = AppColors.textDark;
-  static const _gray   = AppColors.textLight;
+  static const Color _blue = AppColors.primary;
+  static const Color _bg   = AppColors.gradientStart;
+  static const Color _dark = AppColors.textDark;
+  static const Color _gray = AppColors.textLight;
 
-  // ── Page state ────────────────────────────────────────────────────────────
+  // ── Page state ─────────────────────────────────────────────────────────────
   final _pageController = PageController();
-  int    _tabIndex = 0;
-  final  _searchCtrl = TextEditingController();
-  String _activeFilter = 'Recently Added';
+  int     _tabIndex     = 0;
+  final   _searchCtrl   = TextEditingController();
   String? _selectedProjectId;
-  Timer? _debounce;
+  Timer?  _debounce;
 
-  // ── Per-tab category filters ───────────────────────────────────────────────
-  String _matCategory = 'All';
-  String _labCategory = 'All';
-  String _eqpCategory = 'All';
+  // ── Per-tab category + date filters ───────────────────────────────────────
+  String _matCategory   = 'All';
+  String _labCategory   = 'All';
+  String _eqpCategory   = 'All';
+  String _matDateFilter = 'All';
+  String _labDateFilter = 'All';
+  String _eqpDateFilter = 'All';
+  DateTimeRange? _matCustomRange;
+  DateTimeRange? _labCustomRange;
+  DateTimeRange? _eqpCustomRange;
 
   @override
   void initState() {
@@ -58,272 +63,282 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // DATA HELPERS — all computed locally, no new API calls
+  // DATA PIPELINE HELPERS
   // ════════════════════════════════════════════════════════════════════════════
 
-  Map<String, dynamic>? _firstTx(InventoryItem item) {
-    if (item.transactions.isEmpty) return null;
-    final t = item.transactions.first;
-    if (t is Map<String, dynamic>) return t;
-    if (t is Map) return Map<String, dynamic>.from(t);
-    return null;
-  }
+  /// Flattens all transactions from all [InventoryItem]s into flat [_PurchaseRecord]s.
+  List<_PurchaseRecord> _flatten(List<InventoryItem> items) {
+    final records = <_PurchaseRecord>[];
 
-  String _vendor(InventoryItem item) {
-    for (final raw in item.transactions) {
-      final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-      if (tx == null) continue;
-      final s = (tx['supplier'] ?? '').toString().trim();
-      if (s.isNotEmpty) return s;
-    }
-    return '';
-  }
-
-  double _rate(InventoryItem item) {
-    final tx = _firstTx(item);
-    if (tx == null) return 0;
-    final r = tx['rate'];
-    return r is num ? r.toDouble() : 0;
-  }
-
-  double _totalValue(InventoryItem item) {
-    double total = 0;
-    for (final raw in item.transactions) {
-      final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-      if (tx == null) continue;
-      final qty  = tx['quantity'];
-      final rate = tx['rate'];
-      if (qty is num && rate is num) total += (qty * rate).toDouble();
-    }
-    // Fallback: closing stock × rate
-    if (total == 0 && _rate(item) > 0) {
-      total = item.closingStock * _rate(item);
-    }
-    return total;
-  }
-
-  PaymentStatus _payStatus(InventoryItem item) {
-    if (item.transactions.isEmpty) return PaymentStatus.pending;
-    int pending = 0, partial = 0;
-    for (final raw in item.transactions) {
-      final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-      final s   = tx != null ? (tx['paymentStatus'] ?? '').toString().toLowerCase().trim() : '';
-      if (s == 'partial') {
-        partial++;
-      } else if (s != 'paid') {
-        pending++;
-      }
-    }
-    if (pending > 0) return PaymentStatus.pending;
-    if (partial > 0) return PaymentStatus.partial;
-    return PaymentStatus.paid;
-  }
-
-  double _pendingAmt(List<InventoryItem> items) {
-    double total = 0;
     for (final item in items) {
       for (final raw in item.transactions) {
         final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        final s = (tx['paymentStatus'] ?? '').toString().toLowerCase().trim();
-        if (s != 'paid') {
-          final b = (tx['amount'] is num) ? (tx['amount'] as num).toDouble() : 0.0;
-          final p = (tx['paidAmount'] is num) ? (tx['paidAmount'] as num).toDouble() : 0.0;
-          total += (b - p).clamp(0.0, double.infinity);
+        if (tx == null) { continue; }
+
+        // ── Parse date ──────────────────────────────────────────────────────
+        DateTime date = DateTime.now();
+        for (final key in ['date', 'createdAt', 'purchaseDate', 'updatedAt']) {
+          final val = tx[key];
+          if (val is String && val.isNotEmpty) {
+            try { date = DateTime.parse(val); break; } catch (_) {}
+          }
         }
-      }
-    }
-    return total;
-  }
 
-  double _inventoryValue(List<InventoryItem> items) =>
-      items.fold(0.0, (s, i) => s + _totalValue(i));
+        // ── Vendor / Worker / Operator ─────────────────────────────────────
+        String vendor;
+        if (item.category == 'labour') {
+          vendor = (tx['workerName'] ?? tx['worker'] ?? tx['contractor'] ??
+              tx['supplier'] ?? '').toString().trim();
+        } else if (item.category == 'equipment') {
+          vendor = (tx['operatorName'] ?? tx['operator'] ??
+              tx['rentalSupplier'] ?? tx['supplier'] ?? '').toString().trim();
+        } else {
+          vendor = (tx['supplier'] ?? tx['vendor'] ?? '').toString().trim();
+        }
 
-  int _distinctVendors(List<InventoryItem> items) {
-    final set = <String>{};
-    for (final item in items) {
-      final v = _vendor(item);
-      if (v.isNotEmpty) set.add(v.toLowerCase());
-    }
-    return set.length;
-  }
+        // ── Quantity ────────────────────────────────────────────────────────
+        final qty = (tx['quantity'] as num?)?.toDouble() ??
+            (tx['days'] as num?)?.toDouble() ??
+            (tx['hours'] as num?)?.toDouble() ?? 0.0;
 
-  int _rentalsCount(List<InventoryItem> items) {
-    int count = 0;
-    for (final item in items) {
-      bool isRental = item.name.toLowerCase().contains('rent') ||
-          item.unit.toLowerCase().contains('rent');
-      if (!isRental) {
-        for (final raw in item.transactions) {
-          final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-          if (tx == null) continue;
-          final notes = (tx['notes'] ?? '').toString().toLowerCase();
-          final remarks = (tx['remarks'] ?? '').toString().toLowerCase();
-          final brand = (tx['brand'] ?? '').toString().toLowerCase();
-          if (notes.contains('rent') || remarks.contains('rent') || brand.contains('rent')) {
-            isRental = true;
+        // ── Rate ────────────────────────────────────────────────────────────
+        final rate = (tx['rate'] as num?)?.toDouble() ??
+            (tx['dailyWage'] as num?)?.toDouble() ??
+            (tx['hourlyRate'] as num?)?.toDouble() ?? 0.0;
+
+        // ── Bill amount ─────────────────────────────────────────────────────
+        double bill = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+        if (bill == 0 && qty > 0 && rate > 0) { bill = qty * rate; }
+        final paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+
+        // ── Payment status ──────────────────────────────────────────────────
+        final sStr = (tx['paymentStatus'] ?? '').toString().toLowerCase().trim();
+        PaymentStatus payStatus;
+        if (sStr == 'paid') {
+          payStatus = PaymentStatus.paid;
+        } else if (sStr == 'partial') {
+          payStatus = PaymentStatus.partial;
+        } else if (sStr == 'overdue') {
+          payStatus = PaymentStatus.overdue;
+        } else {
+          payStatus = PaymentStatus.pending;
+        }
+
+        // ── Category name ───────────────────────────────────────────────────
+        const skipCats = {
+          'unknown', 'material', 'labour', 'equipment', 'materials',
+          'purchase', 'general', 'others', 'na', 'n/a',
+        };
+        String catName = '';
+        for (final key in ['categoryName', 'materialType', 'workType', 'equipmentType']) {
+          final val = (tx[key] ?? '').toString().trim();
+          if (val.isNotEmpty && !skipCats.contains(val.toLowerCase())) {
+            catName = val;
             break;
           }
         }
-      }
-      if (isRental) count++;
-    }
-    return count;
-  }
 
-  double _rentalCost(List<InventoryItem> items) {
-    double total = 0;
-    for (final item in items) {
-      bool isRental = item.name.toLowerCase().contains('rent') ||
-          item.unit.toLowerCase().contains('rent');
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        final notes = (tx['notes'] ?? '').toString().toLowerCase();
-        final remarks = (tx['remarks'] ?? '').toString().toLowerCase();
-        final brand = (tx['brand'] ?? '').toString().toLowerCase();
-        if (notes.contains('rent') || remarks.contains('rent') || brand.contains('rent')) {
-          isRental = true;
-        }
-        if (isRental) {
-          final qty = tx['quantity'];
-          final rate = tx['rate'];
-          if (qty is num && rate is num) {
-            total += (qty * rate).toDouble();
-          }
-        }
+        debugPrint('FLATTEN TX');
+        debugPrint(tx.toString());
+
+        records.add(_PurchaseRecord(
+          itemId:       item.id,
+          itemName:     item.name,
+          txId:         tx['_id']?.toString() ?? '',
+          date:         date,
+          brand:        (tx['brand'] ?? '').toString().trim(),
+          vendor:       vendor,
+          quantity:     qty,
+          unit:         (tx['unit'] ?? item.unit).toString().trim(),
+          rate:         rate,
+          billAmount:   bill,
+          paidAmount:   paid,
+          payStatus:    payStatus,
+          categoryName: catName,
+          type:         item.category,
+          rawTx:        tx,
+        ));
       }
     }
-    return total;
+
+    records.sort((a, b) => b.date.compareTo(a.date));
+    return records;
   }
 
-  double _paidAmt(List<InventoryItem> items) {
-    double total = 0;
-    for (final item in items) {
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        final p = (tx['paidAmount'] is num) ? (tx['paidAmount'] as num).toDouble() : 0.0;
-        total += p;
+  List<_PurchaseRecord> _filterDate(
+      List<_PurchaseRecord> records, String filter, DateTimeRange? custom) {
+    if (filter == 'All') { return records; }
+    final now   = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return records.where((r) {
+      final d = DateTime(r.date.year, r.date.month, r.date.day);
+      switch (filter) {
+        case 'Today':
+          return d == today;
+        case 'Yesterday':
+          return d == today.subtract(const Duration(days: 1));
+        case 'This Week':
+          final wStart = today.subtract(Duration(days: today.weekday - 1));
+          return !d.isBefore(wStart);
+        case 'This Month':
+          return d.year == now.year && d.month == now.month;
+        case 'Last Month':
+          final lm = DateTime(now.year, now.month - 1);
+          return d.year == lm.year && d.month == lm.month;
+        case 'Last 3 Months':
+          return !d.isBefore(today.subtract(const Duration(days: 90)));
+        case 'This Year':
+          return d.year == now.year;
+        case 'Custom':
+          if (custom == null) { return true; }
+          final endDay = DateTime(
+              custom.end.year, custom.end.month, custom.end.day);
+          return !d.isBefore(custom.start) && !d.isAfter(endDay);
+        default:
+          return true;
       }
-    }
-    return total;
-  }
-
-  double _maintenanceCost(List<InventoryItem> items) {
-    double total = 0;
-    for (final item in items) {
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        final notes = (tx['notes'] ?? '').toString().toLowerCase();
-        final remarks = (tx['remarks'] ?? '').toString().toLowerCase();
-        final name = (tx['title'] ?? '').toString().toLowerCase();
-        if (notes.contains('maint') || notes.contains('repair') || 
-            remarks.contains('maint') || remarks.contains('repair') ||
-            name.contains('maint') || name.contains('repair')) {
-          final qty = tx['quantity'];
-          final rate = tx['rate'];
-          if (qty is num && rate is num) {
-            total += (qty * rate).toDouble();
-          }
-        }
-      }
-    }
-    return total;
-  }
-
-  List<String> _buildCategories(List<InventoryItem> items) {
-    final cats = <String>{};
-    for (final item in items) {
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        for (final key in ['categoryName', 'materialType']) {
-          final v = (tx[key] ?? '').toString().trim();
-          if (v.isNotEmpty &&
-              !['unknown', 'material', 'labour', 'equipment', 'materials']
-                  .contains(v.toLowerCase())) {
-            cats.add(v);
-            break;
-          }
-        }
-      }
-    }
-    final sorted = cats.toList()..sort();
-    return ['All', ...sorted];
-  }
-
-  List<InventoryItem> _applyCategory(List<InventoryItem> items, String cat) {
-    if (cat == 'All') return items;
-    return items.where((item) {
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx == null) continue;
-        for (final key in ['categoryName', 'materialType']) {
-          if ((tx[key] ?? '').toString().trim() == cat) return true;
-        }
-      }
-      return false;
     }).toList();
   }
 
-  List<InventoryItem> _applySort(List<InventoryItem> items) {
-    final copy = List<InventoryItem>.from(items);
-    if (_activeFilter == 'A → Z') {
-      copy.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    } else if (_activeFilter == 'Low Stock') {
-      copy.sort((a, b) {
-        final la = a.closingStock < a.threshold ? 0 : 1;
-        final lb = b.closingStock < b.threshold ? 0 : 1;
-        return la.compareTo(lb);
-      });
-    } else {
-      copy.sort((a, b) {
-        int ta = 0, tb = 0;
-        if (a.id.length == 24) {
-          try { ta = int.parse(a.id.substring(0, 8), radix: 16); } catch (_) {}
-        }
-        if (b.id.length == 24) {
-          try { tb = int.parse(b.id.substring(0, 8), radix: 16); } catch (_) {}
-        }
-        return tb.compareTo(ta);
-      });
-    }
-    return copy;
+  List<_PurchaseRecord> _filterCat(List<_PurchaseRecord> records, String cat) {
+    if (cat == 'All') { return records; }
+    return records.where((r) => r.categoryName == cat).toList();
   }
 
-  String _selectedProjectName() {
-    if (_selectedProjectId == null) return '';
-    final projects = context.read<ProjectProvider>().projects;
-    return projects
-        .cast<ProjectModel?>()
-        .firstWhere((p) => p?.id == _selectedProjectId, orElse: () => null)
-        ?.name ?? '';
+  List<_PurchaseRecord> _filterSearch(
+      List<_PurchaseRecord> records, String query) {
+    final q = query.trim();
+    if (q.isEmpty) { return records; }
+    final lower = q.toLowerCase();
+    return records.where((r) =>
+        r.itemName.toLowerCase().contains(lower) ||
+        r.brand.toLowerCase().contains(lower) ||
+        r.vendor.toLowerCase().contains(lower) ||
+        r.categoryName.toLowerCase().contains(lower)).toList();
   }
+
+  List<_DateGroup> _groupByDate(List<_PurchaseRecord> records) {
+    final map = <String, List<_PurchaseRecord>>{};
+    for (final r in records) {
+      final key = '${r.date.year}-'
+          '${r.date.month.toString().padLeft(2, '0')}-'
+          '${r.date.day.toString().padLeft(2, '0')}';
+      map.putIfAbsent(key, () => []).add(r);
+    }
+    final groups = map.entries.map((entry) {
+      final parts = entry.key.split('-');
+      final d = DateTime(
+          int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      return _DateGroup(
+          label: _formatGroupDate(d), date: d, records: entry.value);
+    }).toList();
+    groups.sort((a, b) => b.date.compareTo(a.date));
+    return groups;
+  }
+
+  static String _formatGroupDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
+  }
+
+  List<String> _buildChips(List<_PurchaseRecord> records) {
+    const skipSet = {
+      'unknown', 'material', 'labour', 'equipment', 'materials',
+      'purchase', 'general', 'others', 'na', 'n/a',
+    };
+    final cats = <String>{};
+    for (final r in records) {
+      if (r.categoryName.isNotEmpty &&
+          !skipSet.contains(r.categoryName.toLowerCase())) {
+        cats.add(r.categoryName);
+      }
+    }
+    return ['All', ...(cats.toList()..sort())];
+  }
+
+  List<_KpiData> _buildKpis(List<_PurchaseRecord> records, String type) {
+    double totalQty  = 0;
+    double totalCost = 0;
+    double totalPend = 0;
+    final vendors    = <String>{};
+
+    for (final r in records) {
+      totalQty  += r.quantity;
+      totalCost += r.billAmount;
+      if (r.payStatus != PaymentStatus.paid) {
+        totalPend += (r.billAmount - r.paidAmount).clamp(0.0, double.infinity);
+      }
+      if (r.vendor.isNotEmpty) { vendors.add(r.vendor.toLowerCase()); }
+    }
+
+    const alertRed = Color(0xFFEF4444);
+    const green    = Color(0xFF10B981);
+
+    if (type == 'labour') {
+      return [
+        _KpiData('Total Days', _fmtNum(totalQty),
+            Icons.groups_outlined, _blue),
+        _KpiData('Labour Cost', formatCurrency(totalCost),
+            Icons.payments_outlined, AppColors.primaryPurple),
+        _KpiData('Pending Wages', formatCurrency(totalPend),
+            Icons.pending_actions_outlined, alertRed,
+            isAlert: totalPend > 0),
+        _KpiData('Contractors', '${vendors.length}',
+            Icons.business_center_outlined, green),
+      ];
+    } else if (type == 'equipment') {
+      return [
+        _KpiData('Total Hours', _fmtNum(totalQty),
+            Icons.precision_manufacturing_outlined, _blue),
+        _KpiData('Rental Cost', formatCurrency(totalCost),
+            Icons.account_balance_wallet_outlined, AppColors.primaryPurple),
+        _KpiData('Pending Pay', formatCurrency(totalPend),
+            Icons.pending_actions_outlined, alertRed,
+            isAlert: totalPend > 0),
+        _KpiData('Operators', '${vendors.length}',
+            Icons.engineering_outlined, green),
+      ];
+    } else {
+      return [
+        _KpiData('Total Units', _fmtNum(totalQty),
+            Icons.inventory_2_outlined, _blue),
+        _KpiData('Purchase Value', formatCurrency(totalCost),
+            Icons.account_balance_wallet_outlined, AppColors.primaryPurple),
+        _KpiData('Pending Pay', formatCurrency(totalPend),
+            Icons.pending_actions_outlined, alertRed,
+            isAlert: totalPend > 0),
+        _KpiData('Vendors', '${vendors.length}',
+            Icons.store_outlined, green),
+      ];
+    }
+  }
+
+  static String _fmtNum(double q) =>
+      q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
 
   // ════════════════════════════════════════════════════════════════════════════
   // PROJECT SELECTOR
   // ════════════════════════════════════════════════════════════════════════════
 
-  void _showProjectSelector(BuildContext context) {
-    final projects = context.read<ProjectProvider>().projects;
+  void _showProjectSelector(BuildContext ctx) {
+    final projects = ctx.read<ProjectProvider>().projects;
     final allItems = ['All Active Projects', ...projects.map((p) => p.name)];
-    final idMap = <String, String?>{
-      for (final p in projects) p.name: p.id,
-    };
+    final idMap    = <String, String?>{for (final p in projects) p.name: p.id};
     showModalBottomSheet<void>(
-      context: context,
+      context: ctx,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _ProjectSelectorSheet(
-        allItems: allItems,
-        idMap: idMap,
+      builder: (sheetCtx) => _ProjectSelectorSheet(
+        allItems:   allItems,
+        idMap:      idMap,
         selectedId: _selectedProjectId,
-        onSelect: (id) {
+        onSelect:   (id) {
           setState(() => _selectedProjectId = id);
-          context.read<InventoryProvider>().loadInventory(id ?? '');
-          Navigator.pop(ctx);
+          ctx.read<InventoryProvider>().loadInventory(id ?? '');
+          Navigator.pop(sheetCtx);
         },
       ),
     );
@@ -364,8 +379,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         const SizedBox(height: 10),
                         _buildSearchBar(),
                         const SizedBox(height: 10),
-                        _buildTabs(),
-                        const SizedBox(height: 10),
+                        _buildTabBar(),
+                        const SizedBox(height: 4),
                       ],
                     ),
                   ),
@@ -390,7 +405,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Project selector ──────────────────────────────────────────────────────
+  // ── Project selector widget ───────────────────────────────────────────────
 
   Widget _buildProjectSelector() {
     final projects = context.watch<ProjectProvider>().projects;
@@ -409,7 +424,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE0E5FF)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
           ],
         ),
         child: Row(
@@ -427,23 +443,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'PROJECT CONTEXT',
+                  const Text('PROJECT CONTEXT',
                     style: TextStyle(
                       fontSize: 9.5, fontWeight: FontWeight.w800,
-                      color: _gray, letterSpacing: 1.1,
-                    ),
-                  ),
+                      color: _gray, letterSpacing: 1.1)),
                   const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _dark),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(label,
+                    style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w800,
+                      color: _dark),
+                    overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: _gray, size: 22),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: _gray, size: 22),
           ],
         ),
       ),
@@ -455,7 +469,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String get _searchHint {
     switch (_tabIndex) {
       case 1:  return 'Search by worker or contractor…';
-      case 2:  return 'Search by equipment or vendor…';
+      case 2:  return 'Search by equipment or supplier…';
       default: return 'Search by name, vendor, brand…';
     }
   }
@@ -474,7 +488,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE8E5F6)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6),
                 ],
               ),
               child: Row(
@@ -484,20 +500,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchCtrl,
-                      onChanged: (val) {
-                        if (_debounce?.isActive ?? false) _debounce!.cancel();
-                        _debounce = Timer(const Duration(milliseconds: 500), () {
-                          String cat = 'All';
-                          if (_tabIndex == 0) cat = 'Materials';
-                          if (_tabIndex == 1) cat = 'Labour';
-                          if (_tabIndex == 2) cat = 'Equipment';
-                          context.read<InventoryProvider>().performSearch(
-                            val, cat, projectId: _selectedProjectId ?? '');
-                        });
+                      onChanged: (_) {
+                        if (_debounce?.isActive ?? false) {
+                          _debounce!.cancel();
+                        }
+                        _debounce = Timer(
+                            const Duration(milliseconds: 400),
+                            () => setState(() {}));
                       },
                       decoration: InputDecoration(
                         hintText: _searchHint,
-                        hintStyle: const TextStyle(color: _gray, fontSize: 13.5),
+                        hintStyle:
+                            const TextStyle(color: _gray, fontSize: 13.5),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -519,7 +533,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
             shadowColor: _blue.withValues(alpha: 0.3),
             elevation: 1,
             child: InkWell(
-              onTap: _showFilterOptions,
+              onTap: () {
+                // Hint: filters are available via category chips and date pill.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Use category chips and date pill to filter records.'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
               borderRadius: BorderRadius.circular(12),
               child: const SizedBox(
                 width: 48,
@@ -534,14 +558,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   // ── Tab switcher ──────────────────────────────────────────────────────────
 
-  Widget _buildTabs() {
-    final p = context.watch<InventoryProvider>();
-    final badges = [
-      p.materialInventory.where((i) => i.closingStock < i.threshold).length,
-      p.labourInventory.where((i) => i.closingStock < i.threshold).length,
-      p.equipmentInventory.where((i) => i.closingStock < i.threshold).length,
+  Widget _buildTabBar() {
+    const icons  = [
+      Icons.architecture,
+      Icons.people_outline,
+      Icons.construction_outlined,
     ];
-    const icons  = [Icons.architecture, Icons.people_outline, Icons.construction_outlined];
     const labels = ['Materials', 'Labour', 'Equipment'];
 
     return Container(
@@ -550,11 +572,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8E5F6)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03), blurRadius: 8),
+        ],
       ),
       child: Row(
         children: List.generate(3, (i) {
-          final active = i == _tabIndex;
+          final active    = i == _tabIndex;
           final textColor = active ? Colors.white : const Color(0xFF4B4966);
           final iconColor = active ? Colors.white : const Color(0xFF757299);
           return Expanded(
@@ -573,31 +598,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   gradient: active ? AppGradients.primaryButton : null,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icons[i], color: iconColor, size: 16),
-                        const SizedBox(width: 6),
-                        Text(labels[i],
-                          style: TextStyle(
-                            color: textColor,
-                            fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                            fontSize: 12.5,
-                          )),
-                      ],
-                    ),
-                    if (badges[i] > 0)
-                      Positioned(
-                        right: 6, top: 0,
-                        child: Container(
-                          width: 6, height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444), shape: BoxShape.circle),
-                        ),
-                      ),
+                    Icon(icons[i], color: iconColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(labels[i],
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight:
+                            active ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 12.5,
+                      )),
                   ],
                 ),
               ),
@@ -609,309 +621,161 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // TAB BUILDERS
+  // TAB BUILDERS  (all three share the same _TimelineTabContent engine)
   // ════════════════════════════════════════════════════════════════════════════
 
-  Widget _buildMaterialsTab(BuildContext context) {
-    final provider = context.watch<InventoryProvider>();
+  Widget _buildMaterialsTab(BuildContext ctx) {
+    final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: _blue));
     }
     final all      = provider.materialInventory;
-    final cats     = _buildCategories(all);
-    final filtered = _applySort(_applyCategory(all, _matCategory));
-    final projName = _selectedProjectName();
+    final flat     = _flatten(all);
+    final chips    = _buildChips(flat);
+    final filtered = _filterDate(
+        _filterCat(_filterSearch(flat, _searchCtrl.text), _matCategory),
+        _matDateFilter, _matCustomRange);
+    final groups = _groupByDate(filtered);
+    final kpis   = _buildKpis(filtered, 'material');
 
-    return _TabContent(
-      items: filtered,
-      type: 'material',
-      icon: Icons.architecture,
-      categoryFilter: _matCategory,
-      cats: cats,
-      onCategoryChange: (c) => setState(() => _matCategory = c),
-      kpis: [
-        _KpiData('Total Stock',
-            '${_fmtQty(all.fold(0.0, (s, i) => s + i.closingStock))} units',
-            Icons.inventory_2_outlined, _blue),
-        _KpiData('Inventory Value',
-            formatCurrency(_inventoryValue(all)),
-            Icons.account_balance_wallet_outlined, AppColors.primaryPurple),
-        _KpiData('Pending Payments',
-            formatCurrency(_pendingAmt(all)),
-            Icons.pending_actions_outlined, const Color(0xFFEF4444),
-            isAlert: _pendingAmt(all) > 0),
-        _KpiData('Total Vendors',
-            '${_distinctVendors(all)}',
-            Icons.store_outlined, const Color(0xFF10B981)),
-      ],
-      financials: [
-        ('Purchase Value', formatCurrency(_inventoryValue(all))),
-        ('Paid Amount', formatCurrency(_paidAmt(all))),
-        ('Pending Amount', formatCurrency(_pendingAmt(all))),
-        ('Vendors', '${_distinctVendors(all)}'),
-      ],
-      emptyTitle: 'No Material Entries Yet',
-      emptySubtitle: 'Add your first material entry to start tracking stock.',
-      emptyRoute: '/add-material',
-      projectName: projName,
+    return _TimelineTabContent(
+      groups:            groups,
+      kpis:              kpis,
+      chips:             chips,
+      activeChip:        _matCategory,
+      dateFilter:        _matDateFilter,
+      type:              'material',
+      emptyTitle:        'No Material Purchases',
+      emptySubtitle:     'Add your first material purchase to get started.',
+      emptyRoute:        '/add-material',
       selectedProjectId: _selectedProjectId,
-      vendor: _vendor,
-      rate: _rate,
-      totalValue: _totalValue,
-      payStatus: _payStatus,
-      activeFilter: _activeFilter,
-      onAdd: (route, args) => Navigator.pushNamed(context, route, arguments: args),
+      onChipChange:      (c) => setState(() => _matCategory = c),
+      onDateFilter: (f, cr) => setState(() {
+        _matDateFilter  = f;
+        _matCustomRange = cr;
+      }),
+      onNavigate: (route, args) =>
+          Navigator.pushNamed(ctx, route, arguments: args),
     );
   }
 
-  Widget _buildLabourTab(BuildContext context) {
-    final provider = context.watch<InventoryProvider>();
+  Widget _buildLabourTab(BuildContext ctx) {
+    final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: _blue));
     }
     final all      = provider.labourInventory;
-    final cats     = _buildCategories(all);
-    final filtered = _applySort(_applyCategory(all, _labCategory));
-    final projName = _selectedProjectName();
+    final flat     = _flatten(all);
+    final chips    = _buildChips(flat);
+    final filtered = _filterDate(
+        _filterCat(_filterSearch(flat, _searchCtrl.text), _labCategory),
+        _labDateFilter, _labCustomRange);
+    final groups = _groupByDate(filtered);
+    final kpis   = _buildKpis(filtered, 'labour');
 
-    return _TabContent(
-      items: filtered,
-      type: 'labour',
-      icon: Icons.people_outline,
-      categoryFilter: _labCategory,
-      cats: cats,
-      onCategoryChange: (c) => setState(() => _labCategory = c),
-      kpis: [
-        _KpiData('Total Workers', '${all.length}',
-            Icons.groups_outlined, _blue),
-        _KpiData('Labour Cost', formatCurrency(_inventoryValue(all)),
-            Icons.payments_outlined, AppColors.primaryPurple),
-        _KpiData('Pending Wages', formatCurrency(_pendingAmt(all)),
-            Icons.pending_actions_outlined, const Color(0xFFEF4444),
-            isAlert: _pendingAmt(all) > 0),
-        _KpiData('Contractors', '${_distinctVendors(all)}',
-            Icons.business_center_outlined, const Color(0xFF10B981)),
-      ],
-      financials: [
-        ('Labour Cost', formatCurrency(_inventoryValue(all))),
-        ('Paid Wages', formatCurrency(_paidAmt(all))),
-        ('Pending Wages', formatCurrency(_pendingAmt(all))),
-        ('Contractors', '${_distinctVendors(all)}'),
-      ],
-      emptyTitle: 'No Labour Records Yet',
-      emptySubtitle: 'Add your first labour entry to track workforce costs.',
-      emptyRoute: '/add-labour',
-      projectName: projName,
+    return _TimelineTabContent(
+      groups:            groups,
+      kpis:              kpis,
+      chips:             chips,
+      activeChip:        _labCategory,
+      dateFilter:        _labDateFilter,
+      type:              'labour',
+      emptyTitle:        'No Labour Entries',
+      emptySubtitle:     'Add your first labour entry to track workforce costs.',
+      emptyRoute:        '/add-labour',
       selectedProjectId: _selectedProjectId,
-      vendor: _vendor,
-      rate: _rate,
-      totalValue: _totalValue,
-      payStatus: _payStatus,
-      activeFilter: _activeFilter,
-      onAdd: (route, args) => Navigator.pushNamed(context, route, arguments: args),
+      onChipChange:      (c) => setState(() => _labCategory = c),
+      onDateFilter: (f, cr) => setState(() {
+        _labDateFilter  = f;
+        _labCustomRange = cr;
+      }),
+      onNavigate: (route, args) =>
+          Navigator.pushNamed(ctx, route, arguments: args),
     );
   }
 
-  Widget _buildEquipmentTab(BuildContext context) {
-    final provider = context.watch<InventoryProvider>();
+  Widget _buildEquipmentTab(BuildContext ctx) {
+    final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: _blue));
     }
     final all      = provider.equipmentInventory;
-    final cats     = _buildCategories(all);
-    final filtered = _applySort(_applyCategory(all, _eqpCategory));
-    final projName = _selectedProjectName();
-    final maintDue = all.where((i) => i.closingStock < i.threshold).length;
+    final flat     = _flatten(all);
+    final chips    = _buildChips(flat);
+    final filtered = _filterDate(
+        _filterCat(_filterSearch(flat, _searchCtrl.text), _eqpCategory),
+        _eqpDateFilter, _eqpCustomRange);
+    final groups = _groupByDate(filtered);
+    final kpis   = _buildKpis(filtered, 'equipment');
 
-    return _TabContent(
-      items: filtered,
-      type: 'equipment',
-      icon: Icons.construction_outlined,
-      categoryFilter: _eqpCategory,
-      cats: cats,
-      onCategoryChange: (c) => setState(() => _eqpCategory = c),
-      kpis: [
-        _KpiData('Equipment Count', '${all.length}',
-            Icons.precision_manufacturing_outlined, _blue),
-        _KpiData('Asset Value', formatCurrency(_inventoryValue(all)),
-            Icons.account_balance_wallet_outlined, AppColors.primaryPurple),
-        _KpiData('Maintenance Due', '$maintDue item${maintDue != 1 ? "s" : ""}',
-            Icons.build_outlined, const Color(0xFFEF4444),
-            isAlert: maintDue > 0),
-        _KpiData('Rentals', '${_rentalsCount(all)}',
-            Icons.store_outlined, const Color(0xFF10B981)),
-      ],
-      financials: [
-        ('Asset Value', formatCurrency(_inventoryValue(all))),
-        ('Maintenance Cost', formatCurrency(_maintenanceCost(all))),
-        ('Rental Cost', formatCurrency(_rentalCost(all))),
-        ('Pending Payments', formatCurrency(_pendingAmt(all))),
-      ],
-      emptyTitle: 'No Equipment Entries Yet',
-      emptySubtitle: 'Add your first equipment entry to track asset usage.',
-      emptyRoute: '/add-equipment',
-      projectName: projName,
+    return _TimelineTabContent(
+      groups:            groups,
+      kpis:              kpis,
+      chips:             chips,
+      activeChip:        _eqpCategory,
+      dateFilter:        _eqpDateFilter,
+      type:              'equipment',
+      emptyTitle:        'No Equipment Entries',
+      emptySubtitle:     'Add your first equipment entry to track asset usage.',
+      emptyRoute:        '/add-equipment',
       selectedProjectId: _selectedProjectId,
-      vendor: _vendor,
-      rate: _rate,
-      totalValue: _totalValue,
-      payStatus: _payStatus,
-      activeFilter: _activeFilter,
-      onAdd: (route, args) => Navigator.pushNamed(context, route, arguments: args),
-    );
-  }
-
-  static String _fmtQty(double q) =>
-      q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
-
-  // ── Filter bottom sheet ───────────────────────────────────────────────────
-
-  void _showFilterOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _FilterSheet(
-        activeFilter: _activeFilter,
-        onSelect: (f) {
-          setState(() => _activeFilter = f);
-          Navigator.pop(ctx);
-        },
-      ),
+      onChipChange:      (c) => setState(() => _eqpCategory = c),
+      onDateFilter: (f, cr) => setState(() {
+        _eqpDateFilter  = f;
+        _eqpCustomRange = cr;
+      }),
+      onNavigate: (route, args) =>
+          Navigator.pushNamed(ctx, route, arguments: args),
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TAB CONTENT (generic scrollable column)
+// DATA MODELS
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _TabContent extends StatelessWidget {
-  final List<InventoryItem> items;
-  final String type;
-  final IconData icon;
-  final String categoryFilter;
-  final List<String> cats;
-  final ValueChanged<String> onCategoryChange;
-  final List<_KpiData> kpis;
-  final List<(String, String)> financials;
-  final String emptyTitle;
-  final String emptySubtitle;
-  final String emptyRoute;
-  final String projectName;
-  final String? selectedProjectId;
-  final String Function(InventoryItem) vendor;
-  final double Function(InventoryItem) rate;
-  final double Function(InventoryItem) totalValue;
-  final PaymentStatus Function(InventoryItem) payStatus;
-  final String activeFilter;
-  final void Function(String route, Map<String, dynamic> args) onAdd;
+class _PurchaseRecord {
+  final String  itemId;
+  final String  itemName;
+  final String  txId;
+  final DateTime date;
+  final String  brand;
+  final String  vendor;       // supplier / worker / operator
+  final double  quantity;     // bags / days-worked / hours-used
+  final String  unit;
+  final double  rate;
+  final double  billAmount;
+  final double  paidAmount;
+  final PaymentStatus payStatus;
+  final String  categoryName;
+  final String  type;         // 'material' | 'labour' | 'equipment'
+  final Map<String, dynamic> rawTx;
 
-  const _TabContent({
-    required this.items,
-    required this.type,
-    required this.icon,
-    required this.categoryFilter,
-    required this.cats,
-    required this.onCategoryChange,
-    required this.kpis,
-    required this.financials,
-    required this.emptyTitle,
-    required this.emptySubtitle,
-    required this.emptyRoute,
-    required this.projectName,
-    required this.selectedProjectId,
+  _PurchaseRecord({
+    required this.itemId,
+    required this.itemName,
+    required this.txId,
+    required this.date,
+    required this.brand,
     required this.vendor,
+    required this.quantity,
+    required this.unit,
     required this.rate,
-    required this.totalValue,
+    required this.billAmount,
+    required this.paidAmount,
     required this.payStatus,
-    required this.activeFilter,
-    required this.onAdd,
+    required this.categoryName,
+    required this.type,
+    required this.rawTx,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // ── KPI Strip ────────────────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _KpiStrip(kpis: kpis),
-          ),
-        ),
-
-        // ── Financial Overview Strip ──────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _FinancialStrip(items: financials),
-          ),
-        ),
-
-        // ── Category Chips ────────────────────────────────────────────────────
-        if (cats.length > 1)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 0, 12),
-              child: _CategoryChipBar(
-                categories: cats,
-                selected: categoryFilter,
-                onSelect: onCategoryChange,
-              ),
-            ),
-          ),
-
-        // ── Empty State ───────────────────────────────────────────────────────
-        if (items.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: _EmptyState(
-              title: emptyTitle,
-              subtitle: emptySubtitle,
-              icon: icon,
-              onAdd: () => onAdd(emptyRoute, {}),
-            ),
-          )
-        else ...[
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ErpItemCard(
-                    item: items[i],
-                    icon: icon,
-                    type: type,
-                    selectedProjectId: selectedProjectId,
-                    projectName: projectName,
-                    vendorName: vendor(items[i]),
-                    rate: rate(items[i]),
-                    totalValue: totalValue(items[i]),
-                    payStatus: payStatus(items[i]),
-                    onAdd: onAdd,
-                  ),
-                ),
-                childCount: items.length,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-              child: _ErpAlertsSection(items: items),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// KPI STRIP
-// ═══════════════════════════════════════════════════════════════════════════
+class _DateGroup {
+  final String label;
+  final DateTime date;
+  final List<_PurchaseRecord> records;
+  _DateGroup({required this.label, required this.date, required this.records});
+}
 
 class _KpiData {
   final String label, value;
@@ -922,13 +786,966 @@ class _KpiData {
       {this.isAlert = false});
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TIMELINE TAB CONTENT  –  single engine for all three tabs
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _TimelineTabContent extends StatefulWidget {
+  final List<_DateGroup>  groups;
+  final List<_KpiData>    kpis;
+  final List<String>      chips;
+  final String            activeChip;
+  final String            dateFilter;
+  final String            type;
+  final String            emptyTitle;
+  final String            emptySubtitle;
+  final String            emptyRoute;
+  final String?           selectedProjectId;
+  final ValueChanged<String> onChipChange;
+  final void Function(String filter, DateTimeRange? custom) onDateFilter;
+  final void Function(String route, Map<String, dynamic> args) onNavigate;
+
+  const _TimelineTabContent({
+    required this.groups,
+    required this.kpis,
+    required this.chips,
+    required this.activeChip,
+    required this.dateFilter,
+    required this.type,
+    required this.emptyTitle,
+    required this.emptySubtitle,
+    required this.emptyRoute,
+    required this.selectedProjectId,
+    required this.onChipChange,
+    required this.onDateFilter,
+    required this.onNavigate,
+  });
+
+  @override
+  State<_TimelineTabContent> createState() => _TimelineTabContentState();
+}
+
+class _TimelineTabContentState extends State<_TimelineTabContent> {
+  final Map<String, bool> _collapsed = {};
+
+  IconData get _typeIcon {
+    switch (widget.type) {
+      case 'labour':    return Icons.people_outline;
+      case 'equipment': return Icons.construction_outlined;
+      default:          return Icons.architecture;
+    }
+  }
+
+  List<Widget> _buildSlivers() {
+    final slivers = <Widget>[
+      // ── KPI Strip ──────────────────────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+          child: _KpiStrip(kpis: widget.kpis),
+        ),
+      ),
+
+      // ── Filter row ─────────────────────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: _FiltersRow(
+            chips:      widget.chips,
+            activeChip: widget.activeChip,
+            dateFilter: widget.dateFilter,
+            onChip:     widget.onChipChange,
+            onDate:     widget.onDateFilter,
+          ),
+        ),
+      ),
+    ];
+
+    if (widget.groups.isEmpty) {
+      slivers.add(SliverFillRemaining(
+        hasScrollBody: false,
+        child: _EmptyState(
+          title:    widget.emptyTitle,
+          subtitle: widget.emptySubtitle,
+          icon:     _typeIcon,
+          onAdd:    () => widget.onNavigate(widget.emptyRoute, {}),
+        ),
+      ));
+    } else {
+      for (final group in widget.groups) {
+        final isCollapsed = _collapsed[group.label] ?? false;
+
+        // Sticky date header
+        slivers.add(SliverPersistentHeader(
+          pinned: true,
+          delegate: _DateGroupHeaderDelegate(
+            label:     group.label,
+            count:     group.records.length,
+            collapsed: isCollapsed,
+            onToggle:  () => setState(() {
+              _collapsed[group.label] =
+                  !(_collapsed[group.label] ?? false);
+            }),
+          ),
+        ));
+
+        // Cards for this group
+        if (!isCollapsed) {
+          slivers.add(SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PurchaseCard(
+                    record:            group.records[i],
+                    selectedProjectId: widget.selectedProjectId,
+                    onNavigate:        widget.onNavigate,
+                  ),
+                ),
+                childCount: group.records.length,
+              ),
+            ),
+          ));
+        }
+      }
+
+      // Bottom padding so last card isn't hidden behind nav bar
+      slivers.add(
+          const SliverToBoxAdapter(child: SizedBox(height: 120)));
+    }
+
+    return slivers;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: _buildSlivers(),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATE GROUP HEADER  (sticky sliver)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DateGroupHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final String label;
+  final int    count;
+  final bool   collapsed;
+  final VoidCallback onToggle;
+
+  _DateGroupHeaderDelegate({
+    required this.label,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  @override double get minExtent => 46;
+  @override double get maxExtent => 46;
+
+  @override
+  bool shouldRebuild(_DateGroupHeaderDelegate old) =>
+      old.label != label ||
+      old.count != count ||
+      old.collapsed != collapsed;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Material(
+      color: overlapsContent
+          ? Colors.white
+          : const Color(0xFFF2F0FB),
+      elevation: overlapsContent ? 2 : 0,
+      child: InkWell(
+        onTap: onToggle,
+        child: Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today_outlined,
+                  size: 14, color: AppColors.primaryBlue),
+              const SizedBox(width: 8),
+              Text(label,
+                style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w800,
+                  color: AppColors.textDark, letterSpacing: -0.2)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count ${count == 1 ? "Item" : "Items"}',
+                  style: const TextStyle(
+                    fontSize: 10.5, fontWeight: FontWeight.w700,
+                    color: AppColors.primaryBlue)),
+              ),
+              const Spacer(),
+              AnimatedRotation(
+                turns: collapsed ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.keyboard_arrow_up_rounded,
+                    size: 20, color: AppColors.textLight),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PURCHASE CARD  –  adapts to material / labour / equipment
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _PurchaseCard extends StatelessWidget {
+  final _PurchaseRecord  record;
+  final String?          selectedProjectId;
+  final void Function(String route, Map<String, dynamic> args) onNavigate;
+
+  const _PurchaseCard({
+    required this.record,
+    required this.selectedProjectId,
+    required this.onNavigate,
+  });
+
+  // ── Type-specific labels ──────────────────────────────────────────────────
+
+  String get _qtyLabel {
+    switch (record.type) {
+      case 'labour':    return 'Days';
+      case 'equipment': return 'Hours';
+      default:          return 'Qty';
+    }
+  }
+
+  String get _vendorLabel {
+    switch (record.type) {
+      case 'labour':    return 'Worker';
+      case 'equipment': return 'Operator';
+      default:          return 'Vendor';
+    }
+  }
+
+  String get _addRoute {
+    switch (record.type) {
+      case 'labour':    return '/add-labour';
+      case 'equipment': return '/add-equipment';
+      default:          return '/add-material';
+    }
+  }
+
+  // ── Category-aware icon & colour ─────────────────────────────────────────
+
+  IconData get _icon {
+    if (record.type == 'labour') { return Icons.person_outline; }
+    if (record.type == 'equipment') { return Icons.construction_outlined; }
+    final cat = record.categoryName.toLowerCase();
+    if (cat.contains('cement'))                    { return Icons.architecture; }
+    if (cat.contains('steel') || cat.contains('iron')) { return Icons.straighten; }
+    if (cat.contains('sand')  || cat.contains('aggregate')) { return Icons.terrain; }
+    if (cat.contains('brick') || cat.contains('block'))  { return Icons.view_module_outlined; }
+    if (cat.contains('electric'))                  { return Icons.electrical_services; }
+    if (cat.contains('plumb') || cat.contains('pipe'))   { return Icons.plumbing; }
+    if (cat.contains('tile')  || cat.contains('floor'))  { return Icons.grid_view_outlined; }
+    if (cat.contains('wood')  || cat.contains('timber')) { return Icons.cabin_outlined; }
+    return Icons.inventory_2_outlined;
+  }
+
+  Color get _iconBg {
+    if (record.type == 'labour')    { return const Color(0xFFEEF2FF); }
+    if (record.type == 'equipment') { return const Color(0xFFECFDF5); }
+    final cat = record.categoryName.toLowerCase();
+    if (cat.contains('cement'))                       { return const Color(0xFFE8F5E9); }
+    if (cat.contains('steel') || cat.contains('iron')) { return const Color(0xFFE3F2FD); }
+    if (cat.contains('sand')  || cat.contains('aggregate')) { return const Color(0xFFFFF8E1); }
+    if (cat.contains('brick') || cat.contains('block'))   { return const Color(0xFFFBE9E7); }
+    if (cat.contains('electric'))                     { return const Color(0xFFF3E5F5); }
+    if (cat.contains('plumb') || cat.contains('pipe'))    { return const Color(0xFFE8EAF6); }
+    return const Color(0xFFEEF2FF);
+  }
+
+  Color get _iconColor {
+    if (record.type == 'labour')    { return AppColors.primaryBlue; }
+    if (record.type == 'equipment') { return const Color(0xFF16A34A); }
+    final cat = record.categoryName.toLowerCase();
+    if (cat.contains('cement'))                       { return const Color(0xFF4CAF50); }
+    if (cat.contains('steel') || cat.contains('iron')) { return const Color(0xFF1565C0); }
+    if (cat.contains('sand')  || cat.contains('aggregate')) { return const Color(0xFFF59E0B); }
+    if (cat.contains('brick') || cat.contains('block'))   { return const Color(0xFFE64A19); }
+    if (cat.contains('electric'))                     { return const Color(0xFF7B1FA2); }
+    if (cat.contains('plumb') || cat.contains('pipe'))    { return const Color(0xFF3949AB); }
+    return AppColors.primaryBlue;
+  }
+
+  String _formatQty() {
+    final q = record.quantity;
+    final s = q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
+    final u = record.unit.toLowerCase();
+    if (u.isEmpty || u == 'units' || u == 'unit') { return s; }
+    return '$s ${record.unit}';
+  }
+
+  Icon _vendorIcon() {
+    if (record.type == 'labour') {
+      return const Icon(Icons.person_outline,
+          size: 11, color: AppColors.textLight);
+    }
+    if (record.type == 'equipment') {
+      return const Icon(Icons.engineering_outlined,
+          size: 11, color: AppColors.textLight);
+    }
+    return const Icon(Icons.store_outlined,
+        size: 11, color: AppColors.textLight);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pending =
+        (record.billAmount - record.paidAmount).clamp(0.0, double.infinity);
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, '/logs', arguments: {
+          'type':      record.type,
+          'name':      record.itemName,
+          'projectId': selectedProjectId,
+        }),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Row 1: Icon · Title · Status + Menu ──────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: _iconBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(_icon, color: _iconColor, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(record.itemName,
+                            style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                              letterSpacing: -0.2),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              _vendorIcon(),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  record.vendor.isNotEmpty
+                                      ? '$_vendorLabel: ${record.vendor}'
+                                      : '$_vendorLabel: —',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: record.vendor.isNotEmpty
+                                        ? AppColors.textLight
+                                        : AppColors.textLight
+                                            .withValues(alpha: 0.5),
+                                    fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        PaymentStatusChip(status: record.payStatus),
+                        const SizedBox(height: 2),
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          iconSize: 18,
+                          icon: const Icon(Icons.more_vert,
+                              color: AppColors.textLight, size: 18),
+                          onSelected: (val) {
+                            if (val == 'edit') {
+                              final editArgs =
+                                  Map<String, dynamic>.from(record.rawTx);
+                              editArgs['isEditing'] = true;
+                              editArgs['id']        = record.txId;
+                              debugPrint('EDIT PAYLOAD');
+                              debugPrint(editArgs.toString());
+                              onNavigate(_addRoute, editArgs);
+                            } else if (val == 'history') {
+                              Navigator.pushNamed(context, '/logs',
+                                  arguments: {
+                                    'type':      record.type,
+                                    'name':      record.itemName,
+                                    'projectId': selectedProjectId,
+                                  });
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit Entry')),
+                            PopupMenuItem(
+                                value: 'history',
+                                child: Text('View History')),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // ── Partial payment breakdown ─────────────────────────────
+                if (record.payStatus == PaymentStatus.partial) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F7FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline,
+                            size: 13, color: Color(0xFF15803D)),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${formatCurrency(record.paidAmount)} Paid',
+                          style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700,
+                            color: Color(0xFF15803D))),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.schedule,
+                            size: 13, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${formatCurrency(pending)} Pending',
+                          style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700,
+                            color: Color(0xFFDC2626))),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 10),
+
+                // ── Metrics row: Qty | Rate | Total ──────────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F7FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: _MetricCell(_qtyLabel, _formatQty())),
+                      _vertDivider(),
+                      Expanded(
+                        child: _MetricCell('Rate',
+                            record.rate > 0
+                                ? formatCurrency(record.rate)
+                                : '—')),
+                      _vertDivider(),
+                      Expanded(
+                        child: _MetricCell(
+                            'Total',
+                            formatCurrency(record.billAmount),
+                            highlight: true)),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFF0EEF8)),
+                const SizedBox(height: 10),
+
+                // ── Action buttons ───────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PurchaseActionBtn(
+                        label: 'Add More',
+                        icon:  Icons.add_circle_outline,
+                        style: _ActionStyle.primary,
+                        onTap: () {
+                          debugPrint('ADD MORE PAYLOAD');
+                          debugPrint(record.rawTx.toString());
+                          onNavigate(_addRoute, {
+                            'isDuplicate':         true,
+                            'sourceTransactionId': record.txId,
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _PurchaseActionBtn(
+                        label: 'Record Payment',
+                        icon:  Icons.credit_card_outlined,
+                        style: _ActionStyle.secondary,
+                        onTap: () {
+                          final payArgs =
+                              Map<String, dynamic>.from(record.rawTx);
+                          payArgs['isEditing']   = true;
+                          payArgs['openPayment'] = true;
+                          payArgs['id']          = record.txId;
+                          onNavigate(_addRoute, payArgs);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _PurchaseActionBtn(
+                      label: 'History',
+                      icon:  Icons.history_rounded,
+                      style: _ActionStyle.tertiary,
+                      onTap: () => Navigator.pushNamed(context, '/logs',
+                          arguments: {
+                            'type':      record.type,
+                            'name':      record.itemName,
+                            'projectId': selectedProjectId,
+                          }),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _vertDivider() => Container(
+        width: 1, height: 28, color: const Color(0xFFE5E7EB),
+        margin: const EdgeInsets.symmetric(horizontal: 4));
+}
+
+// ─── Metric cell (Qty / Rate / Total) ─────────────────────────────────────
+
+class _MetricCell extends StatelessWidget {
+  final String label, value;
+  final bool   highlight;
+  const _MetricCell(this.label, this.value, {this.highlight = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value,
+          style: TextStyle(
+            fontSize:   highlight ? 14 : 12.5,
+            fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
+            color: highlight
+                ? AppColors.primaryBlue
+                : const Color(0xFF1A1A2E),
+            letterSpacing: -0.2),
+          textAlign: TextAlign.center,
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 3),
+        Text(label,
+          style: const TextStyle(
+            fontSize: 9.5, color: AppColors.textLight,
+            fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center),
+      ],
+    );
+  }
+}
+
+// ─── Action button ─────────────────────────────────────────────────────────
+
+enum _ActionStyle { primary, secondary, tertiary }
+
+class _PurchaseActionBtn extends StatelessWidget {
+  final String       label;
+  final IconData     icon;
+  final _ActionStyle style;
+  final VoidCallback onTap;
+
+  const _PurchaseActionBtn({
+    required this.label,
+    required this.icon,
+    required this.style,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    BoxDecoration deco;
+    Color color;
+
+    switch (style) {
+      case _ActionStyle.primary:
+        deco = BoxDecoration(
+          gradient: AppGradients.primaryButton,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlue.withValues(alpha: 0.15),
+              blurRadius: 6, offset: const Offset(0, 2)),
+          ]);
+        color = Colors.white;
+        break;
+      case _ActionStyle.secondary:
+        deco = BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: AppColors.primaryBlue, width: 1.2));
+        color = AppColors.primaryBlue;
+        break;
+      case _ActionStyle.tertiary:
+        deco  = const BoxDecoration();
+        color = AppColors.textLight;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        decoration: deco,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(label,
+                style: TextStyle(
+                  fontSize: 10.5, fontWeight: FontWeight.w700,
+                  color: color),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTERS ROW  –  category chips + date range pill
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _FiltersRow extends StatelessWidget {
+  final List<String> chips;
+  final String       activeChip;
+  final String       dateFilter;
+  final ValueChanged<String> onChip;
+  final void Function(String filter, DateTimeRange? custom) onDate;
+
+  const _FiltersRow({
+    required this.chips,
+    required this.activeChip,
+    required this.dateFilter,
+    required this.onChip,
+    required this.onDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Category chips
+        if (chips.length > 1)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: chips.map((cat) {
+                final isActive = cat == activeChip;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => onChip(cat),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient:
+                            isActive ? AppGradients.primaryButton : null,
+                        color: isActive ? null : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isActive
+                              ? Colors.transparent
+                              : const Color(0xFFDDE0F0),
+                          width: 1.2),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primaryBlue
+                                      .withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2))
+                              ]
+                            : null,
+                      ),
+                      child: Text(cat,
+                        style: TextStyle(
+                          color: isActive
+                              ? Colors.white
+                              : AppColors.textLight,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+        // Date filter pill
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onTap: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (ctx) => _DateRangeSheet(
+                    activeFilter: dateFilter,
+                    onSelect: (f, cr) {
+                      onDate(f, cr);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: const Color(0xFFDDE0F0), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 13, color: AppColors.primaryBlue),
+                    const SizedBox(width: 6),
+                    Text(
+                      dateFilter == 'All' ? 'All Time' : dateFilter,
+                      style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700,
+                        color: AppColors.textDark)),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 16, color: AppColors.textLight),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATE RANGE SHEET
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DateRangeSheet extends StatelessWidget {
+  final String activeFilter;
+  final void Function(String filter, DateTimeRange? custom) onSelect;
+
+  const _DateRangeSheet({
+    required this.activeFilter,
+    required this.onSelect,
+  });
+
+  static const List<(String, IconData)> _options = [
+    ('All',          Icons.all_inclusive),
+    ('Today',        Icons.today),
+    ('Yesterday',    Icons.timelapse),
+    ('This Week',    Icons.date_range),
+    ('This Month',   Icons.calendar_month),
+    ('Last Month',   Icons.history),
+    ('Last 3 Months', Icons.date_range_outlined),
+    ('This Year',    Icons.calendar_today),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20)),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Filter by Date',
+                style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w800,
+                  color: AppColors.textDark)),
+              const SizedBox(height: 8),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ..._options.map(((String, IconData) opt) {
+                        final (label, icon) = opt;
+                        final isActive = activeFilter == label;
+                        return ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1),
+                          leading: Icon(icon,
+                            color: isActive
+                                ? AppColors.primaryBlue
+                                : AppColors.textLight,
+                            size: 20),
+                          title: Text(label,
+                            style: TextStyle(
+                              color: isActive
+                                  ? AppColors.primaryBlue
+                                  : AppColors.textDark,
+                              fontWeight: isActive
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 14)),
+                          trailing: isActive
+                              ? const Icon(Icons.check_circle,
+                                  color: AppColors.primaryBlue,
+                                  size: 18)
+                              : null,
+                          onTap: () => onSelect(label, null),
+                        );
+                      }),
+                      ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                        leading: Icon(Icons.date_range_outlined,
+                          color: activeFilter == 'Custom'
+                              ? AppColors.primaryBlue
+                              : AppColors.textLight,
+                          size: 20),
+                        title: Text('Custom Range',
+                          style: TextStyle(
+                            color: activeFilter == 'Custom'
+                                ? AppColors.primaryBlue
+                                : AppColors.textDark,
+                            fontWeight: activeFilter == 'Custom'
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            fontSize: 14)),
+                        trailing: activeFilter == 'Custom'
+                            ? const Icon(Icons.check_circle,
+                                color: AppColors.primaryBlue, size: 18)
+                            : null,
+                        onTap: () async {
+                          final range = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now()
+                                .add(const Duration(days: 365)),
+                            initialDateRange: DateTimeRange(
+                              start: DateTime.now()
+                                  .subtract(const Duration(days: 30)),
+                              end: DateTime.now(),
+                            ),
+                          );
+                          if (range != null) {
+                            onSelect('Custom', range);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KPI STRIP  –  2 × 2 grid
+// ═══════════════════════════════════════════════════════════════════════════
+
 class _KpiStrip extends StatelessWidget {
   final List<_KpiData> kpis;
   const _KpiStrip({required this.kpis});
 
   @override
   Widget build(BuildContext context) {
-    if (kpis.length < 4) return const SizedBox.shrink();
+    if (kpis.length < 4) { return const SizedBox.shrink(); }
     return Column(
       children: [
         IntrinsicHeight(
@@ -936,18 +1753,18 @@ class _KpiStrip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _KpiCard(data: kpis[0])),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(child: _KpiCard(data: kpis[1])),
             ],
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _KpiCard(data: kpis[2])),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(child: _KpiCard(data: kpis[3])),
             ],
           ),
@@ -972,13 +1789,11 @@ class _KpiCard extends StatelessWidget {
           color: data.isAlert
               ? data.color.withValues(alpha: 0.35)
               : const Color(0xFFEEEBF8),
-          width: data.isAlert ? 1.5 : 1,
-        ),
+          width: data.isAlert ? 1.5 : 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8, offset: const Offset(0, 2),
-          ),
+            blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -988,88 +1803,25 @@ class _KpiCard extends StatelessWidget {
             width: 30, height: 30,
             decoration: BoxDecoration(
               color: data.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
+              borderRadius: BorderRadius.circular(9)),
             child: Icon(data.icon, color: data.color, size: 15),
           ),
           const SizedBox(height: 10),
-          Text(
-            data.value,
+          Text(data.value,
             style: TextStyle(
               fontSize: 14.5, fontWeight: FontWeight.w900,
-              color: data.isAlert ? data.color : const Color(0xFF1A1A2E),
-              letterSpacing: -0.3,
-            ),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-          ),
+              color: data.isAlert
+                  ? data.color
+                  : const Color(0xFF1A1A2E),
+              letterSpacing: -0.3),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
-          Text(
-            data.label,
+          Text(data.label,
             style: const TextStyle(
-              fontSize: 9.5, color: AppColors.textLight, fontWeight: FontWeight.w600),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-          ),
+              fontSize: 9.5, color: AppColors.textLight,
+              fontWeight: FontWeight.w600),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CATEGORY CHIP BAR
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _CategoryChipBar extends StatelessWidget {
-  final List<String> categories;
-  final String selected;
-  final ValueChanged<String> onSelect;
-  const _CategoryChipBar(
-      {required this.categories, required this.selected, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: categories
-            .map((cat) {
-              final isActive = cat == selected;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => onSelect(cat),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: isActive ? AppGradients.primaryButton : null,
-                      color: isActive ? null : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isActive ? Colors.transparent : const Color(0xFFDDE0F0),
-                        width: 1.2,
-                      ),
-                      boxShadow: isActive
-                          ? [
-                              BoxShadow(
-                                color: AppColors.primaryBlue.withValues(alpha: 0.2),
-                                blurRadius: 8, offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Text(
-                      cat,
-                      style: TextStyle(
-                        color: isActive ? Colors.white : AppColors.textLight,
-                        fontWeight: FontWeight.w700, fontSize: 12.5,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            })
-            .toList(),
       ),
     );
   }
@@ -1080,11 +1832,16 @@ class _CategoryChipBar extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _EmptyState extends StatelessWidget {
-  final String title, subtitle;
+  final String   title, subtitle;
   final IconData icon;
   final VoidCallback onAdd;
-  const _EmptyState(
-      {required this.title, required this.subtitle, required this.icon, required this.onAdd});
+
+  const _EmptyState({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onAdd,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1098,32 +1855,35 @@ class _EmptyState extends StatelessWidget {
               width: 76, height: 76,
               decoration: BoxDecoration(
                 color: AppColors.primaryBlue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Icon(icon, color: AppColors.primaryBlue, size: 34),
+                borderRadius: BorderRadius.circular(22)),
+              child: Icon(icon,
+                  color: AppColors.primaryBlue, size: 34),
             ),
             const SizedBox(height: 20),
             Text(title,
               style: const TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                fontSize: 17, fontWeight: FontWeight.w800,
+                color: AppColors.textDark),
               textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(subtitle,
-              style: const TextStyle(fontSize: 13, color: AppColors.textLight, height: 1.5),
+              style: const TextStyle(
+                fontSize: 13, color: AppColors.textLight, height: 1.5),
               textAlign: TextAlign.center),
             const SizedBox(height: 24),
             GestureDetector(
               onTap: onAdd,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 13),
                 decoration: BoxDecoration(
                   gradient: AppGradients.primaryButton,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primaryBlue.withValues(alpha: 0.3),
-                      blurRadius: 12, offset: const Offset(0, 4),
-                    ),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4)),
                   ],
                 ),
                 child: const Row(
@@ -1133,456 +1893,11 @@ class _EmptyState extends StatelessWidget {
                     SizedBox(width: 8),
                     Text('Add First Entry',
                       style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14)),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ERP ITEM CARD — Full information hierarchy
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _ErpItemCard extends StatelessWidget {
-  final InventoryItem item;
-  final IconData icon;
-  final String type;
-  final String? selectedProjectId;
-  final String projectName;
-  final String vendorName;
-  final double rate;
-  final double totalValue;
-  final PaymentStatus payStatus;
-  final void Function(String route, Map<String, dynamic> args) onAdd;
-
-  const _ErpItemCard({
-    required this.item,
-    required this.icon,
-    required this.type,
-    required this.selectedProjectId,
-    required this.projectName,
-    required this.vendorName,
-    required this.rate,
-    required this.totalValue,
-    required this.payStatus,
-    required this.onAdd,
-  });
-
-  // ── Stock level ───────────────────────────────────────────────────────────
-  bool   get _isLow  => item.closingStock < item.threshold;
-  bool   get _isHigh => item.closingStock > item.threshold * 2;
-  String get _level  => _isLow ? 'LOW' : (_isHigh ? 'HIGH' : 'MED');
-  Color  get _accent =>
-      _isLow ? const Color(0xFFEF4444) : (_isHigh ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
-
-  // ── Type-specific labels ──────────────────────────────────────────────────
-  String get _qtyLabel {
-    switch (type) {
-      case 'labour':    return 'Days Worked';
-      case 'equipment': return 'Usage Hours';
-      default:          return 'In Stock';
-    }
-  }
-  String get _rateLabel {
-    switch (type) {
-      case 'labour':    return 'Daily Wage';
-      case 'equipment': return 'Hourly Cost';
-      default:          return 'Rate/Unit';
-    }
-  }
-  String get _valueLabel {
-    switch (type) {
-      case 'labour':    return 'Total Wage';
-      case 'equipment': return 'Total Cost';
-      default:          return 'Total Value';
-    }
-  }
-  String get _vendorLabel {
-    switch (type) {
-      case 'labour': return 'Contractor';
-      default:       return 'Vendor';
-    }
-  }
-  String get _addRoute {
-    switch (type) {
-      case 'labour':    return '/add-labour';
-      case 'equipment': return '/add-equipment';
-      default:          return '/add-material';
-    }
-  }
-  String get _primaryActionLabel {
-    switch (type) {
-      case 'labour':    return 'Add Attendance';
-      case 'equipment': return 'Add Usage';
-      default:          return 'Add More';
-    }
-  }
-  String get _secondaryActionLabel {
-    return type == 'labour' ? 'Record Wage' : 'Record Payment';
-  }
-
-  String _fmtQty() {
-    final q = item.closingStock;
-    final s = q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
-    final u = (item.unit.isNotEmpty &&
-            item.unit.toLowerCase() != 'units' &&
-            item.unit.toLowerCase() != 'unit')
-        ? ' ${item.unit}' : '';
-    return '$s$u';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final txCount = item.transactions.length;
-
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/logs', arguments: {
-          'type': type,
-          'name': item.name,
-          'projectId': selectedProjectId,
-        }),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10, offset: const Offset(0, 2)),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Left accent bar ─────────────────────────────────────
-                  Container(width: 4, color: _accent),
-
-                  // ── Main content ────────────────────────────────────────
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-
-                          // Row 1: Icon + Name + Stock Badge
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 38, height: 38,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryBlue.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(icon, color: AppColors.primaryBlue, size: 18),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item.name,
-                                      style: const TextStyle(
-                                        fontSize: 15, fontWeight: FontWeight.w800,
-                                        color: AppColors.textDark, letterSpacing: -0.2,
-                                      ),
-                                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                                    if (vendorName.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Row(children: [
-                                        Icon(
-                                          type == 'labour'
-                                              ? Icons.business_center_outlined
-                                              : Icons.store_outlined,
-                                          size: 11, color: AppColors.textLight),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            '$_vendorLabel: $vendorName',
-                                            style: const TextStyle(
-                                              fontSize: 11, color: AppColors.textLight,
-                                              fontWeight: FontWeight.w600),
-                                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        ),
-                                      ]),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Stock badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _accent.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: _accent.withValues(alpha: 0.3), width: 1),
-                                ),
-                                child: Text(_level,
-                                  style: TextStyle(
-                                    fontSize: 10, fontWeight: FontWeight.w800,
-                                    color: _accent, letterSpacing: 0.5)),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Row 2: Project Context Tag
-                          if (projectName.isNotEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryBlue.withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.location_city_outlined,
-                                    size: 11, color: AppColors.primaryBlue),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(projectName,
-                                      style: const TextStyle(
-                                        fontSize: 11, color: AppColors.primaryBlue,
-                                        fontWeight: FontWeight.w700),
-                                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-
-                          // Row 3: Financial Cells
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8F7FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(child: _FinCell(_valueLabel,
-                                    formatCurrency(totalValue), highlight: true)),
-                                _vDiv(),
-                                Expanded(child: _FinCell(_qtyLabel, _fmtQty())),
-                                _vDiv(),
-                                Expanded(child: _FinCell(_rateLabel,
-                                    rate > 0 ? formatCurrency(rate) : '—')),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Row 4: Payment badge + transaction count (unified with a dot)
-                          Row(
-                            children: [
-                              PaymentStatusChip(status: payStatus),
-                              const SizedBox(width: 6),
-                              const Text(
-                                '•',
-                                style: TextStyle(
-                                  color: AppColors.textLight,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '$txCount transaction${txCount != 1 ? "s" : ""}',
-                                style: const TextStyle(
-                                  fontSize: 11, color: AppColors.textLight,
-                                  fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-                          const Divider(height: 1, color: Color(0xFFF0EEF8)),
-
-                          // Row 5: Action row
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _ActionBtn(
-                                    label: _primaryActionLabel,
-                                    icon: Icons.add_circle_outline,
-                                    type: ActionBtnType.primary,
-                                    onTap: () => onAdd(_addRoute, {
-                                      'type': type,
-                                      'prefill': item.name,
-                                      'latestRecord': item.transactions.isNotEmpty
-                                          ? item.transactions.first : null,
-                                    }),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _ActionBtn(
-                                    label: _secondaryActionLabel,
-                                    icon: Icons.receipt_long_outlined,
-                                    type: ActionBtnType.secondary,
-                                    onTap: () => Navigator.pushNamed(
-                                      context, '/logs',
-                                      arguments: {
-                                        'type': type, 'name': item.name,
-                                        'projectId': selectedProjectId,
-                                      }),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _ActionBtn(
-                                  label: 'History',
-                                  icon: Icons.history,
-                                  type: ActionBtnType.tertiary,
-                                  onTap: () => Navigator.pushNamed(
-                                    context, '/logs',
-                                    arguments: {
-                                      'type': type, 'name': item.name,
-                                      'projectId': selectedProjectId,
-                                    }),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _vDiv() => Container(
-    width: 1, height: 30, color: const Color(0xFFE5E7EB),
-    margin: const EdgeInsets.symmetric(horizontal: 2));
-}
-
-// ─── Financial cell ────────────────────────────────────────────────────────
-
-class _FinCell extends StatelessWidget {
-  final String label, value;
-  final bool highlight;
-  const _FinCell(this.label, this.value, {this.highlight = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value,
-          style: TextStyle(
-            fontSize: highlight ? 14.5 : 12.5,
-            fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
-            color: highlight ? AppColors.primaryBlue : const Color(0xFF1A1A2E),
-            letterSpacing: -0.2,
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 3),
-        Text(label,
-          style: const TextStyle(
-            fontSize: 9.5, color: AppColors.textLight, fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center),
-      ],
-    );
-  }
-}
-
-// ─── Action button ─────────────────────────────────────────────────────────
-
-enum ActionBtnType { primary, secondary, tertiary }
-
-class _ActionBtn extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final ActionBtnType type;
-  final VoidCallback onTap;
-
-  const _ActionBtn({
-    required this.label,
-    required this.icon,
-    required this.type,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    BoxDecoration decoration;
-    Color color;
-
-    switch (type) {
-      case ActionBtnType.primary:
-        decoration = BoxDecoration(
-          gradient: AppGradients.primaryButton,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        );
-        color = Colors.white;
-        break;
-      case ActionBtnType.secondary:
-        decoration = BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.primaryBlue, width: 1.2),
-        );
-        color = AppColors.primaryBlue;
-        break;
-      case ActionBtnType.tertiary:
-        decoration = const BoxDecoration(
-          color: Colors.transparent,
-        );
-        color = AppColors.textLight;
-        break;
-    }
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        decoration: decoration,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1597,13 +1912,16 @@ class _ActionBtn extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ProjectSelectorSheet extends StatelessWidget {
-  final List<String> allItems;
+  final List<String>        allItems;
   final Map<String, String?> idMap;
-  final String? selectedId;
+  final String?              selectedId;
   final void Function(String?) onSelect;
+
   const _ProjectSelectorSheet({
-    required this.allItems, required this.idMap,
-    required this.selectedId, required this.onSelect,
+    required this.allItems,
+    required this.idMap,
+    required this.selectedId,
+    required this.onSelect,
   });
 
   @override
@@ -1611,7 +1929,8 @@ class _ProjectSelectorSheet extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(20)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20)),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
@@ -1629,42 +1948,57 @@ class _ProjectSelectorSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text('Select Project',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
-                    color: AppColors.textDark)),
+                style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w800,
+                  color: AppColors.textDark)),
               const SizedBox(height: 12),
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
                   children: allItems.map((label) {
-                    final id = label == 'All Active Projects' ? null : idMap[label];
+                    final id    = label == 'All Active Projects'
+                        ? null
+                        : idMap[label];
                     final isSel = selectedId == id;
                     return InkWell(
                       onTap: () => onSelect(id),
                       borderRadius: BorderRadius.circular(12),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 13),
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
                           color: isSel
-                              ? AppColors.primaryBlue.withValues(alpha: 0.08)
+                              ? AppColors.primaryBlue
+                                  .withValues(alpha: 0.08)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSel ? AppColors.primaryBlue : Colors.transparent,
-                            width: 1.5),
-                        ),
+                            color: isSel
+                                ? AppColors.primaryBlue
+                                : Colors.transparent,
+                            width: 1.5)),
                         child: Row(children: [
                           Icon(
-                            isSel ? Icons.radio_button_checked : Icons.radio_button_off,
+                            isSel
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
                             size: 18,
-                            color: isSel ? AppColors.primaryBlue : AppColors.textLight),
+                            color: isSel
+                                ? AppColors.primaryBlue
+                                : AppColors.textLight),
                           const SizedBox(width: 12),
                           Flexible(
                             child: Text(label,
-                              style: TextStyle(fontSize: 15,
-                                color: isSel ? AppColors.primaryBlue : AppColors.textDark,
-                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500)),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: isSel
+                                    ? AppColors.primaryBlue
+                                    : AppColors.textDark,
+                                fontWeight: isSel
+                                    ? FontWeight.w700
+                                    : FontWeight.w500)),
                           ),
                         ]),
                       ),
@@ -1677,309 +2011,6 @@ class _ProjectSelectorSheet extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// FILTER SHEET
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _FilterSheet extends StatelessWidget {
-  final String activeFilter;
-  final ValueChanged<String> onSelect;
-  const _FilterSheet({required this.activeFilter, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    const options = <(String, IconData)>[
-      ('A → Z', Icons.sort_by_alpha),
-      ('Recently Added', Icons.access_time),
-      ('Low Stock', Icons.warning_amber_rounded),
-    ];
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE0F0),
-                  borderRadius: BorderRadius.circular(4)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Sort & Filter',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
-                  color: AppColors.textDark)),
-            const SizedBox(height: 12),
-            ...options.map(((String, IconData) opt) {
-              final (label, icon) = opt;
-              final isActive = activeFilter == label;
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: Icon(icon,
-                  color: isActive ? AppColors.primaryBlue : AppColors.textLight),
-                title: Text(label,
-                  style: TextStyle(
-                    color: isActive ? AppColors.primaryBlue : AppColors.textDark,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500)),
-                trailing: isActive
-                    ? const Icon(Icons.check_circle,
-                        color: AppColors.primaryBlue, size: 20) : null,
-                onTap: () => onSelect(label),
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ERP FINANCIAL STRIP
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _FinancialStrip extends StatelessWidget {
-  final List<(String, String)> items;
-  const _FinancialStrip({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F6FB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8E5F6)),
-      ),
-      child: Row(
-        children: List.generate(items.length, (index) {
-          final (label, value) = items[index];
-          return Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textDark,
-                          letterSpacing: -0.1,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 9.5,
-                          color: AppColors.textLight,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                if (index < items.length - 1)
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: const Color(0xFFDDD9F2),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ERP OPERATIONAL ALERTS SECTION
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _ErpAlertsSection extends StatelessWidget {
-  final List<InventoryItem> items;
-  const _ErpAlertsSection({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final lowStock = items.where((i) => i.closingStock < i.threshold).toList();
-    
-    // For pending, find transactions that are not fully paid
-    final pendingTx = <Map<String, dynamic>>[];
-    for (final item in items) {
-      for (final raw in item.transactions) {
-        final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
-        if (tx != null && (tx['paymentStatus'] ?? '').toString().toLowerCase().trim() != 'paid') {
-          pendingTx.add({
-            ...tx,
-            'itemName': item.name,
-          });
-        }
-      }
-    }
-    
-    if (lowStock.isEmpty && pendingTx.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        const Text(
-          'ERP OPERATIONAL ALERTS',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textLight,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (lowStock.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF5F5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFEE2E2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Low Stock Alerts (${lowStock.length})',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF991B1B),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...lowStock.take(2).map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: Color(0xFF7F1D1D),
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        '${item.closingStock % 1 == 0 ? item.closingStock.toInt() : item.closingStock} ${item.unit} (Min: ${item.threshold.toInt()})',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFFB91C1C),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        if (pendingTx.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFEF3C7)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.pending_actions, color: Color(0xFFD97706), size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Outstanding Payments (${pendingTx.length})',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF92400E),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...pendingTx.take(2).map((tx) {
-                  final title = tx['itemName'] ?? tx['title'] ?? 'Unknown';
-                  final bill = (tx['amount'] ?? 0).toDouble();
-                  final paid = (tx['paidAmount'] ?? 0).toDouble();
-                  final pending = (bill - paid).clamp(0.0, double.infinity);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF78350F),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          'Pending: ${formatCurrency(pending)}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFFB45309),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

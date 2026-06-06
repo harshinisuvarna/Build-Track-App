@@ -2,45 +2,41 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/config/api_config.dart';
 
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  // Configured Base URL based on runtime platform
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5001/api';
-    }
-    // Android emulator maps 10.0.2.2 to host localhost port 5000
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5001/api';
-    }
-    // iOS simulator, macOS, Windows, Linux
-    return 'http://localhost:5001/api';
-    
-    // Ngrok Fallback (Uncomment if testing on a physical device over network)
-    // return 'https://unsecured-coastland-canister.ngrok-free.dev/api';
-  }
+  static List<ProjectModel>? mockProjects;
+  // ==========================================
+  // PRODUCTION BASE URL (single source of truth)
+  // ==========================================
+  /// All API calls route to the Render production backend.
+  /// To change the URL, edit [ApiConfig.baseUrl] in lib/config/api_config.dart.
+  static String get baseUrl => ApiConfig.baseUrl;
 
   // ==========================================
   // ROSELIN'S WORK: CORE AUTH & GENERIC ROUTES
   // ==========================================
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    // ✅ Try 'token' first, fall back to 'jwt_token'
+    // Try 'token' first, fall back to 'jwt_token'
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
 
-  return {
-    'Content-Type': 'application/json',
-    // ✅ Required for ngrok to not block browser requests
-    'ngrok-skip-browser-warning': 'true',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
-}
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
-    return http.get(Uri.parse('$baseUrl$endpoint'), headers: headers);
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [GET]: $url');
+    final response = await http.get(Uri.parse(url), headers: headers);
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> post(
@@ -48,11 +44,17 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     final headers = await _getHeaders();
-    return http.post(
-      Uri.parse('$baseUrl$endpoint'),
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [POST]: $url');
+    debugPrint('Payload: ${jsonEncode(body)}');
+    final response = await http.post(
+      Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
     );
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> put(
@@ -60,16 +62,27 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     final headers = await _getHeaders();
-    return http.put(
-      Uri.parse('$baseUrl$endpoint'),
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [PUT]: $url');
+    debugPrint('Payload: ${jsonEncode(body)}');
+    final response = await http.put(
+      Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
     );
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();
-    return http.delete(Uri.parse('$baseUrl$endpoint'), headers: headers);
+    final url = '$baseUrl$endpoint';
+    debugPrint('API Request [DELETE]: $url');
+    final response = await http.delete(Uri.parse(url), headers: headers);
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+    return response;
   }
 
   // ==========================================
@@ -77,6 +90,7 @@ class ApiService {
   // ==========================================
 
   static Future<List<ProjectModel>> fetchProjects() async {
+    if (mockProjects != null) return mockProjects!;
     try {
       final response = await get('/projects');
 
@@ -663,6 +677,29 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> fetchTransactionById(String id) async {
+    try {
+      final response = await get('/transactions/$id');
+      if (kDebugMode) {
+        print('=== FETCH TRANSACTION BY ID RESPONSE ===');
+        print('Status Code: ${response.statusCode}');
+        print('Body: ${response.body}');
+      }
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return decoded['transaction'] ?? decoded['data'] ?? decoded;
+        }
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('fetchTransactionById error: $e');
+      }
+      return null;
+    }
+  }
+
   static Future<bool> deleteProject(String id) async {
     try {
       final response = await delete('/projects/$id');
@@ -832,3 +869,4 @@ class ApiService {
     }
   }
 }
+
