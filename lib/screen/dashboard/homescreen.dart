@@ -196,14 +196,23 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20, right: 20),
+            padding: const EdgeInsets.only(
+              top: 60,
+              bottom: 20,
+              left: 20,
+              right: 20,
+            ),
             decoration: const BoxDecoration(color: AppColors.primary),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'BuildTrack Menu',
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -215,28 +224,55 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.person, color: AppColors.textDark),
-            title: const Text('Profile', style: TextStyle(color: AppColors.textDark)),
+            title: const Text(
+              'Profile',
+              style: TextStyle(color: AppColors.textDark),
+            ),
             onTap: () => Navigator.pushNamed(context, '/profile'),
           ),
           if (UserSession.isAdmin) ...[
             const Divider(),
             const Padding(
               padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
-              child: Text('Admin Controls', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Admin Controls',
+                style: TextStyle(
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.workspaces_outline, color: AppColors.textDark),
-              title: const Text('Create Workspace', style: TextStyle(color: AppColors.textDark)),
+              leading: const Icon(
+                Icons.workspaces_outline,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Create Workspace',
+                style: TextStyle(color: AppColors.textDark),
+              ),
               onTap: () => Navigator.pushNamed(context, '/create-workspace'),
             ),
             ListTile(
-              leading: const Icon(Icons.manage_accounts_outlined, color: AppColors.textDark),
-              title: const Text('Assign Roles', style: TextStyle(color: AppColors.textDark)),
+              leading: const Icon(
+                Icons.manage_accounts_outlined,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Assign Roles',
+                style: TextStyle(color: AppColors.textDark),
+              ),
               onTap: () => Navigator.pushNamed(context, '/assign-role'),
             ),
             ListTile(
-              leading: const Icon(Icons.receipt_long_outlined, color: AppColors.textDark),
-              title: const Text('Transaction Logs', style: TextStyle(color: AppColors.textDark)),
+              leading: const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Transaction Logs',
+                style: TextStyle(color: AppColors.textDark),
+              ),
               onTap: () => Navigator.pushNamed(context, '/logs'),
             ),
           ],
@@ -262,7 +298,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/notifications'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/notifications'),
                       child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
@@ -292,24 +329,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (UserSession.isAdmin)
-                      _AdminDashboard(onEntryTap: _showEntryOptions),
-                    if (UserSession.isSupervisor) const _SupervisorDashboard(),
-                    if (UserSession.isMason)
-                      _MasonDashboard(onEntryTap: _showEntryOptions),
-                  ],
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (UserSession.isAdmin)
+                        _AdminDashboard(onEntryTap: _showEntryOptions),
+                      if (UserSession.isSupervisor)
+                        const _SupervisorDashboard(),
+                      if (UserSession.isMason)
+                        _MasonDashboard(onEntryTap: _showEntryOptions),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const AppBottomNav(),
@@ -396,18 +434,20 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         Row(
           children: [
             Expanded(
-            child:_costCard(
+              child: _costCard(
                 'TOTAL COST',
                 // ✅ show only actually paid amounts from entries
                 project != null
                     ? formatCurrency(
-                        context.read<ProjectProvider>()
-                            .totalSpentForProject(project.id),
+                        context.read<ProjectProvider>().totalSpentForProject(
+                          project.id,
+                        ),
                       )
                     : '₹—',
                 project != null
                     ? () {
-                        final paid = context.read<ProjectProvider>()
+                        final paid = context
+                            .read<ProjectProvider>()
                             .totalSpentForProject(project.id);
                         final budget = project.totalBudget;
                         final pct = budget > 0
@@ -417,10 +457,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       }()
                     : '—',
                 project != null &&
-                    context.read<ProjectProvider>()
-                            .totalSpentForProject(project.id) >
+                    context.read<ProjectProvider>().totalSpentForProject(
+                          project.id,
+                        ) >
                         project.totalBudget * 0.9,
-              ), 
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -550,7 +591,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: selected ? primaryBlue : Colors.transparent,
+                              color: selected
+                                  ? primaryBlue
+                                  : Colors.transparent,
                               width: 1.5,
                             ),
                           ),
@@ -726,7 +769,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         AppSectionHeader(
           title: 'Recent Activity',
           actionLabel: 'View All',
-          onAction: () => Navigator.pushNamed(context, '/logs', arguments: {'projectId': null}),
+          onAction: () => Navigator.pushNamed(
+            context,
+            '/logs',
+            arguments: {'projectId': null},
+          ),
         ),
         const SizedBox(height: 8),
         if (recent.isEmpty)
@@ -895,6 +942,7 @@ class _SupervisorDashboard extends StatefulWidget {
   @override
   State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
 }
+
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
   late Future<List<dynamic>> _tasksFuture;
@@ -943,20 +991,28 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            ),
           );
         }
-        
+
         final liveItems = snapshot.data ?? [];
-        
+
         // Ensure status map is populated for new items
         for (int i = 0; i < liveItems.length; i++) {
           _statuses.putIfAbsent(i, () => 'pending');
         }
 
-        final pendingCount = _statuses.values.where((s) => s == 'pending').length;
-        final approvedCount = _statuses.values.where((s) => s == 'approved').length;
-        final rejectedCount = _statuses.values.where((s) => s == 'rejected').length;
+        final pendingCount = _statuses.values
+            .where((s) => s == 'pending')
+            .length;
+        final approvedCount = _statuses.values
+            .where((s) => s == 'approved')
+            .length;
+        final rejectedCount = _statuses.values
+            .where((s) => s == 'rejected')
+            .length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,30 +1033,49 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
             const SizedBox(height: 16),
             const AppSectionHeader(title: 'Pending Approvals'),
             if (liveItems.isEmpty)
-               const Padding(
-                 padding: EdgeInsets.all(16.0),
-                 child: Text('No daily tasks found from server.', style: TextStyle(color: Colors.grey)),
-               ),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No daily tasks found from server.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
             ...List.generate(
               liveItems.length,
-              (i) => _pendingCard(context, liveItems[i] as Map<String, dynamic>, i),
+              (i) => _pendingCard(
+                context,
+                liveItems[i] as Map<String, dynamic>,
+                i,
+              ),
             ),
             const SizedBox(height: 8),
             const AppSectionHeader(title: 'Recent Updates'),
             AppCard(
               child: Column(
                 children: [
-                  _recentRow('Beam Casting – Level 1', 'Mohan Singh', AppStatus.completed),
+                  _recentRow(
+                    'Beam Casting – Level 1',
+                    'Mohan Singh',
+                    AppStatus.completed,
+                  ),
                   const AppDivider(verticalPadding: 8),
-                  _recentRow('Plastering – East Wing', 'Ravi Teja', AppStatus.inProgress),
+                  _recentRow(
+                    'Plastering – East Wing',
+                    'Ravi Teja',
+                    AppStatus.inProgress,
+                  ),
                   const AppDivider(verticalPadding: 8),
-                  _recentRow('Curing – Ground Slab', 'Pradeep K', AppStatus.delayed),
+                  _recentRow(
+                    'Curing – Ground Slab',
+                    'Pradeep K',
+                    AppStatus.delayed,
+                  ),
                 ],
               ),
             ),
           ],
         );
-      }
+      },
     );
   }
 
@@ -1045,7 +1120,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   ) {
     final status = _statuses[index];
     final isPending = status == 'pending';
-    
+
     // Smart parsing to prevent crashes from backend mismatches
     final masonName = item['mason'] ?? item['assignee'] ?? 'Unknown Mason';
     final taskName = item['task'] ?? item['title'] ?? 'Daily Task';
@@ -1149,7 +1224,9 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                 child: AppButton(
                   label: 'Approve',
                   icon: Icons.check_circle_outline,
-                  onPressed: isPending ? () => _approve(index, taskName) : () {},
+                  onPressed: isPending
+                      ? () => _approve(index, taskName)
+                      : () {},
                   enabled: isPending,
                 ),
               ),
@@ -1233,10 +1310,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Good Morning, Mason', style: AppTheme.heading3),
-                  Text(
-                    'Ready for today\'s tasks',
-                    style: AppTheme.caption,
-                  ),
+                  Text('Ready for today\'s tasks', style: AppTheme.caption),
                 ],
               ),
             ],
@@ -1266,28 +1340,38 @@ class _MasonDashboardState extends State<_MasonDashboard> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 30),
-                child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
               );
             }
             if (snapshot.hasError) {
               return const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('Failed to load tasks from server.', style: TextStyle(color: Colors.red)),
+                child: Text(
+                  'Failed to load tasks from server.',
+                  style: TextStyle(color: Colors.red),
+                ),
               );
             }
 
             final liveTasks = snapshot.data ?? [];
             if (liveTasks.isEmpty) {
-               return const Padding(
-                 padding: EdgeInsets.all(16.0),
-                 child: Text('No tasks assigned for today.', style: TextStyle(color: Colors.grey)),
-               );
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No tasks assigned for today.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
             }
 
             return Column(
-              children: liveTasks.map((t) => _taskCard(t as Map<String, dynamic>)).toList(),
+              children: liveTasks
+                  .map((t) => _taskCard(t as Map<String, dynamic>))
+                  .toList(),
             );
-          }
+          },
         ),
       ],
     );
@@ -1299,7 +1383,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
       'In Progress': AppStatus.inProgress,
       'Not Started': AppStatus.notStarted,
     };
-    
+
     // Smart parsing for dynamic backend data
     final taskName = task['task'] ?? task['title'] ?? 'Task';
     final phaseStr = task['phase'] ?? task['category'] ?? 'General';
@@ -1323,9 +1407,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
               ],
             ),
           ),
-          AppStatusBadge(
-            status: statusMap[statusStr] ?? AppStatus.notStarted,
-          ),
+          AppStatusBadge(status: statusMap[statusStr] ?? AppStatus.notStarted),
         ],
       ),
     );

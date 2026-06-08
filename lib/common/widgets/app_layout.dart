@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
+
 class AppLayout extends StatelessWidget {
   const AppLayout({
     super.key,
@@ -46,14 +47,12 @@ class AppLayout extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
       body: SafeArea(
-        child: Padding(
-          padding: padding,
-          child: child,
-        ),
+        child: Padding(padding: padding, child: child),
       ),
     );
   }
 }
+
 class AppScrollLayout extends StatelessWidget {
   const AppScrollLayout({
     super.key,
@@ -105,6 +104,7 @@ class AppScrollLayout extends StatelessWidget {
     );
   }
 }
+
 class AppSubScreenLayout extends StatelessWidget {
   const AppSubScreenLayout({
     super.key,
@@ -169,13 +169,11 @@ class AppSubScreenLayout extends StatelessWidget {
       ),
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
-      body: SafeArea(
-        bottom: false,
-        child: body,
-      ),
+      body: SafeArea(bottom: false, child: body),
     );
   }
 }
+
 class AppTabLayout extends StatelessWidget {
   const AppTabLayout({
     super.key,
@@ -184,11 +182,31 @@ class AppTabLayout extends StatelessWidget {
     required this.selectedIndex,
     required this.onTabChanged,
     this.tabs = const [
-      AppTabItem(icon: Icons.home_outlined, activeIcon: Icons.home,       label: 'Home'),
-      AppTabItem(icon: Icons.folder_outlined, activeIcon: Icons.folder,   label: 'Projects'),
-      AppTabItem(icon: Icons.add_circle_outline, activeIcon: Icons.add_circle, label: 'Add'),
-      AppTabItem(icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2, label: 'Stock'),
-      AppTabItem(icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart, label: 'Reports'),
+      AppTabItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        label: 'Home',
+      ),
+      AppTabItem(
+        icon: Icons.folder_outlined,
+        activeIcon: Icons.folder,
+        label: 'Projects',
+      ),
+      AppTabItem(
+        icon: Icons.add_circle_outline,
+        activeIcon: Icons.add_circle,
+        label: 'Add',
+      ),
+      AppTabItem(
+        icon: Icons.inventory_2_outlined,
+        activeIcon: Icons.inventory_2,
+        label: 'Stock',
+      ),
+      AppTabItem(
+        icon: Icons.bar_chart_outlined,
+        activeIcon: Icons.bar_chart,
+        label: 'Reports',
+      ),
     ],
     this.actions,
     this.backgroundColor = AppTheme.background,
@@ -214,10 +232,7 @@ class AppTabLayout extends StatelessWidget {
         foregroundColor: AppColors.textDark,
         actions: actions,
       ),
-      body: SafeArea(
-        bottom: false,
-        child: child,
-      ),
+      body: SafeArea(bottom: false, child: child),
       bottomNavigationBar: _AppBottomNav(
         selectedIndex: selectedIndex,
         onTabChanged: onTabChanged,
@@ -226,6 +241,7 @@ class AppTabLayout extends StatelessWidget {
     );
   }
 }
+
 class AppTabItem {
   const AppTabItem({
     required this.icon,
@@ -281,7 +297,9 @@ class _AppBottomNav extends StatelessWidget {
                       children: [
                         Icon(
                           selected ? tab.activeIcon : tab.icon,
-                          color: selected ? AppTheme.primary : AppTheme.textLight,
+                          color: selected
+                              ? AppTheme.primary
+                              : AppTheme.textLight,
                           size: 24,
                         ),
                         const SizedBox(height: 3),
@@ -289,8 +307,12 @@ class _AppBottomNav extends StatelessWidget {
                           tab.label,
                           style: TextStyle(
                             fontSize: 10,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                            color: selected ? AppTheme.primary : AppTheme.textLight,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w400,
+                            color: selected
+                                ? AppTheme.primary
+                                : AppTheme.textLight,
                           ),
                         ),
                       ],
@@ -305,6 +327,7 @@ class _AppBottomNav extends StatelessWidget {
     );
   }
 }
+
 class AppLoadingOverlay extends StatelessWidget {
   const AppLoadingOverlay({
     super.key,

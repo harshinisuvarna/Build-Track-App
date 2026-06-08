@@ -1,9 +1,8 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 
 class AppTopBar extends StatelessWidget {
   final String title;
@@ -22,7 +21,7 @@ class AppTopBar extends StatelessWidget {
   });
 
   static const _primaryBlue = AppColors.primary;
-  static const _textDark    = AppColors.textDark;
+  static const _textDark = AppColors.textDark;
 
   @override
   Widget build(BuildContext context) {
@@ -58,20 +57,19 @@ class AppTopBar extends StatelessWidget {
                 ),
               ),
             ),
-            IntrinsicWidth(
-              child: rightWidget ?? const SizedBox(width: 32),
-            ),
+            IntrinsicWidth(child: rightWidget ?? const SizedBox(width: 32)),
           ],
         ),
       ),
     );
   }
 }
+
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
 
   static const _primaryBlue = AppColors.primary;
-  static const _textGray    = AppColors.textLight;
+  static const _textGray = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +95,20 @@ class AppBottomNav extends StatelessWidget {
             children: [
               _navItem(context, nav, 0, Icons.home_rounded, 'HOME'),
               _navItem(
-                  context, nav, 1, Icons.architecture_outlined, 'PROJECTS'),
+                context,
+                nav,
+                1,
+                Icons.architecture_outlined,
+                'PROJECTS',
+              ),
               _entryButton(context, nav),
               _navItem(
-                  context, nav, 3, Icons.inventory_2_outlined, 'INVENTORY'),
+                context,
+                nav,
+                3,
+                Icons.inventory_2_outlined,
+                'INVENTORY',
+              ),
               _navItem(context, nav, 4, Icons.bar_chart_outlined, 'REPORTS'),
             ],
           ),
@@ -128,11 +136,7 @@ class AppBottomNav extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isActive ? _primaryBlue : _textGray,
-              ),
+              Icon(icon, size: 22, color: isActive ? _primaryBlue : _textGray),
               const SizedBox(height: 3),
               Text(
                 label,

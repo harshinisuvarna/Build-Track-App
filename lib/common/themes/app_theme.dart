@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 class AppTheme {
   AppTheme._();
 
@@ -16,20 +17,20 @@ class AppTheme {
   static const double radiusLg = 16;
   static const double radiusXl = 24;
 
-  static const Color primary      = AppColors.primaryBlue;
+  static const Color primary = AppColors.primaryBlue;
   static const Color primaryLight = AppColors.primaryLightBlue;
-  static const Color secondary    = AppColors.primaryPurple;
-  static const Color surface      = AppColors.cardBg;
-  static const Color background   = AppColors.bgBase1;
-  static const Color success      = AppColors.success;
-  static const Color warning      = AppColors.warning;
-  static const Color error        = AppColors.error;
-  static const Color info         = AppColors.info;
-  static const Color textDark     = AppColors.textPrimary;
-  static const Color textMedium   = AppColors.textMedium;
-  static const Color textLight    = AppColors.textSecondary;
-  static const Color border       = AppColors.cardBorder;
-  static const Color divider      = AppColors.divider;
+  static const Color secondary = AppColors.primaryPurple;
+  static const Color surface = AppColors.cardBg;
+  static const Color background = AppColors.bgBase1;
+  static const Color success = AppColors.success;
+  static const Color warning = AppColors.warning;
+  static const Color error = AppColors.error;
+  static const Color info = AppColors.info;
+  static const Color textDark = AppColors.textPrimary;
+  static const Color textMedium = AppColors.textMedium;
+  static const Color textLight = AppColors.textSecondary;
+  static const Color border = AppColors.cardBorder;
+  static const Color divider = AppColors.divider;
 
   static final List<BoxShadow> premiumShadow = [
     BoxShadow(
@@ -40,11 +41,7 @@ class AppTheme {
   ];
 
   static const List<BoxShadow> cardShadows = [
-    BoxShadow(
-      color: Color(0x0A000000),
-      blurRadius: 12,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
   ];
 
   static const LinearGradient backgroundGradient = LinearGradient(
@@ -65,26 +62,16 @@ class AppTheme {
     foregroundColor: Colors.white,
     minimumSize: const Size.fromHeight(48),
     elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    textStyle: GoogleFonts.inter(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
   );
 
   static final ButtonStyle outlineButton = OutlinedButton.styleFrom(
     foregroundColor: AppColors.primaryBlue,
     minimumSize: const Size.fromHeight(48),
     side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    textStyle: GoogleFonts.inter(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
   );
 
   static final TextStyle heading1 = GoogleFonts.inter(

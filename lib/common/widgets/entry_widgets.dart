@@ -808,10 +808,21 @@ class ExecutionContextCard extends StatelessWidget {
         } else if (selectedPhase is PhaseModel) {
           selPhaseName = selectedPhase.name;
         } else if (selectedPhase is Map) {
-          selPhaseName = (selectedPhase['phaseName'] ?? selectedPhase['name'] ?? selectedPhase['title'] ?? selectedPhase['id'] ?? selectedPhase['_id'] ?? '').toString();
+          selPhaseName =
+              (selectedPhase['phaseName'] ??
+                      selectedPhase['name'] ??
+                      selectedPhase['title'] ??
+                      selectedPhase['id'] ??
+                      selectedPhase['_id'] ??
+                      '')
+                  .toString();
         } else if (selectedPhase != null) {
           try {
-            selPhaseName = (selectedPhase.phaseName ?? selectedPhase.name ?? selectedPhase.title).toString();
+            selPhaseName =
+                (selectedPhase.phaseName ??
+                        selectedPhase.name ??
+                        selectedPhase.title)
+                    .toString();
           } catch (_) {
             selPhaseName = selectedPhase.toString();
           }
@@ -870,7 +881,8 @@ class ExecutionContextCard extends StatelessWidget {
         if (selPhaseName != null && !visiblePhaseNames.contains(selPhaseName)) {
           visiblePhaseNames.insert(0, selPhaseName);
         }
-        if (selectedActivity != null && !activities.contains(selectedActivity)) {
+        if (selectedActivity != null &&
+            !activities.contains(selectedActivity)) {
           activities.insert(0, selectedActivity!);
         }
 
