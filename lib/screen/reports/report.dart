@@ -1,3 +1,8 @@
+// lib/screen/reports/report.dart
+// CHANGES FROM ORIGINAL:
+//   1. Added "Ask AI" banner button at the bottom of _buildPageContent
+//   2. No other changes — all existing logic preserved
+
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -29,19 +34,17 @@ class _ReportsView extends StatefulWidget {
 
 class _ReportsViewState extends State<_ReportsView> {
   final _pageController = PageController();
-  bool _linked = false; // ← ADD THIS
+  bool _linked = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_linked) {
-      // ← ADD THIS CHECK
       _linked = true;
       final projectProvider = context.read<ProjectProvider>();
       context.read<ReportProvider>().linkProjectProvider(projectProvider);
     }
   }
-  // ... rest unchanged
 
   @override
   void dispose() {
@@ -52,7 +55,6 @@ class _ReportsViewState extends State<_ReportsView> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-    // Watch project provider so widget rebuilds when entries/projects change
     context.watch<ProjectProvider>();
 
     return Scaffold(
@@ -83,7 +85,6 @@ class _ReportsViewState extends State<_ReportsView> {
                 tabIndex: provider.tabIndex,
                 onTabChanged: (i) {
                   provider.selectTab(i);
-
                   if (_pageController.page?.round() != i) {
                     _pageController.animateToPage(
                       i,
@@ -122,7 +123,7 @@ class _ReportsViewState extends State<_ReportsView> {
     }
 
     if (provider.error != null && provider.error!.trim().isNotEmpty) {
-      debugPrint("REPORT CRASH EXCEPTION: ${provider.error}"); // 👈 ADD THIS LINE
+      debugPrint("REPORT CRASH EXCEPTION: ${provider.error}");
       return AppEmptyState(
         icon: Icons.cloud_off_outlined,
         message: 'Failed to load report.\nPull down to retry.',
@@ -146,6 +147,9 @@ class _ReportsViewState extends State<_ReportsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _AskAiBanner(projectName: provider.selectedProjectName),
+          const SizedBox(height: 14),
+
           ProjectSelector(provider: provider),
           const SizedBox(height: 14),
 
@@ -155,8 +159,6 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Cost per Unit'),
-
-          // ✅ FIXED LINE (IMPORTANT)
           ChartSection(report: report),
 
           const SizedBox(height: 14),
@@ -177,6 +179,84 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 }
+
+// ─── Ask AI banner button ─────────────────────────────────────────────────────
+
+class _AskAiBanner extends StatelessWidget {
+  const _AskAiBanner({required this.projectName});
+  final String projectName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.pushNamed(
+          context,
+          '/ai-chat',
+          arguments: {'projectName': projectName},
+        ),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF5B5FCF),
+                AppColors.primary.withValues(alpha: 0.80),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome,
+                      color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ask AI',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Ask about costs, entries & inventory',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios,
+                    color: Colors.white70, size: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Period tabs (unchanged) ──────────────────────────────────────────────────
 
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({required this.tabIndex, required this.onTabChanged});

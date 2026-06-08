@@ -24,6 +24,7 @@ import 'package:buildtrack_mobile/screen/projects/projectscreen.dart';
 import 'package:buildtrack_mobile/screen/inventory/receipt_viewer.dart';
 import 'package:buildtrack_mobile/screen/reports/report.dart';
 import 'package:buildtrack_mobile/screen/reports/report_insights_screen.dart';
+import 'package:buildtrack_mobile/screen/reports/ai_chat_report_screen.dart';
 import 'package:buildtrack_mobile/screen/inventory/project_report_screen.dart';
 import 'package:buildtrack_mobile/screen/inventory/review_equipment.dart';
 import 'package:buildtrack_mobile/screen/inventory/review_labour.dart';
@@ -122,6 +123,7 @@ class MyApp extends StatelessWidget {
         '/entry-detail':    (_) => const EntryDetailScreen(),
         '/update-progress': (_) => const UpdateProgressScreen(),
         '/report-insights': (_) => const ReportInsightsScreen(),
+        '/ai-chat':         (_) => const AiChatReportScreen(),
         '/project-report':  (_) => const ProjectReportScreen(),
         '/cement-history':  (_) => const CementHistoryScreen(),
         '/receipt-viewer':  (_) => const ReceiptViewerScreen(),
