@@ -34,13 +34,11 @@ class AutocompleteNameField extends StatefulWidget {
 }
 
 class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
-  final _layerLink = LayerLink();
   final _focusNode = FocusNode();
-  OverlayEntry? _overlay;
-  bool _overlayVisible = false;
 
-  // Current filtered list — read by the overlay builder closure
+  // Current filtered list — read by the inline builder closure
   List<Map<String, dynamic>> _filtered = [];
+  bool _showSuggestions = false;
 
   static const int _maxSuggestions = 10;
 
@@ -72,7 +70,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
 
   @override
   void dispose() {
-    _removeOverlay();
     widget.controller.removeListener(_onTextChanged);
     _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
@@ -90,11 +87,13 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
 
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
-      print('[AutocompleteNameField] focus lost — scheduling overlay removal');
-      // Small delay so a row tap fires before the overlay hides
+      print('[AutocompleteNameField] focus lost — scheduling suggestion collapse');
+      // Small delay so a row tap fires before the suggestion collapses
       Future.delayed(const Duration(milliseconds: 180), () {
         if (mounted && !_focusNode.hasFocus) {
-          _removeOverlay();
+          setState(() {
+            _showSuggestions = false;
+          });
         }
       });
     } else {
@@ -111,9 +110,11 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     final q = query.trim().toLowerCase();
 
     if (q.isEmpty) {
-      _filtered = [];
-      _removeOverlay();
-      print('[AutocompleteNameField] query empty — overlay hidden');
+      setState(() {
+        _filtered = [];
+        _showSuggestions = false;
+      });
+      print('[AutocompleteNameField] query empty — suggestions hidden');
       return;
     }
 
@@ -131,52 +132,20 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       if (startsWith.length + contains.length >= _maxSuggestions) break;
     }
 
-    _filtered = [...startsWith, ...contains].take(_maxSuggestions).toList();
+    setState(() {
+      _filtered = [...startsWith, ...contains].take(_maxSuggestions).toList();
+      _showSuggestions = _focusNode.hasFocus;
+    });
 
     print('[AutocompleteNameField] query="$q" '
         '→ ${_filtered.length} matches '
         '(${startsWith.length} starts-with, ${contains.length} contains)');
-
-    // Always show the overlay while the user is typing so they can at
-    // minimum see the "Add as new" row even with 0 matches.
-    _showOrUpdateOverlay();
-  }
-
-  // ── Overlay lifecycle ─────────────────────────────────────────────────────
-
-  void _showOrUpdateOverlay() {
-    if (_overlayVisible) {
-      // The overlay is already in the tree — mark it dirty so the builder
-      // re-runs and picks up the latest _filtered list.
-      _overlay?.markNeedsBuild();
-      print('[AutocompleteNameField] overlay markNeedsBuild()');
-      return;
-    }
-
-    // Get the render object so we know the field's width for the dropdown.
-    final renderBox = context.findRenderObject();
-    if (renderBox == null || !renderBox.attached) {
-      print('[AutocompleteNameField] renderBox not ready — skipping overlay');
-      return;
-    }
-
-    _overlayVisible = true;
-    _overlay = OverlayEntry(builder: (_) => _buildOverlayContent());
-
-    Overlay.of(context).insert(_overlay!);
-    print('[AutocompleteNameField] overlay INSERTED into Overlay');
-  }
-
-  void _removeOverlay() {
-    if (!_overlayVisible) return;
-    _overlayVisible = false;
-    _overlay?.remove();
-    _overlay = null;
-    print('[AutocompleteNameField] overlay REMOVED');
   }
 
   void _onSelectSuggestion(Map<String, dynamic> tx) {
-    _removeOverlay();
+    setState(() {
+      _showSuggestions = false;
+    });
     // Update controller without triggering _onTextChanged again
     widget.controller.removeListener(_onTextChanged);
     final name = (tx['title'] ?? tx['name'] ?? '').toString().trim();
@@ -188,108 +157,83 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     widget.onSuggestionSelected(tx);
   }
 
-  // ── Overlay content ───────────────────────────────────────────────────────
+  // ── Build ─────────────────────────────────────────────────────────────────
 
-  Widget _buildOverlayContent() {
-    // Read the field's current render width for the dropdown
-    final renderBox = context.findRenderObject() as RenderBox?;
-    final fieldWidth =
-        renderBox != null ? renderBox.size.width : double.infinity;
-
-    // Fresh snapshot of state so the overlay always shows latest results
-    final items = List<Map<String, dynamic>>.from(_filtered);
+  @override
+  Widget build(BuildContext context) {
     final query = widget.controller.text.trim();
+    final items = List<Map<String, dynamic>>.from(_filtered);
     final hasExactMatch = items.any(
       (s) =>
           (s['title'] ?? '').toString().trim().toLowerCase() ==
           query.toLowerCase(),
     );
     final showAddNew = !hasExactMatch && query.isNotEmpty;
-
-    print('[AutocompleteNameField] building overlay: '
-        '${items.length} items, showAddNew=$showAddNew, width=$fieldWidth');
-
-    // No rows at all → nothing to show
     final totalRows = items.length + (showAddNew ? 1 : 0);
-    if (totalRows == 0) {
-      return const SizedBox.shrink();
-    }
 
-    return Positioned(
-      // Position at (0,0) in the overlay stack; CompositedTransformFollower
-      // will move the child to track the text field's position.
-      left: 0,
-      top: 0,
-      width: fieldWidth,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        // Align the top-left of the dropdown to the bottom-left of the field
-        targetAnchor: Alignment.bottomLeft,
-        followerAnchor: Alignment.topLeft,
-        offset: const Offset(0, 4), // 4px gap between field and dropdown
-        child: Material(
-          color: Colors.transparent,
-          child: _SuggestionDropdown(
+    final showDropdown = _showSuggestions && totalRows > 0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            onChanged: (v) {
+              // Forward to parent; _onTextChanged listener handles filtering
+              widget.onChanged(v);
+            },
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              hintText: widget.hint,
+              hintStyle: const TextStyle(color: AppColors.textLight),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              isDense: true,
+              // Spark icon when suggestions are loaded — gives user a visual cue
+              suffixIcon: widget.suggestions.isNotEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.only(right: 2),
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : null,
+              suffixIconConstraints:
+                  const BoxConstraints(minWidth: 24, minHeight: 24),
+            ),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+        if (showDropdown) ...[
+          const SizedBox(height: 8),
+          _SuggestionDropdown(
             items: items,
             query: query,
             showAddNew: showAddNew,
             onSelect: _onSelectSuggestion,
-            onAddNew: _removeOverlay,
+            onAddNew: () {
+              setState(() {
+                _showSuggestions = false;
+              });
+            },
           ),
-        ),
-      ),
-    );
-  }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
-
-  @override
-  Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.primary, width: 2),
-          ),
-        ),
-        child: TextField(
-          controller: widget.controller,
-          focusNode: _focusNode,
-          onChanged: (v) {
-            // Forward to parent; _onTextChanged listener handles filtering
-            widget.onChanged(v);
-          },
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            hintText: widget.hint,
-            hintStyle: const TextStyle(color: AppColors.textLight),
-            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-            isDense: true,
-            // Spark icon when suggestions are loaded — gives user a visual cue
-            suffixIcon: widget.suggestions.isNotEmpty
-                ? const Padding(
-                    padding: EdgeInsets.only(right: 2),
-                    child: Icon(
-                      Icons.auto_awesome,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                  )
-                : null,
-            suffixIconConstraints:
-                const BoxConstraints(minWidth: 24, minHeight: 24),
-          ),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
-          ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 }
