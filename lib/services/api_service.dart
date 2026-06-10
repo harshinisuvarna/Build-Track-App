@@ -8,6 +8,9 @@ class ApiService {
   static List<ProjectModel>? mockProjects;
 
   static String get baseUrl {
+    return 'https://build-track.onrender.com/api';
+    // To run with local backend, uncomment the block below:
+    /*
     if (kReleaseMode) {
       return 'https://build-track.onrender.com/api';
     }
@@ -18,6 +21,7 @@ class ApiService {
       return 'http://10.0.2.2:5001/api';
     }
     return 'http://localhost:5001/api';
+    */
   }
 
   static Future<Map<String, String>> _getHeaders() async {
