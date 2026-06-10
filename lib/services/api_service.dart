@@ -5,6 +5,8 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
+  static List<ProjectModel>? mockProjects;
+
   static String get baseUrl {
     if (kReleaseMode) {
       return 'https://build-track.onrender.com/api';
@@ -20,6 +22,7 @@ class ApiService {
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
+    // Try 'token' first, fall back to 'jwt_token'
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
 
     return {
@@ -91,6 +94,7 @@ class ApiService {
   // ==========================================
 
   static Future<List<ProjectModel>> fetchProjects() async {
+    if (mockProjects != null) return mockProjects!;
     try {
       final response = await get('/projects');
 
@@ -693,6 +697,7 @@ class ApiService {
       rethrow;
     }
   }
+
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,

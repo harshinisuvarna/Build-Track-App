@@ -1826,7 +1826,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ]),
                     ),
                   );
-                },
+                },   
               ),
               GestureDetector(
                 onTap: () => _showAddCustomActivityDialog(phase),

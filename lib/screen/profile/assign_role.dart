@@ -142,9 +142,9 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     'assign_roles':            false,
   };
 
-  bool    _obscurePass = true;
+  bool _obscurePass = true;
   String? _selectedRole;
-bool _isLoading = false;
+  bool _isLoading = false;
 
 final Set<String> _selectedProjectIds = {};
 List<Map<String, String>> _projects = [];

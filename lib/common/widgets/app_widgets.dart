@@ -2,6 +2,7 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:flutter/material.dart';
+
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -48,7 +49,9 @@ class AppCard extends StatelessWidget {
     );
   }
 }
+
 enum AppButtonVariant { primary, secondary, outline, danger }
+
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -79,10 +82,16 @@ class AppButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: isPrimary ? null : (variant == AppButtonVariant.outline ? Colors.transparent : bg),
+            color: isPrimary
+                ? null
+                : (variant == AppButtonVariant.outline
+                      ? Colors.transparent
+                      : bg),
             gradient: (isPrimary && enabled)
                 ? AppGradients.primaryButton
-                : (isPrimary && !enabled ? LinearGradient(colors: [bg, bg]) : null),
+                : (isPrimary && !enabled
+                      ? LinearGradient(colors: [bg, bg])
+                      : null),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
             border: variant == AppButtonVariant.outline
                 ? Border.all(color: border, width: 1.5)
@@ -150,10 +159,15 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.outline:
         return (Colors.transparent, AppTheme.primary, AppTheme.primary);
       case AppButtonVariant.danger:
-        return (const Color(0xFFFEE2E2), AppTheme.error, const Color(0xFFFEE2E2));
+        return (
+          const Color(0xFFFEE2E2),
+          AppTheme.error,
+          const Color(0xFFFEE2E2),
+        );
     }
   }
 }
+
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -191,10 +205,7 @@ class AppTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTheme.label.copyWith(color: AppTheme.textMedium),
-        ),
+        Text(label, style: AppTheme.label.copyWith(color: AppTheme.textMedium)),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -222,6 +233,7 @@ class AppTextField extends StatelessWidget {
     );
   }
 }
+
 class AppDropdownField<T> extends StatelessWidget {
   const AppDropdownField({
     super.key,
@@ -243,10 +255,7 @@ class AppDropdownField<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTheme.label.copyWith(color: AppTheme.textMedium),
-        ),
+        Text(label, style: AppTheme.label.copyWith(color: AppTheme.textMedium)),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
@@ -260,12 +269,18 @@ class AppDropdownField<T> extends StatelessWidget {
               value: value,
               isExpanded: true,
               hint: hint != null
-                  ? Text(hint!, style: AppTheme.body.copyWith(color: AppTheme.textLight))
+                  ? Text(
+                      hint!,
+                      style: AppTheme.body.copyWith(color: AppTheme.textLight),
+                    )
                   : null,
               items: items,
               onChanged: onChanged,
               style: AppTheme.bodyLarge.copyWith(color: AppTheme.textDark),
-              icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.textLight),
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: AppTheme.textLight,
+              ),
             ),
           ),
         ),
@@ -276,6 +291,7 @@ class AppDropdownField<T> extends StatelessWidget {
 }
 
 enum AppStatus { completed, inProgress, notStarted, delayed, issue }
+
 class AppStatusBadge extends StatelessWidget {
   const AppStatusBadge({super.key, required this.status});
 
@@ -292,11 +308,7 @@ class AppStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }
@@ -304,9 +316,17 @@ class AppStatusBadge extends StatelessWidget {
   (String label, Color bg, Color fg) _resolve() {
     switch (status) {
       case AppStatus.completed:
-        return ('Completed', AppColors.badgeSuccessBg, AppColors.badgeSuccessText);
+        return (
+          'Completed',
+          AppColors.badgeSuccessBg,
+          AppColors.badgeSuccessText,
+        );
       case AppStatus.inProgress:
-        return ('In Progress', AppColors.badgeWarningBg, AppColors.badgeWarningText);
+        return (
+          'In Progress',
+          AppColors.badgeWarningBg,
+          AppColors.badgeWarningText,
+        );
       case AppStatus.notStarted:
         return ('Not Started', AppColors.badgeInfoBg, AppColors.badgeInfoText);
       case AppStatus.delayed:
@@ -316,6 +336,7 @@ class AppStatusBadge extends StatelessWidget {
     }
   }
 }
+
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,
@@ -366,6 +387,7 @@ class AppDivider extends StatelessWidget {
     );
   }
 }
+
 class AppProgressBar extends StatelessWidget {
   const AppProgressBar({
     super.key,
@@ -423,6 +445,7 @@ class AppProgressBar extends StatelessWidget {
     );
   }
 }
+
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
     super.key,
@@ -447,11 +470,7 @@ class AppEmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 52, color: AppTheme.textLight),
             const SizedBox(height: AppTheme.spacingMd),
-            Text(
-              message,
-              style: AppTheme.body,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, style: AppTheme.body, textAlign: TextAlign.center),
             if (actionLabel != null) ...[
               const SizedBox(height: AppTheme.spacingMd),
               AppButton(
@@ -466,6 +485,7 @@ class AppEmptyState extends StatelessWidget {
     );
   }
 }
+
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});
 
@@ -473,33 +493,45 @@ class StatusBadge extends StatelessWidget {
 
   Color get _color {
     switch (status) {
-      case 'approved': return AppColors.badgeSuccessText;
-      case 'rejected': return AppColors.error;
-      default:         return AppColors.badgeWarningText; // pending
+      case 'approved':
+        return AppColors.badgeSuccessText;
+      case 'rejected':
+        return AppColors.error;
+      default:
+        return AppColors.badgeWarningText; // pending
     }
   }
 
   Color get _bg {
     switch (status) {
-      case 'approved': return AppColors.badgeSuccessBg;
-      case 'rejected': return const Color(0xFFFFEBEE);
-      default:         return AppColors.badgeWarningBg;
+      case 'approved':
+        return AppColors.badgeSuccessBg;
+      case 'rejected':
+        return const Color(0xFFFFEBEE);
+      default:
+        return AppColors.badgeWarningBg;
     }
   }
 
   IconData get _icon {
     switch (status) {
-      case 'approved': return Icons.check_circle_outline;
-      case 'rejected': return Icons.cancel_outlined;
-      default:         return Icons.hourglass_empty_outlined;
+      case 'approved':
+        return Icons.check_circle_outline;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      default:
+        return Icons.hourglass_empty_outlined;
     }
   }
 
   String get _label {
     switch (status) {
-      case 'approved': return 'APPROVED';
-      case 'rejected': return 'REJECTED';
-      default:         return 'PENDING';
+      case 'approved':
+        return 'APPROVED';
+      case 'rejected':
+        return 'REJECTED';
+      default:
+        return 'PENDING';
     }
   }
 
