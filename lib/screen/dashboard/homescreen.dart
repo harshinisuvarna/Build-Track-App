@@ -7,10 +7,11 @@ import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
-import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// --- TASK 3: Imported API Service ---
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,11 +21,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    debugPrint('Home Screen Loaded');
-  }
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
       'material': '/review-material',
@@ -106,7 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => Navigator.pop(ctx),
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
                 child: Text(
                   'Cancel',
                   style: TextStyle(
@@ -159,20 +158,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 13.5, color: AppColors.textLight)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textLight, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textLight,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -188,73 +197,84 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             padding: const EdgeInsets.only(
-                top: 60, bottom: 20, left: 20, right: 20),
+              top: 60,
+              bottom: 20,
+              left: 20,
+              right: 20,
+            ),
             decoration: const BoxDecoration(color: AppColors.primary),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('BuildTrack Menu',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold)),
+                const Text(
+                  'BuildTrack Menu',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('Role: ${UserSession.roleLabel}',
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 14)),
+                Text(
+                  'Role: ${UserSession.roleLabel}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
               ],
             ),
           ),
           ListTile(
             leading: const Icon(Icons.person, color: AppColors.textDark),
-            title: const Text('Profile',
-                style: TextStyle(color: AppColors.textDark)),
+            title: const Text(
+              'Profile',
+              style: TextStyle(color: AppColors.textDark),
+            ),
             onTap: () => Navigator.pushNamed(context, '/profile'),
           ),
-          if (RoleManager.canViewReports)
-            ListTile(
-              leading: const Icon(Icons.bar_chart_outlined,
-                  color: AppColors.textDark),
-              title: const Text('Reports',
-                  style: TextStyle(color: AppColors.textDark)),
-              onTap: () => Navigator.pushNamed(context, '/reports'),
-            ),
-          if (RoleManager.canViewProjects)
-            ListTile(
-              leading: const Icon(Icons.receipt_long_outlined,
-                  color: AppColors.textDark),
-              title: const Text('Transaction Logs',
-                  style: TextStyle(color: AppColors.textDark)),
-              onTap: () => Navigator.pushNamed(context, '/logs'),
-            ),
-          if (UserSession.isAdmin || RoleManager.canAssignRoles) ...[
+          if (UserSession.isAdmin) ...[
             const Divider(),
             const Padding(
-              padding:
-                  EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
-              child: Text('Admin Controls',
-                  style: TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.bold)),
+              padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
+              child: Text(
+                'Admin Controls',
+                style: TextStyle(
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            if (UserSession.isAdmin)
-              ListTile(
-                leading: const Icon(Icons.workspaces_outline,
-                    color: AppColors.textDark),
-                title: const Text('Create Workspace',
-                    style: TextStyle(color: AppColors.textDark)),
-                onTap: () =>
-                    Navigator.pushNamed(context, '/create-workspace'),
+            ListTile(
+              leading: const Icon(
+                Icons.workspaces_outline,
+                color: AppColors.textDark,
               ),
-            if (RoleManager.canAssignRoles)
-              ListTile(
-                leading: const Icon(Icons.manage_accounts_outlined,
-                    color: AppColors.textDark),
-                title: const Text('Assign Roles',
-                    style: TextStyle(color: AppColors.textDark)),
-                onTap: () =>
-                    Navigator.pushNamed(context, '/assign-role'),
+              title: const Text(
+                'Create Workspace',
+                style: TextStyle(color: AppColors.textDark),
               ),
+              onTap: () => Navigator.pushNamed(context, '/create-workspace'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.manage_accounts_outlined,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Assign Roles',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () => Navigator.pushNamed(context, '/assign-role'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Transaction Logs',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () => Navigator.pushNamed(context, '/logs'),
+            ),
           ],
         ],
       ),
@@ -263,14 +283,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<UserSession>();
-
-    if (!UserSession.isInitialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return NurofinScaffold(
       drawer: _buildDrawer(context),
       body: SafeArea(
@@ -291,8 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color:
-                              AppColors.primary.withValues(alpha: 0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -304,13 +315,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/profile'),
+                      onTap: () => Navigator.pushNamed(context, '/profile'),
                       child: CircleAvatar(
                         radius: 17,
                         backgroundColor: Colors.grey.shade800,
-                        child: const Icon(Icons.person,
-                            color: Colors.white, size: 17),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 17,
+                        ),
                       ),
                     ),
                   ],
@@ -324,11 +337,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (UserSession.isAdmin)
-                        _AdminDashboard(onEntryTap: _showEntryOptions)
-                      else if (UserSession.isSupervisor)
-                        _SupervisorDashboard(
-                            onEntryTap: _showEntryOptions)
-                      else
+                        _AdminDashboard(onEntryTap: _showEntryOptions),
+                      if (UserSession.isSupervisor)
+                        const _SupervisorDashboard(),
+                      if (UserSession.isMason)
                         _MasonDashboard(onEntryTap: _showEntryOptions),
                     ],
                   ),
@@ -343,9 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ════════════════════════════════════════════════════════
 // ADMIN DASHBOARD
-// ════════════════════════════════════════════════════════
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
@@ -372,12 +382,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('OVERALL PROGRESS',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: textGray,
-                      letterSpacing: 0.8)),
+              Text(
+                'OVERALL PROGRESS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: textGray,
+                  letterSpacing: 0.8,
+                ),
+              ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -388,40 +401,48 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                         ? '${(project.progress * 100).toStringAsFixed(1)}%'
                         : '—',
                     style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        color: textDark),
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: textDark,
+                    ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(project?.name ?? 'No project',
-                          style: TextStyle(
-                              color: primaryBlue,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13)),
-                      Text(project != null ? project.city : '',
-                          style:
-                              TextStyle(color: textGray, fontSize: 13)),
+                      Text(
+                        project?.name ?? 'No project',
+                        style: TextStyle(
+                          color: primaryBlue,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        project != null ? project.city : '',
+                        style: TextStyle(color: textGray, fontSize: 13),
+                      ),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              AppProgressBar(
-                  label: '', percent: project?.progress ?? 0),
+              AppProgressBar(label: '', percent: project?.progress ?? 0),
             ],
           ),
         ),
+
         Row(
           children: [
             Expanded(
               child: _costCard(
                 'TOTAL COST',
+                // ✅ show only actually paid amounts from entries
                 project != null
-                    ? formatCurrency(context
-                        .read<ProjectProvider>()
-                        .totalSpentForProject(project.id))
+                    ? formatCurrency(
+                        context.read<ProjectProvider>().totalSpentForProject(
+                          project.id,
+                        ),
+                      )
                     : '₹—',
                 project != null
                     ? () {
@@ -430,16 +451,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             .totalSpentForProject(project.id);
                         final budget = project.totalBudget;
                         final pct = budget > 0
-                            ? (paid / budget * 100)
-                                .toStringAsFixed(0)
+                            ? (paid / budget * 100).toStringAsFixed(0)
                             : '0';
                         return '$pct% Used';
                       }()
                     : '—',
                 project != null &&
-                    context
-                            .read<ProjectProvider>()
-                            .totalSpentForProject(project.id) >
+                    context.read<ProjectProvider>().totalSpentForProject(
+                          project.id,
+                        ) >
                         project.totalBudget * 0.9,
               ),
             ),
@@ -463,10 +483,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  Widget _buildProjectSelector(
-      BuildContext context, ProjectProvider provider) {
-    final selectedName =
-        provider.selectedProject?.name ?? 'Select Project';
+  Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
+    final selectedName = provider.selectedProject?.name ?? 'Select Project';
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
@@ -475,30 +494,34 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         borderRadius: BorderRadius.circular(14),
         onTap: () => _showProjectPicker(context, provider),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2))
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(children: [
-                const Icon(Icons.architecture,
-                    color: primaryBlue, size: 18),
-                const SizedBox(width: 8),
-                Text(selectedName,
+              Row(
+                children: [
+                  const Icon(Icons.architecture, color: primaryBlue, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedName,
                     style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: textDark)),
-              ]),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: textDark,
+                    ),
+                  ),
+                ],
+              ),
               const Icon(Icons.keyboard_arrow_down, color: textGray),
             ],
           ),
@@ -507,16 +530,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  void _showProjectPicker(
-      BuildContext context, ProjectProvider provider) {
+  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
     final projects = provider.projects;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -530,65 +552,81 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                      color: const Color(0xFFDDE0F0),
-                      borderRadius: BorderRadius.circular(4)),
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               ),
-              Text('Select Project',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: textDark)),
+              Text(
+                'Select Project',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: textDark,
+                ),
+              ),
               const SizedBox(height: 12),
-              ...projects.map((p) {
-                final selected =
-                    p.id == provider.selectedProject?.id;
-                return InkWell(
-                  onTap: () {
-                    provider.selectProject(p);
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? primaryBlue.withValues(alpha: 0.08)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: selected
-                              ? primaryBlue
-                              : Colors.transparent,
-                          width: 1.5),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                          selected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
-                          size: 18,
-                          color:
-                              selected ? primaryBlue : textGray),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(p.name,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: selected
-                                    ? primaryBlue
-                                    : textDark)),
-                      ),
-                    ]),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: projects.map((p) {
+                      final selected = p.id == provider.selectedProject?.id;
+                      return InkWell(
+                        onTap: () {
+                          provider.selectProject(p);
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? primaryBlue.withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected
+                                  ? primaryBlue
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selected
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 18,
+                                color: selected ? primaryBlue : textGray,
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Text(
+                                  p.name,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: selected ? primaryBlue : textDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }),
+                ),
+              ),
             ],
           ),
         ),
@@ -596,53 +634,68 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  Widget _costCard(String label, String value, String sub, bool isOver,
-      {bool isInvoice = false}) {
+  Widget _costCard(
+    String label,
+    String value,
+    String sub,
+    bool isOver, {
+    bool isInvoice = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border(
-            left: BorderSide(
-                color: isOver ? const Color(0xFFE040FB) : purple,
-                width: 3)),
+          left: BorderSide(
+            color: isOver ? const Color(0xFFE040FB) : purple,
+            width: 3,
+          ),
+        ),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: textGray,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: textGray,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: textDark)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: textDark,
+            ),
+          ),
           const SizedBox(height: 4),
-          Row(children: [
-            Icon(
-                isInvoice
-                    ? Icons.receipt_outlined
-                    : Icons.trending_up,
+          Row(
+            children: [
+              Icon(
+                isInvoice ? Icons.receipt_outlined : Icons.trending_up,
                 size: 13,
-                color: isOver ? Colors.redAccent : purple),
-            const SizedBox(width: 4),
-            Text(sub,
+                color: isOver ? Colors.redAccent : purple,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                sub,
                 style: TextStyle(
-                    fontSize: 12,
-                    color: isOver ? Colors.redAccent : purple,
-                    fontWeight: FontWeight.w600)),
-          ]),
+                  fontSize: 12,
+                  color: isOver ? Colors.redAccent : purple,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -662,33 +715,43 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6))
+                color: AppColors.primaryBlue.withValues(alpha: 0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
             ],
           ),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Column(children: [
-              Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              children: [
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.mic, color: Colors.white, size: 24),
                     SizedBox(width: 8),
-                    Text('Speak Update',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
-                  ]),
-              SizedBox(height: 6),
-              Text('AI FOREMAN IS LISTENING',
+                    Text(
+                      'Speak Update',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'AI FOREMAN IS LISTENING',
                   style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.w600)),
-            ]),
+                    color: Colors.white70,
+                    fontSize: 12,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -701,47 +764,60 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ..sort((a, b) => b.date.compareTo(a.date));
     final recent = allEntries.take(5).toList();
 
-    return Column(children: [
-      AppSectionHeader(
-        title: 'Recent Activity',
-        actionLabel: 'View All',
-        onAction: () => Navigator.pushNamed(context, '/logs',
-            arguments: {'projectId': null}),
-      ),
-      const SizedBox(height: 8),
-      if (recent.isEmpty)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8)
-            ],
+    return Column(
+      children: [
+        AppSectionHeader(
+          title: 'Recent Activity',
+          actionLabel: 'View All',
+          onAction: () => Navigator.pushNamed(
+            context,
+            '/logs',
+            arguments: {'projectId': null},
           ),
-          child: Column(children: [
-            Icon(Icons.inbox_outlined, size: 36, color: textGray),
-            const SizedBox(height: 8),
-            Text('No recent activity',
-                style: TextStyle(
+        ),
+        const SizedBox(height: 8),
+        if (recent.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.inbox_outlined, size: 36, color: textGray),
+                const SizedBox(height: 8),
+                Text(
+                  'No recent activity',
+                  style: TextStyle(
                     color: textGray,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-          ]),
-        )
-      else
-        ...recent.map((entry) => _activityTile(context, entry)),
-    ]);
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...recent.map((entry) => _activityTile(context, entry)),
+      ],
+    );
   }
 
   Widget _activityTile(BuildContext context, EntryModel entry) {
+    // Icon & colors by type
     final IconData icon;
     final Color badgeBg;
     final Color badgeColor;
     final String badgeLabel;
+
     switch (entry.type) {
       case EntryType.labour:
         icon = Icons.people_outlined;
@@ -762,6 +838,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         badgeLabel = 'Material';
         break;
     }
+
+    // Format date/time
     final now = DateTime.now();
     final diff = now.difference(entry.date);
     final String timeLabel;
@@ -774,10 +852,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     } else {
       timeLabel = '${diff.inDays}d ago';
     }
-    final title =
-        entry.description.isNotEmpty ? entry.description : badgeLabel;
-    final subtitle =
-        '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
+
+    final title = entry.description.isNotEmpty ? entry.description : badgeLabel;
+    final subtitle = '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -792,51 +870,65 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
               ],
             ),
-            child: Row(children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
                     color: const Color(0xFFF0F2FF),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: primaryBlue, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: primaryBlue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13.5,
-                            color: textDark)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 12.5, color: textGray)),
-                  ],
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12.5, color: textGray),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
                     color: badgeBg,
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text(badgeLabel,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    badgeLabel,
                     style: TextStyle(
-                        color: badgeColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ]),
+                      color: badgeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -844,1009 +936,479 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 }
 
-// ════════════════════════════════════════════════════════
-// SUPERVISOR DASHBOARD
-// ════════════════════════════════════════════════════════
+// SUPERVISOR DASHBOARD (TASK 3 UPDATED)
 class _SupervisorDashboard extends StatefulWidget {
-  const _SupervisorDashboard({required this.onEntryTap});
-  final void Function(BuildContext, String) onEntryTap;
+  const _SupervisorDashboard();
   @override
   State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
 }
 
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
-  void Function(BuildContext, String) get onEntryTap => widget.onEntryTap;
+  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
+  late Future<List<dynamic>> _tasksFuture;
+  final Map<int, String> _statuses = {};
 
-  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
-    final projects = provider.projects;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFDDE0F0),
-                      borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-              const Text('Select Project',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark)),
-              const SizedBox(height: 12),
-              ...projects.map((p) {
-                final selected = p.id == provider.selectedProject?.id;
-                return InkWell(
-                  onTap: () {
-                    provider.selectProject(p);
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.primary.withValues(alpha: 0.08)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 1.5),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                          selected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
-                          size: 18,
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.textLight),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(p.name,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textDark)),
-                      ),
-                    ]),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
+  @override
+  void initState() {
+    super.initState();
+    _tasksFuture = ApiService.fetchDailyTasks();
+  }
+
+  void _approve(int i, String taskName) {
+    setState(() => _statuses[i] = 'approved');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$taskName approved'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _reject(int i, String taskName) {
+    setState(() => _statuses[i] = 'rejected');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$taskName rejected'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    context.watch<UserSession>();
+    // --- TASK 3: FUTUREBUILDER FOR SUPERVISOR ---
+    return FutureBuilder<List<dynamic>>(
+      future: _tasksFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            ),
+          );
+        }
 
-    final provider = context.watch<ProjectProvider>();
-    final projects = provider.projects;
-    final project = provider.selectedProject;
+        final liveItems = snapshot.data ?? [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _roleBanner(),
-        const SizedBox(height: 14),
-        if (projects.length > 1)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              elevation: 0,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => _showProjectPicker(context, provider),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2))
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.architecture,
-                            color: AppColors.primary, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          project?.name ?? 'Select Project',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              color: AppColors.textDark),
-                        ),
-                      ]),
-                      const Icon(Icons.keyboard_arrow_down,
-                          color: AppColors.textLight),
-                    ],
-                  ),
+        // Ensure status map is populated for new items
+        for (int i = 0; i < liveItems.length; i++) {
+          _statuses.putIfAbsent(i, () => 'pending');
+        }
+
+        final pendingCount = _statuses.values
+            .where((s) => s == 'pending')
+            .length;
+        final approvedCount = _statuses.values
+            .where((s) => s == 'approved')
+            .length;
+        final rejectedCount = _statuses.values
+            .where((s) => s == 'rejected')
+            .length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
+                const SizedBox(width: 8),
+                _summaryChip(
+                  '${approvedCount + 12}', // Keeping your +12 logic
+                  'Approved Today',
+                  AppTheme.success,
                 ),
+                const SizedBox(width: 8),
+                _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const AppSectionHeader(title: 'Pending Approvals'),
+            if (liveItems.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No daily tasks found from server.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ...List.generate(
+              liveItems.length,
+              (i) => _pendingCard(
+                context,
+                liveItems[i] as Map<String, dynamic>,
+                i,
               ),
             ),
-          ),
-        if (project == null)
-          _emptyState('No project assigned',
-              'Your admin has not assigned a project yet.')
-        else ...[
-          if (RoleManager.canViewProjects) ...[
-            _projectCard(context, project, provider),
-            const SizedBox(height: 12),
-          ],
-          if (RoleManager.canViewReports) ...[
-            _budgetRow(context, project, provider),
-            const SizedBox(height: 14),
-          ],
-          if (RoleManager.canAddEntries) ...[
-            _sectionLabel('Add Entry'),
             const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                child: _actionButton(
-                  context,
-                  icon: Icons.category_outlined,
-                  label: 'Material',
-                  onTap: () => onEntryTap(context, 'material'),
-                ),
+            const AppSectionHeader(title: 'Recent Updates'),
+            AppCard(
+              child: Column(
+                children: [
+                  _recentRow(
+                    'Beam Casting – Level 1',
+                    'Mohan Singh',
+                    AppStatus.completed,
+                  ),
+                  const AppDivider(verticalPadding: 8),
+                  _recentRow(
+                    'Plastering – East Wing',
+                    'Ravi Teja',
+                    AppStatus.inProgress,
+                  ),
+                  const AppDivider(verticalPadding: 8),
+                  _recentRow(
+                    'Curing – Ground Slab',
+                    'Pradeep K',
+                    AppStatus.delayed,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  context,
-                  icon: Icons.people_outlined,
-                  label: 'Labour',
-                  onTap: () => onEntryTap(context, 'labour'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  context,
-                  icon: Icons.precision_manufacturing_outlined,
-                  label: 'Equipment',
-                  onTap: () => onEntryTap(context, 'equipment'),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 14),
+            ),
           ],
-          if (RoleManager.canApprovePayments) ...[
-            _sectionLabel('Pending Approvals'),
-            const SizedBox(height: 8),
-            _pendingApprovalsList(context, provider, project),
-            const SizedBox(height: 14),
+        );
+      },
+    );
+  }
+
+  Widget _summaryChip(String count, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ],
-          // FIX 3: Pass current userId so only this user's entries are shown
-          if (RoleManager.canViewProjects)
-            _recentActivitySection(context, provider, project,
-                currentUserId: UserSession.userId),
-          if (!RoleManager.canViewProjects &&
-              !RoleManager.canAddEntries &&
-              !RoleManager.canApprovePayments)
-            _emptyState('Limited access',
-                'Contact your admin to grant permissions.'),
-        ],
-      ],
-    );
-  }
-
-  Widget _roleBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.2)),
+        ),
       ),
-      child: Row(children: [
-        const Icon(Icons.verified_user_outlined,
-            color: AppColors.primary, size: 18),
-        const SizedBox(width: 8),
-        // FIX 1: Use roleLabel which now returns the correct display name
-        Text('Logged in as ${UserSession.roleLabel}',
-            style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 13)),
-        const Spacer(),
-        if (RoleManager.canAddEntries) _permChip('Add'),
-        if (RoleManager.canApprovePayments) _permChip('Approve'),
-        if (RoleManager.canViewReports) _permChip('Reports'),
-      ]),
     );
   }
 
-  Widget _permChip(String label) {
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w700)),
-    );
-  }
+  Widget _pendingCard(
+    BuildContext context,
+    Map<String, dynamic> item,
+    int index,
+  ) {
+    final status = _statuses[index];
+    final isPending = status == 'pending';
 
-  Widget _projectCard(BuildContext context, ProjectModel project,
-      ProjectProvider provider) {
+    // Smart parsing to prevent crashes from backend mismatches
+    final masonName = item['mason'] ?? item['assignee'] ?? 'Unknown Mason';
+    final taskName = item['task'] ?? item['title'] ?? 'Daily Task';
+    final timeStr = item['time'] ?? item['createdAt'] ?? 'Recently';
+    final floorStr = item['floor'] ?? item['location'] ?? 'On Site';
+
+    Color badgeColor;
+    String badgeLabel;
+    if (status == 'approved') {
+      badgeColor = Colors.green;
+      badgeLabel = 'Approved';
+    } else if (status == 'rejected') {
+      badgeColor = Colors.red;
+      badgeLabel = 'Rejected';
+    } else {
+      badgeColor = AppTheme.warning;
+      badgeLabel = 'Pending';
+    }
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
-                child: Text(project.name,
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      masonName,
+                      style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      timeStr,
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: Text(project.city,
-                    style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                child: Text(
+                  floorStr,
+                  style: AppTheme.caption.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Text('OVERALL PROGRESS',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textLight,
-                  letterSpacing: 0.8)),
-          const SizedBox(height: 6),
-          Text(
-            '${(project.progress * 100).toStringAsFixed(1)}%',
-            style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textDark),
-          ),
-          const SizedBox(height: 8),
-          AppProgressBar(label: '', percent: project.progress),
-        ],
-      ),
-    );
-  }
-
-  Widget _budgetRow(BuildContext context, ProjectModel project,
-      ProjectProvider provider) {
-    final spent = provider.totalSpentForProject(project.id);
-    final budget = project.totalBudget;
-    final pct =
-        budget > 0 ? (spent / budget * 100).toStringAsFixed(0) : '0';
-    return Row(children: [
-      Expanded(
-        child: _miniCard(
-            'TOTAL SPENT', formatCurrency(spent), '$pct% of budget',
-            isOver: spent > budget * 0.9),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _miniCard(
-            'BUDGET',
-            formatCurrency(budget),
-            'Remaining: ${formatCurrency((budget - spent).clamp(0, double.infinity))}',
-            isOver: false),
-      ),
-    ]);
-  }
-
-  Widget _miniCard(String label, String value, String sub,
-      {required bool isOver}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(
-            left: BorderSide(
-                color: isOver
-                    ? const Color(0xFFE040FB)
-                    : AppColors.primary,
-                width: 3)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8)
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5)),
-          const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color:
-                      isOver ? Colors.red : AppColors.textDark)),
-          const SizedBox(height: 4),
-          Text(sub,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: isOver
-                      ? Colors.redAccent
-                      : AppColors.primary,
-                  fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionButton(BuildContext context,
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.2)),
-        ),
-        child: Column(children: [
-          Icon(icon, color: AppColors.primary, size: 22),
-          const SizedBox(height: 6),
-          Text(label,
-              style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700)),
-        ]),
-      ),
-    );
-  }
-
-  Widget _pendingApprovalsList(BuildContext context,
-      ProjectProvider provider, ProjectModel project) {
-    final pending = provider
-        .entriesForProject(project.id)
-        .where((e) => e.amount == 0)
-        .take(5)
-        .toList();
-
-    if (pending.isEmpty) {
-      return AppCard(
-        child: Row(children: [
-          const Icon(Icons.check_circle_outline,
-              color: Colors.green, size: 20),
-          const SizedBox(width: 10),
-          const Text('No pending approvals',
-              style: TextStyle(
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w600)),
-        ]),
-      );
-    }
-
-    return Column(
-      children: pending.map((e) {
-        return AppCard(
-          child: Row(children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    e.description.isNotEmpty
-                        ? e.description
-                        : e.type.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: AppColors.textDark),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(e.type.name.toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textLight,
-                          fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('Pending',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(taskName, style: AppTheme.heading3)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  badgeLabel,
                   style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ]),
-        );
-      }).toList(),
-    );
-  }
-
-  // FIX 3: Added currentUserId parameter to filter entries by the logged-in user
-  Widget _recentActivitySection(BuildContext context,
-      ProjectProvider provider, ProjectModel project,
-      {String? currentUserId}) {
-    var entries = provider
-        .entriesForProject(project.id)
-        .toList();
-
-    // FIX 3: Filter to only this user's entries when userId is available
-    // FIXED — strictly show only this user's entries, empty if none
-    if (currentUserId != null && currentUserId.isNotEmpty) {
-      entries = entries
-        .where((e) => e.createdBy == currentUserId)
-        .toList();
-    }
-
-    entries.sort((a, b) => b.date.compareTo(a.date));
-    final recent = entries.take(5).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppSectionHeader(
-          title: 'My Recent Activity',
-          actionLabel: RoleManager.canViewReports ? 'View All' : null,
-          onAction: RoleManager.canViewReports
-              ? () => Navigator.pushNamed(context, '/logs',
-                  arguments: {'projectId': project.id})
-              : null,
-        ),
-        const SizedBox(height: 8),
-        if (recent.isEmpty)
-          AppCard(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('No entries yet',
-                    style: TextStyle(color: AppColors.textLight)),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: badgeColor,
+                  ),
+                ),
               ),
-            ),
-          )
-        else
-          ...recent.map((e) => _entryTile(e)),
-      ],
-    );
-  }
-
-  Widget _entryTile(EntryModel entry) {
-    final String label;
-    final Color color;
-    switch (entry.type) {
-      case EntryType.labour:
-        label = 'Labour';
-        color = const Color(0xFF2E7D32);
-        break;
-      case EntryType.equipment:
-        label = 'Equipment';
-        color = Colors.orange;
-        break;
-      case EntryType.material:
-        label = 'Material';
-        color = AppColors.primary;
-        break;
-    }
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        child: Row(children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    entry.description.isNotEmpty
-                        ? entry.description
-                        : label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                        color: AppColors.textDark)),
-                const SizedBox(height: 2),
-                Text('₹${entry.amount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textLight)),
-              ],
-            ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: 'Approve',
+                  icon: Icons.check_circle_outline,
+                  onPressed: isPending
+                      ? () => _approve(index, taskName)
+                      : () {},
+                  enabled: isPending,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButton(
+                  label: 'Reject',
+                  icon: Icons.cancel_outlined,
+                  variant: AppButtonVariant.danger,
+                  onPressed: isPending ? () => _reject(index, taskName) : () {},
+                  enabled: isPending,
+                ),
+              ),
+            ],
           ),
-        ]),
+        ],
       ),
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(text,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textDark));
-  }
-
-  Widget _emptyState(String title, String subtitle) {
-    return AppCard(
-      child: Column(children: [
-        const Icon(Icons.lock_outline,
-            size: 40, color: AppColors.textLight),
-        const SizedBox(height: 12),
-        Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: AppColors.textDark)),
-        const SizedBox(height: 4),
-        Text(subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: AppColors.textLight, fontSize: 13)),
-      ]),
+  Widget _recentRow(String task, String mason, AppStatus status) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                task,
+                style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+              ),
+              Text(mason, style: AppTheme.caption),
+            ],
+          ),
+        ),
+        AppStatusBadge(status: status),
+      ],
     );
   }
 }
 
-// ════════════════════════════════════════════════════════
-// MASON DASHBOARD
-// ════════════════════════════════════════════════════════
-class _MasonDashboard extends StatelessWidget {
+// MASON DASHBOARD (TASK 3 UPDATED)
+class _MasonDashboard extends StatefulWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
 
-  // FIX 2: Project picker for Mason (same pattern as Supervisor)
-  void _showProjectPicker(BuildContext context, ProjectProvider provider) {
-    final projects = provider.projects;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFDDE0F0),
-                      borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-              const Text('Select Project',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark)),
-              const SizedBox(height: 12),
-              ...projects.map((p) {
-                final selected = p.id == provider.selectedProject?.id;
-                return InkWell(
-                  onTap: () {
-                    provider.selectProject(p);
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.primary.withValues(alpha: 0.08)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 1.5),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                          selected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
-                          size: 18,
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.textLight),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(p.name,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textDark)),
-                      ),
-                    ]),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
+  @override
+  State<_MasonDashboard> createState() => _MasonDashboardState();
+}
+
+class _MasonDashboardState extends State<_MasonDashboard> {
+  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
+  late Future<List<dynamic>> _tasksFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tasksFuture = ApiService.fetchDailyTasks();
   }
 
   @override
   Widget build(BuildContext context) {
-    context.watch<UserSession>();
-
-    final provider = context.watch<ProjectProvider>();
-    final projects = provider.projects;
-    final project = provider.selectedProject;
-
-    // FIX 1: Use roleLabel which now returns correct name for custom roles
-    final String greeting = 'Good Morning, ${UserSession.roleLabel}';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Greeting card ──────────────────────────────────────────────
+        // Greeting card
         AppCard(
-          child: Row(children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor:
-                  AppTheme.primary.withValues(alpha: 0.12),
-              child: const Icon(Icons.person_outline,
-                  color: AppTheme.primary, size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(greeting, style: AppTheme.heading3),
-                  // FIX 1: roleLabel returns correct display name
-                  Text(UserSession.roleLabel, style: AppTheme.caption),
-                ],
-              ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-
-        // FIX 2: Show project picker when Mason has multiple assigned projects
-        if (projects.length > 1)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              elevation: 0,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => _showProjectPicker(context, provider),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2))
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.architecture,
-                            color: AppColors.primary, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          project?.name ?? 'Select Project',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              color: AppColors.textDark),
-                        ),
-                      ]),
-                      const Icon(Icons.keyboard_arrow_down,
-                          color: AppColors.textLight),
-                    ],
-                  ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppTheme.primary,
+                  size: 26,
                 ),
               ),
-            ),
-          ),
-
-        if (project == null)
-          AppCard(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('No project assigned by admin.',
-                    style: TextStyle(color: AppColors.textLight)),
-              ),
-            ),
-          )
-        else ...[
-          if (RoleManager.canViewProjects) ...[
-            AppCard(
-              child: Column(
+              const SizedBox(width: 14),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(project.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.textDark)),
-                  const SizedBox(height: 8),
-                  AppProgressBar(
-                      label: 'Progress', percent: project.progress),
+                  Text('Good Morning, Mason', style: AppTheme.heading3),
+                  Text('Ready for today\'s tasks', style: AppTheme.caption),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          if (RoleManager.canAddEntries) ...[
-            AppButton(
-              label: 'Add Daily Update',
-              icon: Icons.add_circle_outline,
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/update-progress'),
-            ),
-            const SizedBox(height: 8),
-            AppButton(
-              label: 'Add Material Entry',
-              icon: Icons.category_outlined,
-              variant: AppButtonVariant.outline,
-              onPressed: () => onEntryTap(context, 'material'),
-            ),
-            const SizedBox(height: 8),
-            AppButton(
-              label: 'Add Labour Entry',
-              icon: Icons.people_outlined,
-              variant: AppButtonVariant.outline,
-              onPressed: () => onEntryTap(context, 'labour'),
-            ),
-            const SizedBox(height: 8),
-            if (RoleManager.canManageEquipmentMaster)
-              AppButton(
-                label: 'Add Equipment Entry',
-                icon: Icons.precision_manufacturing_outlined,
-                variant: AppButtonVariant.outline,
-                onPressed: () => onEntryTap(context, 'equipment'),
-              ),
-            if (RoleManager.canApprovePayments) ...[
-              const SizedBox(height: 8),
-              AppButton(
-                label: 'Mark Payment',
-                icon: Icons.payments_outlined,
-                variant: AppButtonVariant.outline,
-                onPressed: () =>
-                    Navigator.pushNamed(context, '/mark-payment'),
-              ),
             ],
-            const SizedBox(height: 16),
-          ] else
-            AppCard(
-              child: Row(children: [
-                const Icon(Icons.lock_outline,
-                    color: AppColors.textLight, size: 18),
-                const SizedBox(width: 10),
-                const Text('Adding entries is not permitted',
-                    style: TextStyle(
-                        color: AppColors.textLight, fontSize: 13)),
-              ]),
-            ),
+          ),
+        ),
 
-          // FIX 3: Pass currentUserId to filter entries for this user only
-          if (RoleManager.canViewProjects)
-            _recentActivitySection(context, provider, project,
-                currentUserId: UserSession.userId),
-        ],
-      ],
-    );
-  }
-
-  // FIX 3: Added currentUserId parameter — only show entries belonging to this user
-  Widget _recentActivitySection(BuildContext context,
-      ProjectProvider provider, ProjectModel project,
-      {String? currentUserId}) {
-    var entries = provider
-        .entriesForProject(project.id)
-        .toList();
-
-    // FIXED — strictly show only this user's entries, empty if none
-    if (currentUserId != null && currentUserId.isNotEmpty) {
-      entries = entries
-        .where((e) => e.createdBy == currentUserId)
-        .toList();
-    }
-
-    entries.sort((a, b) => b.date.compareTo(a.date));
-    final recent = entries.take(5).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppSectionHeader(
-          title: 'My Recent Entries',
-          actionLabel: null,
-          onAction: null,
+        // Add Entry button (primary action)
+        AppButton(
+          label: 'Add Daily Update',
+          icon: Icons.add_circle_outline,
+          onPressed: () => Navigator.pushNamed(context, '/update-progress'),
         ),
         const SizedBox(height: 8),
-        if (recent.isEmpty)
-          AppCard(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('You have no entries yet.',
-                    style: TextStyle(color: AppColors.textLight)),
-              ),
-            ),
-          )
-        else
-          ...recent.map((e) => _entryTile(e)),
+        AppButton(
+          label: 'Add Material Entry',
+          icon: Icons.category_outlined,
+          variant: AppButtonVariant.outline,
+          onPressed: () => widget.onEntryTap(context, 'material'),
+        ),
+        const SizedBox(height: 16),
+
+        // Today's tasks with FutureBuilder
+        const AppSectionHeader(title: "Today's Tasks"),
+        FutureBuilder<List<dynamic>>(
+          future: _tasksFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Failed to load tasks from server.',
+                  style: TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final liveTasks = snapshot.data ?? [];
+            if (liveTasks.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No tasks assigned for today.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
+
+            return Column(
+              children: liveTasks
+                  .map((t) => _taskCard(t as Map<String, dynamic>))
+                  .toList(),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _entryTile(EntryModel entry) {
-    final String label;
-    final Color color;
-    switch (entry.type) {
-      case EntryType.labour:
-        label = 'Labour';
-        color = const Color(0xFF2E7D32);
-        break;
-      case EntryType.equipment:
-        label = 'Equipment';
-        color = Colors.orange;
-        break;
-      case EntryType.material:
-        label = 'Material';
-        color = AppColors.primary;
-        break;
-    }
-    final now = DateTime.now();
-    final diff = now.difference(entry.date);
-    final String timeLabel;
-    if (diff.inMinutes < 60) {
-      timeLabel = '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      timeLabel = '${diff.inHours}h ago';
-    } else if (diff.inDays == 1) {
-      timeLabel = 'Yesterday';
-    } else {
-      timeLabel = '${diff.inDays}d ago';
-    }
+  Widget _taskCard(Map<String, dynamic> task) {
+    final statusMap = {
+      'Completed': AppStatus.completed,
+      'In Progress': AppStatus.inProgress,
+      'Not Started': AppStatus.notStarted,
+    };
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        child: Row(children: [
+    // Smart parsing for dynamic backend data
+    final taskName = task['task'] ?? task['title'] ?? 'Task';
+    final phaseStr = task['phase'] ?? task['category'] ?? 'General';
+    final statusStr = task['status'] ?? 'Not Started';
+
+    return AppCard(
+      child: Row(
+        children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    entry.description.isNotEmpty
-                        ? entry.description
-                        : label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                        color: AppColors.textDark)),
-                const SizedBox(height: 2),
-                Text(
-                    '₹${entry.amount.toStringAsFixed(0)} • $timeLabel',
-                    style: const TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textLight)),
+                  taskName,
+                  style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(phaseStr, style: AppTheme.caption),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ]),
+          AppStatusBadge(status: statusMap[statusStr] ?? AppStatus.notStarted),
+        ],
       ),
     );
   }
