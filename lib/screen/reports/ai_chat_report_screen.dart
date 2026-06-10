@@ -1,6 +1,7 @@
 // lib/screen/reports/ai_chat_report_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../../common/themes/app_colors.dart';
@@ -24,9 +25,12 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
   String? token;
   bool loading = true;
 
-  // Change to 'http://10.0.2.2:5001' for Android emulator
-  // Change to your LAN IP e.g. 'http://192.168.1.5:5001' for real device
-  static const baseUrl = 'http://localhost:5001';
+  static String get baseUrl {
+    if (kReleaseMode) {
+      return 'https://build-track.onrender.com';
+    }
+    return 'http://localhost:5001';
+  }
 
   @override
   void initState() {

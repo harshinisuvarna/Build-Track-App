@@ -65,6 +65,9 @@ class VoiceRecordingController extends ChangeNotifier {
         onStatus: _onSttStatus,
         debugLogging: false,
       );
+      if (_sttInitialised) {
+        debugPrint('Speech Initialized');
+      }
     } catch (_) {
       _sttInitialised = false;
     }

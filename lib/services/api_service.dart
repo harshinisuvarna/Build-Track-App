@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   static String get baseUrl {
+    if (kReleaseMode) {
+      return 'https://build-track.onrender.com/api';
+    }
     if (kIsWeb) {
       return 'http://localhost:5001/api';
     }
@@ -29,7 +32,8 @@ class ApiService {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [GET]: $url');
-    final response = await http.get(Uri.parse(url), headers: headers);
+    final response = await http.get(Uri.parse(url), headers: headers)
+        .timeout(const Duration(seconds: 10));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -47,7 +51,7 @@ class ApiService {
       Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
-    );
+    ).timeout(const Duration(seconds: 10));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -65,7 +69,7 @@ class ApiService {
       Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
-    );
+    ).timeout(const Duration(seconds: 10));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -75,7 +79,8 @@ class ApiService {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [DELETE]: $url');
-    final response = await http.delete(Uri.parse(url), headers: headers);
+    final response = await http.delete(Uri.parse(url), headers: headers)
+        .timeout(const Duration(seconds: 10));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;

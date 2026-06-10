@@ -20,6 +20,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('Home Screen Loaded');
+  }
   void _showEntryOptions(BuildContext context, String type) {
     final Map<String, String> voiceRoutes = {
       'material': '/review-material',

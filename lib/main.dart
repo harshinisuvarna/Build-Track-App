@@ -32,46 +32,65 @@ import 'package:buildtrack_mobile/screen/inventory/review_material.dart';
 import 'package:buildtrack_mobile/screen/profile/subscription_screen.dart';
 import 'package:buildtrack_mobile/screen/inventory/transaction_log.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/updated_progress.dart';
+import 'dart:async';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    debugPrint('App Started');
 
-  // Load session first so UserSession singleton is populated
-  await UserSession.loadFromPrefs();
+    WidgetsFlutterBinding.ensureInitialized();
+    debugPrint('Flutter Initialized');
 
-  // Check if already logged in
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token');
-  final isLoggedIn = token != null && token.isNotEmpty;
+    // Load session first so UserSession singleton is populated
+    await UserSession.loadFromPrefs();
 
-  final projectProvider = ProjectProvider();
+    // Check if already logged in
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final isLoggedIn = token != null && token.isNotEmpty;
 
-  // Only load projects if already logged in (token exists)
-  if (isLoggedIn) {
-    await projectProvider.load();
-  }
+    final projectProvider = ProjectProvider();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        // ✅ KEY FIX: Register UserSession as a ChangeNotifierProvider
-        // so context.watch<UserSession>() works throughout the app.
-        // Using .value because UserSession is a singleton — we pass the
-        // same instance that loadFromPrefs() already called notifyListeners() on.
-        ChangeNotifierProvider<UserSession>.value(value: UserSession()),
+    // Only load projects if already logged in (token exists)
+    if (isLoggedIn) {
+      debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
+      await projectProvider.load().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('[main] projectProvider.load timed out after 10s');
+        },
+      );
+    } else {
+      debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl} (not logged in)');
+    }
 
-        ChangeNotifierProvider(create: (_) => NavController()),
-        ChangeNotifierProvider.value(value: projectProvider),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
-        ChangeNotifierProvider(create: (_) => InventoryProvider()),
-      ],
-      child: MyApp(isLoggedIn: isLoggedIn),
-    ),
-  );
+    debugPrint('Providers Initialized');
+
+    runApp(
+      MultiProvider(
+        providers: [
+          // ✅ KEY FIX: Register UserSession as a ChangeNotifierProvider
+          // so context.watch<UserSession>() works throughout the app.
+          // Using .value because UserSession is a singleton — we pass the
+          // same instance that loadFromPrefs() already called notifyListeners() on.
+          ChangeNotifierProvider<UserSession>.value(value: UserSession()),
+
+          ChangeNotifierProvider(create: (_) => NavController()),
+          ChangeNotifierProvider.value(value: projectProvider),
+          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => InventoryProvider()),
+        ],
+        child: MyApp(isLoggedIn: isLoggedIn),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint('[Uncaught Exception] Error: $error\n$stack');
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -88,6 +107,7 @@ class MyApp extends StatelessWidget {
       // Go to home if already logged in, login otherwise
       initialRoute: isLoggedIn ? '/home' : '/',
       onGenerateInitialRoutes: (initialRouteName) {
+        debugPrint('Navigation Started');
         return [
           MaterialPageRoute(
             settings: RouteSettings(name: initialRouteName),
