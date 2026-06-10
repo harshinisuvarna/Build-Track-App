@@ -14,8 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
-import 'package:buildtrack_mobile/models/construction_models.dart';
-import 'package:buildtrack_mobile/models/project_model.dart';
 
 
 
@@ -1004,41 +1002,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-<<<<<<< HEAD
     return (month >= 1 && month <= 12) ? months[month - 1] : '';
-=======
-    if (month >= 1 && month <= 12) {
-      return months[month - 1];
-    }
-    return '';
   }
 
 
 
-  Widget _calcRow(String label, String value, {bool muted = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: muted ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: muted ? const Color(0xFF6B7280) : const Color(0xFF111827),
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
->>>>>>> my-frontend-work
-  }
+
 
   // ── Payment section ───────────────────────────────────────────────────────
   Widget _buildPaymentSection() {
