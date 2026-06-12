@@ -720,7 +720,7 @@ String? _projectsError;
               const SizedBox(width: 8),
               Switch(
                 value: enabled,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 onChanged: isAdmin
                     ? (v) => setState(() => _permissions[permKey] = v)
                     : null,

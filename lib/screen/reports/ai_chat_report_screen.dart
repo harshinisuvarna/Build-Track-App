@@ -1,12 +1,10 @@
 // lib/screen/reports/ai_chat_report_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../../common/themes/app_colors.dart';
 import '../../common/themes/app_theme.dart';
-import '../../common/widgets/app_widgets.dart';
 import '../../common/widgets/common_widgets.dart';
 import '../../controller/ai_chat_report_provider.dart';
 import '../../controller/project_provider.dart';
@@ -864,7 +862,7 @@ class _SuggestedChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: kSuggestedQuestions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) => _Chip(
           label: kSuggestedQuestions[i],
           onTap: () => onChipTap(kSuggestedQuestions[i]),

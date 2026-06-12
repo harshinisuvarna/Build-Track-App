@@ -1662,7 +1662,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
           helperText = 'No payment recorded';
           amountCtrl.text = '0';
         } else {
-          final entered = double.tryParse(amountCtrl.text) ?? 0;
+          final entered = parseAmount(amountCtrl.text) ?? 0;
           final rem = (outstanding - entered).clamp(0.0, double.infinity);
           helperText = rem > 0
               ? 'Remaining: ${formatCurrency(rem)}'
@@ -1970,7 +1970,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                     onChanged: (val) {
                                       ss(() {
                                         amountError = null;
-                                        final amt = double.tryParse(val);
+                                        final amt = parseAmount(val);
                                         if (amt == null || amt == 0) {
                                           selectedStatus =
                                               PaymentStatus.pending;
@@ -2287,9 +2287,9 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               flex: 5,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (selectedStatus == PaymentStatus.partial) {
+                                  if (selectedStatus != PaymentStatus.pending) {
                                     final raw = amountCtrl.text.trim();
-                                    final amt = double.tryParse(raw);
+                                    final amt = parseAmount(raw);
                                     if (raw.isEmpty ||
                                         amt == null ||
                                         amt <= 0) {
@@ -2300,10 +2300,17 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       return;
                                     }
                                     if (outstanding > 0 &&
-                                        amt > outstanding + 0.01) {
+                                        amt > outstanding) {
                                       ss(
                                         () => amountError =
-                                            'Exceeds outstanding ${formatCurrency(outstanding)}',
+                                            'Payment amount cannot exceed the outstanding amount.',
+                                      );
+                                      return;
+                                    }
+                                    if (outstanding <= 0) {
+                                      ss(
+                                        () => amountError =
+                                            'No outstanding amount to pay',
                                       );
                                       return;
                                     }
@@ -2313,10 +2320,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? outstanding
                                       : selectedStatus == PaymentStatus.pending
                                       ? 0.0
-                                      : (double.tryParse(
-                                              amountCtrl.text.trim(),
-                                            ) ??
-                                            0);
+                                      : (parseAmount(
+                                               amountCtrl.text.trim(),
+                                             ) ??
+                                             0);
                                   Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,

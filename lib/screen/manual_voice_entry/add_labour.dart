@@ -5,6 +5,7 @@ import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -68,6 +69,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
   DateTime _paymentDate = DateTime.now();
+  double _existingPaidAmount = 0.0;
 
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
@@ -325,8 +327,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (pStatus != null && pStatus != 'pending' && pStatus != '') {
       _isAddAndPay = true;
       _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-      _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
     }
 
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
@@ -580,28 +581,42 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     };
 
     if (_isAddAndPay) {
-      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0.0;
+      final paid = parseAmount(_paymentAmountCtrl.text) ?? 0.0;
+      final totalPaid = _existingPaidAmount + paid;
+      final outstanding = (_totalCost() - _existingPaidAmount).clamp(0.0, double.infinity);
+      if (paid > outstanding) {
+        _snack('Payment amount cannot exceed the outstanding amount.');
+        setState(() => _isSaving = false);
+        return;
+      }
       String apiMode = _paymentMethod;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"] = paid;
+      payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
       payload["paymentStatus"] =
-          paid >= _totalCost() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+          totalPaid >= _totalCost() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
       payload["paymentDate"] = _paymentDate.toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
     } else if (_recordPaymentNow && _paymentResult != null) {
       final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
+      final totalPaid = _existingPaidAmount + paid;
+      final outstanding = (_totalCost() - _existingPaidAmount).clamp(0.0, double.infinity);
+      if (paid > outstanding) {
+        _snack('Payment amount cannot exceed the outstanding amount.');
+        setState(() => _isSaving = false);
+        return;
+      }
       final method = (_paymentResult!['method'] as String?) ?? 'Cash';
       final payDate =
           (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
       String apiMode = method;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"] = paid;
+      payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
       payload["paymentStatus"] =
-          paid >= _totalCost() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+          totalPaid >= _totalCost() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
       payload["paymentDate"] = payDate.toIso8601String();
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
@@ -695,7 +710,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           : _nameCtrl.text.trim(),
                       entryRef: '',
                       totalAmount: _totalCost(),
-                      alreadyPaid: 0,
+                      alreadyPaid: _existingPaidAmount,
                       vendorName: '',
                       category: _categoryCtrl.text.trim().isEmpty
                           ? 'Labour'
@@ -745,7 +760,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               : _nameCtrl.text.trim(),
           entryRef: '',
           totalAmount: _totalCost(),
-          alreadyPaid: 0,
+          alreadyPaid: _existingPaidAmount,
           vendorName: '',
           category: _categoryCtrl.text.trim().isEmpty
               ? 'Labour'
