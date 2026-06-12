@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
@@ -21,7 +21,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
 
-  File? _selectedImage;
+  PickedImage? _selectedImage;
+  Uint8List? _selectedImageBytes;
   bool _isSaving = false;
   bool _isLoadingInitial = true;
 
@@ -70,8 +71,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final file = await pickImageFromGallery(context);
-    if (file != null && mounted) setState(() => _selectedImage = file);
+    final picked = await pickImageFromGallery(context);
+    if (picked == null || !mounted) return;
+    final bytes = await picked.readAsBytes();
+    setState(() {
+      _selectedImage = picked;
+      _selectedImageBytes = bytes;
+    });
   }
 
   Future<void> _onSave() async {
@@ -177,10 +183,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           radius: 40,
                           backgroundColor:
                               Colors.white.withValues(alpha: 0.2),
-                          backgroundImage: _selectedImage != null
-                              ? FileImage(_selectedImage!)
+                          backgroundImage: _selectedImageBytes != null
+                              ? MemoryImage(_selectedImageBytes!)
                               : null,
-                          child: _selectedImage == null
+                          child: _selectedImageBytes == null
                               ? const Icon(Icons.person,
                                   size: 40, color: Colors.white)
                               : null,

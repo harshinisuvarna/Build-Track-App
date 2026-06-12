@@ -58,7 +58,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   bool _buildingExpanded = true;
   bool _landExpanded = true;
   bool _roomsExpanded = true;  // expanded so user can see existing data
-  bool _addlExpanded = true;  // expanded so user can see existing data
+  bool _addlExpanded = true;
+  bool _utilityExpanded = true;
+  bool _gasExpanded = true;
+  bool _kitchenExpanded = true;
+  bool _electricalExpanded = true;
+  bool _terraceExpanded = true;
   bool _datesExpanded = true;
 
   static const Map<String, List<String>> _buildingSubTypes = {
@@ -73,12 +78,31 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   // FIX: chip options match exactly what we save to backend (short labels)
   final List<String> _floorChipOptions = ['Ground', '1st', '2nd', '3rd', '4th', 'Terrace', 'Head Room'];
 
-  final List<String> _addlConfigOptions = [
-    'Balcony','Car Parking','Lift','Terrace Access','Interior Work','Compound Wall','Parapet Wall','Waterproofing','Putty','False Ceiling','Modular Kitchen','Wardrobes','Sump','Septic Tank','Rainwater','Borewell','Solar','Generator','CCTV','Intercom','Landscaping','Paving','Water Tanks','Stairs','Security Room','Cladding','Elevation','Gates','Grills','Aluminium','Glass',
-    'Main Electricity','Temporary Connection','Generator Backup','Water Connection','Borewell Motor','Sump Motor',
+  // Split option lists matching the create screen exactly
+  static const _kAddlConfigEdit = [
+    'Balcony','Car Parking','Lift','Terrace Access','Interior Work',
+    'Compound Wall','Parapet Wall','Waterproofing','Putty','False Ceiling',
+    'Modular Kitchen','Wardrobes','Sump','Septic Tank','Rainwater',
+    'Borewell','Solar','Generator','CCTV','Intercom','Landscaping',
+    'Paving','Water Tanks','Stairs','Security Room','Cladding',
+    'Elevation','Gates','Grills','Aluminium','Glass',
+  ];
+  static const _kUtilityEdit = [
+    'Main Electricity','Temporary Connection','Generator Backup',
+    'Water Connection','Borewell Motor','Sump Motor',
+  ];
+  static const _kGasEdit = [
     'Piped Gas','Cylinder Bank','Gas Pipeline Routing',
-    'Granite Counter','Quartz Counter','Stainless Steel Sink','Chimney Provision','Exhaust Fan Provision',
-    'Concealed Wiring','Open Wiring','3-Phase Connection','AC Points','Geyser Points',
+  ];
+  static const _kKitchenEdit = [
+    'Granite Counter','Quartz Counter','Stainless Steel Sink',
+    'Chimney Provision','Exhaust Fan Provision',
+  ];
+  static const _kElectricalEdit = [
+    'Concealed Wiring','Open Wiring','3-Phase Connection',
+    'AC Points','Geyser Points',
+  ];
+  static const _kTerraceEdit = [
     'Weathering Course','Cool Roof Paint','Overhead Tank','Solar Panels',
   ];
 
@@ -169,7 +193,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   /// Populate all form fields from a [ProjectModel].
   void _populateFrom(ProjectModel p) {
     _nameCtrl.text = p.name;
-    _cityCtrl.text = p.city;
+    _cityCtrl.text = p.city.isNotEmpty
+        ? p.city
+        : (p.location.isNotEmpty ? p.location : '');
     _mapAddressCtrl.text = p.mapAddress ?? '';
     _clientCtrl.text = p.clientName ?? '';
     _contactCtrl.text = p.contactNumber ?? '';
@@ -206,23 +232,36 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _buildingSubType = null;
     _isCustomSubType = false;
     _customSubTypeCtrl.clear();
-    if (p.projectType != null && p.projectType!.contains('→')) {
-      final parts = p.projectType!.split('→');
-      _mainBuildingType = parts[0].trim();
-      final sub = parts.length > 1 ? parts[1].trim() : null;
-      if (sub != null && sub.isNotEmpty && sub != 'General') {
-        final knownSubs = _buildingSubTypes[_mainBuildingType] ?? [];
-        if (knownSubs.contains(sub)) {
-          _buildingSubType = sub;
-          _isCustomSubType = false;
-        } else {
-          _isCustomSubType = true;
-          _customSubTypeCtrl.text = sub;
+    if (p.projectType != null && p.projectType!.isNotEmpty) {
+      final raw = p.projectType!;
+      // Support both ' → ' (new) and ' / ' (legacy) separators
+      final sepIndex = raw.contains('→')
+          ? raw.indexOf('→')
+          : raw.contains('/')
+              ? raw.indexOf('/')
+              : -1;
+      if (sepIndex != -1) {
+        final mainPart = raw.substring(0, sepIndex).trim();
+        final subPart = raw.substring(sepIndex + 1).trim();
+        // Only accept known main types
+        if (_buildingSubTypes.containsKey(mainPart)) {
+          _mainBuildingType = mainPart;
+          if (subPart.isNotEmpty && subPart != 'General') {
+            final knownSubs = _buildingSubTypes[mainPart] ?? [];
+            if (knownSubs.contains(subPart)) {
+              _buildingSubType = subPart;
+              _isCustomSubType = false;
+            } else {
+              _isCustomSubType = true;
+              _customSubTypeCtrl.text = subPart;
+            }
+          }
         }
-      }
-    } else if (p.projectType != null && p.projectType!.isNotEmpty) {
-      if (_buildingSubTypes.containsKey(p.projectType)) {
-        _mainBuildingType = p.projectType;
+      } else {
+        // No separator — the whole string is just the main type
+        if (_buildingSubTypes.containsKey(raw.trim())) {
+          _mainBuildingType = raw.trim();
+        }
       }
     }
 
@@ -613,25 +652,57 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ADDITIONAL FEATURES
+                      // ADDITIONAL CONFIGURATION
                       _buildAccordion(
-                        title: 'Additional Features',
+                        title: 'Additional Configuration',
                         isExpanded: _addlExpanded,
                         onToggle: () => setState(() => _addlExpanded = !_addlExpanded),
-                        child: LayoutBuilder(builder: (ctx, constraints) {
-                          final halfWidth = (constraints.maxWidth - 16) / 2;
-                          return Wrap(spacing: 16, runSpacing: 12, children: _addlConfigOptions.map((opt) => SizedBox(width: halfWidth, child: Row(children: [
-                            SizedBox(width: 24, height: 24, child: Checkbox(
-                              value: _additionalConfigs.contains(opt),
-                              onChanged: (v) => setState(() => v == true ? _additionalConfigs.add(opt) : _additionalConfigs.remove(opt)),
-                              activeColor: primaryBlue,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              side: const BorderSide(color: Color(0xFFDDE0E8), width: 1.5),
-                            )),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(opt, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textDark))),
-                          ]))).toList());
-                        }),
+                        child: _buildCheckboxGrid(_kAddlConfigEdit),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // UTILITY & SERVICES
+                      _buildAccordion(
+                        title: 'Utility & Services',
+                        isExpanded: _utilityExpanded,
+                        onToggle: () => setState(() => _utilityExpanded = !_utilityExpanded),
+                        child: _buildCheckboxGrid(_kUtilityEdit),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // GAS CONNECTION
+                      _buildAccordion(
+                        title: 'Gas Connection',
+                        isExpanded: _gasExpanded,
+                        onToggle: () => setState(() => _gasExpanded = !_gasExpanded),
+                        child: _buildCheckboxGrid(_kGasEdit),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // KITCHEN REQUIREMENTS
+                      _buildAccordion(
+                        title: 'Kitchen Requirements',
+                        isExpanded: _kitchenExpanded,
+                        onToggle: () => setState(() => _kitchenExpanded = !_kitchenExpanded),
+                        child: _buildCheckboxGrid(_kKitchenEdit),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ELECTRICAL & PLUMBING
+                      _buildAccordion(
+                        title: 'Electrical & Plumbing',
+                        isExpanded: _electricalExpanded,
+                        onToggle: () => setState(() => _electricalExpanded = !_electricalExpanded),
+                        child: _buildCheckboxGrid(_kElectricalEdit),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // TERRACE & INTERIOR
+                      _buildAccordion(
+                        title: 'Terrace & Interior',
+                        isExpanded: _terraceExpanded,
+                        onToggle: () => setState(() => _terraceExpanded = !_terraceExpanded),
+                        child: _buildCheckboxGrid(_kTerraceEdit),
                       ),
                       const SizedBox(height: 16),
 
@@ -842,6 +913,38 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         ]),
       ),
     ]);
+  }
+
+  Widget _buildCheckboxGrid(List<String> options) {
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final halfWidth = (constraints.maxWidth - 16) / 2;
+      return Wrap(
+        spacing: 16,
+        runSpacing: 12,
+        children: options.map((opt) => SizedBox(
+          width: halfWidth,
+          child: Row(children: [
+            SizedBox(
+              width: 24, height: 24,
+              child: Checkbox(
+                value: _additionalConfigs.contains(opt),
+                onChanged: (v) => setState(() =>
+                    v == true ? _additionalConfigs.add(opt) : _additionalConfigs.remove(opt)),
+                activeColor: primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                side: const BorderSide(color: Color(0xFFDDE0E8), width: 1.5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(
+              opt,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textDark),
+            )),
+          ]),
+        )).toList(),
+      );
+    });
   }
 
   Widget _datePicker({DateTime? date, String? hint, required VoidCallback onSelect}) {

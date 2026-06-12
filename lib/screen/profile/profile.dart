@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -59,7 +59,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
-  File? _selectedImage;
+  Uint8List? _avatarBytes;
+  String _avatarPath = '';
+   // For immediate local preview of new photo
 
   ProfileUserData? _user;
   bool _isLoadingProfile = true;
@@ -109,8 +111,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final file = await pickImageFromGallery(context);
-    if (file != null && mounted) setState(() => _selectedImage = file);
+    final picked = await pickImageFromGallery(context);
+    debugPrint('picked: $picked');
+    if (picked == null || !mounted) return;
+    final bytes = await picked.readAsBytes();
+    setState(() {
+      _avatarBytes = bytes;
+      _avatarPath = picked.path;
+    });
+    await _uploadProfilePhoto(bytes, picked.path);
+  }
+
+  Future<void> _uploadProfilePhoto(Uint8List bytes, String path) async {
+    try {
+      final base64Image = base64Encode(bytes);
+      final ext = path.split('.').last.toLowerCase();
+      final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+
+      final response = await ApiService.put(
+        '/users/profile/photo',
+        {
+          'profilePhoto': 'data:$mimeType;base64,$base64Image',
+        },
+      );
+
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo updated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Refresh profile so the new photo persists across navigation
+        await _fetchProfile();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload photo (${response.statusCode})'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Revert local preview if upload failed
+        if (mounted) setState(() {
+          _avatarBytes = null;
+          _avatarPath = '';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Upload error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _avatarBytes = null;
+        _avatarPath = '';
+      });
+    }
   }
 
   @override
@@ -206,8 +266,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildAvatar(String? photoUrl) {
     ImageProvider? imageProvider;
-    if (_selectedImage != null) {
-      imageProvider = FileImage(_selectedImage!);
+    if (_avatarBytes != null) {
+      imageProvider = MemoryImage(_avatarBytes!);
     } else if (photoUrl != null && photoUrl.isNotEmpty) {
       imageProvider = NetworkImage(photoUrl);
     }
