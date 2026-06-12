@@ -76,10 +76,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
+  // ── Scroll ────────────────────────────────────────────────────────────────
+  final _scrollCtrl = ScrollController();
+
   // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
+  String? _projectError;
+  String? _floorError;
+  String? _phaseError;
+  String? _activityError;
+  String? _unitError;
 
   String _safeString(dynamic val) {
     if (val == null) return '';
@@ -539,6 +547,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _supplierCtrl.dispose();
     _paymentAmountCtrl.dispose();
     _paymentNoteCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -557,6 +566,20 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
   double _finalTotal() => _subtotal() + _gstAmount();
 
+  void _scrollToFirstError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pos = _scrollCtrl.position;
+      final top = pos.maxScrollExtent;
+      // Scroll up a bit so the user can see the context
+      _scrollCtrl.animateTo(
+        top > 0 ? 0 : 0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
   bool _validate() {
     bool ok = true;
     setState(() {
@@ -572,26 +595,35 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       _rateError =
           (rate == null || rate <= 0) ? 'Enter a valid rate > 0' : null;
 
-      ok = _nameError == null && _qtyError == null && _rateError == null;
+      _projectError = _selectedProjectId == null
+          ? 'Please select a Project.'
+          : null;
+      _floorError =
+          _selectedFloor == null ? 'Please select a Floor / Zone.' : null;
+      _phaseError =
+          _selectedPhase == null ? 'Please select a Phase.' : null;
+      _activityError = _selectedActivity == null ||
+              _selectedActivity!.isEmpty
+          ? 'Please select an Activity.'
+          : null;
+      _unitError =
+          _selectedUnit == null ? 'Please select a Unit.' : null;
+
+      ok = _nameError == null &&
+          _qtyError == null &&
+          _rateError == null &&
+          _projectError == null &&
+          _floorError == null &&
+          _phaseError == null &&
+          _activityError == null &&
+          _unitError == null;
     });
 
+    if (!ok) _scrollToFirstError();
     return ok;
   }
 
   Future<void> _save(BuildContext ctx) async {
-    if (_selectedProjectId == null) {
-      _snack('Please select a project');
-      return;
-    }
-    if (_selectedFloor == null) {
-      _snack('Please select a floor / zone');
-      return;
-    }
-    if (_selectedPhase == null) {
-      _snack('Please select a phase');
-      return;
-    }
-    // Activity is OPTIONAL — no guard here
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -1412,6 +1444,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollCtrl,
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 child: Column(
@@ -1426,24 +1459,33 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       selectedFloor: _selectedFloor,
                       selectedPhase: _selectedPhase,
                       selectedActivity: _selectedActivity,
+                      projectError: _projectError,
+                      floorError: _floorError,
+                      phaseError: _phaseError,
+                      activityError: _activityError,
                       onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _projectError = null;
                         _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _floorError = null;
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
                         _selectedActivity = null;
+                        _phaseError = null;
                       }),
-                      onActivityChanged: (v) =>
-                          setState(() => _selectedActivity = v),
+                      onActivityChanged: (v) => setState(() {
+                        _selectedActivity = v;
+                        _activityError = null;
+                      }),
                     ),
 
 
@@ -1529,10 +1571,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             controller: _nameCtrl,
                             hint: 'e.g. Ready-Mix Concrete M30',
                             suggestions: _suggestions,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _nameError = null),
                             onSuggestionSelected: _prefillFromRecent,
+                            errorText: _nameError,
                           ),
-                          if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
 
                           // ── 3. UNIT ──────────────────────────────────────
@@ -1540,8 +1582,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                           const SizedBox(height: 8),
                           UnitSelectorField(
                             value: _selectedUnit,
-                            onChanged: (u) =>
-                                setState(() => _selectedUnit = u),
+                            onChanged: (u) => setState(() {
+                              _selectedUnit = u;
+                              _unitError = null;
+                            }),
+                            error: _unitError,
                           ),
                           const SizedBox(height: 20),
 
@@ -1553,9 +1598,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             hint: '0',
                             suffix: _selectedUnit ?? 'units',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _qtyError = null),
+                            error: _qtyError,
                           ),
-                          if (_qtyError != null) EntryErrorText(_qtyError!),
                           const SizedBox(height: 20),
 
                           // ── 5. RATE ──────────────────────────────────────
@@ -1566,9 +1611,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                             hint: '0',
                             prefix: '₹',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _rateError = null),
+                            error: _rateError,
                           ),
-                          if (_rateError != null) EntryErrorText(_rateError!),
                           const SizedBox(height: 20),
 
                           // ── 6. AMOUNT (auto-calculated) ──────────────────

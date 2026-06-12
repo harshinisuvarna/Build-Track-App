@@ -178,9 +178,14 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: AppColors.primary, width: 2),
+              bottom: BorderSide(
+                color: widget.errorText != null
+                    ? AppColors.error
+                    : AppColors.primary,
+                width: 2,
+              ),
             ),
           ),
           child: TextField(
@@ -219,6 +224,18 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
             ),
           ),
         ),
+        if (widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              widget.errorText!,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
         if (showDropdown) ...[
           const SizedBox(height: 8),
           _SuggestionDropdown(

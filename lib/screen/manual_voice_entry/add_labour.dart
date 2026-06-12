@@ -71,10 +71,18 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
+  // ── Scroll ────────────────────────────────────────────────────────────────
+  final _scrollCtrl = ScrollController();
+
   // ── Validation flags ─────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
+  String? _projectError;
+  String? _floorError;
+  String? _phaseError;
+  String? _activityError;
+  String? _unitError;
 
   String _safeString(dynamic val) {
     if (val == null) return '';
@@ -515,6 +523,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     _notesCtrl.dispose();
     _paymentAmountCtrl.dispose();
     _paymentNoteCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -523,6 +532,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     final overtime = double.tryParse(_overtimeCtrl.text) ?? 0;
     return (qty * rate) + overtime;
+  }
+
+  void _scrollToFirstError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollCtrl.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   bool _validate() {
@@ -537,16 +557,36 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       final rate = double.tryParse(_rateCtrl.text);
       _rateError =
           (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
-      ok = _nameError == null && _qtyError == null && _rateError == null;
+
+      _projectError = _selectedProjectId == null
+          ? 'Please select a Project.'
+          : null;
+      _floorError =
+          _selectedFloor == null ? 'Please select a Floor / Zone.' : null;
+      _phaseError =
+          _selectedPhase == null ? 'Please select a Phase.' : null;
+      _activityError = _selectedActivity == null ||
+              _selectedActivity!.isEmpty
+          ? 'Please select an Activity.'
+          : null;
+      _unitError =
+          _selectedUnit == null ? 'Please select a Unit.' : null;
+
+      ok = _nameError == null &&
+          _qtyError == null &&
+          _rateError == null &&
+          _projectError == null &&
+          _floorError == null &&
+          _phaseError == null &&
+          _activityError == null &&
+          _unitError == null;
     });
+
+    if (!ok) _scrollToFirstError();
     return ok;
   }
 
   Future<void> _save(BuildContext ctx) async {
-    if (_selectedProjectId == null) {
-      _snack('Please pick target working site execution context');
-      return;
-    }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -1308,6 +1348,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollCtrl,
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 child: Column(
@@ -1319,24 +1360,33 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       selectedFloor: _selectedFloor,
                       selectedPhase: _selectedPhase,
                       selectedActivity: _selectedActivity,
+                      projectError: _projectError,
+                      floorError: _floorError,
+                      phaseError: _phaseError,
+                      activityError: _activityError,
                       onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
                         _selectedFloor = null;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _projectError = null;
                         _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
                         _selectedPhase = null;
                         _selectedActivity = null;
+                        _floorError = null;
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
                         _selectedActivity = null;
+                        _phaseError = null;
                       }),
-                      onActivityChanged: (v) =>
-                          setState(() => _selectedActivity = v),
+                      onActivityChanged: (v) => setState(() {
+                        _selectedActivity = v;
+                        _activityError = null;
+                      }),
                     ),
 
                     // ── SECTION 2: LABOUR ENTRY ───────────────────────────
@@ -1418,10 +1468,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             controller: _nameCtrl,
                             hint: 'e.g. Mason, Carpenter, Steel Fixer',
                             suggestions: _suggestions,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _nameError = null),
                             onSuggestionSelected: _prefillFromRecent,
+                            errorText: _nameError,
                           ),
-                          if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
 
 
@@ -1432,8 +1482,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             value: _selectedUnit,
                             units: kLabourUnits,
                             hint: 'Select unit (e.g. Day, Hour, Sq ft)',
-                            onChanged: (u) =>
-                                setState(() => _selectedUnit = u),
+                            onChanged: (u) => setState(() {
+                              _selectedUnit = u;
+                              _unitError = null;
+                            }),
+                            error: _unitError,
                           ),
                           const SizedBox(height: 20),
 
@@ -1445,9 +1498,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             hint: '0',
                             suffix: _selectedUnit ?? 'Unit',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _qtyError = null),
+                            error: _qtyError,
                           ),
-                          if (_qtyError != null) EntryErrorText(_qtyError!),
                           const SizedBox(height: 20),
 
                           // ── 5. RATE ────────────────────────────────────────
@@ -1458,9 +1511,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             hint: '0',
                             prefix: '₹',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _rateError = null),
+                            error: _rateError,
                           ),
-                          if (_rateError != null) EntryErrorText(_rateError!),
                           const SizedBox(height: 20),
 
                           // ── 6. AMOUNT (auto-calculated) ────────────────────
