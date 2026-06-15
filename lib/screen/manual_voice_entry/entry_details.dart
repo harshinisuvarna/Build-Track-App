@@ -653,6 +653,15 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         ).then((result) async {
           if (result != null && mounted) {
             final paid = result['amount'] as double? ?? 0;
+            final outstanding = (_billAmount - _paidAmount).clamp(0.0, double.infinity);
+            if (paid > outstanding) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Payment amount cannot exceed the outstanding amount.')),
+                );
+              }
+              return;
+            }
             final newStatus = result['status'] as PaymentStatus?;
             final receiptFile = result['receipt'] as String?;
             final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();

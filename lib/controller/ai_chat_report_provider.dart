@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'project_provider.dart';
-import '../models/project_model.dart';
 
 // ─── Message models ───────────────────────────────────────────────────────────
 

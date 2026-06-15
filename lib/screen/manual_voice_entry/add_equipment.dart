@@ -72,11 +72,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _paymentNoteCtrl   = TextEditingController();
   String   _paymentMethod  = 'Cash';
   DateTime _paymentDate    = DateTime.now();
+  double _existingPaidAmount = 0.0;
+
+  // ── Scroll ────────────────────────────────────────────────────────────────
+  final _scrollCtrl = ScrollController();
 
   // ── Validation ────────────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
+  String? _projectError;
+  String? _floorError;
+  String? _phaseError;
+  String? _activityError;
+  String? _unitError;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   String _safeString(dynamic val) {
@@ -408,8 +417,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (pStatus != null && pStatus != 'pending' && pStatus != '') {
       _isAddAndPay = true;
       _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      final double paid = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-      _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
+      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
     }
 
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
@@ -605,6 +613,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _gstCtrl.dispose();
     _paymentAmountCtrl.dispose();
     _paymentNoteCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -624,6 +633,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   double _finalTotal() => _subtotal() + _gstAmount();
 
   // ── Validation ────────────────────────────────────────────────────────────
+  void _scrollToFirstError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollCtrl.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
   bool _validate() {
     bool ok = true;
     setState(() {
@@ -638,17 +658,37 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _rateError = (rate == null || rate <= 0)
           ? 'Rental processing rate index mandatory > 0'
           : null;
-      ok = _nameError == null && _qtyError == null && _rateError == null;
+
+      _projectError = _selectedProjectId == null
+          ? 'Please select a Project.'
+          : null;
+      _floorError =
+          _selectedFloor == null ? 'Please select a Floor / Zone.' : null;
+      _phaseError =
+          _selectedPhase == null ? 'Please select a Phase.' : null;
+      _activityError = _selectedActivity == null ||
+              _selectedActivity!.isEmpty
+          ? 'Please select an Activity.'
+          : null;
+      _unitError =
+          _selectedUnit == null ? 'Please select a Unit.' : null;
+
+      ok = _nameError == null &&
+          _qtyError == null &&
+          _rateError == null &&
+          _projectError == null &&
+          _floorError == null &&
+          _phaseError == null &&
+          _activityError == null &&
+          _unitError == null;
     });
+
+    if (!ok) _scrollToFirstError();
     return ok;
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
   Future<void> _save(BuildContext ctx) async {
-    if (_selectedProjectId == null) {
-      _snack('Working context deployment site mandatory');
-      return;
-    }
     if (!_validate()) return;
 
     setState(() => _isSaving = true);
@@ -683,27 +723,41 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     };
 
     if (_isAddAndPay) {
-      final paid = double.tryParse(_paymentAmountCtrl.text) ?? 0.0;
+      final paid = parseAmount(_paymentAmountCtrl.text) ?? 0.0;
+      final totalPaid = _existingPaidAmount + paid;
+      final outstanding = (_finalTotal() - _existingPaidAmount).clamp(0.0, double.infinity);
+      if (paid > outstanding) {
+        _snack('Payment amount cannot exceed the outstanding amount.');
+        setState(() => _isSaving = false);
+        return;
+      }
       String apiMode = _paymentMethod;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"]     = paid;
+      payload["paidAmount"]     = totalPaid;
       payload["paymentMode"]    = apiMode;
       payload["paymentStatus"]  =
-          paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+          totalPaid >= _finalTotal() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
       payload["paymentDate"]    = _paymentDate.toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
     } else if (_recordPaymentNow && _paymentResult != null) {
       final paid   = (_paymentResult!['amount']      as double?)   ?? 0.0;
+      final totalPaid = _existingPaidAmount + paid;
+      final outstanding = (_finalTotal() - _existingPaidAmount).clamp(0.0, double.infinity);
+      if (paid > outstanding) {
+        _snack('Payment amount cannot exceed the outstanding amount.');
+        setState(() => _isSaving = false);
+        return;
+      }
       final method = (_paymentResult!['method']      as String?)   ?? 'Cash';
       final payDate= (_paymentResult!['paymentDate'] as DateTime?) ?? DateTime.now();
       String apiMode = method;
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
-      payload["paidAmount"]    = paid;
+      payload["paidAmount"]    = totalPaid;
       payload["paymentMode"]   = apiMode;
       payload["paymentStatus"] =
-          paid >= _finalTotal() ? "Paid" : paid > 0 ? "Partial" : "Pending";
+          totalPaid >= _finalTotal() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
       payload["paymentDate"]   = payDate.toIso8601String();
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
@@ -850,7 +904,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       controller: scrollCtrl,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                       itemCount: _recentEntries.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (_, i) {
                         final tx        = _recentEntries[i] as Map<String, dynamic>;
                         final String title     = tx['title']?.toString() ?? 'Untitled';
@@ -1057,7 +1111,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           : _nameCtrl.text.trim(),
                       entryRef:    '',
                       totalAmount: _finalTotal(),
-                      alreadyPaid: 0,
+                      alreadyPaid: _existingPaidAmount,
                       vendorName:  _operatorCtrl.text.trim(),
                       category: _typeCtrl.text.trim().isEmpty
                           ? 'Equipment'
@@ -1104,7 +1158,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           entryTitle: _nameCtrl.text.trim().isEmpty ? 'Equipment' : _nameCtrl.text.trim(),
           entryRef:    '',
           totalAmount: _finalTotal(),
-          alreadyPaid: 0,
+          alreadyPaid: _existingPaidAmount,
           vendorName:  _operatorCtrl.text.trim(),
           category: _typeCtrl.text.trim().isEmpty ? 'Equipment' : _typeCtrl.text.trim(),
         );
@@ -1383,6 +1437,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollCtrl,
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 child: Column(
@@ -1394,24 +1449,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       selectedFloor:     _selectedFloor,
                       selectedPhase:     _selectedPhase,
                       selectedActivity:  _selectedActivity,
+                      projectError: _projectError,
+                      floorError: _floorError,
+                      phaseError: _phaseError,
+                      activityError: _activityError,
                       onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
                         _selectedFloor     = null;
                         _selectedPhase     = null;
                         _selectedActivity  = null;
+                        _projectError = null;
                         _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor    = v;
                         _selectedPhase    = null;
                         _selectedActivity = null;
+                        _floorError = null;
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase    = v;
                         _selectedActivity = null;
+                        _phaseError = null;
                       }),
-                      onActivityChanged: (v) =>
-                          setState(() => _selectedActivity = v),
+                      onActivityChanged: (v) => setState(() {
+                        _selectedActivity = v;
+                        _activityError = null;
+                      }),
                     ),
 
                     // ── SECTION 2: EQUIPMENT ENTRY ─────────────────────────
@@ -1494,10 +1558,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             controller: _nameCtrl,
                             hint: 'e.g. JCB Excavator 3DX, Hydra Crane 14T',
                             suggestions: _suggestions,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _nameError = null),
                             onSuggestionSelected: _prefillFromRecent,
+                            errorText: _nameError,
                           ),
-                          if (_nameError != null) EntryErrorText(_nameError!),
                           const SizedBox(height: 20),
 
                           // 3. UNIT
@@ -1507,7 +1571,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             value: _selectedUnit,
                             units: kEquipmentUnits,
                             hint: 'Select unit (e.g. Hour, Day, Trip)',
-                            onChanged: (u) => setState(() => _selectedUnit = u),
+                            onChanged: (u) => setState(() {
+                              _selectedUnit = u;
+                              _unitError = null;
+                            }),
+                            error: _unitError,
                           ),
                           const SizedBox(height: 20),
 
@@ -1519,9 +1587,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             hint: '0',
                             suffix: _selectedUnit ?? 'Unit',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _qtyError = null),
+                            error: _qtyError,
                           ),
-                          if (_qtyError != null) EntryErrorText(_qtyError!),
                           const SizedBox(height: 20),
 
                           // 5. RATE
@@ -1532,9 +1600,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             hint: '0',
                             prefix: '₹',
                             keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _rateError = null),
+                            error: _rateError,
                           ),
-                          if (_rateError != null) EntryErrorText(_rateError!),
                           const SizedBox(height: 20),
 
                           // 6. AMOUNT (auto)

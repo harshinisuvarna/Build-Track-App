@@ -240,6 +240,7 @@ class EntryUnderlineField extends StatelessWidget {
     this.maxLines = 1,
     this.onChanged,
     this.readOnly = false,
+    this.error,
   });
 
   final TextEditingController controller;
@@ -250,61 +251,73 @@ class EntryUnderlineField extends StatelessWidget {
   final int maxLines;
   final ValueChanged<String>? onChanged;
   final bool readOnly;
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _kBlue, width: 2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (prefix != null) ...[
-            Text(
-              prefix!,
-              style: const TextStyle(
-                color: _kGray,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 4),
-          ],
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              maxLines: maxLines,
-              readOnly: readOnly,
-              onChanged: onChanged,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                hintText: hint,
-                hintStyle: const TextStyle(color: _kGray),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                isDense: true,
-              ),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: _kDark,
-              ),
-            ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: error != null ? _kRed : _kBlue,
+            width: 2,
           ),
-          if (suffix != null) ...[
-            const SizedBox(width: 4),
-            Text(
-              suffix!,
-              style: const TextStyle(
-                color: _kGray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (prefix != null) ...[
+                Text(
+                  prefix!,
+                  style: const TextStyle(
+                    color: _kGray,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  maxLines: maxLines,
+                  readOnly: readOnly,
+                  onChanged: onChanged,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: hint,
+                    hintStyle: const TextStyle(color: _kGray),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    isDense: true,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _kDark,
+                  ),
+                ),
               ),
-            ),
-          ],
+              if (suffix != null) ...[
+                const SizedBox(width: 4),
+                Text(
+                  suffix!,
+                  style: const TextStyle(
+                    color: _kGray,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (error != null) EntryErrorText(error!),
         ],
       ),
     );
@@ -354,6 +367,7 @@ class EntryDropdownField<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.enabled = true,
+    this.error,
   });
 
   final T? value;
@@ -361,47 +375,60 @@ class EntryDropdownField<T> extends StatelessWidget {
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?>? onChanged;
   final bool enabled;
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
     final bool hasValue = items.any((item) => item.value == value);
     final T? safeValue = hasValue ? value : null;
 
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.45,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: enabled ? _kBlue : _kGray, width: 2),
-          ),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            value: safeValue,
-            isExpanded: true,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: enabled ? _kBlue : _kGray,
-            ),
-            hint: Text(
-              hint,
-              style: const TextStyle(
-                color: _kGray,
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
+    final borderColor = error != null
+        ? _kRed
+        : enabled
+            ? _kBlue
+            : _kGray;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Opacity(
+          opacity: enabled ? 1.0 : 0.45,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: borderColor, width: 2),
               ),
             ),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: _kDark,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<T>(
+                value: safeValue,
+                isExpanded: true,
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: enabled ? _kBlue : _kGray,
+                ),
+                hint: Text(
+                  hint,
+                  style: const TextStyle(
+                    color: _kGray,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _kDark,
+                ),
+                items: enabled ? items : <DropdownMenuItem<T>>[],
+                onChanged: enabled ? onChanged : null,
+              ),
             ),
-            items: enabled ? items : <DropdownMenuItem<T>>[],
-            onChanged: enabled ? onChanged : null,
           ),
         ),
-      ),
+        if (error != null) EntryErrorText(error!),
+      ],
     );
   }
 }
@@ -413,52 +440,65 @@ class UnitSelectorField extends StatelessWidget {
     required this.onChanged,
     this.units,
     this.hint = 'Select Unit',
+    this.error,
   });
 
   final String? value;
   final ValueChanged<String?> onChanged;
   final Map<String, List<String>>? units; // null → defaults to kInventoryUnits
   final String hint;
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
     final bool hasValue = value != null && value!.isNotEmpty;
-    return GestureDetector(
-      onTap: () => _showUnitSheet(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: _kBlue, width: 2)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                hasValue ? value! : hint,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
-                  color: hasValue ? _kDark : _kGray,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () => _showUnitSheet(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: error != null ? _kRed : _kBlue,
+                  width: 2,
                 ),
               ),
             ),
-            if (hasValue)
-              GestureDetector(
-                onTap: () => onChanged(null),
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.close_rounded, size: 18, color: _kGray),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasValue ? value! : hint,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                      color: hasValue ? _kDark : _kGray,
+                    ),
+                  ),
                 ),
-              )
-            else
-              const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: _kBlue,
-                size: 22,
-              ),
-          ],
+                if (hasValue)
+                  GestureDetector(
+                    onTap: () => onChanged(null),
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.close_rounded, size: 18, color: _kGray),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: _kBlue,
+                    size: 22,
+                  ),
+              ],
+            ),
+          ),
         ),
-      ),
+        if (error != null) EntryErrorText(error!),
+      ],
     );
   }
 
@@ -757,6 +797,10 @@ class ExecutionContextCard extends StatelessWidget {
     required this.onFloorChanged,
     required this.onPhaseChanged,
     required this.onActivityChanged,
+    this.projectError,
+    this.floorError,
+    this.phaseError,
+    this.activityError,
   });
 
   final String? selectedProjectId;
@@ -767,6 +811,10 @@ class ExecutionContextCard extends StatelessWidget {
   final ValueChanged<String?> onFloorChanged;
   final ValueChanged<dynamic> onPhaseChanged;
   final ValueChanged<String?> onActivityChanged;
+  final String? projectError;
+  final String? floorError;
+  final String? phaseError;
+  final String? activityError;
 
   @override
   Widget build(BuildContext context) {
@@ -912,7 +960,9 @@ class ExecutionContextCard extends StatelessWidget {
                     )
                     .toList(),
                 onChanged: onProjectChanged,
+                error: projectError,
               ),
+              if (projectError != null) EntryErrorText(projectError!),
               const SizedBox(height: 18),
               const EntryFieldLabel('Floor / Zone', required: true),
               const SizedBox(height: 8),
@@ -928,7 +978,9 @@ class ExecutionContextCard extends StatelessWidget {
                     )
                     .toList(),
                 onChanged: onFloorChanged,
+                error: floorError,
               ),
+              if (floorError != null) EntryErrorText(floorError!),
               const SizedBox(height: 18),
               const EntryFieldLabel('Phase', required: true),
               const SizedBox(height: 8),
@@ -948,7 +1000,9 @@ class ExecutionContextCard extends StatelessWidget {
                     )
                     .toList(),
                 onChanged: onPhaseChanged,
+                error: phaseError,
               ),
+              if (phaseError != null) EntryErrorText(phaseError!),
               const SizedBox(height: 18),
               const EntryFieldLabel('Activity', required: true),
               const SizedBox(height: 8),
@@ -968,7 +1022,9 @@ class ExecutionContextCard extends StatelessWidget {
                     )
                     .toList(),
                 onChanged: onActivityChanged,
+                error: activityError,
               ),
+              if (activityError != null) EntryErrorText(activityError!),
             ],
           ),
         );
@@ -1662,7 +1718,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
           helperText = 'No payment recorded';
           amountCtrl.text = '0';
         } else {
-          final entered = double.tryParse(amountCtrl.text) ?? 0;
+          final entered = parseAmount(amountCtrl.text) ?? 0;
           final rem = (outstanding - entered).clamp(0.0, double.infinity);
           helperText = rem > 0
               ? 'Remaining: ${formatCurrency(rem)}'
@@ -1970,7 +2026,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                     onChanged: (val) {
                                       ss(() {
                                         amountError = null;
-                                        final amt = double.tryParse(val);
+                                        final amt = parseAmount(val);
                                         if (amt == null || amt == 0) {
                                           selectedStatus =
                                               PaymentStatus.pending;
@@ -2287,9 +2343,9 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               flex: 5,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (selectedStatus == PaymentStatus.partial) {
+                                  if (selectedStatus != PaymentStatus.pending) {
                                     final raw = amountCtrl.text.trim();
-                                    final amt = double.tryParse(raw);
+                                    final amt = parseAmount(raw);
                                     if (raw.isEmpty ||
                                         amt == null ||
                                         amt <= 0) {
@@ -2300,10 +2356,17 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       return;
                                     }
                                     if (outstanding > 0 &&
-                                        amt > outstanding + 0.01) {
+                                        amt > outstanding) {
                                       ss(
                                         () => amountError =
-                                            'Exceeds outstanding ${formatCurrency(outstanding)}',
+                                            'Payment amount cannot exceed the outstanding amount.',
+                                      );
+                                      return;
+                                    }
+                                    if (outstanding <= 0) {
+                                      ss(
+                                        () => amountError =
+                                            'No outstanding amount to pay',
                                       );
                                       return;
                                     }
@@ -2313,10 +2376,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? outstanding
                                       : selectedStatus == PaymentStatus.pending
                                       ? 0.0
-                                      : (double.tryParse(
-                                              amountCtrl.text.trim(),
-                                            ) ??
-                                            0);
+                                      : (parseAmount(
+                                               amountCtrl.text.trim(),
+                                             ) ??
+                                             0);
                                   Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,
