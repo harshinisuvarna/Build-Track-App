@@ -26,11 +26,11 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
   bool loading = true;
 
   static String get baseUrl {
-    return 'https://build-track.onrender.com';
+    //return 'https://build-track.onrender.com';
     /*if (kReleaseMode) {
       return 'https://build-track.onrender.com';
-    }
-    return 'http://localhost:5001';*/
+    }*/
+    return 'http://localhost:5001';
   }
 
   @override
