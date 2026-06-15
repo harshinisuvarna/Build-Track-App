@@ -669,12 +669,17 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: textDark,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: textDark,
+              ),
+              maxLines: 1,
             ),
           ),
           const SizedBox(height: 4),

@@ -476,8 +476,11 @@ class _TrackerActivityRow extends StatelessWidget {
   ];
 
   String? _completedDateLabel() {
+    if (!activity.completed) return null;
     final dt = activity.completedAt;
-    if (dt == null) return null;
+    if (dt == null) return 'Date not recorded';
+    // Sentinel date means completed but date was unknown
+    if (dt.year == 2000 && dt.month == 1 && dt.day == 1) return 'Date not recorded';
     return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
   }
 
@@ -598,9 +601,14 @@ class _TrackerActivityRow extends StatelessWidget {
         'floor': projectFloors.isNotEmpty ? projectFloors.first : null,
         'projectFloors': projectFloors,
       },
-    ).then((_) {
+    ).then((_) async {
       if (context.mounted) {
-        context.read<ProjectProvider>().load();
+        // Wait for any in-flight PUT to finish before re-fetching,
+        // otherwise load() overwrites the optimistic tick with stale server data.
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (context.mounted) {
+          context.read<ProjectProvider>().load();
+        }
       }
     });
   }

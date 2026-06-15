@@ -670,15 +670,23 @@ class ProjectModel {
         buildingType != null) {
       final mainType = buildingType['mainType']?.toString() ?? '';
       final subType = buildingType['subType']?.toString() ?? '';
+      // Use ' → ' to match the separator used in edit_project.dart _populateFrom
       projectTypeStr =
-          subType.isNotEmpty ? '$mainType / $subType' : mainType;
+          subType.isNotEmpty ? '$mainType → $subType' : mainType;
+    }
+    // Normalize legacy ' / ' separator to ' → ' so edit screen always gets consistent format
+    if (projectTypeStr != null && projectTypeStr.contains(' / ')) {
+      projectTypeStr = projectTypeStr.replaceFirst(' / ', ' → ');
     }
 
 
     return ProjectModel(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
       name: finalName,
-      city: j['city']?.toString() ?? '',
+      // Some backends return city inside location or omit it entirely
+      city: (j['city']?.toString() ?? '').isNotEmpty
+          ? j['city'].toString()
+          : (j['location']?.toString() ?? ''),
       sector: j['sector']?.toString() ?? '',
       stage: ProjectStage.values.firstWhere(
         (e) => e.name == j['stage'],

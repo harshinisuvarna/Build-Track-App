@@ -174,12 +174,21 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
     if (picked != null && mounted) {
       setState(() => onPicked(picked));
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(savedOffset.clamp(
-              0.0, _scrollController.position.maxScrollExtent));
-        }
-      });
+      Future<void> _pickDate({
+    required DateTime initial,
+    required ValueChanged<DateTime> onPicked,
+  }) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && mounted) {
+      setState(() => onPicked(picked));
+      FocusScope.of(context).unfocus();
+    }
+  }
     }
   }
 
@@ -511,6 +520,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                         controller: _contactCtrl,
                                         hint: '+91 XXXXX XXXXX',
                                         icon: Icons.phone_outlined,
+                                        maxLength: 10,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly
+                                        ],
                                         keyboardType: TextInputType.phone,
                                       ),
                                     ],
@@ -1285,12 +1298,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     IconData? icon,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      maxLength: maxLength,
       validator: validator,
       style: const TextStyle(
           fontWeight: FontWeight.w600, fontSize: 14, color: textDark),
@@ -1302,6 +1317,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         fillColor: Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            counterText: '',
         prefixIcon:
             icon != null ? Icon(icon, size: 18, color: textGray) : null,
         enabledBorder: OutlineInputBorder(

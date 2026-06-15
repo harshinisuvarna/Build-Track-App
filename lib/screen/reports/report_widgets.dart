@@ -295,9 +295,30 @@ class ChartSection extends StatelessWidget {
                       },
                     ),
                   ),
-                  leftTitles: const AxisTitles(
-                    sideTitles:
-                        SideTitles(showTitles: true, reservedSize: 44),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 62,  // wider to fit ₹ + compact number
+                      getTitlesWidget: (value, meta) {
+                        // Compact formatter: 1,20,000 → ₹1.2L, 5,000 → ₹5K
+                        String label;
+                        if (value >= 100000) {
+                          label = '₹${(value / 100000).toStringAsFixed(1)}L';
+                        } else if (value >= 1000) {
+                          label = '₹${(value / 1000).toStringAsFixed(0)}K';
+                        } else {
+                          label = '₹${value.toInt()}';
+                        }
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          space: 6,
+                          child: Text(
+                            label,
+                            style: const TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                        );  
+                      },
+                    ),
                   ),
                   topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false)),

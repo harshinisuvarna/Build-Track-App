@@ -1,137 +1,201 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
+// ── PickedImage ───────────────────────────────────────────────────────────────
+// Used by profile.dart — works on both web and mobile without dart:io File.
+class PickedImage {
+  final String path;
+  final Future<Uint8List> Function() _readBytes;
+
+  PickedImage._({
+    required this.path,
+    required Future<Uint8List> Function() readBytes,
+  }) : _readBytes = readBytes;
+
+  Future<Uint8List> readAsBytes() => _readBytes();
+}
+
+Future<PickedImage?> pickImageFromGallery(BuildContext context) async {
+  try {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 75,
+    );
+    if (picked == null) return null;
+    return PickedImage._(
+      path: picked.path,
+      readBytes: () => picked.readAsBytes(),
+    );
+  } catch (e) {
+    debugPrint('pickImageFromGallery error: $e');
+    return null;
+  }
+}
+
+// ── PickedAttachment ──────────────────────────────────────────────────────────
+// Used by upload_box.dart, add_material, add_labour, add_equipment,
+// review_material, review_labour, review_equipment, updated_progress,
+// entry_details, entry_widgets.
 class PickedAttachment {
-  final File? nativeFile;
-  final Uint8List? bytes;
-  final String? webPath;
-
   final String name;
-  final bool isImage;
+  final Uint8List bytes;
+  final String mimeType;
 
   const PickedAttachment({
     required this.name,
-    required this.isImage,
-    this.nativeFile,
-    this.bytes,
-    this.webPath,
+    required this.bytes,
+    required this.mimeType,
   });
 
-  bool get isPdf => name.toLowerCase().endsWith('.pdf');
-  bool get isDoc =>
-      name.toLowerCase().endsWith('.doc') ||
-      name.toLowerCase().endsWith('.docx');
+  bool get isImage =>
+      mimeType.startsWith('image/') ||
+      name.toLowerCase().endsWith('.jpg') ||
+      name.toLowerCase().endsWith('.jpeg') ||
+      name.toLowerCase().endsWith('.png') ||
+      name.toLowerCase().endsWith('.webp');
 
+  // ImageProvider for showing image previews in UploadBox
+  ImageProvider? get imageProvider =>
+      isImage ? MemoryImage(bytes) : null;
+
+  // Icon and colour helpers used by UploadBox file preview
   IconData get icon {
-    if (isImage) return Icons.image_outlined;
-    if (isPdf) return Icons.picture_as_pdf_outlined;
-    if (isDoc) return Icons.description_outlined;
+    final ext = name.split('.').last.toLowerCase();
+    if (ext == 'pdf') return Icons.picture_as_pdf_outlined;
+    if (ext == 'doc' || ext == 'docx') return Icons.description_outlined;
+    if (ext == 'xls' || ext == 'xlsx') return Icons.table_chart_outlined;
     return Icons.insert_drive_file_outlined;
   }
 
   Color get iconColor {
-    if (isImage) return const Color(0xFF4A6CF7);
-    if (isPdf) return const Color(0xFFE53935);
-    if (isDoc) return const Color(0xFF1565C0);
-    return const Color(0xFF546E7A);
+    final ext = name.split('.').last.toLowerCase();
+    if (ext == 'pdf') return const Color(0xFFE53935);
+    if (ext == 'doc' || ext == 'docx') return const Color(0xFF1565C0);
+    if (ext == 'xls' || ext == 'xlsx') return const Color(0xFF2E7D32);
+    return const Color(0xFF6B7280);
   }
 
-  Color get iconBg {
-    if (isImage) return const Color(0xFFEEF0FF);
-    if (isPdf) return const Color(0xFFFFEBEE);
-    if (isDoc) return const Color(0xFFE3F2FD);
-    return const Color(0xFFECEFF1);
-  }
-  ImageProvider? get imageProvider {
-    if (!isImage) return null;
-    if (kIsWeb && webPath != null) return NetworkImage(webPath!);
-    if (kIsWeb && bytes != null) return MemoryImage(bytes!);
-    if (nativeFile != null) return FileImage(nativeFile!);
-    return null;
+  Color get iconBg => iconColor.withValues(alpha: 0.10);
+
+  // Convert to base64 data URI for backend upload
+  String get dataUri => 'data:$mimeType;base64,${_base64Encode(bytes)}';
+
+  static String _base64Encode(Uint8List bytes) {
+    // dart:convert is not imported here — use the chunk approach
+    const chars =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    final output = StringBuffer();
+    for (var i = 0; i < bytes.length; i += 3) {
+      final remaining = bytes.length - i;
+      final b0 = bytes[i];
+      final b1 = remaining > 1 ? bytes[i + 1] : 0;
+      final b2 = remaining > 2 ? bytes[i + 2] : 0;
+      output.write(chars[(b0 >> 2) & 0x3F]);
+      output.write(chars[((b0 << 4) | (b1 >> 4)) & 0x3F]);
+      output.write(remaining > 1 ? chars[((b1 << 2) | (b2 >> 6)) & 0x3F] : '=');
+      output.write(remaining > 2 ? chars[b2 & 0x3F] : '=');
+    }
+    return output.toString();
   }
 }
 
-
+// Picks any file (image, pdf, doc, xlsx) — used by UploadBox and entry screens
 Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
-  if (kIsWeb) {
-    return _pickOnWeb(context);
-  } else {
-    return _pickOnMobile(context);
-  }
-}
-
-
-Future<PickedAttachment?> _pickOnMobile(BuildContext context) async {
   try {
+    // Try image picker first for camera/gallery on mobile
+    if (!kIsWeb) {
+      // On mobile show a choice dialog
+      final choice = await showModalBottomSheet<String>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from Gallery'),
+                onTap: () => Navigator.pop(ctx, 'gallery'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take Photo'),
+                onTap: () => Navigator.pop(ctx, 'camera'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_file_outlined),
+                title: const Text('Pick Document'),
+                onTap: () => Navigator.pop(ctx, 'file'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+      if (choice == null) return null;
+      if (choice == 'gallery' || choice == 'camera') {
+        final picker = ImagePicker();
+        final picked = await picker.pickImage(
+          source: choice == 'camera'
+              ? ImageSource.camera
+              : ImageSource.gallery,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 80,
+        );
+        if (picked == null) return null;
+        final bytes = await picked.readAsBytes();
+        final ext = picked.name.split('.').last.toLowerCase();
+        final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+        return PickedAttachment(
+          name: picked.name,
+          bytes: bytes,
+          mimeType: mime,
+        );
+      }
+    }
+
+    // Web or 'file' choice — use file_picker
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: false,
-      withData: false,
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+      withData: true, // required on web to get bytes
     );
-
     if (result == null || result.files.isEmpty) return null;
-    final pf = result.files.first;
-    if (pf.path == null) return null;
+    final f = result.files.first;
+    final bytes = f.bytes;
+    if (bytes == null) return null;
 
-    final name = pf.name;
-    final ext = name.split('.').last.toLowerCase();
-    const imageExts = {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'heif'};
-    final isImage = imageExts.contains(ext);
+    final ext = (f.extension ?? 'bin').toLowerCase();
+    final mimeMap = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
 
     return PickedAttachment(
-      nativeFile: File(pf.path!),
-      name: name,
-      isImage: isImage,
+      name: f.name,
+      bytes: bytes,
+      mimeType: mimeMap[ext] ?? 'application/octet-stream',
     );
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open file picker: $e')),
-      );
-    }
+    debugPrint('pickAttachmentDirect error: $e');
     return null;
   }
-}
-
-
-Future<PickedAttachment?> _pickOnWeb(BuildContext context) async {
-  try {
-    // On web, use FilePicker with bytes (path is unavailable on web).
-    // withData:true is required — bytes is the only way to access the file.
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: false,
-      withData: true,
-    );
-
-    if (result == null || result.files.isEmpty) return null;
-    final pf = result.files.first;
-    final name = pf.name;
-    final ext = name.split('.').last.toLowerCase();
-    const imageExts = {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'};
-    final isImage = imageExts.contains(ext);
-
-    // Use the bytes directly — no second picker call needed.
-    return PickedAttachment(
-      bytes: pf.bytes,
-      name: name,
-      isImage: isImage,
-    );
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open file picker: $e')),
-      );
-    }
-    return null;
-  }
-}
-
-
-Future<File?> pickImageFromGallery(BuildContext context) async {
-  final result = await pickAttachmentDirect(context);
-  return result?.nativeFile;
 }
