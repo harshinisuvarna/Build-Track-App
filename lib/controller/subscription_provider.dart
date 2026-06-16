@@ -1,311 +1,261 @@
-import 'dart:convert';
-import 'dart:developer' as dev;
-import 'package:buildtrack_mobile/services/billing_service.dart';
-import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:buildtrack_mobile/services/billing_service.dart';
 
-// ── Enums ──────────────────────────────────────────────────────────────────
-enum SubscriptionPlan { free, starter, growth, pro, business, enterprise }
-enum SubscriptionStatus { active, expired, unknown }
+// ── SubscriptionPlan enum ─────────────────────────────────────────────────────
+// Must match every plan used in subscription_screen.dart and subscription_card.dart
+enum SubscriptionPlan {
+  free,
+  starter,
+  growth,
+  pro,
+  business,
+  enterprise,
+}
 
 extension SubscriptionPlanX on SubscriptionPlan {
   String get label {
     switch (this) {
-      case SubscriptionPlan.free:       return 'Free';
-      case SubscriptionPlan.starter:    return 'Starter';
-      case SubscriptionPlan.growth:     return 'Growth';
-      case SubscriptionPlan.pro:        return 'Pro';
-      case SubscriptionPlan.business:   return 'Business';
-      case SubscriptionPlan.enterprise: return 'Enterprise';
+      case SubscriptionPlan.free:
+        return 'Free';
+      case SubscriptionPlan.starter:
+        return 'Starter';
+      case SubscriptionPlan.growth:
+        return 'Growth';
+      case SubscriptionPlan.pro:
+        return 'Pro';
+      case SubscriptionPlan.business:
+        return 'Business';
+      case SubscriptionPlan.enterprise:
+        return 'Enterprise';
     }
   }
 
+  // Short badge text shown on SubscriptionCard (top-right pill)
   String get badge {
     switch (this) {
-      case SubscriptionPlan.free:       return 'FREE';
-      case SubscriptionPlan.starter:    return 'STARTER';
-      case SubscriptionPlan.growth:     return 'GROWTH';
-      case SubscriptionPlan.pro:        return 'PRO';
-      case SubscriptionPlan.business:   return 'BUSINESS';
-      case SubscriptionPlan.enterprise: return 'ENTERPRISE';
+      case SubscriptionPlan.free:
+        return 'FREE';
+      case SubscriptionPlan.starter:
+        return 'STARTER';
+      case SubscriptionPlan.growth:
+        return 'GROWTH';
+      case SubscriptionPlan.pro:
+        return 'PRO';
+      case SubscriptionPlan.business:
+        return 'BUSINESS';
+      case SubscriptionPlan.enterprise:
+        return 'ENTERPRISE';
     }
   }
 
+  // User limit per plan — used by SubscriptionCard's limit chips
   int get maxUsers {
     switch (this) {
-      case SubscriptionPlan.free:       return 2;
-      case SubscriptionPlan.starter:    return 5;
-      case SubscriptionPlan.growth:     return 8;
-      case SubscriptionPlan.pro:        return 15;
-      case SubscriptionPlan.business:   return 25;
-      case SubscriptionPlan.enterprise: return 999999;
+      case SubscriptionPlan.free:
+        return 2;
+      case SubscriptionPlan.starter:
+        return 5;
+      case SubscriptionPlan.growth:
+        return 8;
+      case SubscriptionPlan.pro:
+        return 15;
+      case SubscriptionPlan.business:
+        return 25;
+      case SubscriptionPlan.enterprise:
+        return 999999; // treated as "Unlimited" in UI
     }
   }
 
-  /// -1 = unlimited. Free = 1 project per 30 days (enforced separately).
+  // Project limit per plan. -1 means unlimited (enterprise).
+  // free is handled as a special case in the UI ("1 project / 30 days")
   int get maxProjects {
     switch (this) {
-      case SubscriptionPlan.free:       return 1;
-      case SubscriptionPlan.starter:    return 2;
-      case SubscriptionPlan.growth:     return 4;
-      case SubscriptionPlan.pro:        return 6;
-      case SubscriptionPlan.business:   return 12;
-      case SubscriptionPlan.enterprise: return -1;
+      case SubscriptionPlan.free:
+        return 1;
+      case SubscriptionPlan.starter:
+        return 2;
+      case SubscriptionPlan.growth:
+        return 4;
+      case SubscriptionPlan.pro:
+        return 6;
+      case SubscriptionPlan.business:
+        return 12;
+      case SubscriptionPlan.enterprise:
+        return -1; // unlimited
+    }
+  }
+
+  // Maps backend plan string → enum value
+  static SubscriptionPlan fromString(String? value) {
+    switch (value?.toLowerCase().trim()) {
+      case 'starter':
+        return SubscriptionPlan.starter;
+      case 'growth':
+        return SubscriptionPlan.growth;
+      case 'pro':
+        return SubscriptionPlan.pro;
+      case 'business':
+        return SubscriptionPlan.business;
+      case 'enterprise':
+        return SubscriptionPlan.enterprise;
+      default:
+        return SubscriptionPlan.free;
     }
   }
 }
 
-// ── Persistence keys ───────────────────────────────────────────────────────
-const _kPlanKey        = 'buildtrack_sub_plan_v2';
-const _kTokenKey       = 'buildtrack_sub_token_v2';
-const _kRenewalDateKey = 'buildtrack_sub_renewal_v2';
+// ── SubscriptionStatus enum ───────────────────────────────────────────────────
+// Used by SubscriptionCard's status dot/badge
+enum SubscriptionStatus { active, expired, unknown }
 
-// ── Provider ───────────────────────────────────────────────────────────────
+// ── SubscriptionProvider ──────────────────────────────────────────────────────
 class SubscriptionProvider extends ChangeNotifier {
-  SubscriptionPlan   _plan         = SubscriptionPlan.free;
-  SubscriptionStatus _status       = SubscriptionStatus.active;
-  DateTime?          _renewalDate;
-  String             _error        = '';
-  bool               _isLoading    = false;
-  bool               _isPurchasing = false;
+  SubscriptionPlan _currentPlan = SubscriptionPlan.free;
+  SubscriptionStatus _status = SubscriptionStatus.unknown;
+  bool _isPurchasing = false;
+  bool _isLoading = false;
+  String _error = '';
+  DateTime? _expiryDate;
 
-  SubscriptionPlan   get currentPlan  => _plan;
-  SubscriptionStatus get status       => _status;
-  DateTime?          get renewalDate  => _renewalDate;
-  String             get error        => _error;
-  bool               get isLoading    => _isLoading;
-  bool               get isPurchasing => _isPurchasing;
+  // ── Getters — read by subscription_screen.dart and subscription_card.dart ──
+  SubscriptionPlan get currentPlan => _currentPlan;
+  SubscriptionStatus get status => _status;
+  bool get isPurchasing => _isPurchasing;
+  bool get isLoading => _isLoading;
+  String get error => _error;
+  DateTime? get expiryDate => _expiryDate;
 
-  bool get isFree       => _plan == SubscriptionPlan.free;
-  bool get isStarter    => _plan == SubscriptionPlan.starter    && _status == SubscriptionStatus.active;
-  bool get isGrowth     => _plan == SubscriptionPlan.growth     && _status == SubscriptionStatus.active;
-  bool get isPro        => _plan == SubscriptionPlan.pro        && _status == SubscriptionStatus.active;
-  bool get isBusiness   => _plan == SubscriptionPlan.business   && _status == SubscriptionStatus.active;
-  bool get isEnterprise => _plan == SubscriptionPlan.enterprise && _status == SubscriptionStatus.active;
-  bool get isPaid       => !isFree && _status == SubscriptionStatus.active;
+  // renewalDate is an alias of expiryDate — subscription_card.dart reads
+  // this name specifically for the "Renews <date>" row
+  DateTime? get renewalDate => _expiryDate;
 
-  int get maxUsers    => _plan.maxUsers;
-  int get maxProjects => _plan.maxProjects; // -1 = unlimited
+  // isPaid = true if on any paid plan
+  bool get isPaid => _currentPlan != SubscriptionPlan.free;
 
-  bool canAddProject(int currentCount) {
-    if (_plan.maxProjects == -1) return true;
-    return currentCount < _plan.maxProjects;
-  }
+  // ── Holds payment params returned by backend after initiate call ─────────────
+  // PaymentWebViewScreen reads this to build the AirPay HTML form
+  Map<String, dynamic>? _pendingPaymentParams;
+  Map<String, dynamic>? get pendingPaymentParams => _pendingPaymentParams;
 
-  bool get canViewReports   => isPaid;
-  bool get canViewInventory => isPaid;
-  bool get canStoreReceipts => isPaid;
-  bool get canManageRoles   => isBusiness || isEnterprise;
-
-  final BillingService _billing = BillingService.instance;
-
-  SubscriptionProvider() { _init(); }
-
-  // ── Init ──────────────────────────────────────────────────────────────
-  Future<void> _init() async {
-    _setLoading(true);
-    await _loadFromBackend();
-    await _billing.init(_onPurchaseUpdate);
-    _setLoading(false);
-  }
-
-  // ── Load from backend (falls back to SharedPrefs) ─────────────────────
-  Future<void> _loadFromBackend() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? prefs.getString('jwt_token');
-      if (token == null) {
-        await _loadPersistedPlan();
-        return;
-      }
-
-      // ApiService.get() returns http.Response — decode manually
-      final response = await ApiService.get('/users/subscription');
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        final sub  = body['subscription'] as Map<String, dynamic>?;
-        if (sub != null) {
-          _plan   = _planFromString(sub['plan']   ?? 'free');
-          _status = _statusFromString(sub['status'] ?? 'active');
-          _renewalDate = sub['renewalDate'] != null
-              ? DateTime.tryParse(sub['renewalDate'].toString())
-              : null;
-          await _persistPlan();
-          return;
-        }
-      }
-      // Non-200 or empty sub — fall back to local
-      await _loadPersistedPlan();
-    } catch (e) {
-      dev.log('SubscriptionProvider._loadFromBackend error: $e');
-      await _loadPersistedPlan();
-    }
-  }
-
-  Future<void> _loadPersistedPlan() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _plan = _planFromString(prefs.getString(_kPlanKey) ?? 'free');
-      final renewalStr = prefs.getString(_kRenewalDateKey);
-      if (renewalStr != null) {
-        _renewalDate = DateTime.tryParse(renewalStr);
-        if (_renewalDate != null && _renewalDate!.isBefore(DateTime.now())) {
-          _plan   = SubscriptionPlan.free;
-          _status = SubscriptionStatus.expired;
-          await _persistPlan();
-        } else {
-          _status = SubscriptionStatus.active;
-        }
-      }
-    } catch (e) {
-      dev.log('SubscriptionProvider._loadPersistedPlan error: $e');
-    }
-  }
-
-  Future<void> _persistPlan({String? purchaseToken}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kPlanKey, _plan.name);
-      if (purchaseToken != null) await prefs.setString(_kTokenKey, purchaseToken);
-      if (_renewalDate != null) {
-        await prefs.setString(_kRenewalDateKey, _renewalDate!.toIso8601String());
-      }
-    } catch (e) {
-      dev.log('SubscriptionProvider._persistPlan error: $e');
-    }
-  }
-
-  // ApiService.put() also returns http.Response
-  Future<void> _syncToBackend({String? purchaseToken}) async {
-    try {
-      await ApiService.put('/users/subscription', {
-        'plan':          _plan.name,
-        'status':        _status.name,
-        'renewalDate':   _renewalDate?.toIso8601String(),
-        'purchaseToken': purchaseToken,
-      });
-    } catch (e) {
-      dev.log('SubscriptionProvider._syncToBackend error: $e');
-    }
-  }
-
-  // ── Purchase flow ─────────────────────────────────────────────────────
-  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
-    for (final p in purchases) { await _handlePurchase(p); }
-    notifyListeners();
-  }
-
-  Future<void> _handlePurchase(PurchaseDetails purchase) async {
-    switch (purchase.status) {
-      case PurchaseStatus.pending:
-        break;
-      case PurchaseStatus.purchased:
-      case PurchaseStatus.restored:
-        final verified = await _mockVerify(purchase);
-        if (verified) _grantAccess(purchase);
-        await _billing.completePurchase(purchase);
-        break;
-      case PurchaseStatus.error:
-        _error        = purchase.error?.message ?? 'Purchase failed';
-        _isPurchasing = false;
-        dev.log('Purchase error: ${purchase.error}');
-        break;
-      case PurchaseStatus.canceled:
-        _isPurchasing = false;
-        dev.log('Purchase cancelled');
-        break;
-    }
-  }
-
-  Future<bool> _mockVerify(PurchaseDetails purchase) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return true;
-  }
-
-  void _grantAccess(PurchaseDetails purchase) {
-    _plan        = _planFromProductId(purchase.productID);
-    _status      = SubscriptionStatus.active;
-    _renewalDate = DateTime.now().add(const Duration(days: 30));
-    _isPurchasing = false;
-    _error        = '';
-    final token = purchase.verificationData.serverVerificationData;
-    _persistPlan(purchaseToken: token);
-    _syncToBackend(purchaseToken: token);
-  }
-
-  Future<void> purchase(String productId) async {
-    if (_isPurchasing) return;
-    _error        = '';
-    _isPurchasing = true;
-    notifyListeners();
-    final started = await _billing.purchase(productId);
-    if (!started) {
-      _error        = 'Could not start purchase. Please try again.';
-      _isPurchasing = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> restore() async {
+  // =============================================================================
+  // FETCH STATUS — call this on app start and after payment returns
+  // =============================================================================
+  Future<void> fetchStatus() async {
     _isLoading = true;
-    _error     = '';
+    _error = '';
     notifyListeners();
     try {
-      await _billing.restorePurchases();
+      final data = await BillingService.fetchStatus();
+      if (data != null && data['hasSubscription'] == true) {
+        _currentPlan = SubscriptionPlanX.fromString(data['plan']?.toString());
+
+        if (data['endDate'] != null) {
+          _expiryDate = DateTime.tryParse(data['endDate'].toString());
+        } else {
+          _expiryDate = null;
+        }
+
+        // Determine status from endDate vs now
+        if (_expiryDate != null && _expiryDate!.isAfter(DateTime.now())) {
+          _status = SubscriptionStatus.active;
+        } else if (_expiryDate != null) {
+          _status = SubscriptionStatus.expired;
+        } else {
+          _status = SubscriptionStatus.active; // backend says active, no date given
+        }
+      } else {
+        _currentPlan = SubscriptionPlan.free;
+        _expiryDate = null;
+        _status = SubscriptionStatus.unknown;
+      }
+      _error = '';
     } catch (e) {
-      _error = 'Restore failed. Please try again.';
-      dev.log('SubscriptionProvider.restore error: $e');
+      _error = 'Could not fetch subscription status';
+      _status = SubscriptionStatus.unknown;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void _setLoading(bool v) { _isLoading = v; notifyListeners(); }
+  // =============================================================================
+  // PURCHASE — subscription_screen.dart calls this when user taps a plan
+  // Returns the paymentParams map so the screen can open PaymentWebViewScreen
+  // =============================================================================
+  Future<Map<String, dynamic>?> purchase(String productId) async {
+    if (_isPurchasing) return null;
+    _isPurchasing = true;
+    _error = '';
+    notifyListeners();
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  SubscriptionPlan _planFromString(String s) {
-    switch (s) {
-      case 'starter':    return SubscriptionPlan.starter;
-      case 'growth':     return SubscriptionPlan.growth;
-      case 'pro':        return SubscriptionPlan.pro;
-      case 'business':   return SubscriptionPlan.business;
-      case 'enterprise': return SubscriptionPlan.enterprise;
-      default:           return SubscriptionPlan.free;
+    try {
+      final params = await BillingService.initiatePayment(productId);
+      if (params == null) {
+        _error = 'Could not initiate payment. Please try again.';
+        return null;
+      }
+      _pendingPaymentParams = params;
+      return params;
+    } catch (e) {
+      _error = 'Payment initiation failed: ${e.toString()}';
+      return null;
+    } finally {
+      _isPurchasing = false;
+      notifyListeners();
     }
   }
 
-  SubscriptionStatus _statusFromString(String s) {
-    switch (s) {
-      case 'expired': return SubscriptionStatus.expired;
-      case 'unknown': return SubscriptionStatus.unknown;
-      default:        return SubscriptionStatus.active;
+  // =============================================================================
+  // RESTORE — called when user taps "Restore Purchases" / "Restore"
+  // Checks backend for any active subscription linked to this account
+  // =============================================================================
+  Future<void> restore() async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+    try {
+      await fetchStatus();
+      if (_currentPlan == SubscriptionPlan.free) {
+        // No active subscription found — not treated as an error
+        _error = '';
+      }
+    } catch (e) {
+      _error = 'Restore failed. Please try again.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  SubscriptionPlan _planFromProductId(String id) {
-    switch (id) {
-      case kStarterMonthlyId:    return SubscriptionPlan.starter;
-      case kGrowthMonthlyId:     return SubscriptionPlan.growth;
-      case kProMonthlyId:        return SubscriptionPlan.pro;
-      case kBusinessMonthlyId:   return SubscriptionPlan.business;
-      case kEnterpriseMonthlyId: return SubscriptionPlan.enterprise;
-      default:                   return SubscriptionPlan.free;
+  // =============================================================================
+  // Called by PaymentWebViewScreen after payment completes
+  // success = true  → deep link was buildtrack://payment/success
+  // success = false → deep link was buildtrack://payment/failure
+  // =============================================================================
+  Future<void> handlePaymentResult(bool success) async {
+    _pendingPaymentParams = null;
+    if (success) {
+      // Re-fetch status from backend so currentPlan updates immediately
+      await fetchStatus();
+    } else {
+      _error = 'Payment was not completed. Please try again.';
+      notifyListeners();
     }
   }
 
-  @override
-  void dispose() { _billing.dispose(); super.dispose(); }
+  void clearError() {
+    _error = '';
+    notifyListeners();
+  }
 
+  // Alias used by profile.dart — clears error state
+  // (profile.dart calls `.clear()` on logout/reset)
   void clear() {
-    _plan         = SubscriptionPlan.free;
-    _status       = SubscriptionStatus.active;
-    _renewalDate  = null;
-    _error        = '';
-    _isLoading    = false;
-    _isPurchasing = false;
+    _currentPlan = SubscriptionPlan.free;
+    _status = SubscriptionStatus.unknown;
+    _expiryDate = null;
+    _error = '';
+    _pendingPaymentParams = null;
     notifyListeners();
   }
 }

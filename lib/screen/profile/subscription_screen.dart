@@ -3,7 +3,8 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/premium_cta_button.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
-import 'package:buildtrack_mobile/services/billing_service.dart'; // ← FIX: import constants
+import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
+import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -208,7 +209,7 @@ class SubscriptionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Subscriptions auto-renew monthly.\nCancel anytime from your Play Store or App Store settings.',
+                      'Subscriptions auto-renew monthly.\nCancel anytime from your account settings.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -233,8 +234,7 @@ class SubscriptionScreen extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon:
-                const Icon(Icons.close_rounded, color: AppColors.textDark),
+            icon: const Icon(Icons.close_rounded, color: AppColors.textDark),
             onPressed: () => Navigator.maybePop(context),
           ),
         ],
@@ -247,8 +247,7 @@ class SubscriptionScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(30),
@@ -294,13 +293,44 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
+  // ── _onUpgrade ───────────────────────────────────────────────────────────────
+  // 1. Calls backend to get AirPay payment params
+  // 2. Opens PaymentWebViewScreen with those params
+  // 3. Waits for result (true = success, false = failure)
+  // 4. Shows success dialog or error banner
   Future<void> _onUpgrade(
       BuildContext context, SubscriptionProvider sub, _PlanInfo plan) async {
+    // Free plan or already on this plan — do nothing
     if (plan.productId == null) return;
     if (sub.currentPlan == plan.plan) return;
-    await sub.purchase(plan.productId!);
+
+    // Step 1: call backend to initiate payment and get AirPay params
+    final params = await sub.purchase(plan.productId!);
+
     if (!context.mounted) return;
-    if (sub.error.isEmpty && sub.isPaid) _showSuccessDialog(context, plan);
+
+    // If initiation failed, error is already set in provider — banner shows
+    if (params == null) return;
+
+    // Step 2: open WebView with AirPay payment form
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentWebViewScreen(paymentParams: params),
+      ),
+    );
+
+    if (!context.mounted) return;
+
+    // Step 3: handle result
+    // result == true  → payment success
+    // result == false or null → payment cancelled or failed
+    if (result == true) {
+      _showSuccessDialog(context, plan);
+    } else {
+      // Provider already set error via handlePaymentResult(false)
+      // The error banner in the screen body will show automatically
+    }
   }
 
   Future<void> _onRestore(
@@ -329,6 +359,7 @@ class SubscriptionScreen extends StatelessWidget {
   void _showSuccessDialog(BuildContext context, _PlanInfo plan) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -344,8 +375,7 @@ class SubscriptionScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color:
-                          AppColors.primaryPurple.withValues(alpha: 0.3),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8))
                 ],
@@ -354,9 +384,11 @@ class SubscriptionScreen extends StatelessWidget {
                   color: Colors.white, size: 36),
             ),
             const SizedBox(height: 24),
-            Text('Welcome to ${plan.title}!',
-                style: AppTheme.heading2.copyWith(
-                    fontSize: 22, color: const Color(0xFF101828))),
+            Text(
+              'Welcome to ${plan.title}!',
+              style: AppTheme.heading2.copyWith(
+                  fontSize: 22, color: const Color(0xFF101828)),
+            ),
             const SizedBox(height: 8),
             Text(
               'Your subscription is now active.\nEnjoy all ${plan.title} features.',
@@ -369,8 +401,8 @@ class SubscriptionScreen extends StatelessWidget {
               label: 'Start Building',
               isFullWidth: true,
               onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // close dialog
+                Navigator.of(context).pop(); // close subscription screen
               },
             ),
           ],
@@ -411,13 +443,11 @@ class _PlanCard extends StatelessWidget {
             boxShadow: isPro
                 ? [
                     BoxShadow(
-                        color:
-                            AppColors.primary.withValues(alpha: 0.08),
+                        color: AppColors.primary.withValues(alpha: 0.08),
                         blurRadius: 24,
                         offset: const Offset(0, 12)),
                     BoxShadow(
-                        color:
-                            AppColors.primary.withValues(alpha: 0.04),
+                        color: AppColors.primary.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 4)),
                   ]
@@ -503,8 +533,8 @@ class _PlanCard extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Divider(color: Color(0xFFEAECF0), height: 1),
                 const SizedBox(height: 24),
-                ...info.features
-                    .map((f) => _FeatureItem(text: f, isHighlighted: isPro)),
+                ...info.features.map(
+                    (f) => _FeatureItem(text: f, isHighlighted: isPro)),
                 const SizedBox(height: 8),
                 _buildCta(),
               ],
@@ -618,8 +648,7 @@ class _PlanCard extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Color(0xFF344054)),
+                      strokeWidth: 2.5, color: Color(0xFF344054)),
                 )
               : Text(info.cta,
                   style: const TextStyle(
@@ -632,7 +661,7 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 class _LimitPill extends StatelessWidget {
   const _LimitPill({required this.icon, required this.label});
   final IconData icon;
@@ -721,8 +750,7 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline,
-              color: Color(0xFFD92D20), size: 20),
+          const Icon(Icons.error_outline, color: Color(0xFFD92D20), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(message,

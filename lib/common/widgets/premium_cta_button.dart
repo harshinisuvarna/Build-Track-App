@@ -1,148 +1,126 @@
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
+// ── CtaVariant ────────────────────────────────────────────────────────────────
+enum CtaVariant {
+  primary,    // gradient background — used for highlighted Pro plan / main CTA
+  secondary,  // translucent white — used for "Restore" on dark gradient cards
+  outline,    // white with border — used for other plans
+}
 
-enum CtaVariant { primary, secondary }
-class PremiumCtaButton extends StatefulWidget {
-  final String label;
-  final IconData? icon;
-  final VoidCallback onTap;
-  final CtaVariant variant;
-  final bool isLoading;
-  final bool isFullWidth;
-
+// ── PremiumCtaButton ──────────────────────────────────────────────────────────
+// Used by subscription_screen.dart and subscription_card.dart for CTA buttons
+class PremiumCtaButton extends StatelessWidget {
   const PremiumCtaButton({
     super.key,
     required this.label,
     required this.onTap,
     this.icon,
-    this.variant = CtaVariant.primary,
-    this.isLoading = false,
     this.isFullWidth = false,
+    this.isLoading = false,
+    this.variant = CtaVariant.primary,
   });
 
-  @override
-  State<PremiumCtaButton> createState() => _PremiumCtaButtonState();
-}
-
-class _PremiumCtaButtonState extends State<PremiumCtaButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    // Using a quick, snappy animation for a premium tactile feel
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-      reverseDuration: const Duration(milliseconds: 150),
-    );
-    // Scales down slightly to 96% of its size when pressed
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails details) {
-    if (!widget.isLoading) _controller.forward();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    if (!widget.isLoading) {
-      _controller.reverse();
-      widget.onTap();
-    }
-  }
-
-  void _onTapCancel() {
-    if (!widget.isLoading) _controller.reverse();
-  }
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool isFullWidth;
+  final bool isLoading;
+  final CtaVariant variant;
 
   @override
   Widget build(BuildContext context) {
-    final isPrimary = widget.variant == CtaVariant.primary;
+    // FIX: was incorrectly using `widget.variant` (StatefulWidget syntax)
+    // This is a StatelessWidget — fields are accessed directly via `variant`
+    final isPrimary = variant == CtaVariant.primary;
+    final isSecondary = variant == CtaVariant.secondary;
+
+    // ── Background decoration per variant ─────────────────────────────────
+    BoxDecoration decoration;
+    Color textColor;
+    Color spinnerColor;
+
+    if (isPrimary) {
+      decoration = BoxDecoration(
+        gradient: AppGradients.primaryButton,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.30),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      );
+      textColor = Colors.white;
+      spinnerColor = Colors.white;
+    } else if (isSecondary) {
+      // Translucent white — designed to sit on top of colorful gradient cards
+      // (e.g. the "Restore" button inside SubscriptionCard)
+      decoration = BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      );
+      textColor = Colors.white;
+      spinnerColor = Colors.white;
+    } else {
+      // outline
+      decoration = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD0D5DD), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF101828).withValues(alpha: 0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      );
+      textColor = const Color(0xFF344054);
+      spinnerColor = AppColors.primary;
+    }
 
     return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      // Provide an opaque behavior so the entire area is tappable
+      onTap: isLoading ? null : onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) => Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        ),
-        child: Container(
-          width: widget.isFullWidth ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            // Primary gets a vibrant gradient, secondary gets a translucent glass outline
-            gradient: isPrimary
-                ? AppGradients.primaryButton
-                : null,
-            color: isPrimary ? null : Colors.white.withValues(alpha: 0.1),
-            border: isPrimary
-                ? null
-                : Border.all(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    width: 1.5,
-                  ),
-            // Dynamic glowing shadow only for the primary CTA
-            boxShadow: isPrimary
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF6B4EE6).withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Row(
-            mainAxisSize: widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.isLoading) ...[
-                const SizedBox(
+      child: Container(
+        width: isFullWidth ? double.infinity : null,
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
+        decoration: decoration,
+        child: Center(
+          child: isLoading
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                    color: spinnerColor,
                   ),
-                ),
-                const SizedBox(width: 12),
-              ] else if (widget.icon != null) ...[
-                Icon(widget.icon, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    widget.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, color: textColor, size: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );

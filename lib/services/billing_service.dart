@@ -1,105 +1,73 @@
-import 'dart:async';
-import 'dart:developer' as dev;
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'dart:convert';
+import 'package:buildtrack_mobile/services/api_service.dart';
 
-// ── Product IDs ────────────────────────────────────────────────────────────
-const kStarterMonthlyId    = 'com.buildtrack.starter.monthly';
-const kGrowthMonthlyId     = 'com.buildtrack.growth.monthly';
-const kProMonthlyId        = 'com.buildtrack.pro.monthly';
-const kBusinessMonthlyId   = 'com.buildtrack.business.monthly';
-const kEnterpriseMonthlyId = 'com.buildtrack.enterprise.monthly';
+// ── AirPay Product ID constants ───────────────────────────────────────────────
+// These are the plan identifiers sent to your backend
+// Replace with real AirPay product IDs when your teammate provides them
+const String kStarterMonthlyId  = 'buildtrack_starter_monthly';
+const String kGrowthMonthlyId   = 'buildtrack_growth_monthly';
+const String kProMonthlyId      = 'buildtrack_pro_monthly';
+const String kBusinessMonthlyId = 'buildtrack_business_monthly';
+const String kEnterpriseMonthlyId = 'buildtrack_enterprise_monthly';
 
-const Set<String> kProductIds = {
-  kStarterMonthlyId,
-  kGrowthMonthlyId,
-  kProMonthlyId,
-  kBusinessMonthlyId,
-  kEnterpriseMonthlyId,
+// ── Plan amount map (in INR) ──────────────────────────────────────────────────
+const Map<String, double> kPlanAmounts = {
+  kStarterMonthlyId:   498,
+  kGrowthMonthlyId:    999,
+  kProMonthlyId:       1499,
+  kBusinessMonthlyId:  2499,
+  kEnterpriseMonthlyId: 4999,
 };
 
+// ── Plan name map ─────────────────────────────────────────────────────────────
+const Map<String, String> kPlanNames = {
+  kStarterMonthlyId:   'starter',
+  kGrowthMonthlyId:    'growth',
+  kProMonthlyId:       'pro',
+  kBusinessMonthlyId:  'business',
+  kEnterpriseMonthlyId: 'enterprise',
+};
+
+// ── BillingService ────────────────────────────────────────────────────────────
+// Handles all communication with your Node.js backend for payments
 class BillingService {
-  BillingService._();
-  static final instance = BillingService._();
-
-  InAppPurchase get _iap => InAppPurchase.instance;
-
-  List<ProductDetails> products = [];
-  bool isAvailable = false;
-  StreamSubscription<List<PurchaseDetails>>? _subscription;
-
-  Future<void> init(
-    void Function(List<PurchaseDetails>) onPurchaseUpdate,
-  ) async {
-    if (kIsWeb) {
-      dev.log('BillingService: Skipping IAP (not supported on Web)');
-      return;
-    }
-
-    isAvailable = await _iap.isAvailable();
-    if (!isAvailable) {
-      dev.log('BillingService: Store not available');
-      return;
-    }
-
-    _subscription = _iap.purchaseStream.listen(
-      onPurchaseUpdate,
-      onError: (Object e) => dev.log('BillingService stream error: $e'),
-    );
-    await _loadProducts();
-  }
-
-  Future<void> _loadProducts() async {
+  // Calls POST /api/subscriptions/initiate
+  // Returns the paymentParams map needed to build the AirPay WebView form
+  static Future<Map<String, dynamic>?> initiatePayment(
+      String productId) async {
     try {
-      final response = await _iap.queryProductDetails(kProductIds);
-      if (response.error != null) {
-        dev.log('BillingService product query error: ${response.error}');
+      final planName = kPlanNames[productId];
+      if (planName == null) return null;
+
+      final response = await ApiService.post(
+        '/subscriptions/initiate',
+        {'plan': planName},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        if (data['success'] == true) {
+          return data['paymentParams'] as Map<String, dynamic>;
+        }
+        return null;
       }
-      products = response.productDetails;
-      dev.log('BillingService: loaded ${products.length} products');
+      return null;
     } catch (e) {
-      dev.log('BillingService._loadProducts error: $e');
-    }
-  }
-
-  ProductDetails? productFor(String productId) {
-    try {
-      return products.firstWhere((p) => p.id == productId);
-    } catch (_) {
       return null;
     }
   }
 
-  Future<bool> purchase(String productId) async {
-    if (kIsWeb) return false;
-    final product = productFor(productId);
-    if (product == null) {
-      dev.log('BillingService.purchase: product $productId not found');
-      return false;
-    }
+  // Calls GET /api/subscriptions/status
+  // Returns the subscription status map from your backend
+  static Future<Map<String, dynamic>?> fetchStatus() async {
     try {
-      return await _iap.buyNonConsumable(
-        purchaseParam: PurchaseParam(productDetails: product),
-      );
+      final response = await ApiService.get('/subscriptions/status');
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
     } catch (e) {
-      dev.log('BillingService.purchase error: $e');
-      return false;
+      return null;
     }
-  }
-
-  Future<void> restorePurchases() async {
-    if (kIsWeb) return;
-    await _iap.restorePurchases();
-  }
-
-  Future<void> completePurchase(PurchaseDetails details) async {
-    if (kIsWeb) return;
-    if (details.pendingCompletePurchase) {
-      await _iap.completePurchase(details);
-    }
-  }
-
-  void dispose() {
-    _subscription?.cancel();
   }
 }
