@@ -411,6 +411,38 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       return;
     }
 
+    // ── Re-prefill ALL controllers from authoritative source (API data) ─────
+    // This OVERWRITES the stale route-arg prefill from Layer 1 with fresh data.
+    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
+    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
+    final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (freshUnit == 'bag' || freshUnit == 'bags') { _selectedUnit = 'bag'; }
+    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft') { _selectedUnit = 'Sq.ft'; }
+    else if (freshUnit == 'ton' || freshUnit == 'tons') { _selectedUnit = 'ton'; }
+    else if (freshUnit == 'kg' || freshUnit == 'kgs') { _selectedUnit = 'kg'; }
+    else if (freshUnit == 'unit' || freshUnit == 'pcs') { _selectedUnit = 'unit'; }
+    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit; }
+    _brandCtrl.text = _safeString(latest['brand']);
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
+    _notesCtrl.text = _safeString(latest['notes']);
+    if (latest['date'] != null) {
+      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+    }
+    _gstCtrl.text = (latest['gst'] ?? 0).toString();
+    _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+    final freshPStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
+    if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
+      _isAddAndPay = true;
+      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
+      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+    }
+    debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
+
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     final contextToRestore = {
       'projectId': _selectedProjectId,
@@ -422,7 +454,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
-    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
@@ -492,6 +524,30 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       return;
     }
 
+    // ── Re-prefill ALL controllers from authoritative source ──────────────
+    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
+    _rateCtrl.text = _safeString(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (freshUnit == 'bag' || freshUnit == 'bags') { _selectedUnit = 'bag'; }
+    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft') { _selectedUnit = 'Sq.ft'; }
+    else if (freshUnit == 'ton' || freshUnit == 'tons') { _selectedUnit = 'ton'; }
+    else if (freshUnit == 'kg' || freshUnit == 'kgs') { _selectedUnit = 'kg'; }
+    else if (freshUnit == 'unit' || freshUnit == 'pcs') { _selectedUnit = 'unit'; }
+    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit; }
+    _brandCtrl.text = _safeString(latest['brand']);
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
+    _notesCtrl.text = _safeString(latest['notes']);
+    if (latest['date'] != null) {
+      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+    }
+    _gstCtrl.text = (latest['gst'] ?? 0).toString();
+    _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+    debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
+
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     final contextToRestore = {
       'projectId': _selectedProjectId,
@@ -503,7 +559,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
-    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
@@ -888,12 +944,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     debugPrint('===== SAVE PAYLOAD =====');
     debugPrint(payload.toString());
     debugPrint('========================');
+    debugPrint('SAVE PATH CHECK: _isEditing=$_isEditing  _editingTransactionId=$_editingTransactionId  condition=${_isEditing && _editingTransactionId != null}');
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
+      debugPrint('>>> SAVE PATH: updateTransaction($_editingTransactionId)');
       success =
           await ApiService.updateTransaction(_editingTransactionId!, payload);
     } else {
+      debugPrint('>>> SAVE PATH: addMaterial (CREATE NEW) — WARNING: not updating!');
       success = await ApiService.addMaterial(payload);
     }
 
@@ -904,8 +963,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       context.read<ProjectProvider>().load();
 
       _snack(_isEditing
-          ? 'Material entry updated successfully!'
-          : 'Material logged and inventory stock synchronized!');
+          ? 'Material entry UPDATED successfully!'
+          : 'NEW material entry created!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
@@ -1651,6 +1710,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
+                        _selectedFloorId = v;
                         _selectedPhase = null;
                         _selectedPhaseId = null;
                         _selectedActivity = null;
@@ -1660,6 +1720,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
+                        _selectedPhaseId = v != null ? _derivePhaseId(v) : null;
                         _selectedActivity = null;
                         _selectedActivityId = null;
                         _phaseError = null;
@@ -1667,6 +1728,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                       }),
                       onActivityChanged: (v) => setState(() {
                         _selectedActivity = v;
+                        _selectedActivityId = v != null ? _deriveActivityId(v) : null;
                         _activityError = null;
                         _activityWarning = null;
                       }),

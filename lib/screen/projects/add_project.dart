@@ -164,20 +164,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     required DateTime initial,
     required ValueChanged<DateTime> onPicked,
   }) async {
-    final savedOffset =
-        _scrollController.hasClients ? _scrollController.offset : 0.0;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && mounted) {
-      setState(() => onPicked(picked));
-      Future<void> _pickDate({
-    required DateTime initial,
-    required ValueChanged<DateTime> onPicked,
-  }) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -187,8 +173,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     if (picked != null && mounted) {
       setState(() => onPicked(picked));
       FocusScope.of(context).unfocus();
-    }
-  }
     }
   }
 

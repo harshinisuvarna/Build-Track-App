@@ -38,7 +38,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
 
 void main() {
@@ -130,7 +129,7 @@ class MyApp extends StatelessWidget {
         '/profile':          (_) => const ProfileScreen(),
         '/edit-profile':     (_) => const EditProfileScreen(),
         '/subscription':     (_) => const SubscriptionScreen(),
-        '/payment-webview': (context) => const PaymentWebViewScreen(paymentParams: const {}),
+        '/payment-webview': (context) => const PaymentWebViewScreen(paymentParams: {}),
         '/home':        (_) => const HomeScreen(),
         '/projects':    (_) => const ProjectsScreen(),
         '/add-entry':   (_) => const AddEntryScreen(),

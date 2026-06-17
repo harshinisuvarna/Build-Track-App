@@ -21,7 +21,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
 
-  PickedImage? _selectedImage;
   Uint8List? _selectedImageBytes;
   bool _isSaving = false;
   bool _isLoadingInitial = true;
@@ -75,7 +74,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (picked == null || !mounted) return;
     final bytes = await picked.readAsBytes();
     setState(() {
-      _selectedImage = picked;
       _selectedImageBytes = bytes;
     });
   }

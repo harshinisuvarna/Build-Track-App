@@ -675,7 +675,7 @@ class _ExportSheetState extends State<_ExportSheet> {
               Switch.adaptive(
                 value: value,
                 onChanged: onChanged,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
             ],
           ),
@@ -776,9 +776,11 @@ class _ExportSheetState extends State<_ExportSheet> {
       await file.writeAsBytes(bytes);
       if (!mounted) return;
       Navigator.pop(context);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
-        subject: 'BuildTrack Report – ${widget.project.name}',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: 'BuildTrack Report – ${widget.project.name}',
+        ),
       );
     } catch (e) {
       if (mounted) {

@@ -397,6 +397,32 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       return;
     }
 
+    // ── Re-prefill ALL controllers from authoritative source ──────────────
+    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
+    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
+    final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
+    else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
+    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
+    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
+    _notesCtrl.text = _safeString(latest['notes']);
+    if (latest['date'] != null) {
+      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+    }
+    final freshPStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
+    if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
+      _isAddAndPay = true;
+      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
+      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+    }
+    debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
+
     final contextToRestore = {
       'projectId': _selectedProjectId,
       'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
@@ -407,7 +433,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
-    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
@@ -468,6 +494,25 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       return;
     }
 
+    // ── Re-prefill ALL controllers from authoritative source ──────────────
+    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
+    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
+    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
+    _rateCtrl.text = _safeString(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
+    if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
+    else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
+    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
+    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
+    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
+    _notesCtrl.text = _safeString(latest['notes']);
+    if (latest['date'] != null) {
+      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+    }
+    debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
+
     final contextToRestore = {
       'projectId': _selectedProjectId,
       'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
@@ -478,7 +523,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
-    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
@@ -836,12 +881,15 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     debugPrint('===== SAVE PAYLOAD =====');
     debugPrint(payload.toString());
     debugPrint('========================');
+    debugPrint('SAVE PATH CHECK: _isEditing=$_isEditing  _editingTransactionId=$_editingTransactionId  condition=${_isEditing && _editingTransactionId != null}');
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
+      debugPrint('>>> SAVE PATH: updateTransaction($_editingTransactionId)');
       success =
           await ApiService.updateTransaction(_editingTransactionId!, payload);
     } else {
+      debugPrint('>>> SAVE PATH: addMaterial (CREATE NEW) — WARNING: not updating!');
       success = await ApiService.addMaterial(payload);
     }
 
@@ -852,8 +900,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       context.read<ProjectProvider>().load();
 
       _snack(_isEditing
-          ? 'Labour entry updated successfully!'
-          : 'Labour entry logged to database!');
+          ? 'Labour entry UPDATED successfully!'
+          : 'NEW Labour entry created!');
       Navigator.maybePop(context);
     } else {
       _snack('Error saving to server. Please try again.');
@@ -1547,6 +1595,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
+                        _selectedFloorId = v;
                         _selectedPhase = null;
                         _selectedPhaseId = null;
                         _selectedActivity = null;
@@ -1556,6 +1605,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
+                        _selectedPhaseId = v != null ? _derivePhaseId(v) : null;
                         _selectedActivity = null;
                         _selectedActivityId = null;
                         _phaseError = null;
@@ -1563,6 +1613,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       }),
                       onActivityChanged: (v) => setState(() {
                         _selectedActivity = v;
+                        _selectedActivityId = v != null ? _deriveActivityId(v) : null;
                         _activityError = null;
                         _activityWarning = null;
                       }),
