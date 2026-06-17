@@ -1310,10 +1310,11 @@ class _PurchaseCard extends StatelessWidget {
                         onTap: () {
                           debugPrint('ADD MORE PAYLOAD');
                           debugPrint(record.rawTx.toString());
-                          onNavigate(_addRoute, {
-                            'isDuplicate':         true,
-                            'sourceTransactionId': record.txId,
-                          });
+                          final dupArgs =
+                              Map<String, dynamic>.from(record.rawTx);
+                          dupArgs['isDuplicate']         = true;
+                          dupArgs['sourceTransactionId'] = record.txId;
+                          onNavigate(_addRoute, dupArgs);
                         },
                       ),
                     ),

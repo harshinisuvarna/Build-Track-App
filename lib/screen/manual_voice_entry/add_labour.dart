@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -28,8 +30,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   // ── Execution context ────────────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
+  String? _selectedFloorId;
   dynamic _selectedPhase;
+  String? _selectedPhaseId;
   String? _selectedActivity;
+  String? _selectedActivityId;
   Map<String, dynamic>? _duplicateContext;
   bool _isDuplicate = false;
   String? _sourceTransactionId;
@@ -84,13 +89,38 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   String? _activityError;
   String? _unitError;
 
+  // ── Missing master data warnings ────────────────────────────────────────
+  String? _floorWarning;
+  String? _phaseWarning;
+  String? _activityWarning;
+
   String _safeString(dynamic val) {
     if (val == null) return '';
-    if (val is String) return val;
+    if (val is String) return val.trim();
     if (val is Map) {
-      return (val['name'] ?? val['title'] ?? val['phaseName'] ?? val['id'] ?? val['_id'] ?? '').toString();
+      return (val['name'] ?? val['title'] ?? val['phaseName'] ?? val['id'] ?? val['_id'] ?? '').toString().trim();
     }
-    return val.toString();
+    return val.toString().trim();
+  }
+
+  String _extractString(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final val = data[key];
+      if (val != null) {
+        final str = _safeString(val);
+        if (str.isNotEmpty) return str;
+      }
+    }
+    for (final entry in data.entries) {
+      final lowerKey = entry.key.toLowerCase();
+      for (final searchKey in keys) {
+        if (lowerKey == searchKey.toLowerCase()) {
+          final str = _safeString(entry.value);
+          if (str.isNotEmpty) return str;
+        }
+      }
+    }
+    return '';
   }
 
   @override
@@ -119,8 +149,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _editingTransactionId = args['id']?.toString();
 
         final txId = _editingTransactionId!;
+        final routeData = Map<String, dynamic>.from(args);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _fetchAndRestoreEdit(txId);
+          _fetchAndRestoreEdit(txId, argsData: routeData);
         });
       } else {
         // ── New entry — default project from session ───────────────────
@@ -135,8 +166,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
         if (_isDuplicate && _sourceTransactionId != null) {
           final txId = _sourceTransactionId!;
+          final routeData = Map<String, dynamic>.from(args);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _fetchAndRestoreDuplicate(txId);
+            _fetchAndRestoreDuplicate(txId, argsData: routeData);
           });
         }
       }
@@ -261,253 +293,388 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     }
   }
 
-  Future<void> _fetchAndRestoreEdit(String txId) async {
-    // 1. Search locally in InventoryProvider
-    final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
-    Map<String, dynamic>? latest;
-    for (var item in inventoryProvider.inventory) {
-      for (var tx in item.transactions) {
-        if (tx is Map && (tx['_id']?.toString() == txId || tx['id']?.toString() == txId)) {
-          latest = Map<String, dynamic>.from(tx);
-          break;
-        }
+  /// Look up the ProjectPhase.id matching the given phase name.
+  String? _derivePhaseId(dynamic phaseNameOrObj) {
+    if (_selectedProjectId == null) return null;
+    String? phaseName;
+    if (phaseNameOrObj is String) {
+      phaseName = phaseNameOrObj;
+    } else if (phaseNameOrObj is ProjectPhase) {
+      return phaseNameOrObj.id;
+    } else if (phaseNameOrObj is Map) {
+      phaseName = (phaseNameOrObj['phaseName'] ?? phaseNameOrObj['name'])?.toString();
+    } else if (phaseNameOrObj != null) {
+      phaseName = phaseNameOrObj.toString();
+    }
+    if (phaseName == null || phaseName.isEmpty) return null;
+    final projectProvider = context.read<ProjectProvider>();
+    final project = projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
+    if (project?.selectedPhases == null) return null;
+    for (final p in project!.selectedPhases!) {
+      if (p.phaseName == phaseName) return p.id;
+    }
+    return null;
+  }
+
+  /// Look up the ProjectActivity.id matching the given activity name.
+  String? _deriveActivityId(String? activityName) {
+    if (activityName == null || activityName.isEmpty || _selectedProjectId == null) return null;
+    final projectProvider = context.read<ProjectProvider>();
+    final project = projectProvider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
+    if (project?.selectedPhases == null) return null;
+    for (final p in project!.selectedPhases!) {
+      for (final a in p.activities) {
+        if (a.name == activityName) return a.id;
       }
-      if (latest != null) break;
+    }
+    return null;
+  }
+
+  Future<void> _fetchAndRestoreEdit(String txId, {Map<String, dynamic>? argsData}) async {
+    debugPrint('');
+    debugPrint('========== EDIT ENTRY — LAYER 1: ROUTE ARGS ==========');
+    debugPrint('txId: $txId');
+    debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
+
+    if (argsData != null) {
+      final pId = argsData['projectId'] ?? argsData['project'];
+      if (pId != null) {
+        _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
+      }
+      _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
+      final double qty = (argsData['quantity'] as num?)?.toDouble() ?? 0.0;
+      _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
+      final double rate = (argsData['rate'] as num?)?.toDouble() ?? 0.0;
+      _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+      final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
+      if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
+      else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
+      else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
+      else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
+      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
+      _notesCtrl.text = _safeString(argsData['notes']);
+      if (argsData['date'] != null) {
+        try { _selectedDate = DateTime.parse(argsData['date'].toString()); } catch (_) {}
+      }
+      final pStatus = argsData['paymentStatus']?.toString().toLowerCase() ?? argsData['status']?.toString().toLowerCase();
+      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
+        _isAddAndPay = true;
+        _paymentMethod = argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
+        _existingPaidAmount = (argsData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      }
+      debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
 
-    // 2. Fallback to API if not found
-    if (latest == null) {
-      debugPrint('Edit lookup: ID $txId not found in local inventory, calling ApiService...');
-      latest = await ApiService.fetchTransactionById(txId);
+    debugPrint('========== LAYER 2: API FETCH (fetchTransactionById) ==========');
+    Map<String, dynamic>? apiData;
+    if (txId.isNotEmpty) {
+      apiData = await ApiService.fetchTransactionById(txId);
+      if (apiData != null) {
+        debugPrint('API RESPONSE keys: ${apiData.keys.join(', ')}');
+        debugPrint('API RESPONSE: ${jsonEncode(apiData)}');
+      } else {
+        debugPrint('API RESPONSE: null');
+      }
     }
 
-    if (latest == null) {
-      debugPrint('Edit lookup: Failed to fetch transaction details for ID $txId');
+    debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
+    Map<String, dynamic>? latest;
+    if (apiData != null) {
+      latest = apiData;
+      debugPrint('SOURCE: API fetchTransactionById');
+    } else if (argsData != null) {
+      latest = argsData;
+      debugPrint('SOURCE: argsData (route args)');
+    } else {
+      debugPrint('SOURCE: NONE — aborting');
       return;
     }
 
-    debugPrint('========================');
-    debugPrint('RESOLVED EDIT PAYLOAD');
-    debugPrint(latest.toString());
-    debugPrint('========================');
-
-    // Prefill fields
-    final pId = latest['projectId'] ?? latest['project'];
-    if (pId != null) {
-      _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
-    }
-    
-    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    
-    final double qty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
-    _qtyCtrl.text = qty > 0
-        ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
-        : '';
-
-    final double rate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
-    _rateCtrl.text = rate > 0
-        ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
-        : '';
-    
-    final rawUnit = _safeString(latest['unit']).trim().toLowerCase();
-    if (rawUnit == 'day' || rawUnit == 'days') {
-      _selectedUnit = 'Day';
-    } else if (rawUnit == 'hour' || rawUnit == 'hours') {
-      _selectedUnit = 'Hour';
-    } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
-      _selectedUnit = 'Sq.ft';
-    } else if (rawUnit.isNotEmpty) {
-      _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
-    }
-    
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
-    _notesCtrl.text = _safeString(latest['notes']);
-
-    if (latest['date'] != null) {
-      try {
-        _selectedDate = DateTime.parse(latest['date'].toString());
-      } catch (_) {}
-    }
-
-    // Restore payment fields
-    final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
-    if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-      _isAddAndPay = true;
-      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-    }
-
-    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': latest['floor'] ?? latest['zone'],
-      'phase': latest['phase'],
-      'activity': latest['activity'],
+      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floorId': (latest['floorId'] ?? '').toString(),
+      'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
+      'phaseId': (latest['phaseId'] ?? '').toString(),
+      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
+      'activityId': (latest['activityId'] ?? '').toString(),
     };
+
+    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
   }
 
-  Future<void> _fetchAndRestoreDuplicate(String txId) async {
-    // 1. Search locally in InventoryProvider
-    final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
-    Map<String, dynamic>? latest;
-    for (var item in inventoryProvider.inventory) {
-      for (var tx in item.transactions) {
-        if (tx is Map && (tx['_id']?.toString() == txId || tx['id']?.toString() == txId)) {
-          latest = Map<String, dynamic>.from(tx);
-          break;
-        }
+  Future<void> _fetchAndRestoreDuplicate(String txId, {Map<String, dynamic>? argsData}) async {
+    debugPrint('');
+    debugPrint('========== DUPLICATE ENTRY — LAYER 1: ROUTE ARGS ==========');
+    debugPrint('txId: $txId');
+    debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
+
+    if (argsData != null) {
+      final pId = argsData['projectId'] ?? argsData['project'];
+      if (pId != null) {
+        _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
       }
-      if (latest != null) break;
+      _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
+      final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
+      if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
+      else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
+      else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
+      else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
+      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
+      _notesCtrl.text = _safeString(argsData['notes']);
+      final double rateVal = (argsData['rate'] as num?)?.toDouble()
+          ?? (argsData['dailyWage'] as num?)?.toDouble()
+          ?? (argsData['hourlyRate'] as num?)?.toDouble()
+          ?? 0.0;
+      if (rateVal > 0) {
+        _rateCtrl.text = rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString();
+      }
+      debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
 
-    // 2. Fallback to API if not found
-    if (latest == null) {
-      debugPrint('Duplicate lookup: ID $txId not found in local inventory, calling ApiService...');
-      latest = await ApiService.fetchTransactionById(txId);
+    debugPrint('========== LAYER 2: API FETCH (fetchTransactionById) ==========');
+    Map<String, dynamic>? apiData;
+    if (txId.isNotEmpty) {
+      apiData = await ApiService.fetchTransactionById(txId);
+      if (apiData != null) {
+        debugPrint('API RESPONSE keys: ${apiData.keys.join(', ')}');
+        debugPrint('API RESPONSE: ${jsonEncode(apiData)}');
+      } else {
+        debugPrint('API RESPONSE: null');
+      }
     }
 
-    if (latest == null) {
-      debugPrint('Duplicate lookup: Failed to fetch transaction details for ID $txId');
+    debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
+    Map<String, dynamic>? latest;
+    if (apiData != null) {
+      latest = apiData;
+      debugPrint('SOURCE: API fetchTransactionById');
+    } else if (argsData != null) {
+      latest = argsData;
+      debugPrint('SOURCE: argsData (route args)');
+    } else {
+      debugPrint('SOURCE: NONE — aborting');
       return;
     }
 
-    debugPrint('========================');
-    debugPrint('RESOLVED DUPLICATE PAYLOAD');
-    debugPrint(latest.toString());
-    debugPrint('========================');
-
-    // Prefill fields
-    final pId = latest['projectId'] ?? latest['project'];
-    if (pId != null) {
-      _selectedProjectId = pId is Map ? pId['_id']?.toString() : pId.toString();
-    }
-    
-    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    
-    final rawUnit = _safeString(latest['unit']).trim().toLowerCase();
-    if (rawUnit == 'day' || rawUnit == 'days') {
-      _selectedUnit = 'Day';
-    } else if (rawUnit == 'hour' || rawUnit == 'hours') {
-      _selectedUnit = 'Hour';
-    } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
-      _selectedUnit = 'Sq.ft';
-    } else if (rawUnit.isNotEmpty) {
-      _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
-    }
-    
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
-    _notesCtrl.text = _safeString(latest['notes']);
-
-    final double rateVal = (latest['rate'] as num?)?.toDouble()
-        ?? (latest['dailyWage'] as num?)?.toDouble()
-        ?? (latest['hourlyRate'] as num?)?.toDouble()
-        ?? 0.0;
-    if (rateVal > 0) {
-      _rateCtrl.text = rateVal % 1 == 0
-          ? rateVal.toInt().toString()
-          : rateVal.toString();
-    }
-
-    // Payment fields are intentionally left blank (clean slate) for duplicates
-
-    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': latest['floor'] ?? latest['zone'],
-      'phase': latest['phase'],
-      'activity': latest['activity'],
+      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floorId': (latest['floorId'] ?? '').toString(),
+      'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
+      'phaseId': (latest['phaseId'] ?? '').toString(),
+      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
+      'activityId': (latest['activityId'] ?? '').toString(),
     };
+
+    debugPrint('========== LAYER 4: CONTEXT TO RESTORE ==========');
+    debugPrint('contextToRestore: $contextToRestore');
 
     await _restoreDuplicateEntry(contextToRestore);
   }
 
   Future<void> _restoreDuplicateEntry(Map<String, dynamic> latest) async {
+    debugPrint('');
+    debugPrint('========== RESTORE DUPLICATE ENTRY ==========');
+    debugPrint('RAW INPUT: ${jsonEncode(latest)}');
+    debugPrint('INPUT KEYS: ${latest.keys.join(', ')}');
+
     final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     if (projectProvider.projects.isEmpty) {
       await projectProvider.load();
     }
 
+    // ── Resolve project ID ──────────────────────────────────────────────
     final pId = latest['projectId'] ?? latest['project'];
     String? resolvedProjectId;
     if (pId != null) {
       resolvedProjectId = pId is Map ? (pId['_id'] ?? pId['id'])?.toString() : pId.toString();
     }
+    debugPrint('resolvedProjectId => $resolvedProjectId');
 
-    final String floor = _safeString(latest['floor'] ?? latest['zone']);
-    final String phase = _safeString(latest['phase']);
-    final String activity = _safeString(latest['activity']);
+    // ── Extract floor / phase / activity (names AND IDs) ──────────────
+    final String floorName = _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']);
+    final String floorId   = (latest['floorId'] ?? '').toString();
+    debugPrint('floorName => "$floorName"');
+    debugPrint('floorId   => "$floorId"');
 
+    final String phaseName = _extractString(latest, ['phase', 'phaseName', 'phase_name']);
+    final String phaseId   = (latest['phaseId'] ?? '').toString();
+    debugPrint('phaseName => "$phaseName"');
+    debugPrint('phaseId   => "$phaseId"');
+
+    final String activityName = _extractString(latest, ['activity', 'activityName', 'activity_name']);
+    final String activityId   = (latest['activityId'] ?? '').toString();
+    debugPrint('activityName => "$activityName"');
+    debugPrint('activityId   => "$activityId"');
+
+    // Look up the project model for ID→name resolution
     final ProjectModel? project = resolvedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == resolvedProjectId,
       orElse: () => null,
     );
 
     if (project != null) {
-      debugPrint('========================');
-      debugPrint('PROJECT JSON MODEL');
-      debugPrint(project.toJson().toString());
-      debugPrint('========================');
+      debugPrint('PROJECT FOUND: ${project.name} (${project.id})');
+    } else {
+      debugPrint('PROJECT NOT FOUND for ID: $resolvedProjectId');
     }
 
-    // 1. Project
+    // ── 1. Select project ──────────────────────────────────────────────
     await _selectProject(resolvedProjectId);
+    debugPrint('PROJECT => $_selectedProjectId');
 
-    // 2. Floors
+    // Clear previous warnings
+    _floorWarning = null;
+    _phaseWarning = null;
+    _activityWarning = null;
+
+    // ── 2. Load floors ─────────────────────────────────────────────────
     await _loadFloors(resolvedProjectId);
+    debugPrint('FLOORS LOADED: $_floors');
 
-    // 3. Floor
-    if (floor.isNotEmpty) {
-      if (!_floors.contains(floor)) {
-        _floors.insert(0, floor);
-      }
-      _selectedFloor = floor;
+    // ── 3. Restore floor ──────────────────────────────────────────────
+    String? resolvedFloor;
+    if (floorName.isNotEmpty) {
+      resolvedFloor = floorName;
+    } else if (floorId.isNotEmpty) {
+      resolvedFloor = floorId;
     }
 
-    // 4. Phases
+    if (resolvedFloor != null) {
+      final floorFound = _floors.any((f) => f.toString() == resolvedFloor);
+      if (!floorFound) {
+        _floors.insert(0, resolvedFloor);
+        _floorWarning = '⚠ Previously selected floor "$resolvedFloor" no longer exists.\nPlease select another floor.';
+        debugPrint('FLOOR WARNING: "$resolvedFloor" not found — inserted at index 0');
+      } else {
+        debugPrint('FLOOR "$resolvedFloor" found in project floors');
+      }
+      _selectedFloor = resolvedFloor;
+      _selectedFloorId = floorId.isNotEmpty ? floorId : null;
+      debugPrint('FLOOR => $_selectedFloor  FLOOR_ID => $_selectedFloorId');
+    } else {
+      debugPrint('FLOOR => NO DATA (both name and ID empty)');
+    }
+
+    // ── 4. Load phases ─────────────────────────────────────────────────
     await _loadPhases(_selectedFloor);
+    debugPrint('PHASES LOADED: $_phases');
 
-    // 5. Phase
-    if (phase.isNotEmpty) {
-      if (!_phases.contains(phase)) {
-        _phases.insert(0, phase);
+    // ── 5. Restore phase + phaseId ────────────────────────────────────
+    String? resolvedPhase;
+    String? resolvedPhaseId;
+    if (phaseName.isNotEmpty) {
+      resolvedPhase = phaseName;
+      resolvedPhaseId = phaseId.isNotEmpty ? phaseId : _derivePhaseId(phaseName);
+    } else if (phaseId.isNotEmpty && project != null) {
+      final phaseObj = project.selectedPhases?.cast<ProjectPhase?>().firstWhere(
+        (p) => p?.id == phaseId,
+        orElse: () => null,
+      );
+      if (phaseObj != null) {
+        resolvedPhase = phaseObj.phaseName;
+        resolvedPhaseId = phaseId;
+        debugPrint('RESOLVED PHASE NAME from ID $phaseId => "$resolvedPhase"');
+      } else {
+        resolvedPhase = phaseId;
+        resolvedPhaseId = phaseId;
+        debugPrint('PHASE ID $phaseId not found in project data — using ID as display');
       }
-      _selectedPhase = phase;
     }
 
-    // 6. Activities
+    if (resolvedPhase != null) {
+      final phaseFound = _phases.any((p) => p.toString() == resolvedPhase);
+      if (!phaseFound) {
+        _phases.insert(0, resolvedPhase);
+        _phaseWarning = '⚠ Previously selected phase "$resolvedPhase" no longer exists.\nPlease select another phase.';
+        debugPrint('PHASE WARNING: "$resolvedPhase" not found — inserted at index 0');
+      } else {
+        debugPrint('PHASE "$resolvedPhase" found in project phases');
+      }
+      _selectedPhase = resolvedPhase;
+      _selectedPhaseId = resolvedPhaseId;
+      debugPrint('PHASE => $_selectedPhase  PHASE_ID => $_selectedPhaseId');
+    } else {
+      debugPrint('PHASE => NO DATA (both name and ID empty)');
+    }
+
+    // ── 6. Load activities ────────────────────────────────────────────
     await _loadActivities(_selectedPhase);
+    debugPrint('ACTIVITIES LOADED: $_activities');
 
-    // 7. Activity
-    if (activity.isNotEmpty) {
-      if (!_activities.contains(activity)) {
-        _activities.insert(0, activity);
+    // ── 7. Restore activity + activityId ─────────────────────────────
+    String? resolvedActivity;
+    String? resolvedActivityId;
+    if (activityName.isNotEmpty) {
+      resolvedActivity = activityName;
+      resolvedActivityId = activityId.isNotEmpty ? activityId : _deriveActivityId(activityName);
+    } else if (activityId.isNotEmpty && project != null) {
+      String? found;
+      for (final phase in project.selectedPhases ?? []) {
+        for (final act in phase.activities) {
+          if (act.id == activityId) {
+            found = act.name;
+            break;
+          }
+        }
+        if (found != null) break;
       }
-      _selectedActivity = activity;
+      if (found != null) {
+        resolvedActivity = found;
+        resolvedActivityId = activityId;
+        debugPrint('RESOLVED ACTIVITY NAME from ID $activityId => "$resolvedActivity"');
+      } else {
+        resolvedActivity = activityId;
+        resolvedActivityId = activityId;
+        debugPrint('ACTIVITY ID $activityId not found in project data — using ID as display');
+      }
     }
 
-    // STEP 5 - ADD VERIFICATION LOGS
-    debugPrint('Selected Project: $_selectedProjectId');
-    debugPrint('Selected Floor: $_selectedFloor');
-    debugPrint('Selected Phase: $_selectedPhase');
-    debugPrint('Selected Activity: $_selectedActivity');
+    if (resolvedActivity != null) {
+      final activityFound = _activities.any((a) => a.toString() == resolvedActivity);
+      if (!activityFound) {
+        _activities.insert(0, resolvedActivity);
+        _activityWarning = '⚠ Previously selected activity "$resolvedActivity" no longer exists.\nPlease select another activity.';
+        debugPrint('ACTIVITY WARNING: "$resolvedActivity" not found — inserted at index 0');
+      } else {
+        debugPrint('ACTIVITY "$resolvedActivity" found in project activities');
+      }
+      _selectedActivity = resolvedActivity;
+      _selectedActivityId = resolvedActivityId;
+      debugPrint('ACTIVITY => $_selectedActivity  ACTIVITY_ID => $_selectedActivityId');
+    } else {
+      debugPrint('ACTIVITY => NO DATA (both name and ID empty)');
+    }
 
-    debugPrint('Floors Loaded: ${_floors.length}');
-    debugPrint('Phases Loaded: ${_phases.length}');
-    debugPrint('Activities Loaded: ${_activities.length}');
+    // ── Type-safety assertions (soft — warnings only) ──────────────────
+    if (resolvedFloor != null && !_floors.any((f) => f == resolvedFloor)) {
+      debugPrint('!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert');
+    }
+    if (resolvedPhase != null && !_phases.any((p) => p == resolvedPhase)) {
+      debugPrint('!!! TYPE/STRING MISMATCH: phase "$resolvedPhase" not in _phases after insert');
+    }
+    if (resolvedActivity != null && !_activities.any((a) => a == resolvedActivity)) {
+      debugPrint('!!! TYPE/STRING MISMATCH: activity "$resolvedActivity" not in _activities after insert');
+    }
 
-    // Temporary logs from prompt:
-    debugPrint('Project restored: $resolvedProjectId');
-    debugPrint('Floor restored: $floor');
-    debugPrint('Phase restored: $phase');
-    debugPrint('Activity restored: $activity');
-
-    debugPrint('Available Floors: ${_floors.length}');
-    debugPrint('Available Phases: ${_phases.length}');
-    debugPrint('Available Activities: ${_activities.length}');
+    debugPrint('========== RESTORATION COMPLETE ==========');
+    debugPrint('PROJECT => $_selectedProjectId');
+    debugPrint('FLOOR   => $_selectedFloor  ($_selectedFloorId)');
+    debugPrint('PHASE   => $_selectedPhase  ($_selectedPhaseId)');
+    debugPrint('ACTIVITY => $_selectedActivity  ($_selectedActivityId)');
+    debugPrint('');
 
     setState(() {});
   }
@@ -613,9 +780,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       "project": _selectedProjectId,
       "date": _selectedDate.toIso8601String(),
       "floor": _selectedFloor,
+      if (_selectedFloorId != null) "floorId": _selectedFloorId,
       "phase": _selectedPhase,
+      "phaseId": _selectedPhaseId ?? (_selectedPhase != null ? _derivePhaseId(_selectedPhase) : null),
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
+      "activityId": _selectedActivityId ?? (_selectedActivity != null && _selectedActivity!.isNotEmpty ? _deriveActivityId(_selectedActivity) : null),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
@@ -1367,27 +1537,131 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       onProjectChanged: (v) => setState(() {
                         _selectedProjectId = v;
                         _selectedFloor = null;
+                        _selectedFloorId = null;
                         _selectedPhase = null;
+                        _selectedPhaseId = null;
                         _selectedActivity = null;
+                        _selectedActivityId = null;
                         _projectError = null;
                         _loadRecentEntries();
                       }),
                       onFloorChanged: (v) => setState(() {
                         _selectedFloor = v;
                         _selectedPhase = null;
+                        _selectedPhaseId = null;
                         _selectedActivity = null;
+                        _selectedActivityId = null;
                         _floorError = null;
+                        _floorWarning = null;
                       }),
                       onPhaseChanged: (v) => setState(() {
                         _selectedPhase = v;
                         _selectedActivity = null;
+                        _selectedActivityId = null;
                         _phaseError = null;
+                        _phaseWarning = null;
                       }),
                       onActivityChanged: (v) => setState(() {
                         _selectedActivity = v;
                         _activityError = null;
+                        _activityWarning = null;
                       }),
                     ),
+
+                    // ── Missing master data warnings ───────────────────────
+                    if (_floorWarning != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFFB74D)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Color(0xFFE65100), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _floorWarning!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFFBF360C),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (_phaseWarning != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFFB74D)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Color(0xFFE65100), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _phaseWarning!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFFBF360C),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (_activityWarning != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFFB74D)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Color(0xFFE65100), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _activityWarning!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFFBF360C),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                     // ── SECTION 2: LABOUR ENTRY ───────────────────────────
                     EntrySectionCard(

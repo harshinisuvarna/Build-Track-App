@@ -36,6 +36,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   String? _paymentReceiptFile;
   bool _viewAllPayments = false;
   String? _customDate;
+  String? _floor;
+  String? _phase;
+  String? _activity;
+  String? _projectName;
 
   @override
   void didChangeDependencies() {
@@ -61,6 +65,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       _paymentHistory = [];
     }
     _customDate = args['date'] as String?;
+    _floor = args['floor'] as String?;
+    _phase = args['phase'] as String?;
+    _activity = args['activity'] as String?;
+    _projectName = args['projectName'] as String?;
   }
 
   // ── Static type helpers ──────────────────────────────────────────────────
@@ -124,6 +132,27 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
   Widget _fieldLabel(String t) =>
       Text(t, style: AppTheme.label.copyWith(color: textGray));
+
+  Widget _contextRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: textGray),
+        const SizedBox(width: 8),
+        Text(label, style: AppTheme.caption.copyWith(color: textGray)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTheme.bodyLarge.copyWith(
+              fontWeight: FontWeight.w700,
+              color: textDark,
+            ),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -286,6 +315,30 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                               ],
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── EXECUTION CONTEXT ────────────────────────────────────
+                    AppCard(
+                      margin: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel('EXECUTION CONTEXT'),
+                          const SizedBox(height: 10),
+                          _contextRow(Icons.business_outlined, 'Project',
+                              _projectName ?? projectId),
+                          const SizedBox(height: 8),
+                          _contextRow(Icons.layers_outlined, 'Floor / Zone',
+                              _floor ?? '—'),
+                          const SizedBox(height: 8),
+                          _contextRow(Icons.flag_outlined, 'Phase',
+                              _phase ?? '—'),
+                          const SizedBox(height: 8),
+                          _contextRow(Icons.task_alt_outlined, 'Activity',
+                              _activity ?? '—'),
                         ],
                       ),
                     ),
