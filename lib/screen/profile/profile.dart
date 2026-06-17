@@ -60,8 +60,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   Uint8List? _avatarBytes;
-  String _avatarPath = '';
-   // For immediate local preview of new photo
+
 
   ProfileUserData? _user;
   bool _isLoadingProfile = true;
@@ -117,7 +116,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bytes = await picked.readAsBytes();
     setState(() {
       _avatarBytes = bytes;
-      _avatarPath = picked.path;
     });
     await _uploadProfilePhoto(bytes, picked.path);
   }
@@ -153,10 +151,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
         // Revert local preview if upload failed
-        if (mounted) setState(() {
-          _avatarBytes = null;
-          _avatarPath = '';
-        });
+        if (mounted) {
+          setState(() {
+            _avatarBytes = null;
+          });
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -168,7 +167,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       setState(() {
         _avatarBytes = null;
-        _avatarPath = '';
       });
     }
   }
