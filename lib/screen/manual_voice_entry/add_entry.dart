@@ -1,6 +1,7 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
+import 'package:buildtrack_mobile/common/widgets/coming_soon_dialog.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
@@ -99,14 +100,7 @@ class AddEntryScreen extends StatelessWidget {
                   subtitle: 'Speak and let AI capture the details',
                   onTap: () {
                     Navigator.pop(ctx);
-                    final route = voiceRoutes[type];
-                    if (route != null) {
-                      Navigator.pushNamed(
-                        context,
-                        route,
-                        arguments: {'type': type},
-                      );
-                    }
+                    ComingSoonDialog.show(context);
                   },
                 ),
                 const SizedBox(height: 12),

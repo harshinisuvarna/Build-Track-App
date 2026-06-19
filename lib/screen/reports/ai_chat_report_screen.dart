@@ -28,7 +28,7 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
     /*if (kReleaseMode) {
       return 'https://build-track.onrender.com';
     }*/
-    return 'http://localhost:5001';
+    return 'https://build-track.onrender.com';
   }
 
   @override

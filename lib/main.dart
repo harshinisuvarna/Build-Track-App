@@ -61,9 +61,9 @@ void main() {
     if (isLoggedIn) {
       debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
       await projectProvider.load().timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 30),
         onTimeout: () {
-          debugPrint('[main] projectProvider.load timed out after 10s');
+          debugPrint('[main] projectProvider.load timed out after 30s');
         },
       );
     } else {
@@ -129,7 +129,7 @@ class MyApp extends StatelessWidget {
         '/profile':          (_) => const ProfileScreen(),
         '/edit-profile':     (_) => const EditProfileScreen(),
         '/subscription':     (_) => const SubscriptionScreen(),
-        '/payment-webview': (context) => const PaymentWebViewScreen(paymentParams: {}),
+        '/payment-webview': (context) => PaymentWebViewScreen(paymentParams: const {}),
         '/home':        (_) => const HomeScreen(),
         '/projects':    (_) => const ProjectsScreen(),
         '/add-entry':   (_) => const AddEntryScreen(),
