@@ -64,7 +64,10 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       // AirPay requires a POST request — WebViews cannot do POST navigation
       // directly. The standard solution is to inject a hidden HTML form
       // and auto-submit it via JavaScript on page load.
-      ..loadHtmlString(_buildPaymentHtml());
+      ..loadHtmlString(
+        _buildPaymentHtml(),
+        baseUrl: 'https://build-track.onrender.com/',
+      );
   }
 
   String _buildPaymentHtml() {
