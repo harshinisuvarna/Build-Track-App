@@ -477,81 +477,49 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildSearchBar() {
     return SizedBox(
       height: 48,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE8E5F6)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 6),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: _gray, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onChanged: (_) {
-                        if (_debounce?.isActive ?? false) {
-                          _debounce!.cancel();
-                        }
-                        _debounce = Timer(
-                            const Duration(milliseconds: 400),
-                            () => setState(() {}));
-                      },
-                      decoration: InputDecoration(
-                        hintText: _searchHint,
-                        hintStyle:
-                            const TextStyle(color: _gray, fontSize: 13.5),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        isDense: true,
-                        filled: false,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: const TextStyle(color: _dark, fontSize: 14),
-                    ),
-                  ),
-                ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E5F6)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.search, color: _gray, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (_) {
+                  if (_debounce?.isActive ?? false) {
+                    _debounce!.cancel();
+                  }
+                  _debounce = Timer(
+                      const Duration(milliseconds: 400),
+                      () => setState(() {}));
+                },
+                decoration: InputDecoration(
+                  hintText: _searchHint,
+                  hintStyle:
+                      const TextStyle(color: _gray, fontSize: 13.5),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  isDense: true,
+                  filled: false,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                style: const TextStyle(color: _dark, fontSize: 14),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: _blue,
-            borderRadius: BorderRadius.circular(12),
-            shadowColor: _blue.withValues(alpha: 0.3),
-            elevation: 1,
-            child: InkWell(
-              onTap: () {
-                // Hint: filters are available via category chips and date pill.
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'Use category chips and date pill to filter records.'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: const SizedBox(
-                width: 48,
-                child: Icon(Icons.tune, color: Colors.white, size: 18),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

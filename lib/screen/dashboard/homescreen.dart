@@ -2,7 +2,6 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
-import 'package:buildtrack_mobile/common/widgets/coming_soon_dialog.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
@@ -75,7 +74,11 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: 'Speak and let AI capture the details',
               onTap: () {
                 Navigator.pop(ctx);
-                ComingSoonDialog.show(context);
+                Navigator.pushNamed(
+                  context,
+                  voiceRoutes[type]!,
+                  arguments: {'type': type},
+                );
               },
             ),
             const SizedBox(height: 12),
@@ -707,7 +710,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => ComingSoonDialog.show(context),
+        onTap: () => showVoiceConfirmationSheet(context),
         borderRadius: BorderRadius.circular(18),
         splashColor: Colors.white.withValues(alpha: 0.15),
         child: Ink(
