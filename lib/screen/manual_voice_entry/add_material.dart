@@ -84,6 +84,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── Scroll ────────────────────────────────────────────────────────────────
   final _scrollCtrl = ScrollController();
 
+  // ── Legacy entry detection ──────────────────────────────────────────────
+  bool _isLegacyEntry = false;
+
   // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
@@ -443,15 +446,23 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
+    // ── Detect executionContext (NEW entries) vs legacy ─────────────────
+    final rawCtx = latest['executionContext'];
+    final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
+    _isLegacyEntry = !hasExecutionContext;
+    debugPrint('Has executionContext: $hasExecutionContext  → legacy=$_isLegacyEntry');
+
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
+    // If executionContext exists, extract from it; otherwise fall back to top-level fields
+    final ctxSource = hasExecutionContext ? rawCtx : latest;
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
-      'floorId': (latest['floorId'] ?? '').toString(),
-      'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
-      'phaseId': (latest['phaseId'] ?? '').toString(),
-      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
-      'activityId': (latest['activityId'] ?? '').toString(),
+      'floor': _extractString(ctxSource, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floorId': (ctxSource['floorId'] ?? ctxSource['floor'] ?? '').toString(),
+      'phase': _extractString(ctxSource, ['phase', 'phaseName', 'phase_name']),
+      'phaseId': (ctxSource['phaseId'] ?? '').toString(),
+      'activity': _extractString(ctxSource, ['activity', 'activityName', 'activity_name']),
+      'activityId': (ctxSource['activityId'] ?? '').toString(),
     };
 
     debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
@@ -548,15 +559,23 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
+    // ── Detect executionContext (NEW entries) vs legacy ─────────────────
+    final rawCtx = latest['executionContext'];
+    final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
+    _isLegacyEntry = !hasExecutionContext;
+    debugPrint('Has executionContext: $hasExecutionContext  → legacy=$_isLegacyEntry');
+
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
+    // If executionContext exists, extract from it; otherwise fall back to top-level fields
+    final ctxSource = hasExecutionContext ? rawCtx : latest;
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
-      'floorId': (latest['floorId'] ?? '').toString(),
-      'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
-      'phaseId': (latest['phaseId'] ?? '').toString(),
-      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
-      'activityId': (latest['activityId'] ?? '').toString(),
+      'floor': _extractString(ctxSource, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floorId': (ctxSource['floorId'] ?? ctxSource['floor'] ?? '').toString(),
+      'phase': _extractString(ctxSource, ['phase', 'phaseName', 'phase_name']),
+      'phaseId': (ctxSource['phaseId'] ?? '').toString(),
+      'activity': _extractString(ctxSource, ['activity', 'activityName', 'activity_name']),
+      'activityId': (ctxSource['activityId'] ?? '').toString(),
     };
 
     debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
@@ -896,6 +915,20 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "isWithGst": _isWithGst,
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
+      // Upgrade legacy records: create executionContext if context fields exist
+      if (_selectedFloor != null ||
+          _selectedPhase != null ||
+          (_selectedActivity != null && _selectedActivity!.isNotEmpty))
+        "executionContext": {
+          "project": _selectedProjectId,
+          if (_selectedFloor != null) "floor": _selectedFloor,
+          if (_selectedFloorId != null) "floorId": _selectedFloorId,
+          if (_selectedPhase != null) "phase": _selectedPhase,
+          if (_selectedPhaseId != null) "phaseId": _selectedPhaseId,
+          if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
+            "activity": _selectedActivity,
+          if (_selectedActivityId != null) "activityId": _selectedActivityId,
+        },
     };
 
     if (_isAddAndPay) {
@@ -1733,6 +1766,39 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                         _activityWarning = null;
                       }),
                     ),
+
+                    // ── Legacy entry banner ────────────────────────────────
+                    if (_isEditing && _isLegacyEntry)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F4FF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFB3C5FF)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline_rounded,
+                                  color: Color(0xFF3366FF), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'This entry was created before execution context tracking was introduced.',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1A3A8A),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                     // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)

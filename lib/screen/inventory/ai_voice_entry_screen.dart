@@ -571,6 +571,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     const phaseKeywords = [
       'foundation', 'structural', 'plumbing', 'electrical',
       'finishing', 'roofing', 'excavation', 'superstructure',
+      
     ];
     for (final p in phaseKeywords) {
       if (t.contains(p)) {
