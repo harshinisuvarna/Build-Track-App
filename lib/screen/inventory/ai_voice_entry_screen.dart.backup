@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-import 'package:buildtrack_mobile/services/buildtrack_ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -365,41 +364,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
-  
-void _finishExtraction() async {
-  try {
-    final aiResponse =
-        await BuildTrackAIService.chat(_rawTranscript);
-
-    print("AI Response: $aiResponse");
-
-    final extracted = aiResponse["extracted"];
-
-    if (extracted != null) {
-      if (extracted["material_name"] != null) {
-        _data.itemName = extracted["material_name"];
-      }
-
-      if (extracted["quantity"] != null) {
-        _data.quantity =
-            (extracted["quantity"] as num).toDouble();
-      }
-
-      if (extracted["unit"] != null) {
-        _data.unit = extracted["unit"];
-      }
-
-      if (extracted["project"] != null) {
-        _data.projectName = extracted["project"];
-      }
-    }
-  } catch (e) {
-    print("AI Error: $e");
+  void _finishExtraction() {
+    _parseTranscriptInto(_data, _rawTranscript);
+    _advanceToNextMissingField();
   }
 
-  _parseTranscriptInto(_data, _rawTranscript);
-  _advanceToNextMissingField();
-}
   // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
     if (_step == _ConvStep.initialVoice && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
