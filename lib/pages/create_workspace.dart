@@ -93,7 +93,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          'Create Workspace',
+          'Create Account',
           style: AppTheme.heading2.copyWith(
             fontSize: 26,
             letterSpacing: -0.5,

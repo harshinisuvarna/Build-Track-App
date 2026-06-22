@@ -2080,7 +2080,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
 
                     EntrySubmitButton(
-                      label: 'Save Labour Entry',
+                      label: RoleManager.canApprovePayments ? 'Save Labour Entry' : 'Submit to Supervisor',
                       icon: Icons.check_circle,
                       isLoading: _isSaving,
                       onTap: () => _save(context),

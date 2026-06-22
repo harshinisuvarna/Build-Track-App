@@ -2324,7 +2324,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ],
 
                     EntrySubmitButton(
-                      label: 'Save Equipment Entry',
+                      label: RoleManager.canApprovePayments ? 'Save Equipment Entry' : 'Submit to Supervisor',
                       icon: Icons.check_circle,
                       isLoading: _isSaving,
                       onTap: () => _save(context),
