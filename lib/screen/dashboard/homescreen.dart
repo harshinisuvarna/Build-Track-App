@@ -7,6 +7,7 @@ import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // --- TASK 3: Imported API Service ---
@@ -326,14 +327,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/profile'),
-                      child: CircleAvatar(
-                        radius: 17,
-                        backgroundColor: Colors.grey.shade800,
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 17,
-                        ),
+                      child: Builder(
+                        builder: (context) {
+                          context.watch<UserSession>();
+                          final imageProvider = getProfileImageProvider(UserSession.profilePhoto);
+                          return CircleAvatar(
+                            radius: 17,
+                            backgroundColor: Colors.grey.shade800,
+                            backgroundImage: imageProvider,
+                            child: imageProvider == null
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 17,
+                                  )
+                                : null,
+                          );
+                        },
                       ),
                     ),
                   ],

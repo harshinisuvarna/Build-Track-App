@@ -22,6 +22,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _emailCtrl;
 
   Uint8List? _selectedImageBytes;
+  String? _selectedImagePath;
+  String? _initialPhotoUrl;
+  bool _deletePhoto = false;
   bool _isSaving = false;
   bool _isLoadingInitial = true;
 
@@ -40,11 +43,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (args is ProfileUserData) {
       _nameCtrl.text = args.name;
       _emailCtrl.text = args.email;
+      _initialPhotoUrl = args.profilePhoto;
     } else {
       // Fallback: use session values
       _nameCtrl.text =
           UserSession.userId.isNotEmpty ? UserSession.userId : '';
       _emailCtrl.text = '';
+      _initialPhotoUrl = UserSession.profilePhoto;
       // Try to fetch fresh from API
       _fetchProfile();
       return;
@@ -61,6 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final userJson = decoded['user'] ?? decoded;
         _nameCtrl.text = userJson['name']?.toString() ?? '';
         _emailCtrl.text = userJson['email']?.toString() ?? '';
+        _initialPhotoUrl = userJson['profilePhoto']?.toString();
       }
     } catch (_) {
       // Keep whatever was set from session
@@ -69,12 +75,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _showImageOptions() async {
+    final hasPhoto = _selectedImageBytes != null ||
+        (_initialPhotoUrl != null && _initialPhotoUrl!.isNotEmpty);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage();
+              },
+            ),
+            if (hasPhoto)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove Profile Photo',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    _selectedImageBytes = null;
+                    _selectedImagePath = null;
+                    _initialPhotoUrl = null;
+                    _deletePhoto = true;
+                  });
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImage() async {
     final picked = await pickImageFromGallery(context);
     if (picked == null || !mounted) return;
     final bytes = await picked.readAsBytes();
     setState(() {
       _selectedImageBytes = bytes;
+      _selectedImagePath = picked.path;
+      _deletePhoto = false;
     });
   }
 
@@ -98,6 +155,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // 1. Handle profile picture upload/deletion if changed
+      if (_deletePhoto) {
+        final photoResponse = await ApiService.put(
+          '/users/profile/photo',
+          {'profilePhoto': 'delete'},
+        );
+        if (photoResponse.statusCode != 200) {
+          throw Exception('Failed to delete profile photo');
+        }
+      } else if (_selectedImageBytes != null) {
+        final base64Image = base64Encode(_selectedImageBytes!);
+        final ext = _selectedImagePath != null
+            ? _selectedImagePath!.split('.').last.toLowerCase()
+            : 'jpg';
+        final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+
+        final photoResponse = await ApiService.put(
+          '/users/profile/photo',
+          {
+            'profilePhoto': 'data:$mimeType;base64,$base64Image',
+          },
+        );
+        if (photoResponse.statusCode != 200) {
+          throw Exception('Failed to upload profile photo');
+        }
+      }
+
+      // 2. Save profile name and email
       final payload = <String, dynamic>{
         'name': name,
         if (email.isNotEmpty) 'email': email,
@@ -109,12 +194,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        // Update local session name so TopBar / other widgets reflect it
-        UserSession.set(
-          userId: decoded['name']?.toString() ?? name,
-          role: UserSession.role,
-          projectId: UserSession.projectId,
-        );
+        final userJson = decoded['user'] ?? decoded;
+
+        // Update local session (includes updated profile photo, name, email)
+        await UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -176,25 +259,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Stack(
                     children: [
                       GestureDetector(
-                        onTap: _pickImage,
-                        child: CircleAvatar(
-                          radius: 40,
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.2),
-                          backgroundImage: _selectedImageBytes != null
-                              ? MemoryImage(_selectedImageBytes!)
-                              : null,
-                          child: _selectedImageBytes == null
-                              ? const Icon(Icons.person,
-                                  size: 40, color: Colors.white)
-                              : null,
+                        onTap: _showImageOptions,
+                        child: Builder(
+                          builder: (context) {
+                            ImageProvider? imageProvider;
+                            if (_selectedImageBytes != null) {
+                              imageProvider = MemoryImage(_selectedImageBytes!);
+                            } else if (_initialPhotoUrl != null &&
+                                _initialPhotoUrl!.isNotEmpty) {
+                              imageProvider =
+                                  getProfileImageProvider(_initialPhotoUrl);
+                            }
+                            return CircleAvatar(
+                              radius: 40,
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.2),
+                              backgroundImage: imageProvider,
+                              child: imageProvider == null
+                                  ? const Icon(Icons.person,
+                                      size: 40, color: Colors.white)
+                                  : null,
+                            );
+                          },
                         ),
                       ),
                       Positioned(
                         bottom: 0,
                         right: 0,
                         child: GestureDetector(
-                          onTap: _pickImage,
+                          onTap: _showImageOptions,
                           child: Container(
                             width: 28,
                             height: 28,

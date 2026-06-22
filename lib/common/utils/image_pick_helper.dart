@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -196,4 +197,24 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
     debugPrint('pickAttachmentDirect error: $e');
     return null;
   }
+}
+
+ImageProvider? getProfileImageProvider(String? photoUrl) {
+  if (photoUrl == null ||
+      photoUrl.isEmpty ||
+      photoUrl == 'null' ||
+      photoUrl == 'delete' ||
+      photoUrl == 'remove' ||
+      photoUrl.trim().isEmpty) return null;
+  if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
+    try {
+      final base64String = photoUrl.split(';base64,').last;
+      final bytes = base64.decode(base64String);
+      return MemoryImage(bytes);
+    } catch (e) {
+      debugPrint('Error decoding base64 image: $e');
+      return null;
+    }
+  }
+  return NetworkImage(photoUrl);
 }
