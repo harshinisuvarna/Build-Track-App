@@ -1078,6 +1078,9 @@ if (extracted["hours_used"] != null) {
         if (_entryType == 'material' && _data.hasBrand) 'brand': _data.brand,
         if (_entryType == 'equipment' && _data.fuelCost != null) 'fuelCost': fuel,
       };
+      print("=== SAVE PAYLOAD ===");
+      print(payload);
+      print("====================");
 
       final result = await ApiService.addTransaction(payload);
 
