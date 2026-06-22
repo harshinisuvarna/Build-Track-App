@@ -5,7 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class SubscriptionCard extends StatelessWidget {
-  const SubscriptionCard({super.key});
+  const SubscriptionCard({super.key, this.showUpgradeButton = true});
+
+  /// Set to false to show plan info only (no upgrade/manage button).
+  /// Used when displaying plan to provisioned users.
+  final bool showUpgradeButton;
 
   @override
   Widget build(BuildContext context) {
@@ -137,24 +141,26 @@ class SubscriptionCard extends StatelessWidget {
                   ),
                 ],
 
-                const SizedBox(height: 18),
-                const Divider(color: Colors.white24, height: 1),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: PremiumCtaButton(
-                        label: sub.isPaid ? 'Manage Plan' : 'Upgrade Plan',
-                        icon: sub.isPaid
-                            ? Icons.manage_accounts_rounded
-                            : Icons.rocket_launch_rounded,
-                        onTap: () => Navigator.pushNamed(context, '/subscription'),
-                        variant: CtaVariant.primary,
-                        isFullWidth: true,
-                      ),
-                    ),
-                  ],
-                ),
+                if (showUpgradeButton) ...[
+  const SizedBox(height: 18),
+  const Divider(color: Colors.white24, height: 1),
+  const SizedBox(height: 14),
+  Row(
+    children: [
+      Expanded(
+        child: PremiumCtaButton(
+          label: sub.isPaid ? 'Manage Plan' : 'Upgrade Plan',
+          icon: sub.isPaid
+              ? Icons.manage_accounts_rounded
+              : Icons.rocket_launch_rounded,
+          onTap: () => Navigator.pushNamed(context, '/subscription'),
+          variant: CtaVariant.primary,
+          isFullWidth: true,
+        ),
+      ),
+    ],
+  ),
+],
               ],
             ),
           ),

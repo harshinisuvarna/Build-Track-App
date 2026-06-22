@@ -283,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildProfileCard(_user!),
                 const SizedBox(height: AppTheme.spacingLg),
 
-                const SubscriptionCard(),
+                SubscriptionCard(showUpgradeButton: RoleManager.isAdmin),
                 const SizedBox(height: AppTheme.spacingLg),
 
                 _buildSettingsCard(),

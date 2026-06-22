@@ -145,8 +145,12 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   };
 
   bool _obscurePass = true;
-  String? _selectedRole;
-  bool _isLoading = false;
+String? _selectedRole;
+bool _isLoading = false;
+
+// ── Edit mode ────────────────────────────────────────────────────────────
+bool _isEditMode = false;
+String? _editingUserId;
 
 final Set<String> _selectedProjectIds = {};
 List<Map<String, String>> _projects = [];
@@ -160,11 +164,63 @@ final _customOverseesRoleCtrl = TextEditingController();
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchProjects();
+ @override
+void initState() {
+  super.initState();
+  _fetchProjects();
+  // Edit mode is set up in didChangeDependencies after context is available
+}
+
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  if (_editingUserId != null) return; // already initialised
+  final args = ModalRoute.of(context)?.settings.arguments;
+  if (args is Map && args.containsKey('editUser')) {
+    _prefillFromExistingUser(
+        Map<String, dynamic>.from(args['editUser'] as Map));
   }
+}
+
+void _prefillFromExistingUser(Map<String, dynamic> userData) {
+  _isEditMode = true;
+  _editingUserId = (userData['_id'] ?? userData['id'])?.toString();
+
+  _nameCtrl.text  = userData['name']?.toString()  ?? '';
+  _emailCtrl.text = userData['email']?.toString() ?? '';
+  // Password not pre-filled in edit mode — leave blank to keep existing
+
+  final role = userData['role']?.toString() ?? '';
+  final isKnownRole = _roles.contains(role);
+  if (isKnownRole) {
+    _selectedRole = role;
+  } else if (role.isNotEmpty) {
+    _selectedRole = _customRoleValue;
+    _customRoleCtrl.text = role;
+  }
+
+  // Pre-fill permissions
+  final perms = (userData['permissions'] as List?)?.cast<String>() ?? [];
+  for (final key in _permissions.keys) {
+    _permissions[key] = perms.contains(key);
+  }
+
+  // Pre-fill overseesRoles
+  final overseesRoles =
+      (userData['overseesRoles'] as List?)?.cast<String>() ?? [];
+  _selectedOverseesRoles
+    ..clear()
+    ..addAll(overseesRoles);
+
+  // Pre-fill projectIds
+  final projectIds =
+      (userData['projectIds'] as List?)?.cast<String>() ?? [];
+  _selectedProjectIds
+    ..clear()
+    ..addAll(projectIds);
+
+  setState(() {});
+}
 
   @override
   void dispose() {
@@ -258,50 +314,96 @@ final _customOverseesRoleCtrl = TextEditingController();
   }
 
   Future<void> _onAssignPressed() async {
-    final name = _nameCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    final pass  = _passCtrl.text;
-    final roleToSend = _isCustomRoleSelected
-        ? _customRoleCtrl.text.trim()
-        : (_selectedRole ?? '').trim();
+  final name = _nameCtrl.text.trim();
+  final email = _emailCtrl.text.trim();
+  final pass  = _passCtrl.text;
+  final roleToSend = _isCustomRoleSelected
+      ? _customRoleCtrl.text.trim()
+      : (_selectedRole ?? '').trim();
 
-    if (name.isEmpty || email.isEmpty || pass.isEmpty || roleToSend.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please fill in all required fields and select a role.')),
-      );
-      return;
-    }
-    if (!email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address.')),
-      );
-      return;
-    }
+  if (name.isEmpty || email.isEmpty || roleToSend.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Please fill in all required fields and select a role.')),
+    );
+    return;
+  }
+  // In create mode password is required; in edit mode it's optional
+  if (!_isEditMode && pass.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a temporary password.')),
+    );
+    return;
+  }
+  if (!email.contains('@')) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a valid email address.')),
+    );
+    return;
+  }
 
-    final selectedPermissions = _permissions.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
+  final selectedPermissions = _permissions.entries
+      .where((e) => e.value)
+      .map((e) => e.key)
+      .toList();
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    final payload = <String, dynamic>{
-      'name':              name,
-      'email':             email,
-      'temporaryPassword': pass,
-      'role':              roleToSend,
-      'permissions':       selectedPermissions,
-      if (_selectedProjectIds.isNotEmpty)
-        'projectIds': _selectedProjectIds.toList(),
-      if ((roleToSend == 'Supervisor' || _isCustomRoleSelected) && _selectedOverseesRoles.isNotEmpty)
-        'overseesRoles': _selectedOverseesRoles.toList(),
-    };
+  try {
+    if (_isEditMode && _editingUserId != null) {
+      // ── UPDATE existing user ─────────────────────────────────────────
+      final payload = <String, dynamic>{
+        'name':        name,
+        'email':       email,
+        'role':        roleToSend,
+        'permissions': selectedPermissions,
+        if (_selectedProjectIds.isNotEmpty)
+          'projectIds': _selectedProjectIds.toList(),
+        if (_selectedOverseesRoles.isNotEmpty)
+          'overseesRoles': _selectedOverseesRoles.toList(),
+        // Only send password if admin typed a new one
+        if (pass.isNotEmpty) 'password': pass,
+      };
 
-    try {
+      final response = await ApiService.put(
+          '/auth/users/$_editingUserId', payload);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name updated successfully.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        final body = json.decode(response.body);
+        final msg  = body['message']?.toString() ?? 'Failed to update user.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        );
+      }
+    } else {
+      // ── CREATE new user ──────────────────────────────────────────────
+      final payload = <String, dynamic>{
+        'name':              name,
+        'email':             email,
+        'temporaryPassword': pass,
+        'role':              roleToSend,
+        'permissions':       selectedPermissions,
+        if (_selectedProjectIds.isNotEmpty)
+          'projectIds': _selectedProjectIds.toList(),
+        if ((_selectedRole == 'Supervisor' || _isCustomRoleSelected) &&
+            _selectedOverseesRoles.isNotEmpty)
+          'overseesRoles': _selectedOverseesRoles.toList(),
+      };
+
       final response = await ApiService.post('/auth/provision', payload);
       if (!mounted) return;
       setState(() => _isLoading = false);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final projCount = _selectedProjectIds.length;
         final projLabel = projCount == 0
@@ -322,14 +424,15 @@ final _customOverseesRoleCtrl = TextEditingController();
           SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );
       }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
     }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +447,7 @@ final _customOverseesRoleCtrl = TextEditingController();
         child: Column(
           children: [
             AppTopBar(
-              title: 'Assign Role',
+  title: _isEditMode ? 'Edit User' : 'Assign Role',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -455,9 +558,9 @@ final _customOverseesRoleCtrl = TextEditingController();
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Temporary Password',
-                  style:
-                      AppTheme.label.copyWith(color: AppTheme.textMedium)),
+              Text(_isEditMode ? 'New Password (optional)' : 'Temporary Password',
+    style:
+        AppTheme.label.copyWith(color: AppTheme.textMedium)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passCtrl,
@@ -1023,14 +1126,14 @@ final _customOverseesRoleCtrl = TextEditingController();
                   height: 22,
                   child: CircularProgressIndicator(
                       strokeWidth: 2.5, color: Colors.white))
-              : const Row(
+              : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.person_add_outlined,
+                    const Icon(Icons.person_add_outlined,
                         color: Colors.white, size: 19),
-                    SizedBox(width: 9),
-                    Text('Assign Role',
-                        style: TextStyle(
+                    const SizedBox(width: 9),
+                    Text(_isEditMode ? 'Update User' : 'Assign Role',
+                        style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 15.5,
