@@ -8,8 +8,8 @@ class ApiService {
   static List<ProjectModel>? mockProjects;
 
   static String get baseUrl {
-    return 'https://build-track.onrender.com/api';
-    /*if (kReleaseMode) {
+    /*return 'https://build-track.onrender.com/api';
+    if (kReleaseMode) {
       return 'https://build-track.onrender.com/api';
     }
     if (kIsWeb) {
@@ -17,8 +17,8 @@ class ApiService {
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:5001/api';
-    }
-    return 'http://localhost:5001/api';*/
+    }*/
+    return 'http://localhost:5001/api';
   }
 
   static Future<Map<String, String>> _getHeaders() async {
@@ -860,6 +860,83 @@ class ApiService {
         print(stack);
       }
       return [];
+    }
+  }
+
+  // ==========================================
+  // Maker-Checker Approvals
+  // ==========================================
+
+  static Future<Map<String, dynamic>?> fetchPendingApprovals() async {
+  try {
+    final response = await get('/approvals/pending');
+    if (kDebugMode) {
+      print('fetchPendingApprovals status: ${response.statusCode}');
+      print('fetchPendingApprovals body: ${response.body}');
+    }
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    }
+    return null;
+  } catch (e) {
+    if (kDebugMode) print('fetchPendingApprovals error: $e');
+    return null;
+  }
+}
+
+  static Future<bool> assignSupervisorOversight(String supervisorId, List<String> roles) async {
+    try {
+      final response = await put('/users/$supervisorId/oversight', {
+        'overseesRoles': roles,
+      });
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      if (kDebugMode) print('assignSupervisorOversight error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> approveTransaction(String txId) async {
+    try {
+      final response = await put('/transactions/$txId/approve', {});
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('approveTransaction error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> rejectTransaction(String txId, String reason) async {
+    try {
+      final response = await put('/transactions/$txId/reject', {
+        'rejectionReason': reason,
+      });
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('rejectTransaction error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> approveProjectUpdate(String updateId) async {
+    try {
+      final response = await put('/project-updates/$updateId/approve', {});
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('approveProjectUpdate error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> rejectProjectUpdate(String updateId, String reason) async {
+    try {
+      final response = await put('/project-updates/$updateId/reject', {
+        'rejectionReason': reason,
+      });
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('rejectProjectUpdate error: $e');
+      return false;
     }
   }
 }

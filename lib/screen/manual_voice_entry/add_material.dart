@@ -2484,7 +2484,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
                     // ── SUBMIT ─────────────────────────────────────────────
                     EntrySubmitButton(
-                      label: 'Save Material Entry',
+                      label: RoleManager.canApprovePayments ? 'Save Material Entry' : 'Submit to Supervisor',
                       icon: Icons.check_circle,
                       isLoading: _isSaving,
                       onTap: () => _save(context),

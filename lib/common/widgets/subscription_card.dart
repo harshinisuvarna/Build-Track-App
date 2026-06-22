@@ -143,7 +143,6 @@ class SubscriptionCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      flex: 5,
                       child: PremiumCtaButton(
                         label: sub.isPaid ? 'Manage Plan' : 'Upgrade Plan',
                         icon: sub.isPaid
@@ -151,17 +150,6 @@ class SubscriptionCard extends StatelessWidget {
                             : Icons.rocket_launch_rounded,
                         onTap: () => Navigator.pushNamed(context, '/subscription'),
                         variant: CtaVariant.primary,
-                        isFullWidth: true,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 4,
-                      child: PremiumCtaButton(
-                        label: 'Restore',
-                        icon: Icons.restore_rounded,
-                        onTap: () => _onRestore(context, sub),
-                        variant: CtaVariant.secondary,
                         isFullWidth: true,
                       ),
                     ),
@@ -175,19 +163,6 @@ class SubscriptionCard extends StatelessWidget {
     );
   }
 
-  Future<void> _onRestore(BuildContext context, SubscriptionProvider sub) async {
-    await sub.restore();
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(sub.error.isEmpty ? 'Purchases restored!' : sub.error),
-        backgroundColor: sub.error.isEmpty ? AppColors.success : AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
 
   LinearGradient _gradientFor(SubscriptionPlan plan) {
     switch (plan) {

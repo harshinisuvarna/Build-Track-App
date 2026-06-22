@@ -7,15 +7,17 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 
-class AssignRoleScreen extends StatefulWidget {
-  const AssignRoleScreen({super.key});
+class AssignRolesScreen extends StatefulWidget {
+  const AssignRolesScreen({super.key});
 
   @override
-  State<AssignRoleScreen> createState() => _AssignRoleScreenState();
+  State<AssignRolesScreen> createState() => _AssignRolesScreenState();
 }
 
-class _AssignRoleScreenState extends State<AssignRoleScreen> {
+class _AssignRolesScreenState extends State<AssignRolesScreen> {
   final _nameCtrl       = TextEditingController();
   final _emailCtrl      = TextEditingController();
   final _passCtrl       = TextEditingController();
@@ -151,6 +153,10 @@ List<Map<String, String>> _projects = [];
 bool _isLoadingProjects = true;
 String? _projectsError;
 
+final Set<String> _selectedOverseesRoles = {};
+static const _availableRolesToOversee = ['Mason', 'Contractor', 'Labourer'];
+final _customOverseesRoleCtrl = TextEditingController();
+
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
 
@@ -166,6 +172,7 @@ String? _projectsError;
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _customRoleCtrl.dispose();
+    _customOverseesRoleCtrl.dispose();
     super.dispose();
   }
 
@@ -287,6 +294,8 @@ String? _projectsError;
       'permissions':       selectedPermissions,
       if (_selectedProjectIds.isNotEmpty)
         'projectIds': _selectedProjectIds.toList(),
+      if ((roleToSend == 'Supervisor' || _isCustomRoleSelected) && _selectedOverseesRoles.isNotEmpty)
+        'overseesRoles': _selectedOverseesRoles.toList(),
     };
 
     try {
@@ -325,6 +334,9 @@ String? _projectsError;
   @override
   Widget build(BuildContext context) {
     final isAdmin = RoleManager.canAssignRole;
+    final subProvider = context.watch<SubscriptionProvider>();
+    final plan = subProvider.currentPlan;
+
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -350,6 +362,8 @@ String? _projectsError;
                       style:
                           AppTheme.body.copyWith(color: AppColors.textLight),
                     ),
+                    const SizedBox(height: 12),
+                    _subscriptionWarning(plan),
                     const SizedBox(height: 20),
                     _formCard(isAdmin),
                     const SizedBox(height: 12),
@@ -385,6 +399,30 @@ String? _projectsError;
               color: AppColors.primary,
               fontWeight: FontWeight.w700,
               fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subscriptionWarning(SubscriptionPlan plan) {
+    final limitStr = plan == SubscriptionPlan.enterprise ? 'Unlimited' : '${plan.maxUsers} Users';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${plan.label} Plan: $limitStr limit. Upgrade to add more.',
+              style: AppTheme.body.copyWith(fontSize: 12, color: AppColors.textDark),
             ),
           ),
         ],
@@ -473,6 +511,10 @@ String? _projectsError;
               prefixIcon: Icons.badge_outlined,
               enabled: isAdmin,
             ),
+          ],
+          if (_selectedRole == 'Supervisor' || _isCustomRoleSelected) ...[
+            const SizedBox(height: AppTheme.spacingMd),
+            _buildOverseesRolesSelector(),
           ],
           _roleHints(),
           const SizedBox(height: AppTheme.spacingMd),
@@ -998,5 +1040,106 @@ String? _projectsError;
         ),
       ),
     );
+  }
+
+  Widget _buildOverseesRolesSelector() {
+    // Fixed roles + any custom roles the admin has already added, de-duplicated.
+    final customAdded = _selectedOverseesRoles
+        .where((r) => !_availableRolesToOversee.contains(r))
+        .toList();
+    final allRoles = [..._availableRolesToOversee, ...customAdded];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Roles to Oversee',
+            style: AppTheme.heading3
+                .copyWith(color: AppColors.textDark, fontSize: 15)),
+        const SizedBox(height: 4),
+        Text(
+          'Select the roles this user can approve entries for. You can also add a custom role below.',
+          style: AppTheme.caption.copyWith(color: AppColors.textLight),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: allRoles.map((role) {
+            final isSelected = _selectedOverseesRoles.contains(role);
+            final isCustom = !_availableRolesToOversee.contains(role);
+            return FilterChip(
+              label: Text(role),
+              selected: isSelected,
+              selectedColor: AppColors.primary.withValues(alpha: 0.15),
+              checkmarkColor: AppColors.primary,
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primary : AppColors.textDark,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              deleteIcon: isCustom
+                  ? const Icon(Icons.close, size: 16)
+                  : null,
+              onDeleted: isCustom
+                  ? () => setState(() => _selectedOverseesRoles.remove(role))
+                  : null,
+              onSelected: (sel) {
+                setState(() {
+                  if (sel) {
+                    _selectedOverseesRoles.add(role);
+                  } else {
+                    _selectedOverseesRoles.remove(role);
+                  }
+                });
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _customOverseesRoleCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Add a custom role to oversee',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  filled: true,
+                  fillColor: AppTheme.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (_) => _addCustomOverseesRole(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _addCustomOverseesRole,
+              icon: const Icon(Icons.add_circle, color: AppColors.primary),
+              tooltip: 'Add role',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _addCustomOverseesRole() {
+    final value = _customOverseesRoleCtrl.text.trim();
+    if (value.isEmpty) return;
+    // Avoid case-duplicate entries (matches the backend's case-insensitive comparison)
+    final alreadyExists = _selectedOverseesRoles
+        .any((r) => r.toLowerCase() == value.toLowerCase());
+    if (alreadyExists) {
+      _customOverseesRoleCtrl.clear();
+      return;
+    }
+    setState(() {
+      _selectedOverseesRoles.add(value);
+      _customOverseesRoleCtrl.clear();
+    });
   }
 }
