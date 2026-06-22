@@ -71,7 +71,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     'Residential': ['1 BHK', '2 BHK', '3 BHK', 'Villa', 'Apartment', 'Other (Custom)'],
     'Educational': ['School', 'College', 'Other (Custom)'],
     'Institutional': ['Church', 'Presbytery', 'Convention Hall', 'Other (Custom)'],
-    'Business / Commercial': ['Shop', 'Office', 'Complex', 'Plaza', 'Other (Custom)'],
+    'Commercial': ['Shop', 'Office', 'Complex', 'Plaza', 'Other (Custom)'],
     'Industrial': ['Factory', 'Warehouse', 'Other (Custom)'],
   };
 
@@ -234,7 +234,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _isCustomSubType = false;
     _customSubTypeCtrl.clear();
     if (p.projectType != null && p.projectType!.isNotEmpty) {
-      final raw = p.projectType!;
+      String raw = p.projectType!;
+      if (raw.contains('Business / Commercial')) {
+        raw = raw.replaceFirst('Business / Commercial', 'Commercial');
+      } else if (raw.contains('Business/Commercial')) {
+        raw = raw.replaceFirst('Business/Commercial', 'Commercial');
+      }
       // Support both ' → ' (new) and ' / ' (legacy) separators
       final sepIndex = raw.contains('→')
           ? raw.indexOf('→')
@@ -804,7 +809,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           child: SizedBox(
             width: double.infinity, height: 52,
             child: ElevatedButton(
-              onPressed: _saving ? null : _save,
+              onPressed: (_saving || _mainBuildingType == null) ? null : _save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
                 disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
