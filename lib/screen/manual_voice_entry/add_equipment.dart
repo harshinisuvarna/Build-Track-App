@@ -127,6 +127,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     return '';
   }
 
+  double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
   void didChangeDependencies() {
@@ -203,17 +213,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           }
           _applyUnitFromRaw(
               (latest['unit'] ?? '').toString().trim().toLowerCase());
-          _typeCtrl.text =
-              latest['categoryName'] as String? ??
-              latest['category'] as String? ??
-              '';
-          _operatorCtrl.text =
-              latest['operator'] as String? ??
-              latest['remarks'] as String? ??
-              latest['notes'] as String? ??
-              '';
-          final gstVal = latest['gst'] ?? latest['gstPercentage'] ?? 0;
-          _gstCtrl.text = gstVal.toString();
+          _typeCtrl.text = _safeString(
+              latest['brand'] ?? latest['categoryName'] ?? latest['category']);
+          _operatorCtrl.text = _safeString(
+              latest['supplier'] ?? latest['operator']);
+          final gstVal = _parseDouble(latest['gst'] ?? latest['gstPercentage']);
+          _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
           _isWithGst =
               latest['isWithGst'] == true || latest['isWithGst'] == 'true';
           final pStatus =
@@ -221,8 +226,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           if (pStatus != null && pStatus != 'pending' && pStatus != '') {
             _isAddAndPay    = true;
             _paymentMethod  = latest['paymentMode'] ?? 'Cash';
-            final double paid =
-                (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+            final double paid = _parseDouble(latest['paidAmount']);
             _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
           }
         }
@@ -422,9 +426,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
       }
       _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
-      final double qty = (argsData['quantity'] as num?)?.toDouble() ?? 0.0;
+      final double qty = _parseDouble(argsData['quantity']);
       _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
-      final double rate = (argsData['rate'] as num?)?.toDouble() ?? 0.0;
+      final double rate = _parseDouble(argsData['rate']);
       _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
       final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
       if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
@@ -433,20 +437,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       else if (rawUnit == 'month' || rawUnit == 'months') { _selectedUnit = 'Month'; }
       else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') { _selectedUnit = 'Trip'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _typeCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _operatorCtrl.text = _safeString(argsData['operator'] ?? argsData['remarks'] ?? argsData['notes']);
+      _typeCtrl.text = _safeString(argsData['brand'] ?? argsData['categoryName'] ?? argsData['category']);
+      _operatorCtrl.text = _safeString(argsData['supplier'] ?? argsData['operator']);
       _notesCtrl.text = _safeString(argsData['notes']);
       if (argsData['date'] != null) {
         try { _selectedDate = DateTime.parse(argsData['date'].toString()); } catch (_) {}
       }
-      final gstVal = argsData['gst'] ?? argsData['gstPercentage'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(argsData['gst'] ?? argsData['gstPercentage']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = argsData['isWithGst'] == true || argsData['isWithGst'] == 'true';
       final pStatus = argsData['paymentStatus']?.toString().toLowerCase() ?? argsData['status']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
         _isAddAndPay = true;
         _paymentMethod = argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
-        _existingPaidAmount = (argsData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _existingPaidAmount = _parseDouble(argsData['paidAmount']);
       }
       debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
@@ -479,9 +483,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    final double freshRate = _parseDouble(latest['rate']);
     _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
@@ -490,19 +494,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     else if (freshUnit == 'month' || freshUnit == 'months') { _selectedUnit = 'Month'; }
     else if (freshUnit == 'truck' || freshUnit == 'trip' || freshUnit == 'load' || freshUnit == 'shift') { _selectedUnit = 'Trip'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _typeCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _operatorCtrl.text = _safeString(latest['operator'] ?? latest['remarks'] ?? latest['notes']);
+    _typeCtrl.text = _safeString(latest['brand'] ?? latest['categoryName'] ?? latest['category']);
+    _operatorCtrl.text = _safeString(latest['supplier'] ?? latest['operator']);
     _notesCtrl.text = _safeString(latest['notes']);
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
-    _gstCtrl.text = (latest['gst'] ?? latest['gstPercentage'] ?? 0).toString();
+    final double freshGst = _parseDouble(latest['gst'] ?? latest['gstPercentage']);
+    _gstCtrl.text = freshGst > 0 ? (freshGst % 1 == 0 ? freshGst.toInt().toString() : freshGst.toString()) : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     final freshPStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
     if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
       _isAddAndPay = true;
       _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
@@ -541,18 +546,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       else if (rawUnit == 'month' || rawUnit == 'months') { _selectedUnit = 'Month'; }
       else if (rawUnit == 'truck' || rawUnit == 'trip' || rawUnit == 'load' || rawUnit == 'shift') { _selectedUnit = 'Trip'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _typeCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _operatorCtrl.text = _safeString(argsData['operator'] ?? argsData['remarks'] ?? argsData['notes']);
+      _typeCtrl.text = _safeString(argsData['brand'] ?? argsData['categoryName'] ?? argsData['category']);
+      _operatorCtrl.text = _safeString(argsData['supplier'] ?? argsData['operator']);
       _notesCtrl.text = _safeString(argsData['notes']);
-      final double rateVal = (argsData['rate'] as num?)?.toDouble()
-          ?? (argsData['hourlyRate'] as num?)?.toDouble()
-          ?? (argsData['dailyWage'] as num?)?.toDouble()
-          ?? 0.0;
+      final double rateVal = _parseDouble(argsData['rate'] ?? argsData['hourlyRate'] ?? argsData['dailyWage']);
       if (rateVal > 0) {
         _rateCtrl.text = rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString();
       }
-      final gstVal = argsData['gst'] ?? argsData['gstPercentage'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(argsData['gst'] ?? argsData['gstPercentage']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = argsData['isWithGst'] == true || argsData['isWithGst'] == 'true';
       debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
@@ -585,9 +587,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    _rateCtrl.text = _safeString(latest['rate'] ?? latest['hourlyRate'] ?? latest['dailyWage']);
+    final double freshRate = _parseDouble(latest['rate'] ?? latest['hourlyRate'] ?? latest['dailyWage']);
+    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
     else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
@@ -595,13 +598,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     else if (freshUnit == 'month' || freshUnit == 'months') { _selectedUnit = 'Month'; }
     else if (freshUnit == 'truck' || freshUnit == 'trip' || freshUnit == 'load' || freshUnit == 'shift') { _selectedUnit = 'Trip'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _typeCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _operatorCtrl.text = _safeString(latest['operator'] ?? latest['remarks'] ?? latest['notes']);
+    _typeCtrl.text = _safeString(latest['brand'] ?? latest['categoryName'] ?? latest['category']);
+    _operatorCtrl.text = _safeString(latest['supplier'] ?? latest['operator']);
     _notesCtrl.text = _safeString(latest['notes']);
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
-    _gstCtrl.text = (latest['gst'] ?? latest['gstPercentage'] ?? 0).toString();
+    final double freshGst = _parseDouble(latest['gst'] ?? latest['gstPercentage']);
+    _gstCtrl.text = freshGst > 0 ? (freshGst % 1 == 0 ? freshGst.toInt().toString() : freshGst.toString()) : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
@@ -936,6 +940,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "gstPercentage":   _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
       "totalAmount":     _finalTotal(),
       "amount":          _finalTotal(),
+      "brand":           _typeCtrl.text.trim(),
+      "supplier":        _operatorCtrl.text.trim(),
+      "notes":           _notesCtrl.text.trim(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
@@ -1253,14 +1260,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _nameCtrl.text = tx['title']?.toString() ?? '';
       _applyUnitFromRaw(
           (tx['unit'] ?? '').toString().trim().toLowerCase());
-      _typeCtrl.text    = tx['category']?.toString() ?? '';
-      _operatorCtrl.text = tx['remarks']?.toString() ?? '';
-      final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+      _typeCtrl.text    = _safeString(tx['brand'] ?? tx['category']);
+      _operatorCtrl.text = _safeString(tx['supplier'] ?? tx['operator']);
+      final double rateVal = _parseDouble(tx['rate']);
       _rateCtrl.text = rateVal > 0
           ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString())
           : '';
-      final gstVal = tx['gst'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(tx['gst']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
       final pStatus = tx['paymentStatus']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
@@ -2244,7 +2251,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ),
 
                     // FIX: Payment section only shown when user has approve_payments permission
-                    if (RoleManager.canApprovePayments)
+                    if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 

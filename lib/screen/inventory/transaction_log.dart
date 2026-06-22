@@ -364,6 +364,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'remarks': t['remarks'] ?? '',
             'categoryName': t['category'] ?? '',
             'quantity': (t['quantity'] ?? 0).toDouble(),
+            'overtime': (t['overtime'] ?? 0).toDouble(),
             'subType': t['subType'] ?? '',
             'materialType': t['materialType'] ?? '',
             'floor': t['floor'],
