@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:buildtrack_mobile/common/controllers/voice_recording_controller.dart';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -1269,22 +1268,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             ),
           ),
           const SizedBox(width: 12),
-          AnimatedBuilder(
-            animation: _micOrbCtrl,
-            builder: (_, child) {
-              final scale = 1.0 + _micOrbCtrl.value * 0.08;
-              return Container(
-                width: 34 * scale,
-                height: 34 * scale,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppGradients.primaryButton,
-                ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-              );
-            },
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1479,33 +1462,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            AnimatedBuilder(
-              animation: _micOrbCtrl,
-              builder: (_, __) {
-                final glow = isListening ? 0.25 + _micOrbCtrl.value * 0.15 : 0.12;
-                return Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFB137FF).withValues(alpha: glow),
-                        blurRadius: isListening ? 14 : 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2104,38 +2060,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                ),
-                const SizedBox(width: 8),
                 const Text(
                   'BuildTrack AI',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'AI FOREMAN',
-                    style: TextStyle(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
                   ),
                 ),
               ],
