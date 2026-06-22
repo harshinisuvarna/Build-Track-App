@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 
@@ -100,10 +101,84 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+Widget build(BuildContext context) {
+  // ── Issue 1: Non-admin gate ──────────────────────────────────────────
+  if (!RoleManager.canViewTeamAccess) {
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
+        child: Column(
+          children: [
+            AppTopBar(
+              title: 'Team & Activity Overview',
+              isSubScreen: true,
+              leftIcon: Icons.arrow_back,
+              onLeftTap: () => Navigator.maybePop(context),
+            ),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.lock_outline,
+                            color: AppColors.primary, size: 34),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Admin Access Only',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'This screen is only accessible to Admins.\nContact your administrator for access.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textLight,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      ElevatedButton(
+                        onPressed: () => Navigator.maybePop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 14),
+                        ),
+                        child: const Text('Go Back',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  return Scaffold(
+    backgroundColor: AppColors.gradientStart,
+    body: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -202,7 +277,14 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: _users.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _UserCard(user: _users[i]),
+        itemBuilder: (_, i) => _UserCard(
+  user: _users[i],
+  onEdit: () => Navigator.pushNamed(
+    context,
+    '/assign-role',
+    arguments: {'editUser': _users[i]},
+  ).then((_) => _loadUsers()),
+),
       ),
     );
   }
@@ -247,10 +329,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
 }
 
 // ── User card ─────────────────────────────────────────────────────────────────
-
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.user});
+  const _UserCard({required this.user, this.onEdit});
   final Map<String, dynamic> user;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +343,7 @@ class _UserCard extends StatelessWidget {
         (user['permissions'] as List?)?.cast<String>() ?? [];
     final projectIds =
         (user['projectIds'] as List?)?.cast<String>() ?? [];
+    final isAdminUser = role.toLowerCase() == 'admin';
 
     Color roleColor;
     Color roleBg;
@@ -333,6 +416,23 @@ class _UserCard extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w700)),
               ),
+              // ── Edit button — hidden for Admin users ───────────────
+              if (!isAdminUser && onEdit != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onEdit,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.edit_outlined,
+                        color: AppColors.primary, size: 16),
+                  ),
+                ),
+              ],
             ],
           ),
           if (permissions.isNotEmpty) ...[
@@ -340,39 +440,35 @@ class _UserCard extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: permissions.take(5).map((p) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F2FF),
-                    borderRadius: BorderRadius.circular(6),
+              children: [
+                ...permissions.take(5).map((p) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F2FF),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(p,
+                          style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600)),
+                    )),
+                if (permissions.length > 5)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F2FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text('+${permissions.length - 5} more',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w600)),
                   ),
-                  child: Text(p,
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600)),
-                );
-              }).toList()
-                ..addAll(permissions.length > 5
-                    ? [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0F2FF),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                              '+${permissions.length - 5} more',
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.textLight,
-                                  fontWeight: FontWeight.w600)),
-                        )
-                      ]
-                    : []),
+              ],
             ),
           ],
           if (projectIds.isNotEmpty) ...[
@@ -390,6 +486,7 @@ class _UserCard extends StatelessWidget {
     );
   }
 }
+
 
 // ── Transaction card ──────────────────────────────────────────────────────────
 
