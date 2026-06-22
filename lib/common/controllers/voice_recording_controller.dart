@@ -57,6 +57,7 @@ class VoiceRecordingController extends ChangeNotifier {
 
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _sessionTimer;
+  Timer? _forceParsedTimer;
 
   // ─── Init ──────────────────────────────────────────────────────────────────
   Future<bool> _ensureInitialised() async {
@@ -86,8 +87,9 @@ class VoiceRecordingController extends ChangeNotifier {
 
   // ─── Start listening ───────────────────────────────────────────────────────
   Future<void> startListening() async {
-    // Prevent duplicate sessions
     if (_engineState == VoiceEngineState.listening) return;
+
+    _forceParsedTimer?.cancel();
 
     _partialTranscript   = '';
     _finalTranscript     = '';
@@ -102,10 +104,8 @@ class VoiceRecordingController extends ChangeNotifier {
       return;
     }
 
-    // Cancel any stale timers
     _sessionTimer?.cancel();
 
-    // Start elapsed-time ticker
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       _elapsedSeconds++;
       notifyListeners();
@@ -136,11 +136,21 @@ class VoiceRecordingController extends ChangeNotifier {
     if (_engineState != VoiceEngineState.listening) return;
     _sessionTimer?.cancel();
     await _stt.stop();
-    // _onSttStatus('done') will fire and transition state
+    // Force transition to processing immediately
+    _setEngineState(VoiceEngineState.processing);
+    // Schedule forced transition to parsed with 800ms timeout
+    _forceParsedTimer?.cancel();
+    _forceParsedTimer = Timer(const Duration(milliseconds: 800), () {
+      if (_engineState == VoiceEngineState.processing) {
+        debugPrint('[VOICE] Force transition: processing -> parsed');
+        _setEngineState(VoiceEngineState.parsed);
+      }
+    });
   }
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
   Future<void> cancelListening() async {
+    _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
     await _stt.cancel();
     _partialTranscript = '';
@@ -150,6 +160,7 @@ class VoiceRecordingController extends ChangeNotifier {
 
   // ─── Reset to idle (for re-record flow) ───────────────────────────────────
   void reset() {
+    _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
     _partialTranscript = '';
     _finalTranscript   = '';
@@ -164,24 +175,32 @@ class VoiceRecordingController extends ChangeNotifier {
     if (_engineState != VoiceEngineState.listening) return;
 
     if (result.finalResult) {
+      debugPrint('[VOICE] Final result: "${result.recognizedWords}"');
       _finalTranscript   = result.recognizedWords;
       _partialTranscript = result.recognizedWords;
+      _sessionTimer?.cancel();
+      _forceParsedTimer?.cancel();
+      _setEngineState(VoiceEngineState.processing);
+      // Brief delay then emit parsed
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (_engineState == VoiceEngineState.processing) {
+          _setEngineState(VoiceEngineState.parsed);
+        }
+      });
     } else {
       _partialTranscript = result.recognizedWords;
+      debugPrint('[VOICE] Partial: "${result.recognizedWords}"');
     }
     notifyListeners();
   }
 
   void _onSttStatus(String status) {
-    // Statuses: listening, notListening, done, error, cancelled
+    debugPrint('[VOICE] Status: $status');
     if (status == 'done' || status == 'notListening') {
       _sessionTimer?.cancel();
-
       if (_engineState == VoiceEngineState.listening) {
-        // Natural end or manual stop — move to processing
+        _forceParsedTimer?.cancel();
         _setEngineState(VoiceEngineState.processing);
-
-        // Simulate brief processing delay then emit parsed
         Future.delayed(const Duration(milliseconds: 800), () {
           if (_engineState == VoiceEngineState.processing) {
             _setEngineState(VoiceEngineState.parsed);
@@ -193,10 +212,9 @@ class VoiceRecordingController extends ChangeNotifier {
 
   void _onSttError(SpeechRecognitionError error) {
     _sessionTimer?.cancel();
-    // Transient network/no-speech errors during active session
+    _forceParsedTimer?.cancel();
     if (error.errorMsg == 'error_no_match' ||
         error.errorMsg == 'error_speech_timeout') {
-      // Treat as natural end of speech — still emit parsed if we have text
       if (_engineState == VoiceEngineState.listening) {
         _setEngineState(VoiceEngineState.processing);
         Future.delayed(const Duration(milliseconds: 800), () {
@@ -216,6 +234,7 @@ class VoiceRecordingController extends ChangeNotifier {
 
   void _setEngineState(VoiceEngineState s) {
     if (_engineState == s) return;
+    debugPrint('[VOICE] State: $_engineState -> $s');
     _engineState = s;
     notifyListeners();
   }
@@ -244,6 +263,7 @@ class VoiceRecordingController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
     _stt.cancel();
     super.dispose();

@@ -6,7 +6,6 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-import 'package:buildtrack_mobile/services/buildtrack_ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -99,32 +98,7 @@ abstract final class VoiceStatus {
   static const String error = 'error';
 }
 
-// ─── Backward-compat enum mapping (will be removed when backend is connected) ──
-// Translates between the old _ConvStep enum values and the new status strings
-// so existing UI code continues working without modification.
-enum _ConvStep {
-  initialVoice,
-  aiProcessing,
-  extracted,
-  askProject,
-  askFloor,
-  askPhase,
-  askActivity,
-  askQuantity,
-  askUnit,
-  askRate,
-  askBrand,
-  askLabourType,
-  askWorkerCount,
-  askHours,
-  askEquipment,
-  askFuel,
-  summary,
-  saving,
-  success,
-}
-
-// ─── Backward-compat ExtractedData class ──────────────────────────────────────
+// ─── ExtractedData wrapper for backward-compat accessor convenience ──────────
 // Thin wrapper over Map<String, dynamic> so all existing `_data.xxx` calls work.
 class _ExtractedData {
   final Map<String, dynamic> _map;
@@ -276,104 +250,28 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ── Detected fields (replaces _ExtractedData's individual fields) ─────────────
   final Map<String, dynamic> _detectedFields = {};
 
-  // ── Backward-compat wrappers so existing UI code continues working ────────────
-  // _data wraps _detectedFields; _step derives from _status.
-  // DELETE THESE AND ALL `_data.` / `_step` / `_ConvStep` REFERENCES
-  // WHEN THE BACKEND IS CONNECTED.
+  // ── Data wrappers ─────────────────────────────────────────────────────────────
   _ExtractedData get _data => _ExtractedData(_detectedFields);
   String _rawTranscript = '';
 
-  // ── Conversation status (replaces _ConvStep) ──────────────────────────────────
+  // ── Session phase (single source of truth state machine) ──────────────────────
+  // idle → listening → processing → waitingForUser → listening → ... → summary → saving → completed
   String _status = VoiceStatus.idle;
-  _ConvStep get _step => _convStepFromStatus(_status);
-  set _step(_ConvStep value) {
-    _status = _statusFromConvStep(value);
-  }
 
-  // Map from old _ConvStep to new status string (for backward compat assignments)
-  static String _statusFromConvStep(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.initialVoice:
-        return VoiceStatus.listening;
-      case _ConvStep.aiProcessing:
-        return VoiceStatus.processing;
-      case _ConvStep.extracted:
-        return VoiceStatus.extracting;
-      case _ConvStep.askProject:
-      case _ConvStep.askFloor:
-      case _ConvStep.askPhase:
-      case _ConvStep.askActivity:
-      case _ConvStep.askQuantity:
-      case _ConvStep.askUnit:
-      case _ConvStep.askRate:
-      case _ConvStep.askBrand:
-      case _ConvStep.askLabourType:
-      case _ConvStep.askWorkerCount:
-      case _ConvStep.askHours:
-      case _ConvStep.askEquipment:
-      case _ConvStep.askFuel:
-        return VoiceStatus.waitingForUser;
-      case _ConvStep.summary:
-        return VoiceStatus.summary;
-      case _ConvStep.saving:
-        return VoiceStatus.saving;
-      case _ConvStep.success:
-        return VoiceStatus.completed;
-    }
-  }
-
-  // Map from status string to old _ConvStep (for backward compat getter)
-  static _ConvStep _convStepFromStatus(String status) {
-    switch (status) {
-      case VoiceStatus.listening:
-      case VoiceStatus.idle:
-        return _ConvStep.initialVoice;
-      case VoiceStatus.processing:
-      case VoiceStatus.thinking:
-        return _ConvStep.aiProcessing;
-      case VoiceStatus.extracting:
-        return _ConvStep.extracted;
-      case VoiceStatus.summary:
-        return _ConvStep.summary;
-      case VoiceStatus.saving:
-        return _ConvStep.saving;
-      case VoiceStatus.completed:
-        return _ConvStep.success;
-      case VoiceStatus.error:
-        return _ConvStep.initialVoice;
-      case VoiceStatus.waitingForUser:
-        // NOTE: Do NOT use this to derive the question.
-        // Use _nextMissingFieldStep() which reads fresh missing fields.
-        return _ConvStep.askProject;
-      default:
-        return _ConvStep.initialVoice;
-    }
-  }
-
-  // ── BUG 5 FIX: Convert the FIRST missing field label → the correct _ConvStep ──
+  // The field name currently being asked (derived from first missing field).
+  // Only meaningful when _status == VoiceStatus.waitingForUser — null otherwise.
   // This is the single function that decides which question to ask next.
   // It reads fresh missing fields every time — never stale state.
-  _ConvStep _nextMissingFieldStep() {
+  String? _fieldToAsk() {
     final missing = _getStillNeededFieldsFor(_data);
-    debugPrint('[AI DEBUG] _nextMissingFieldStep: missingFields=$missing');
-    if (missing.isEmpty) return _ConvStep.summary;
-    final first = missing.first;
-    switch (first) {
-      case 'Project':      return _ConvStep.askProject;
-      case 'Floor':        return _ConvStep.askFloor;
-      case 'Phase':        return _ConvStep.askPhase;
-      case 'Activity':     return _ConvStep.askActivity;
-      case 'Labour Type':  return _ConvStep.askLabourType;
-      case 'Worker Count': return _ConvStep.askWorkerCount;
-      case 'Hours':        return _entryType == 'labour' ? _ConvStep.askHours : _ConvStep.askHours;
-      case 'Equipment':    return _ConvStep.askEquipment;
-      case 'Fuel':         return _ConvStep.askFuel;
-      case 'Quantity':     return _ConvStep.askQuantity;
-      case 'Unit':         return _ConvStep.askUnit;
-      case 'Rate':         return _ConvStep.askRate;
-      case 'Brand':        return _ConvStep.askBrand;
-      default:             return _ConvStep.askProject;
-    }
+    debugPrint('[AI DEBUG] _fieldToAsk: missingFields=$missing');
+    if (missing.isEmpty) return null;
+    return missing.first;
+  }
+
+  String? get _activeField {
+    if (_status != VoiceStatus.waitingForUser) return null;
+    return _fieldToAsk();
   }
 
   String? _saveError;
@@ -383,7 +281,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   String _backendQuestion = '';
   List<String> _backendSuggestions = const [];
 
-  // ── Field progress (computed via _rebuildResponse, read from _response) ────────
+  // ── Duplicate processing guard ──────────────────────────────────────────────────
+  bool _isProcessing = false;
 
   // ── Voice engine ──────────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
@@ -506,41 +405,94 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
+  // ─── Cancel all orphanable timers ──────────────────────────────────────────────
+  void _cancelAllTimers() {
+    _processingTimer?.cancel();
+    _processingTimer = null;
+  }
+
+  // ─── Speech failed — recover without losing detected fields ─────────────────
+  void _speechFailed() {
+    if (!mounted) return;
+    _cancelAllTimers();
+    _isListeningForAnswer = false;
+    _isProcessing = false;
+    setState(() {
+      _status = VoiceStatus.listening;
+      _partialAnswer = '';
+      _showAnalyzingLabel = false;
+      _rebuildResponse();
+    });
+  }
+
   // ─── Voice engine listener ─────────────────────────────────────────────────────
   void _onVoiceChanged() {
     if (!mounted) return;
+
     final state = _voiceCtrl.engineState;
+    final text  = _voiceCtrl.finalTranscript.trim();
+    final partial = _voiceCtrl.partialTranscript;
 
-    setState(() {
-      _partialAnswer = _voiceCtrl.partialTranscript;
-    });
+    // Always sync partial transcript for live preview
+    if (_partialAnswer != partial) {
+      setState(() => _partialAnswer = partial);
+      debugPrint('[VOICE] Partial: "$partial"');
+    }
 
-    debugPrint('[AI DEBUG] _onVoiceChanged: engineState=$state, isListeningForAnswer=$_isListeningForAnswer, step=$_step');
+    debugPrint('[VOICE] State: $state, isListeningForAnswer=$_isListeningForAnswer, status=$_status');
 
+    // ─── PARSED: Engine has finalized speech ─────────────────────────────────────
     if (state == VoiceEngineState.parsed) {
-      final text = _voiceCtrl.finalTranscript.trim();
-      debugPrint('[AI DEBUG] finalTranscript: "$text"');
-      if (_step == _ConvStep.initialVoice) {
+      debugPrint('[VOICE] Parsed: finalTranscript="$text"');
+
+      // Initial voice recording (first utterance from user)
+      if (_status == VoiceStatus.listening && _rawTranscript.isEmpty) {
         if (text.isNotEmpty) {
+          debugPrint('[VOICE] Setting rawTranscript from parsed: "$text"');
           _rawTranscript = text;
+          _beginAiProcessing();
+        } else {
+          debugPrint('[VOICE] Parsed with empty transcript — restarting');
+          _restartInitialRecording();
         }
-      } else if (_isListeningForAnswer) {
+        return;
+      }
+
+      // Answer listening (user responding to an AI question)
+      if (_isListeningForAnswer) {
         _isListeningForAnswer = false;
-        setState(() {});
+        debugPrint('[VOICE] Answer listening stopped');
         if (text.isNotEmpty) {
+          debugPrint('[VOICE] Processing answer: "$text"');
           _handleVoiceAnswer(text);
         } else {
-          // BUG 3 FIX: Empty result after listening — unstick the UI
-          debugPrint('[AI DEBUG] Empty transcript after listening — resetting listening state');
+          debugPrint('[VOICE] Empty answer — unsticking');
           _unstickListening();
         }
+        return;
       }
-    } else if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
-      // BUG 3 FIX: Engine went idle/error without a parsed result
+
+      // Unexpected parsed — just update display
+      setState(() => _rebuildResponse());
+      return;
+    }
+
+    // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
+    if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
       if (_isListeningForAnswer) {
-        debugPrint('[AI DEBUG] Engine went $state while listening for answer — resetting');
+        debugPrint('[VOICE] Engine went $state while waiting for answer — unsticking');
         _isListeningForAnswer = false;
         _unstickListening();
+        return;
+      }
+    }
+
+    // ─── PROCESSING: Engine is analyzing ─────────────────────────────────────────
+    if (state == VoiceEngineState.processing && text.isNotEmpty && _rawTranscript.isEmpty) {
+      if (_status == VoiceStatus.listening) {
+        debugPrint('[VOICE] Processing with transcript available: "$text"');
+        _rawTranscript = text;
+        _beginAiProcessing();
       }
     }
   }
@@ -554,48 +506,59 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
+  void _restartInitialRecording() {
+    if (!mounted) return;
+    setState(() => _status = VoiceStatus.listening);
+    _startInitialRecording();
+  }
+
   // ─── Recording control helpers ────────────────────────────────────────────────
   Future<void> _startInitialRecording() async {
+    print("Listening: true");
+    print("Recording: true");
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
   }
 
   Future<void> _stopInitialRecording() async {
+    print("Listening: false");
+    print("Recording: false");
+    print("Timer cancelled");
+    print("Waveform stopped");
     await _voiceCtrl.stopListening();
   }
 
   // ─── Stop & Analyze ───────────────────────────────────────────────────────────
-  // Single-button flow: stops recording, waits for the transcript to finalize,
-  // then immediately starts AI processing. No second "Continue" tap needed.
+  // Single-button flow: stops recording, immediately captures the transcript,
+  // then triggers AI processing. No busy-wait, no second click.
   Future<void> _stopAndAnalyze() async {
     setState(() => _showAnalyzingLabel = true);
 
-    // Step 1 — stop the microphone (voice engine transitions processing → parsed)
+    // Step 1 — stop the microphone
+    debugPrint('[VOICE] Stop & Analyze pressed');
     await _voiceCtrl.stopListening();
     if (!mounted) return;
 
-    // Step 2 — wait for the voice engine's internal 800ms pipeline to finish
-    // and for _onVoiceChanged to capture the final transcript into _rawTranscript.
-    // (We keep _status at listening/idle during this wait so that
-    //  _onVoiceChanged still sees _step == _ConvStep.initialVoice.)
-    const maxWait = Duration(seconds: 3);
-    final start = DateTime.now();
-    while (_rawTranscript.isEmpty &&
-        DateTime.now().difference(start) < maxWait) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
-    }
+    // Step 2 — capture transcript directly (before any reset)
+    final transcript = _voiceCtrl.finalTranscript.trim().isNotEmpty
+        ? _voiceCtrl.finalTranscript.trim()
+        : _voiceCtrl.partialTranscript.trim();
 
-    // Fallback: read direct from controller if listener missed it
-    if (_rawTranscript.isEmpty) {
-      _rawTranscript = _voiceCtrl.finalTranscript;
+    debugPrint('[VOICE] Stop & Analyze: transcript="$transcript"');
+
+    if (transcript.isNotEmpty) {
+      _rawTranscript = transcript;
     }
 
     setState(() => _showAnalyzingLabel = false);
 
-    // Step 3 — now flip to processing state and fire the AI chain
+    // Step 3 — fire the AI chain immediately if we have speech
     if (mounted && _rawTranscript.isNotEmpty) {
       _beginAiProcessing();
+    } else if (mounted) {
+      debugPrint('[VOICE] No transcript captured — restarting');
+      setState(() => _status = VoiceStatus.listening);
+      _startInitialRecording();
     }
   }
 
@@ -624,15 +587,29 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── AI Processing transition ──────────────────────────────────────────────────
   void _beginAiProcessing() {
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — ignoring duplicate request');
+      return;
+    }
+    _isProcessing = true;
+    debugPrint('[AI] Begin processing, transcript="$_rawTranscript"');
+
+    _cancelAllTimers();
+    if (!mounted) return;
+
     setState(() {
       _status = VoiceStatus.processing;
       _processingStage = 0;
       _rebuildResponse();
     });
 
-    _processingTimer?.cancel();
+    // Animated stage progression (visual only)
     _processingTimer = Timer.periodic(const Duration(milliseconds: 600), (t) {
       if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_status != VoiceStatus.processing) {
         t.cancel();
         return;
       }
@@ -647,16 +624,49 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     });
+
+    // 3-second processing timeout safeguard
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted || _status != VoiceStatus.processing) return;
+      debugPrint('[AI] Processing timeout (3s) — forcing extraction');
+      _cancelAllTimers();
+      if (_rawTranscript.isEmpty) {
+        _rawTranscript = _voiceCtrl.finalTranscript.trim().isNotEmpty
+            ? _voiceCtrl.finalTranscript.trim()
+            : _voiceCtrl.partialTranscript.trim();
+        debugPrint('[AI] Fallback transcript: "$_rawTranscript"');
+      }
+      _finishExtraction();
+    });
   }
 
   void _finishExtraction() {
-    _parseTranscriptInto(_data, _rawTranscript);
+    debugPrint('[AI] === _finishExtraction ===');
+    debugPrint('[AI] Raw transcript: "$_rawTranscript"');
+    debugPrint('[AI] Detected fields before: $_detectedFields');
+
+    if (_rawTranscript.isNotEmpty) {
+      _parseTranscriptInto(_data, _rawTranscript);
+    }
+
+    debugPrint('[AI] Detected fields after: $_detectedFields');
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI] Missing fields: $missing');
+
+    _isProcessing = false;
+
+    if (missing.isEmpty && _detectedFields.isNotEmpty) {
+      debugPrint('[AI] All fields collected — showing review');
+      _goToSummary();
+      return;
+    }
+
     _advanceToNextMissingField();
   }
 
   // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
-    if (_step == _ConvStep.initialVoice && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
+    if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
       final tempMap = <String, dynamic>{};
       final temp = _ExtractedData(tempMap);
       if (_sessionMemory['projectId'] != null) {
@@ -933,39 +943,50 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Conversation field navigation ─────────────────────────────────────────────
-  // BUG 1 & 5 FIX: Always re-derive from fresh missing fields — never from stale _step
+  // Always re-derive from missing fields (single source of truth) — never from stale state.
   void _advanceToNextMissingField() {
-    // Step 1: Re-parse full transcript to catch any newly detected fields
-    if (_rawTranscript.isNotEmpty) {
-      _parseTranscriptInto(_data, _rawTranscript);
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — not advancing');
+      return;
     }
+    _isProcessing = true;
 
-    // Step 2: Get fresh missing fields (single source of truth)
+    // Get fresh missing fields (single source of truth)
     final missing = _getStillNeededFieldsFor(_data);
-    debugPrint('[AI DEBUG] _advanceToNextMissingField: transcript="$_rawTranscript"');
-    debugPrint('[AI DEBUG] _advanceToNextMissingField: detectedFields=$_detectedFields');
-    debugPrint('[AI DEBUG] _advanceToNextMissingField: missingFields=$missing');
+    debugPrint('[AI] _advanceToNextMissingField: missingFields=$missing');
+    debugPrint('[AI] Detected: $_detectedFields');
 
-    if (missing.isEmpty) {
-      debugPrint('[AI DEBUG] All fields collected → going to summary');
+    if (missing.isEmpty && _detectedFields.isNotEmpty) {
+      debugPrint('[AI] All fields collected → review screen');
+      _isProcessing = false;
       _goToSummary();
       return;
     }
 
-    // Step 3: Convert first missing label → correct _ConvStep
-    final nextStep = _nextMissingFieldStep();
-    debugPrint('[AI DEBUG] _advanceToNextMissingField: nextStep=$nextStep, question=${_questionFor(nextStep)}');
+    if (missing.isEmpty) {
+      debugPrint('[AI] No data and no missing fields — restarting');
+      _isProcessing = false;
+      _speechFailed();
+      return;
+    }
+
+    // Derive question from the first missing field — no step enum, no hardcoded mapping
+    final field = _fieldToAsk();
+    final question = field != null ? _questionForField(field) : '';
+    debugPrint('[AI] Next question: "$question" (field=$field)');
+
+    _isProcessing = false;
+    if (!mounted) return;
 
     setState(() {
-      _step = nextStep;
       _status = VoiceStatus.waitingForUser;
       _rebuildResponse();
     });
     _scrollToBottom();
 
-    // Step 4: Auto-start listening for the next answer
+    // Auto-start listening for the next answer
     Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted && _status == VoiceStatus.waitingForUser) {
+      if (mounted && _status == VoiceStatus.waitingForUser && !_isListeningForAnswer) {
         _startAnswerListening();
       }
     });
@@ -983,23 +1004,32 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final total = allFields.length;
     final completed = total - missing.length;
 
-    // BUG 1 & 5 FIX: Question derived from FIRST missing field — never from stale _step
+    // Question derived from FIRST missing field — always field-driven, never step-driven
     String? question;
     List<String> suggestions = [];
     if (_status == VoiceStatus.waitingForUser && missing.isNotEmpty) {
-      final nextStep = _nextMissingFieldStep();
-      question = _questionFor(nextStep);
-      if (question.isEmpty) {
-        question = 'Please provide the ${missing.first}.';
+      final field = _fieldToAsk();
+      if (field != null) {
+        question = _questionForField(field);
+        if (question.isEmpty) {
+          question = 'Please provide the $field.';
+        }
+        suggestions = _suggestionsForField(field);
       }
-      suggestions = _suggestionsForStep(nextStep);
-      debugPrint('[AI DEBUG] _rebuildResponse: question="$question" for step=$nextStep');
+      debugPrint('[AI DEBUG] _rebuildResponse: question="$question" for field=$field');
     }
 
     _backendQuestion = question ?? '';
     _backendSuggestions = suggestions;
 
-    debugPrint('[AI DEBUG] _rebuildResponse: status=$_status, detected=$_detectedFields, missing=$missing');
+    debugPrint('[AI DEBUG] ===== _rebuildResponse =====');
+    debugPrint('[AI DEBUG] Status: $_status');
+    debugPrint('[AI DEBUG] Transcript: $_rawTranscript');
+    debugPrint('[AI DEBUG] Detected fields map: $_detectedFields');
+    debugPrint('[AI DEBUG] Missing fields: $missing');
+    debugPrint('[AI DEBUG] Total fields: $total');
+    debugPrint('[AI DEBUG] Completed fields: $completed');
+    debugPrint('[AI DEBUG] Progress: $completed/$total');
 
     _response = VoiceResponseModel(
       status: _status,
@@ -1017,226 +1047,200 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // Returns the full list of field labels for this entry type (used for total count)
+  // Must match _getStillNeededFieldsFor priority order.
   List<String> _getAllFieldsFor() {
     final list = <String>['Project'];
-    if (_entryType == 'labour') {
+    if (_entryType == 'material') {
+      list.addAll(['Material', 'Quantity', 'Unit']);
+    } else if (_entryType == 'labour') {
       list.addAll(['Labour Type', 'Worker Count', 'Hours']);
     } else if (_entryType == 'equipment') {
       list.addAll(['Equipment', 'Hours', 'Fuel']);
-    } else {
-      list.addAll(['Material', 'Quantity', 'Unit']);
     }
-    list.addAll(['Floor', 'Activity', 'Rate']);
+    list.add('Rate');
+    list.add('Floor');
     if (_entryType == 'material') list.add('Phase');
+    list.add('Activity');
     return list;
   }
 
-  // ignore: unused_element
-  static String _fieldLabelToDetectedKey(String label) {
-    switch (label) {
-      case 'Project': return 'Project ID';
-      case 'Project Name': return 'Project Name';
-      case 'Floor': return 'Floor';
-      case 'Phase': return 'Phase';
-      case 'Activity': return 'Activity';
-      case 'Labour Type': return 'Work Type';
-      case 'Worker Count': return 'Worker Count';
-      case 'Hours': return 'Hours';
-      case 'Equipment Type': return 'Item Name';
-      case 'Fuel Cost': return 'Fuel Cost';
-      case 'Quantity': return 'Quantity';
-      case 'Unit': return 'Unit';
-      case 'Rate': return 'Rate';
-      case 'Brand': return 'Brand';
-      default: return label;
-    }
-  }
-
-  // ignore: unused_element
-  bool _isStepMissing(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.askProject:
-        return !_data.hasProject;
-      case _ConvStep.askFloor:
-        return !_data.hasFloor;
-      case _ConvStep.askPhase:
-        if (_entryType != 'material') return false;
-        return !_data.hasPhase;
-      case _ConvStep.askActivity:
-        return !_data.hasActivity;
-      case _ConvStep.askLabourType:
-        if (_entryType != 'labour') return false;
-        return !_data.hasItemName;
-      case _ConvStep.askWorkerCount:
-        if (_entryType != 'labour') return false;
-        return !_data.hasWorkerCount;
-      case _ConvStep.askHours:
-        if (_entryType == 'material') return false;
-        if (_entryType == 'labour') return !_data.hasHours;
-        return !_data.hasQuantity;
-      case _ConvStep.askEquipment:
-        if (_entryType != 'equipment') return false;
-        return !_data.hasItemName;
-      case _ConvStep.askFuel:
-        if (_entryType != 'equipment') return false;
-        return !_data.hasFuelCost;
-      case _ConvStep.askQuantity:
-        if (_entryType != 'material') return false;
-        return !_data.hasQuantity;
-      case _ConvStep.askUnit:
-        if (_entryType != 'material') return false;
-        return !_data.hasUnit;
-      case _ConvStep.askRate:
-        return !_data.hasRate;
-      case _ConvStep.askBrand:
-        if (_entryType != 'material') return false;
-        return !_data.hasBrand;
-      default:
-        return false;
-    }
-  }
-
-  String _questionFor(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.askProject:
+  // ─── Question generation (field-name-driven, no _ConvStep) ────────────────────
+  String _questionForField(String field) {
+    switch (field) {
+      case 'Project':
         return 'Which project is this for?';
-      case _ConvStep.askFloor:
+      case 'Floor':
         return 'Which floor or zone is this work happening on?';
-      case _ConvStep.askPhase:
+      case 'Phase':
         return 'Under which phase of the project is this scheduled?';
-      case _ConvStep.askActivity:
+      case 'Activity':
         return 'And what\'s the specific activity we are working on?';
-      case _ConvStep.askLabourType:
+      case 'Labour Type':
         return 'What is the trade or labor category? (e.g. Mason, Plumber, Helper)';
-      case _ConvStep.askWorkerCount:
+      case 'Worker Count':
         return 'How many workers were in this team?';
-      case _ConvStep.askHours:
+      case 'Hours':
         return _entryType == 'labour'
             ? 'How many hours did they work today?'
             : 'How many hours was the machine operated?';
-      case _ConvStep.askEquipment:
+      case 'Equipment':
         return 'Which equipment or machinery was used? (e.g. JCB, Crane)';
-      case _ConvStep.askFuel:
+      case 'Fuel':
         return 'What was the fuel or diesel cost for this operation? (Enter 0 if none)';
-      case _ConvStep.askQuantity:
+      case 'Quantity':
         return 'What\'s the total quantity we should enter?';
-      case _ConvStep.askUnit:
+      case 'Unit':
         return 'What unit of measurement are we tracking this in? (e.g. Bags, Kg, Tons)';
-      case _ConvStep.askRate:
+      case 'Rate':
         final unitLabel = _data.unit ?? (_entryType == 'material' ? 'unit' : 'hour');
         return 'Got that. What purchase rate per $unitLabel should I log in ₹?';
-      case _ConvStep.askBrand:
+      case 'Brand':
         return 'What brand is it? (e.g. UltraTech, Ambuja)';
       default:
         return '';
     }
   }
 
-  // BUG 5 FIX: Renamed and made explicit — takes the step parameter directly
-  List<String> _suggestionsForStep(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.askProject:
+  // ─── Suggestions generation (field-name-driven, no _ConvStep) ──────────────────
+  List<String> _suggestionsForField(String field) {
+    switch (field) {
+      case 'Project':
         return _projects.take(5).map((p) => p.name).toList();
-      case _ConvStep.askFloor:
+      case 'Floor':
         return ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', 'Basement', 'Terrace'];
-      case _ConvStep.askPhase:
+      case 'Phase':
         return ['Foundation Work', 'Structural Work', 'Finishing', 'Roofing', 'Plumbing Work', 'Electrical Work'];
-      case _ConvStep.askActivity:
+      case 'Activity':
         return ['Column Casting', 'Slab Work', 'PCC', 'Brick Laying', 'Plastering', 'Excavation'];
-      case _ConvStep.askUnit:
+      case 'Unit':
         return ['Bags', 'Kg', 'Tons', 'Sqft', 'Nos', 'Ltrs', 'Hours'];
-      case _ConvStep.askBrand:
+      case 'Brand':
         return ['UltraTech', 'Ambuja', 'ACC', 'JK Cement', 'Tata', 'JSW'];
-      case _ConvStep.askLabourType:
+      case 'Labour Type':
         return ['Mason', 'Helper', 'Carpenter', 'Plumber', 'Electrician', 'Painter'];
-      case _ConvStep.askWorkerCount:
+      case 'Worker Count':
         return ['2', '4', '6', '8', '10', '12'];
-      case _ConvStep.askHours:
+      case 'Hours':
         return ['4', '6', '8', '10', '12'];
-      case _ConvStep.askEquipment:
+      case 'Equipment':
         return ['JCB Excavator', 'Crane', 'Concrete Mixer', 'Dumper', 'Generator', 'Road Roller'];
       default:
         return [];
     }
   }
 
-  // ignore: unused_element
-  List<String> _suggestionsForCurrentStep() => _suggestionsForStep(_step);
-
   // ─── Answer voice listener ────────────────────────────────────────────────────
   Future<void> _startAnswerListening() async {
     _isListeningForAnswer = true;
+    print("Listening: true");
+    print("Recording: true");
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
-    debugPrint('[AI DEBUG] _startAnswerListening: started, step=$_step');
+    debugPrint('[AI DEBUG] _startAnswerListening: started, status=$_status');
   }
 
-  // BUG 2 FIX: "Done Answering" — fully stops listening and refreshes all state
+  // "Done Answering" — fully stops listening and refreshes all state
   Future<void> _stopAnswerListening() async {
-    debugPrint('[AI DEBUG] _stopAnswerListening tapped');
+    debugPrint('[AI] _stopAnswerListening tapped');
+
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — ignoring stop');
+      return;
+    }
 
     // 1. Stop the microphone
     await _voiceCtrl.stopListening();
-
     if (!mounted) return;
 
-    // 2. Grab whatever partial transcript we have (if any)
-    final partial = _voiceCtrl.partialTranscript.trim().isNotEmpty
-        ? _voiceCtrl.partialTranscript.trim()
-        : _voiceCtrl.finalTranscript.trim();
+    // 2. CAPTURE ANSWER TRANSCRIPT BEFORE any cancel/reset
+    final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
+        ? _voiceCtrl.finalTranscript.trim()
+        : _voiceCtrl.partialTranscript.trim();
 
-    // 3. If there's something useful, apply it as the answer
-    if (partial.isNotEmpty && _isListeningForAnswer) {
-      debugPrint('[AI DEBUG] _stopAnswerListening: applying partial answer "$partial"');
-      _isListeningForAnswer = false;
-      _applyAnswer(_step, partial);
-      // Re-extract from full accumulated transcript too
-      _parseTranscriptInto(_data, _rawTranscript);
-    } else {
-      _isListeningForAnswer = false;
+    debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
+
+    // 3. Now clean up the voice engine safely
+    await _voiceCtrl.cancelListening();
+    _voiceCtrl.reset();
+
+    _isListeningForAnswer = false;
+    _cancelAllTimers();
+
+    // 4. If we have a transcript, merge it into detected data
+    if (answer.isNotEmpty) {
+      final field = _activeField;
+      if (field != null) {
+        debugPrint('[VOICE] Applying captured answer for field "$field": "$answer"');
+        _applyAnswerForField(field, answer);
+      }
     }
 
-    // 4. Recalculate everything and refresh UI — BUG 2, 4, 6 fix
+    // 5. Recalculate everything and refresh UI
+    if (!mounted) return;
     setState(() {
       _partialAnswer = '';
-      // Recompute extracted fields from full transcript
-      if (_rawTranscript.isNotEmpty) {
-        _parseTranscriptInto(_data, _rawTranscript);
-      }
       _rebuildResponse();
     });
 
-    debugPrint('[AI DEBUG] _stopAnswerListening done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}');
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI] After answer: detected=$_detectedFields, missing=$missing');
 
-    // 5. Advance conversation to next missing field
+    // 6. Advance conversation or show review
     Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _advanceToNextMissingField();
+      if (!mounted) return;
+      if (missing.isEmpty && _detectedFields.isNotEmpty) {
+        _goToSummary();
+      } else {
+        _advanceToNextMissingField();
+      }
     });
   }
 
   void _handleVoiceAnswer(String text) {
-    debugPrint('[AI DEBUG] _handleVoiceAnswer: "$text", step=$_step');
-    _applyAnswer(_step, text);
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing answer — ignoring duplicate');
+      return;
+    }
+    _isProcessing = true;
+    final field = _activeField;
+    debugPrint('[AI] _handleVoiceAnswer: answer="$text", field=$field');
+    if (field != null) {
+      _applyAnswerForField(field, text);
+    }
+    _isProcessing = false;
+    debugPrint('[AI] After apply, missing: ${_getStillNeededFieldsFor(_data)}');
     Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) _advanceToNextMissingField();
+      if (mounted) {
+        debugPrint('[AI] Advancing to next missing field');
+        _advanceToNextMissingField();
+      }
     });
   }
 
   void _handleTypedAnswer(String text) {
     if (text.trim().isEmpty) return;
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — ignoring typed answer');
+      return;
+    }
+    _isProcessing = true;
     _textCtrl.clear();
-    _applyAnswer(_step, text.trim());
+    final field = _activeField;
+    if (field != null) {
+      _applyAnswerForField(field, text.trim());
+    }
+    _isProcessing = false;
     _focusNode.unfocus();
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _advanceToNextMissingField();
     });
   }
 
-  void _applyAnswer(_ConvStep step, String text) {
+  void _applyAnswerForField(String field, String text) {
     final t = text.toLowerCase().trim();
     setState(() {
-      switch (step) {
-        case _ConvStep.askProject:
+      switch (field) {
+        case 'Project':
           final match = _projects.cast<ProjectModel?>().firstWhere(
                 (p) =>
                     p!.name.toLowerCase().contains(t) ||
@@ -1251,7 +1255,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askFloor:
+        case 'Floor':
           if (t.contains('ground') || t == 'g') {
             _data.floor = 'Ground Floor';
           } else if (t.contains('basement') || t == 'b') {
@@ -1269,15 +1273,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askPhase:
+        case 'Phase':
           _data.phase = text.trim();
           break;
 
-        case _ConvStep.askActivity:
+        case 'Activity':
           _data.activity = text.trim();
           break;
 
-        case _ConvStep.askLabourType:
+        case 'Labour Type':
           _data.workType = text.trim();
           if (_data.workerCount != null) {
             _data.itemName = '${_data.workerCount} ${_data.workType}s';
@@ -1286,7 +1290,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askWorkerCount:
+        case 'Worker Count':
           final num = RegExp(r'(\d+)').firstMatch(t);
           if (num != null) {
             _data.workerCount = int.tryParse(num.group(1) ?? '');
@@ -1296,7 +1300,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askHours:
+        case 'Hours':
           final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
           if (num != null) {
             final val = double.tryParse(num.group(1) ?? '');
@@ -1308,11 +1312,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askEquipment:
+        case 'Equipment':
           _data.itemName = text.trim();
           break;
 
-        case _ConvStep.askFuel:
+        case 'Fuel':
           if (t.contains('no') || t.contains('none') || t.contains('zero') || t == '0') {
             _data.fuelCost = 0;
           } else {
@@ -1323,14 +1327,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
           break;
 
-        case _ConvStep.askQuantity:
+        case 'Quantity':
           final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
           if (num != null) {
             _data.quantity = double.tryParse(num.group(0) ?? '');
           }
           break;
 
-        case _ConvStep.askUnit:
+        case 'Unit':
           const unitMap = {
             'bag': 'Bags', 'bags': 'Bags',
             'kg': 'Kg', 'kilo': 'Kg',
@@ -1353,23 +1357,31 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           if (!found) _data.unit = text.trim();
           break;
 
-        case _ConvStep.askRate:
+        case 'Rate':
           final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
           if (rateNum != null) {
             _data.rate = double.tryParse(rateNum.group(0) ?? '');
           }
           break;
 
-        case _ConvStep.askBrand:
+        case 'Brand':
           _data.brand = text.trim();
           break;
 
         default:
           break;
       }
-      // BUG 6 FIX: Always re-parse the full transcript after any answer to catch fields
-      if (_rawTranscript.isNotEmpty) {
-        _parseTranscriptInto(_data, _rawTranscript);
+      // Extract fields from answer text into a temp object, then merge only NEW keys
+      // (never overwrite existing detected fields)
+      if (text.isNotEmpty) {
+        final tempFields = <String, dynamic>{};
+        final tempData = _ExtractedData(tempFields);
+        _parseTranscriptInto(tempData, text);
+        tempFields.forEach((key, value) {
+          if (!_detectedFields.containsKey(key) && value != null) {
+            _detectedFields[key] = value;
+          }
+        });
       }
       _rebuildResponse();
       debugPrint('[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}');
@@ -1378,6 +1390,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Go to summary ────────────────────────────────────────────────────────────
   void _goToSummary() {
+    if (!mounted) return;
+    _cancelAllTimers();
+    _isListeningForAnswer = false;
+    _isProcessing = false;
     setState(() {
       _status = VoiceStatus.summary;
       _rebuildResponse();
@@ -1416,6 +1432,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Save entry ───────────────────────────────────────────────────────────────
   Future<void> _saveEntry() async {
+    if (_isProcessing) {
+      debugPrint('[AI] Already saving — ignoring duplicate');
+      return;
+    }
+    _isProcessing = true;
+    _cancelAllTimers();
+    if (!mounted) return;
+
     setState(() {
       _status = VoiceStatus.saving;
       _saveError = null;
@@ -1487,6 +1511,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           await Provider.of<ProjectProvider>(context, listen: false).load();
         }
 
+        _isProcessing = false;
+        if (!mounted) return;
         setState(() {
           _status = VoiceStatus.completed;
           _savedEntryId = serverTx?['_id']?.toString() ??
@@ -1494,6 +1520,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           _rebuildResponse();
         });
       } else {
+        _isProcessing = false;
+        if (!mounted) return;
         setState(() {
           _status = VoiceStatus.summary;
           _saveError = 'Failed to save. Please try again.';
@@ -1501,6 +1529,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     } catch (e) {
+      _isProcessing = false;
+      if (!mounted) return;
       setState(() {
         _status = VoiceStatus.summary;
         _saveError = 'Error: ${e.toString()}';
@@ -1522,31 +1552,37 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Field labels and required count helpers ─────────────────────────────────
+  // Priority order determines which question the AI asks next.
+  // Conversational flow: what → how many → what unit → what price → where.
   List<String> _getStillNeededFieldsFor(_ExtractedData d) {
     final list = <String>[];
     if (!d.hasProject) list.add('Project');
-    if (_entryType == 'labour') {
+
+    if (_entryType == 'material') {
+      if (!d.hasItemName) list.add('Material');
+      if (!d.hasQuantity) list.add('Quantity');
+      if (!d.hasUnit) list.add('Unit');
+    } else if (_entryType == 'labour') {
       if (!d.hasItemName) list.add('Labour Type');
       if (!d.hasWorkerCount) list.add('Worker Count');
       if (!d.hasHours) list.add('Hours');
-    }
-    if (_entryType == 'equipment') {
+    } else if (_entryType == 'equipment') {
       if (!d.hasItemName) list.add('Equipment');
       if (!d.hasQuantity) list.add('Hours');
     }
+
+    if (!d.hasRate) list.add('Rate');
     if (!d.hasFloor) list.add('Floor');
+
     if (_entryType == 'material') {
       if (!d.hasPhase) list.add('Phase');
     }
+
     if (!d.hasActivity) list.add('Activity');
-    if (_entryType == 'material') {
-      if (!d.hasQuantity) list.add('Quantity');
-      if (!d.hasUnit) list.add('Unit');
-    }
+
     if (_entryType == 'equipment') {
       if (!d.hasFuelCost) list.add('Fuel');
     }
-    if (!d.hasRate) list.add('Rate');
     return list;
   }
 
@@ -1557,9 +1593,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     if (_entryType == 'material') {
       if (d.hasItemName) list.add(_DetectedField(label: 'Material', value: d.itemName!));
-      if (d.hasBrand) list.add(_DetectedField(label: 'Brand', value: d.brand!));
       if (d.hasQuantity) list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
       if (d.hasUnit) list.add(_DetectedField(label: 'Unit', value: d.unit!));
+      if (d.hasBrand) list.add(_DetectedField(label: 'Brand', value: d.brand!));
     } else if (_entryType == 'labour') {
       if (d.hasItemName) list.add(_DetectedField(label: 'Labour Type', value: d.workType ?? d.itemName!));
       if (d.hasWorkerCount) list.add(_DetectedField(label: 'Worker Count', value: '${d.workerCount}'));
@@ -1569,18 +1605,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       if (d.hasQuantity) list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
       if (d.hasFuelCost) list.add(_DetectedField(label: 'Fuel Cost', value: '₹ ${d.fuelCost!.toStringAsFixed(0)}'));
     }
-    if (d.hasFloor) list.add(_DetectedField(label: 'Floor', value: d.floor!));
-    if (d.hasPhase) list.add(_DetectedField(label: 'Phase', value: d.phase!));
-    if (d.hasActivity) list.add(_DetectedField(label: 'Activity', value: d.activity!));
     if (d.hasRate) list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
+    if (d.hasFloor) list.add(_DetectedField(label: 'Floor', value: d.floor!));
+    if (_entryType == 'material') {
+      if (d.hasPhase) list.add(_DetectedField(label: 'Phase', value: d.phase!));
+    }
+    if (d.hasActivity) list.add(_DetectedField(label: 'Activity', value: d.activity!));
     return list;
   }
 
-  int _getTotalFieldsCount() {
-    if (_entryType == 'material') return 8;
-    if (_entryType == 'labour') return 8;
-    return 7;
-  }
+  int _getTotalFieldsCount() => _getAllFieldsFor().length;
 
   // ──────────────────────────────────────────────────────────────────────────────
   // BUILD
@@ -1698,7 +1732,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ],
             ),
           ),
-          if (isListening && _step == _ConvStep.initialVoice)
+          if (isListening && _status == VoiceStatus.listening)
             _buildLiveChip(),
         ],
       ),
@@ -2283,29 +2317,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 5 & 7: Still Needed Panel (Active-Step Aware) ──────────────────
+  // ─── Section 5 & 7: Still Needed Panel (field-name-driven) ─────────────────
   Widget _buildMissingInformationPanel(_ExtractedData currentData) {
     final needed = _getStillNeededFieldsFor(currentData);
     if (needed.isEmpty) return const SizedBox.shrink();
 
-    // Map current step to the field name being collected
-    String? activeField;
-    switch (_step) {
-      case _ConvStep.askProject: activeField = 'Project'; break;
-      case _ConvStep.askFloor: activeField = 'Floor'; break;
-      case _ConvStep.askPhase: activeField = 'Phase'; break;
-      case _ConvStep.askActivity: activeField = 'Activity'; break;
-      case _ConvStep.askQuantity: activeField = 'Quantity'; break;
-      case _ConvStep.askUnit: activeField = 'Unit'; break;
-      case _ConvStep.askRate: activeField = 'Rate'; break;
-      case _ConvStep.askBrand: activeField = 'Brand'; break;
-      case _ConvStep.askLabourType: activeField = 'Labour Type'; break;
-      case _ConvStep.askWorkerCount: activeField = 'Worker Count'; break;
-      case _ConvStep.askHours: activeField = 'Hours'; break;
-      case _ConvStep.askEquipment: activeField = 'Equipment'; break;
-      case _ConvStep.askFuel: activeField = 'Fuel'; break;
-      default: activeField = null;
-    }
+    // Active field is derived directly from missingFields — no step enum needed
+    final activeField = _activeField;
 
     return Container(
       width: double.infinity,
@@ -2415,15 +2433,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
     if (!isAskingStep) return const SizedBox.shrink();
 
-    // BUG 1 FIX: Always derive question from fresh missing fields — never stale _step
-    final nextStep = _nextMissingFieldStep();
+    // Question derived from FIRST missing field — always field-driven, never step-driven
+    final field = _fieldToAsk();
     final question = _response.question?.isNotEmpty == true
         ? _response.question!
-        : _questionFor(nextStep);
+        : (field != null ? _questionForField(field) : '');
     final suggestions = _backendSuggestions.isNotEmpty
         ? _backendSuggestions
-        : _suggestionsForStep(nextStep);
-    debugPrint('[AI DEBUG] _buildAiQuestionCard: showing question="$question" for step=$nextStep');
+        : (field != null ? _suggestionsForField(field) : <String>[]);
+    debugPrint('[AI DEBUG] _buildAiQuestionCard: showing question="$question" for field=$field');
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
 
     return Container(
@@ -3054,7 +3072,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         ? null
                         : () {
                             setState(() {
-                              _step = _ConvStep.askProject;
+                              _status = VoiceStatus.waitingForUser;
                               _saveError = null;
                             });
                             _startAnswerListening();
@@ -3703,35 +3721,23 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   String get _hintForCurrentStep {
-    switch (_step) {
-      case _ConvStep.askProject:
-        return 'Type or say project name...';
-      case _ConvStep.askFloor:
-        return 'e.g. Ground Floor, 1st Floor...';
-      case _ConvStep.askPhase:
-        return 'e.g. Foundation Work...';
-      case _ConvStep.askActivity:
-        return 'e.g. Column Casting, PCC...';
-      case _ConvStep.askLabourType:
-        return 'e.g. Mason, Helper, Carpenter...';
-      case _ConvStep.askWorkerCount:
-        return 'e.g. 5, 8, 12...';
-      case _ConvStep.askHours:
-        return 'e.g. 6, 8, 10 hours...';
-      case _ConvStep.askEquipment:
-        return 'e.g. JCB Excavator, Crane...';
-      case _ConvStep.askFuel:
-        return 'e.g. 500, 1200 or 0 for none...';
-      case _ConvStep.askQuantity:
-        return 'Enter quantity...';
-      case _ConvStep.askUnit:
-        return 'e.g. Bags, Kg, Hours...';
-      case _ConvStep.askRate:
-        return 'Rate in ₹ per unit...';
-      case _ConvStep.askBrand:
-        return 'e.g. UltraTech, Tata...';
-      default:
-        return 'Type your answer...';
+    final field = _activeField;
+    if (field == null) return 'Type your answer...';
+    switch (field) {
+      case 'Project': return 'Type or say project name...';
+      case 'Floor': return 'e.g. Ground Floor, 1st Floor...';
+      case 'Phase': return 'e.g. Foundation Work...';
+      case 'Activity': return 'e.g. Column Casting, PCC...';
+      case 'Labour Type': return 'e.g. Mason, Helper, Carpenter...';
+      case 'Worker Count': return 'e.g. 5, 8, 12...';
+      case 'Hours': return 'e.g. 6, 8, 10 hours...';
+      case 'Equipment': return 'e.g. JCB Excavator, Crane...';
+      case 'Fuel': return 'e.g. 500, 1200 or 0 for none...';
+      case 'Quantity': return 'Enter quantity...';
+      case 'Unit': return 'e.g. Bags, Kg, Hours...';
+      case 'Rate': return 'Rate in ₹ per unit...';
+      case 'Brand': return 'e.g. UltraTech, Tata...';
+      default: return 'Type your answer...';
     }
   }
 
