@@ -425,7 +425,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _detectedFields['Project Name'] = _sessionMemory['projectName'];
     } else {
       final pid = UserSession.projectId;
-      if (pid != null && pid.isNotEmpty) {
+      if (pid.isNotEmpty) {
         _detectedFields['Project ID'] = pid;
         final match = _projects.cast<ProjectModel?>().firstWhere(
               (p) => p?.id == pid,
