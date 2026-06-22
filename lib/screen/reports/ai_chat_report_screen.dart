@@ -9,6 +9,7 @@ import '../../common/widgets/common_widgets.dart';
 import '../../controller/ai_chat_report_provider.dart';
 import '../../controller/project_provider.dart';
 import '../../services/auth_service.dart';
+import '../../config/api_config.dart';
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -23,13 +24,7 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
   String? token;
   bool loading = true;
 
-  static String get baseUrl {
-    /*return 'https://build-track.onrender.com';
-    if (kReleaseMode) {
-      return 'https://build-track.onrender.com';
-    }
-    */return 'http://localhost:5001';
-  }
+  static String get baseUrl => ApiConfig.baseUrl.replaceAll('/api', '');
 
   @override
   void initState() {
