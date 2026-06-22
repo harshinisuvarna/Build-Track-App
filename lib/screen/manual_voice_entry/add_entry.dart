@@ -229,15 +229,7 @@ class AddEntryScreen extends StatelessWidget {
                   Navigator.canPop(context) ? () => Navigator.pop(context) : null,
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
+                child: const ProfileAvatar(radius: 18),
               ),
             ),
             Expanded(

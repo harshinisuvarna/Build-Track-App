@@ -458,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Notifications',
             trailing: Switch.adaptive(
               value: _notificationsEnabled,
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               activeTrackColor: AppColors.primary.withValues(alpha: 0.25),
               onChanged: (val) => setState(() => _notificationsEnabled = val),
             ),
