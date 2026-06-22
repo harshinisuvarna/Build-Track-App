@@ -3,7 +3,6 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
-import 'package:buildtrack_mobile/common/widgets/voice_confirmation_sheet.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
@@ -710,7 +709,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => showVoiceConfirmationSheet(context),
+        onTap: () => Navigator.pushNamed(context, '/review-material'),
         borderRadius: BorderRadius.circular(18),
         splashColor: Colors.white.withValues(alpha: 0.15),
         child: Ink(

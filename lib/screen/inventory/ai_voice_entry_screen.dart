@@ -391,6 +391,37 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   void _parseTranscriptInto(_ExtractedData data, String text) {
     final t = text.toLowerCase().trim();
 
+    // ── Auto-detect entry type from conversation ──────────────────────────────
+    if (_entryType == 'material') {
+      const labourKeywords = [
+        'mason', 'masons', 'worker', 'workers', 'carpenter', 'carpenters',
+        'plumber', 'plumbers', 'electrician', 'electricians', 'helper',
+        'helpers', 'labour', 'labourer', 'labourers', 'welder', 'welders',
+        'painter', 'painters', 'foreman', 'engineer', 'engineers',
+        'supervisor', 'supervisors', 'driver', 'drivers',
+      ];
+      const equipmentKeywords = [
+        'jcb', 'excavator', 'crane', 'concrete mixer', 'generator',
+        'road roller', 'roller', 'dumper', 'dumptruck', 'bulldozer',
+        'forklift', 'tractor', 'compressor', 'drill', 'water pump',
+        'hoist', 'lift', 'vibrator',
+      ];
+      for (final kw in labourKeywords) {
+        if (t.contains(kw)) {
+          _entryType = 'labour';
+          break;
+        }
+      }
+      if (_entryType == 'material') {
+        for (final kw in equipmentKeywords) {
+          if (t.contains(kw)) {
+            _entryType = 'equipment';
+            break;
+          }
+        }
+      }
+    }
+
     // ── Quantity ─────────────────────────────────────────────────────────────
     final numMatch = RegExp(r'(\d+\.?\d*)').firstMatch(t);
     if (numMatch != null) {
