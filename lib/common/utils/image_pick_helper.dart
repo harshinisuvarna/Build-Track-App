@@ -205,7 +205,9 @@ ImageProvider? getProfileImageProvider(String? photoUrl) {
       photoUrl == 'null' ||
       photoUrl == 'delete' ||
       photoUrl == 'remove' ||
-      photoUrl.trim().isEmpty) return null;
+      photoUrl.trim().isEmpty) {
+    return null;
+  }
   if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
     try {
       final base64String = photoUrl.split(';base64,').last;
