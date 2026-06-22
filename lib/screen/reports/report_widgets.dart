@@ -34,20 +34,20 @@ class MetricCard extends StatelessWidget {
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
-            ? AppColors.success
-            : AppColors.error;
+        ? AppColors.success
+        : AppColors.error;
 
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
-            ? Icons.trending_down
-            : Icons.trending_up;
+        ? Icons.trending_down
+        : Icons.trending_up;
 
     final subText = isNeutral
         ? 'On Track'
         : isGood
-            ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
-            : '+${safeChange.toStringAsFixed(0)}% Over';
+        ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
+        : '+${safeChange.toStringAsFixed(0)}% Over';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -55,8 +55,7 @@ class MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
         border: Border.all(color: const Color(0xFFF0F1F5)),
       ),
@@ -121,7 +120,8 @@ class MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalTarget = report.targetMaterial +
+    final totalTarget =
+        report.targetMaterial +
         report.targetLabour +
         report.targetEquipment +
         report.targetMisc;
@@ -132,15 +132,30 @@ class MetricGrid extends StatelessWidget {
     }
 
     final cards = [
-      _M(Icons.credit_card_outlined, 'TOTAL COST', report.formattedTotal,
-          pct(report.totalCost, totalTarget)),
-      _M(Icons.architecture, 'MATERIAL', report.formattedMaterial,
-          pct(report.materialCost, report.targetMaterial)),
-      _M(Icons.people_outline, 'LABOUR', report.formattedLabour,
-          pct(report.labourCost, report.targetLabour)),
-      _M(Icons.precision_manufacturing_outlined, 'EQUIPMENT',
-          report.formattedEquipment,
-          pct(report.equipmentCost, report.targetEquipment)),
+      _M(
+        Icons.credit_card_outlined,
+        'TOTAL COST',
+        report.formattedTotal,
+        pct(report.totalCost, totalTarget),
+      ),
+      _M(
+        Icons.architecture,
+        'MATERIAL',
+        report.formattedMaterial,
+        pct(report.materialCost, report.targetMaterial),
+      ),
+      _M(
+        Icons.people_outline,
+        'LABOUR',
+        report.formattedLabour,
+        pct(report.labourCost, report.targetLabour),
+      ),
+      _M(
+        Icons.precision_manufacturing_outlined,
+        'EQUIPMENT',
+        report.formattedEquipment,
+        pct(report.equipmentCost, report.targetEquipment),
+      ),
     ];
 
     return Column(
@@ -148,36 +163,44 @@ class MetricGrid extends StatelessWidget {
         Row(
           children: [
             Expanded(
-                child: MetricCard(
-                    icon: cards[0].icon,
-                    label: cards[0].label,
-                    value: cards[0].value,
-                    change: cards[0].change)),
+              child: MetricCard(
+                icon: cards[0].icon,
+                label: cards[0].label,
+                value: cards[0].value,
+                change: cards[0].change,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: MetricCard(
-                    icon: cards[1].icon,
-                    label: cards[1].label,
-                    value: cards[1].value,
-                    change: cards[1].change)),
+              child: MetricCard(
+                icon: cards[1].icon,
+                label: cards[1].label,
+                value: cards[1].value,
+                change: cards[1].change,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-                child: MetricCard(
-                    icon: cards[2].icon,
-                    label: cards[2].label,
-                    value: cards[2].value,
-                    change: cards[2].change)),
+              child: MetricCard(
+                icon: cards[2].icon,
+                label: cards[2].label,
+                value: cards[2].value,
+                change: cards[2].change,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: MetricCard(
-                    icon: cards[3].icon,
-                    label: cards[3].label,
-                    value: cards[3].value,
-                    change: cards[3].change)),
+              child: MetricCard(
+                icon: cards[3].icon,
+                label: cards[3].label,
+                value: cards[3].value,
+                change: cards[3].change,
+              ),
+            ),
           ],
         ),
       ],
@@ -253,8 +276,10 @@ class ChartSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Budget Analytics',
-                style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              'Budget Analytics',
+              style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 4),
             Text(
               isExceeded
@@ -269,82 +294,93 @@ class ChartSection extends StatelessWidget {
             const SizedBox(height: 14),
             SizedBox(
               height: 200,
-              child: LineChart(LineChartData(
-                minY: 0,
-                maxY: maxY,
-                gridData:
-                    const FlGridData(show: true, drawVerticalLine: false),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final i = value.toInt();
-                        if (i < 0 || i >= categories.length) {
-                          return const SizedBox();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(categories[i]['name'].toString(),
-                              style: const TextStyle(fontSize: 10)),
-                        );
-                      },
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: maxY,
+                  gridData: const FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= categories.length) {
+                            return const SizedBox();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              categories[i]['name'].toString(),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 62, // wider to fit ₹ + compact number
+                        getTitlesWidget: (value, meta) {
+                          // Compact formatter: 1,20,000 → ₹1.2L, 5,000 → ₹5K
+                          String label;
+                          if (value >= 100000) {
+                            label = '₹${(value / 100000).toStringAsFixed(1)}L';
+                          } else if (value >= 1000) {
+                            label = '₹${(value / 1000).toStringAsFixed(0)}K';
+                          } else {
+                            label = '₹${value.toInt()}';
+                          }
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            space: 6,
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
                     ),
                   ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 62,  // wider to fit ₹ + compact number
-                      getTitlesWidget: (value, meta) {
-                        // Compact formatter: 1,20,000 → ₹1.2L, 5,000 → ₹5K
-                        String label;
-                        if (value >= 100000) {
-                          label = '₹${(value / 100000).toStringAsFixed(1)}L';
-                        } else if (value >= 1000) {
-                          label = '₹${(value / 1000).toStringAsFixed(0)}K';
-                        } else {
-                          label = '₹${value.toInt()}';
-                        }
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 6,
-                          child: Text(
-                            label,
-                            style: const TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                        );  
-                      },
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: actualSpots,
+                      isCurved: true,
+                      barWidth: 3,
+                      color: AppColors.primary,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                      ),
                     ),
-                  ),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    LineChartBarData(
+                      spots: targetSpots,
+                      isCurved: false,
+                      barWidth: 2,
+                      color: Colors.red,
+                      dashArray: [6, 4],
+                      dotData: const FlDotData(show: false),
+                    ),
+                  ],
                 ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: actualSpots,
-                    isCurved: true,
-                    barWidth: 3,
-                    color: AppColors.primary,
-                    dotData: const FlDotData(show: true),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: targetSpots,
-                    isCurved: false,
-                    barWidth: 2,
-                    color: Colors.red,
-                    dashArray: [6, 4],
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              )),
+              ),
             ),
             const SizedBox(height: 10),
             Row(
@@ -365,10 +401,10 @@ class ChartSection extends StatelessWidget {
   }
 
   Widget _dot(Color c) => Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-      );
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
 }
 
 class ProjectSelector extends StatelessWidget {
@@ -531,7 +567,9 @@ class CategoryBudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final report = context.read<ReportProvider>().buildLiveReport();
+    // FIX: Using context.watch registers this const widget to rebuild 
+    // whenever ReportProvider calls notifyListeners().
+    final report = context.watch<ReportProvider>().report;
 
     final items = [
       {
@@ -578,13 +616,15 @@ class CategoryBudgetSection extends StatelessWidget {
             final rawPercent = hasTarget ? actual / target : 0.0;
             final barValue = hasTarget ? rawPercent.clamp(0.0, 1.0) : 0.0;
             final isOver = hasTarget && actual > target;
-            final remaining = hasTarget ? (target - actual).clamp(0.0, double.infinity) : 0.0;
+            final remaining = hasTarget
+                ? (target - actual).clamp(0.0, double.infinity)
+                : 0.0;
 
             final color = isOver
                 ? AppColors.error
                 : barValue >= 0.75
-                    ? AppColors.warning
-                    : AppColors.primary;
+                ? AppColors.warning
+                : AppColors.primary;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -733,8 +773,9 @@ class EfficiencyBanner extends StatelessWidget {
           const SizedBox(height: 12),
           InkWell(
             onTap: () {
-              final selectedProjectName =
-                  context.read<ReportProvider>().selectedProjectName;
+              final selectedProjectName = context
+                  .read<ReportProvider>()
+                  .selectedProjectName;
               Navigator.pushNamed(
                 context,
                 '/report-insights',
