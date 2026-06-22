@@ -374,7 +374,32 @@ void _finishExtraction() async {
     print("AI Response: $aiResponse");
 
     final extracted = aiResponse["extracted"];
+    if (extracted["worker_count"] != null) {
+  _data.workerCount =
+      (extracted["worker_count"] as num).toInt();
+}
 
+if (extracted["hours"] != null) {
+  _data.hours =
+      (extracted["hours"] as num).toDouble();
+}
+
+if (extracted["activity"] != null) {
+  _data.activity =
+      extracted["activity"].toString();
+}
+
+if (extracted["equipment_name"] != null) {
+  _data.itemName =
+      extracted["equipment_name"].toString();
+}
+
+if (extracted["hours_used"] != null) {
+  _data.quantity =
+      (extracted["hours_used"] as num).toDouble();
+
+  _data.unit = "Hours";
+}
     if (extracted != null) {
       if (extracted["material_name"] != null) {
         _data.itemName = extracted["material_name"];
