@@ -935,6 +935,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "isWithGst":       _isWithGst,
       "gstPercentage":   _isWithGst ? (double.tryParse(_gstCtrl.text) ?? 0) : 0,
       "totalAmount":     _finalTotal(),
+      "amount":          _finalTotal(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };

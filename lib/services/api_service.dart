@@ -37,7 +37,7 @@ class ApiService {
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [GET]: $url');
     final response = await http.get(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -55,7 +55,7 @@ class ApiService {
       Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
+    ).timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -73,7 +73,7 @@ class ApiService {
       Uri.parse(url),
       headers: headers,
       body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
+    ).timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -84,7 +84,7 @@ class ApiService {
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [DELETE]: $url');
     final response = await http.delete(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;

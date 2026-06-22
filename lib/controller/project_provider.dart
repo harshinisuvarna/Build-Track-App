@@ -302,9 +302,18 @@ Future<void> _backfillCompletedActivities() async {
               ? ['Ground']
               : p.floors!;
 
+          final effectivePhases = mergedPhases ?? p.selectedPhases;
+          final totalActs = effectivePhases?.fold<int>(
+              0, (s, ph) => s + ph.totalCount) ?? 0;
+          final doneActs = effectivePhases?.fold<int>(
+              0, (s, ph) => s + ph.completedCount) ?? 0;
+          final computedProgress =
+              totalActs > 0 ? doneActs / totalActs : p.progress;
+
           return p.copyWith(
-            selectedPhases: mergedPhases ?? p.selectedPhases,
+            selectedPhases: effectivePhases,
             floors: floors,
+            progress: computedProgress,
           );
         }).toList();
 
@@ -372,6 +381,17 @@ Future<void> _backfillCompletedActivities() async {
             if (paidAmount != null && paidAmount is num && paidAmount > 0) {
               amount = paidAmount.toDouble();
             }
+          } else if (paymentStatus != 'paid') {
+            final v = json['amount'];
+            if (v != null && v is num && v > 0) {
+              amount = v.toDouble();
+            } else {
+              final qty = json['quantity'];
+              final rate = json['rate'];
+              if (qty is num && rate is num && qty > 0 && rate > 0) {
+                amount = (qty * rate).toDouble();
+              }
+            }
           }
 
           // FIX 3b: Extract createdBy from API response.
@@ -422,6 +442,16 @@ Future<void> _backfillCompletedActivities() async {
           _entries = [];
         }
       }
+
+      // Override spentAmount with locally computed total from entries,
+      // keeping the API value only when higher (e.g. includes external costs).
+      _projects = _projects.map((p) {
+        final localTotal = totalSpentForProject(p.id);
+        if (localTotal > 0 && localTotal > p.spentAmount) {
+          return p.copyWith(spentAmount: localTotal);
+        }
+        return p;
+      }).toList();
 
       if (_selectedProject != null) {
         final existingIdx =

@@ -2024,6 +2024,18 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                           decimal: true,
                                         ),
                                     onChanged: (val) {
+                                      if (val.length > 1 &&
+                                          val.startsWith('0') &&
+                                          !val.startsWith('0.')) {
+                                        final stripped = val.replaceFirst(RegExp(r'^0+'), '');
+                                        if (stripped.isNotEmpty && stripped != '.') {
+                                          amountCtrl.text = stripped;
+                                          amountCtrl.selection = TextSelection.collapsed(
+                                            offset: stripped.length,
+                                          );
+                                          val = stripped;
+                                        }
+                                      }
                                       ss(() {
                                         amountError = null;
                                         final amt = parseAmount(val);

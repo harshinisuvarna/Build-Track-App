@@ -749,6 +749,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 'notes': result['note'] ?? '',
                 'paymentDate': customPaymentDate.toIso8601String(),
               });
+              if (context.mounted) {
+                context.read<ProjectProvider>().load();
+              }
             }
 
             setState(() {

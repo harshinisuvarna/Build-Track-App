@@ -729,6 +729,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

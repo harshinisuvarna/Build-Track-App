@@ -218,9 +218,7 @@ class ChartSection extends StatelessWidget {
       },
       {
         'name': 'Misc',
-        'actual': (report.categoryBudget['Misc'] ?? 0.0).isNaN
-            ? 0.0
-            : (report.categoryBudget['Misc'] ?? 0.0),
+        'actual': report.miscCost.isNaN ? 0.0 : report.miscCost,
         'target': report.targetMisc.isNaN ? 0.0 : report.targetMisc,
       },
     ];
@@ -529,9 +527,7 @@ class _ProjectPickerSheet extends StatelessWidget {
 }
 
 class CategoryBudgetSection extends StatelessWidget {
-  const CategoryBudgetSection({super.key, required this.categoryBudget});
-
-  final Map<String, double> categoryBudget;
+  const CategoryBudgetSection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -553,10 +549,10 @@ class CategoryBudgetSection extends StatelessWidget {
         'actual': report.equipmentCost,
         'target': report.targetEquipment,
       },
-      if (report.targetMisc > 0 || (report.categoryBudget['Misc'] ?? 0) > 0)
+      if (report.targetMisc > 0 || report.miscCost > 0)
         {
           'label': 'Misc',
-          'actual': report.categoryBudget['Misc'] ?? 0.0,
+          'actual': report.miscCost,
           'target': report.targetMisc,
         },
     ];
@@ -579,13 +575,14 @@ class CategoryBudgetSection extends StatelessWidget {
                 ? 0.0
                 : (item['target'] as double);
             final hasTarget = target > 0;
-            final percent =
-                hasTarget ? (actual / target).clamp(0.0, 1.0) : 0.0;
+            final rawPercent = hasTarget ? actual / target : 0.0;
+            final barValue = hasTarget ? rawPercent.clamp(0.0, 1.0) : 0.0;
             final isOver = hasTarget && actual > target;
+            final remaining = hasTarget ? (target - actual).clamp(0.0, double.infinity) : 0.0;
 
             final color = isOver
                 ? AppColors.error
-                : percent >= 0.75
+                : barValue >= 0.75
                     ? AppColors.warning
                     : AppColors.primary;
 
@@ -629,23 +626,42 @@ class CategoryBudgetSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 7),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: LinearProgressIndicator(
-                      value: hasTarget ? percent : 0,
-                      minHeight: 8,
-                      backgroundColor: const Color(0xFFEEF0F8),
-                      valueColor: AlwaysStoppedAnimation(color),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: LinearProgressIndicator(
+                            value: barValue,
+                            minHeight: 8,
+                            backgroundColor: const Color(0xFFEEF0F8),
+                            valueColor: AlwaysStoppedAnimation(color),
+                          ),
+                        ),
+                      ),
+                      if (hasTarget) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '${(rawPercent * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (isOver)
+                  if (hasTarget)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'Exceeded by ₹${(actual - target).toStringAsFixed(0)}',
+                        isOver
+                            ? 'Exceeded by ₹${(actual - target).toStringAsFixed(0)}'
+                            : 'Remaining: ₹${remaining.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.error,
+                          color: isOver ? AppColors.error : AppColors.textLight,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

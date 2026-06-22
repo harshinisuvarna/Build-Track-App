@@ -51,6 +51,10 @@ class VoiceRecordingController extends ChangeNotifier {
   /// True while the engine is actively in a listen session.
   bool get isListening => _engineState == VoiceEngineState.listening;
 
+  /// Live microphone sound level.
+  double get soundLevel => _soundLevel;
+  double _soundLevel = 0.0;
+
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _sessionTimer;
 
@@ -73,6 +77,11 @@ class VoiceRecordingController extends ChangeNotifier {
     }
     _initialising = false;
     return _sttInitialised;
+  }
+
+  void _onSoundLevel(double level) {
+    _soundLevel = level;
+    notifyListeners();
   }
 
   // ─── Start listening ───────────────────────────────────────────────────────
@@ -107,6 +116,7 @@ class VoiceRecordingController extends ChangeNotifier {
         onResult: _onResult,
         listenFor: Duration(seconds: listenForSeconds),
         pauseFor:  Duration(seconds: pauseForSeconds),
+        onSoundLevelChange: _onSoundLevel,
         listenOptions: SpeechListenOptions(
           partialResults: true,
           cancelOnError: false,

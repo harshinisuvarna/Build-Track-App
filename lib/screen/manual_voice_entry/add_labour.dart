@@ -831,6 +831,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
       "activityId": _selectedActivityId ?? (_selectedActivity != null && _selectedActivity!.isNotEmpty ? _deriveActivityId(_selectedActivity) : null),
+      "amount": _totalCost(),
+      "overtime": double.tryParse(_overtimeCtrl.text) ?? 0,
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
