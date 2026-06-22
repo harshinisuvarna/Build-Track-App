@@ -8,7 +8,7 @@ import 'package:buildtrack_mobile/screen/manual_voice_entry/add_entry.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_labour.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_material.dart';
-import 'package:buildtrack_mobile/screen/profile/assign_role.dart';
+import 'package:buildtrack_mobile/screen/admin/assign_roles_screen.dart';
 import 'package:buildtrack_mobile/pages/create_workspace.dart';
 import 'package:buildtrack_mobile/screen/profile/edit_profile.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/entry_details.dart';
@@ -37,6 +37,8 @@ import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
+import 'package:buildtrack_mobile/screen/approvals/approvals_screen.dart';
+import 'package:buildtrack_mobile/screen/admin/admin_overview_screen.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -133,11 +135,13 @@ class MyApp extends StatelessWidget {
         '/add-entry':   (_) => const AddEntryScreen(),
         '/inventory':   (_) => const InventoryScreen(),
         '/reports':     (_) => const ReportsScreen(),
-        '/assign-role': (_) => const AssignRoleScreen(),
+        '/assign-role': (_) => const AssignRolesScreen(),
 
         '/project-detail': (_) => const ProjectDetailScreen(),
 
         '/notifications':   (_) => const NotificationsScreen(),
+        '/approvals':       (_) => const ApprovalsScreen(),
+        '/admin-overview':  (_) => const AdminOverviewScreen(),
         '/logs':            (_) => const TransactionLogsScreen(),
         '/entry-detail':    (_) => const EntryDetailScreen(),
         '/update-progress': (_) => const UpdateProgressScreen(),

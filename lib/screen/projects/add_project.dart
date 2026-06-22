@@ -5,6 +5,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
@@ -240,6 +241,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 
   Future<void> _submit() async {
+    if (_nameCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a project name')));
+      return;
+    }
+
+    final subProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final maxProjects = subProvider.currentPlan.maxProjects;
+    final currentCount = projectProvider.projects.length;
+    
+    if (maxProjects != -1 && currentCount >= maxProjects) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Project limit reached for ${subProvider.currentPlan.label} plan. Please upgrade to add more projects.'), backgroundColor: Colors.red));
+      return;
+    }
+
     if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -255,7 +273,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     }
     if (!_formKey.currentState!.validate()) return;
 
-    final projectProvider = context.read<ProjectProvider>();
     setState(() => _saving = true);
     try {
       double parseBudget(TextEditingController c) =>
@@ -433,6 +450,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _buildSubscriptionWarning(context),
             const SizedBox(height: 16),
             Expanded(
               child: SingleChildScrollView(
@@ -2325,5 +2344,38 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ctrl.dispose();
       focusNode.dispose();
     });
+  }
+  Widget _buildSubscriptionWarning(BuildContext context) {
+    final subProvider = context.watch<SubscriptionProvider>();
+    final projectProvider = context.watch<ProjectProvider>();
+    final plan = subProvider.currentPlan;
+    final maxProjects = plan.maxProjects;
+    final currentCount = projectProvider.projects.length;
+    
+    if (maxProjects == -1 || currentCount < maxProjects) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red.shade400, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${plan.label} Plan Limit Reached: You have $currentCount/$maxProjects projects. Upgrade to create more.',
+                style: TextStyle(fontSize: 13, color: Colors.red.shade700, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

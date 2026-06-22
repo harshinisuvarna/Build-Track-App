@@ -7,6 +7,8 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
 
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -168,6 +170,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (data != null) {
         if (mounted) {
+          // Fetch subscription status upon login so it persists
+          await context.read<SubscriptionProvider>().fetchStatus();
           // ProjectProvider.load() will now filter projects correctly
           // based on UserSession.isAdmin / UserSession.projectId
           await context.read<ProjectProvider>().load();

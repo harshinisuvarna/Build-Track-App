@@ -222,6 +222,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ListTile(
+  leading: const Icon(
+    Icons.supervisor_account_outlined,
+    color: AppColors.textDark,
+  ),
+  title: const Text(
+    'Team Overview',
+    style: TextStyle(color: AppColors.textDark),
+  ),
+  onTap: () => Navigator.pushNamed(context, '/admin-overview'),
+),
+          ListTile(
             leading: const Icon(Icons.person, color: AppColors.textDark),
             title: const Text(
               'Profile',
@@ -377,6 +388,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       children: [
         _buildProjectSelector(context, provider),
         const SizedBox(height: 14),
+        const ApprovalsAlertWidget(),
+        const SizedBox(height: 14),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,6 +494,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ],
     );
   }
+
 
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
     final selectedName = provider.selectedProject?.name ?? 'Select Project';
@@ -941,7 +955,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 }
 
-// SUPERVISOR DASHBOARD (TASK 3 UPDATED)
+// SUPERVISOR DASHBOARD
 class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard();
   @override
@@ -949,138 +963,196 @@ class _SupervisorDashboard extends StatefulWidget {
 }
 
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
-  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
-  late Future<List<dynamic>> _tasksFuture;
-  final Map<int, String> _statuses = {};
+  List<dynamic> _pendingTransactions = [];
+  List<dynamic> _pendingUpdates = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _tasksFuture = ApiService.fetchDailyTasks();
+    _loadApprovals();
   }
 
-  void _approve(int i, String taskName) {
-    setState(() => _statuses[i] = 'approved');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$taskName approved'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Future<void> _loadApprovals() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    final data = await ApiService.fetchPendingApprovals();
+    if (!mounted) return;
+    if (data != null) {
+      setState(() {
+        _pendingTransactions =
+            (data['transactions'] as List?) ?? [];
+        _pendingUpdates =
+            (data['projectUpdates'] as List?) ?? [];
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = 'Failed to load approvals';
+        _isLoading = false;
+      });
+    }
   }
 
-  void _reject(int i, String taskName) {
-    setState(() => _statuses[i] = 'rejected');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$taskName rejected'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Future<void> _handleApprove(String id) async {
+    final ok = await ApiService.approveTransaction(id);
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction approved'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _loadApprovals();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to approve'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleReject(String id) async {
+    final ok =
+        await ApiService.rejectTransaction(id, 'Rejected by supervisor');
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction rejected'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _loadApprovals();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- TASK 3: FUTUREBUILDER FOR SUPERVISOR ---
-    return FutureBuilder<List<dynamic>>(
-      future: _tasksFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
-            ),
-          );
-        }
+    final pendingCount = _pendingTransactions.length + _pendingUpdates.length;
 
-        final liveItems = snapshot.data ?? [];
-
-        // Ensure status map is populated for new items
-        for (int i = 0; i < liveItems.length; i++) {
-          _statuses.putIfAbsent(i, () => 'pending');
-        }
-
-        final pendingCount = _statuses.values
-            .where((s) => s == 'pending')
-            .length;
-        final approvedCount = _statuses.values
-            .where((s) => s == 'approved')
-            .length;
-        final rejectedCount = _statuses.values
-            .where((s) => s == 'rejected')
-            .length;
-
-        return Column(
+    return RefreshIndicator(
+      onRefresh: _loadApprovals,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Summary chips ──────────────────────────────────────────
             Row(
               children: [
-                _summaryChip('$pendingCount', 'Pending', AppTheme.warning),
+                _summaryChip(
+                  '$pendingCount',
+                  'Pending',
+                  AppTheme.warning,
+                ),
                 const SizedBox(width: 8),
                 _summaryChip(
-                  '${approvedCount + 12}', // Keeping your +12 logic
-                  'Approved Today',
+                  '${_pendingTransactions.where((t) => t['approvalStatus'] == 'Approved').length}',
+                  'Approved',
                   AppTheme.success,
                 ),
                 const SizedBox(width: 8),
-                _summaryChip('$rejectedCount', 'Rejected', AppTheme.error),
+                _summaryChip(
+                  '${_pendingTransactions.where((t) => t['approvalStatus'] == 'Rejected').length}',
+                  'Rejected',
+                  AppTheme.error,
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            const AppSectionHeader(title: 'Pending Approvals'),
-            if (liveItems.isEmpty)
+
+            // ── Content ────────────────────────────────────────────────
+            if (_isLoading)
               const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'No daily tasks found from server.',
-                  style: TextStyle(color: Colors.grey),
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primary),
+                ),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Text(_error!,
+                          style: const TextStyle(
+                              color: AppColors.textLight)),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _loadApprovals,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (pendingCount == 0)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 48,
+                        color: AppColors.textLight
+                            .withValues(alpha: 0.5)),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No pending approvals',
+                      style: TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Pull down to refresh',
+                      style: TextStyle(
+                          color: AppColors.textLight, fontSize: 12),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              const AppSectionHeader(title: 'Pending Approvals'),
+              const SizedBox(height: 8),
+              ..._pendingTransactions.map(
+                (tx) => _PendingTxCard(
+                  tx: tx as Map<String, dynamic>,
+                  onApprove: () =>
+                      _handleApprove(tx['_id']?.toString() ?? ''),
+                  onReject: () =>
+                      _handleReject(tx['_id']?.toString() ?? ''),
                 ),
               ),
-            ...List.generate(
-              liveItems.length,
-              (i) => _pendingCard(
-                context,
-                liveItems[i] as Map<String, dynamic>,
-                i,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const AppSectionHeader(title: 'Recent Updates'),
-            AppCard(
-              child: Column(
-                children: [
-                  _recentRow(
-                    'Beam Casting – Level 1',
-                    'Mohan Singh',
-                    AppStatus.completed,
-                  ),
-                  const AppDivider(verticalPadding: 8),
-                  _recentRow(
-                    'Plastering – East Wing',
-                    'Ravi Teja',
-                    AppStatus.inProgress,
-                  ),
-                  const AppDivider(verticalPadding: 8),
-                  _recentRow(
-                    'Curing – Ground Slab',
-                    'Pradeep K',
-                    AppStatus.delayed,
-                  ),
-                ],
-              ),
-            ),
+            ],
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -1117,122 +1189,156 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
+}
 
-  Widget _pendingCard(
-    BuildContext context,
-    Map<String, dynamic> item,
-    int index,
-  ) {
-    final status = _statuses[index];
-    final isPending = status == 'pending';
+// ── Pending transaction card ───────────────────────────────────────────────────
 
-    // Smart parsing to prevent crashes from backend mismatches
-    final masonName = item['mason'] ?? item['assignee'] ?? 'Unknown Mason';
-    final taskName = item['task'] ?? item['title'] ?? 'Daily Task';
-    final timeStr = item['time'] ?? item['createdAt'] ?? 'Recently';
-    final floorStr = item['floor'] ?? item['location'] ?? 'On Site';
+class _PendingTxCard extends StatelessWidget {
+  const _PendingTxCard({
+    required this.tx,
+    required this.onApprove,
+    required this.onReject,
+  });
 
-    Color badgeColor;
-    String badgeLabel;
-    if (status == 'approved') {
-      badgeColor = Colors.green;
-      badgeLabel = 'Approved';
-    } else if (status == 'rejected') {
-      badgeColor = Colors.red;
-      badgeLabel = 'Rejected';
-    } else {
-      badgeColor = AppTheme.warning;
-      badgeLabel = 'Pending';
+  final Map<String, dynamic> tx;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = tx['title']?.toString() ?? 'Entry';
+    final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+    final type = tx['type']?.toString() ?? '';
+    final createdByName =
+        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)
+                ?.toString() ??
+            'Unknown';
+    final createdByRole =
+        (tx['createdBy'] is Map ? tx['createdBy']['role'] : null)
+                ?.toString() ??
+            '';
+    final projectName =
+        (tx['project'] is Map ? tx['project']['projectName'] : null)
+                ?.toString() ??
+            'Unknown Project';
+
+    String dateStr = '';
+    final rawDate = tx['date'] ?? tx['createdAt'];
+    if (rawDate != null) {
+      try {
+        final d = DateTime.parse(rawDate.toString());
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
+      } catch (_) {}
     }
+
+    IconData typeIcon;
+    Color typeColor;
+    switch (type.toLowerCase()) {
+      case 'wages':
+        typeIcon = Icons.people_outlined;
+        typeColor = const Color(0xFF2E7D32);
+        break;
+      case 'expense':
+        typeIcon = Icons.precision_manufacturing_outlined;
+        typeColor = const Color(0xFFE65100);
+        break;
+      default:
+        typeIcon = Icons.category_outlined;
+        typeColor = AppColors.primary;
+    }
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header ────────────────────────────────────────────────
           Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: AppTheme.primary,
-                  size: 18,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: typeColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(11),
                 ),
+                child: Icon(typeIcon, color: typeColor, size: 20),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      masonName,
-                      style: AppTheme.bodyLarge.copyWith(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      timeStr,
-                      style: AppTheme.caption.copyWith(
-                        color: AppTheme.textMedium,
-                      ),
+                      '$createdByName${createdByRole.isNotEmpty ? ' · $createdByRole' : ''}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textLight),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  floorStr,
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+              Text(
+                '₹${amount.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+
+          // ── Meta ──────────────────────────────────────────────────
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text(taskName, style: AppTheme.heading3)),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
-                ),
+              const Icon(Icons.folder_outlined,
+                  size: 13, color: AppColors.textLight),
+              const SizedBox(width: 4),
+              Expanded(
                 child: Text(
-                  badgeLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: badgeColor,
-                  ),
+                  projectName,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textLight),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (dateStr.isNotEmpty) ...[
+                const Icon(Icons.calendar_today_outlined,
+                    size: 12, color: AppColors.textLight),
+                const SizedBox(width: 4),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textLight),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+
+          // ── Actions ───────────────────────────────────────────────
           Row(
             children: [
               Expanded(
                 child: AppButton(
                   label: 'Approve',
                   icon: Icons.check_circle_outline,
-                  onPressed: isPending
-                      ? () => _approve(index, taskName)
-                      : () {},
-                  enabled: isPending,
+                  onPressed: onApprove,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1241,8 +1347,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                   label: 'Reject',
                   icon: Icons.cancel_outlined,
                   variant: AppButtonVariant.danger,
-                  onPressed: isPending ? () => _reject(index, taskName) : () {},
-                  enabled: isPending,
+                  onPressed: onReject,
                 ),
               ),
             ],
@@ -1251,27 +1356,9 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ),
     );
   }
-
-  Widget _recentRow(String task, String mason, AppStatus status) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                task,
-                style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-              ),
-              Text(mason, style: AppTheme.caption),
-            ],
-          ),
-        ),
-        AppStatusBadge(status: status),
-      ],
-    );
-  }
 }
+
+
 
 // MASON DASHBOARD (TASK 3 UPDATED)
 class _MasonDashboard extends StatefulWidget {
@@ -1414,6 +1501,125 @@ class _MasonDashboardState extends State<_MasonDashboard> {
           ),
           AppStatusBadge(status: statusMap[statusStr] ?? AppStatus.notStarted),
         ],
+      ),
+    );
+  }
+}
+
+class ApprovalsAlertWidget extends StatefulWidget {
+  const ApprovalsAlertWidget({super.key});
+
+  @override
+  State<ApprovalsAlertWidget> createState() => _ApprovalsAlertWidgetState();
+}
+
+class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
+  int _pendingCount = 0;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final data = await ApiService.fetchPendingApprovals();
+    if (mounted) {
+      setState(() {
+        final txs = (data?['transactions'] as List?)?.length ?? 0;
+        final updates = (data?['projectUpdates'] as List?)?.length ?? 0;
+        _pendingCount = txs + updates;
+        _loaded = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Hide widget entirely if loaded and nothing pending
+    if (_loaded && _pendingCount == 0) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/approvals'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE8E5FF), Color(0xFFF0EEFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+              color: AppColors.primary.withOpacity(0.3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.warning_amber_rounded,
+                  color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _loaded
+                        ? '$_pendingCount Approval${_pendingCount == 1 ? "" : "s"} Pending'
+                        : 'Checking Approvals…',
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16.5,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Review pending project updates and expenses.',
+                    style: TextStyle(
+                      color: AppColors.textMedium,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.chevron_right,
+                  color: Colors.white, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }
