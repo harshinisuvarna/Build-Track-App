@@ -2,175 +2,40 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:buildtrack_mobile/common/controllers/voice_recording_controller.dart';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-import 'package:buildtrack_mobile/services/buildtrack_ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ─── Backend response model ────────────────────────────────────────────────────
-// All UI renders from this model. Backend integration just replaces the
-// population layer — the rendering pipeline stays identical.
-class VoiceResponseModel {
-  final String status; // idle | listening | processing | thinking | extracting |
-                       // waiting_for_user | summary | saving | completed | error
-  final String? entryType;
-  final String? transcript;
-  final String? partialTranscript;
-  final Map<String, dynamic> detectedFields;
-  final List<String> missingFields;
-  final String? question;
-  final List<String> suggestions;
-  final int completedFields;
-  final int totalFields;
-  final double? confidence;
-  final String? errorMessage;
-  final String? welcomeMessage;
-
-  const VoiceResponseModel({
-    this.status = 'idle',
-    this.entryType,
-    this.transcript,
-    this.partialTranscript,
-    this.detectedFields = const {},
-    this.missingFields = const [],
-    this.question,
-    this.suggestions = const [],
-    this.completedFields = 0,
-    this.totalFields = 0,
-    this.confidence,
-    this.errorMessage,
-    this.welcomeMessage,
-  });
-
-  VoiceResponseModel copyWith({
-    String? status,
-    String? entryType,
-    String? transcript,
-    String? partialTranscript,
-    Map<String, dynamic>? detectedFields,
-    List<String>? missingFields,
-    String? question,
-    List<String>? suggestions,
-    int? completedFields,
-    int? totalFields,
-    double? confidence,
-    String? errorMessage,
-    String? welcomeMessage,
-  }) =>
-      VoiceResponseModel(
-        status: status ?? this.status,
-        entryType: entryType ?? this.entryType,
-        transcript: transcript ?? this.transcript,
-        partialTranscript: partialTranscript ?? this.partialTranscript,
-        detectedFields: detectedFields ?? this.detectedFields,
-        missingFields: missingFields ?? this.missingFields,
-        question: question ?? this.question,
-        suggestions: suggestions ?? this.suggestions,
-        completedFields: completedFields ?? this.completedFields,
-        totalFields: totalFields ?? this.totalFields,
-        confidence: confidence ?? this.confidence,
-        errorMessage: errorMessage ?? this.errorMessage,
-        welcomeMessage: welcomeMessage ?? this.welcomeMessage,
-      );
-
-  bool get hasField => detectedFields.isNotEmpty;
-  bool fieldHasValue(String key) =>
-      detectedFields.containsKey(key) &&
-      detectedFields[key] != null &&
-      '${detectedFields[key]}'.trim().isNotEmpty;
-}
-
-// ─── Status constants (replaces _ConvStep enum) ───────────────────────────────
-// These replace the hardcoded step enums. The backend returns a status string
-// and the UI derives which view to show from it.
-abstract final class VoiceStatus {
-  static const String idle = 'idle';
-  static const String listening = 'listening';
-  static const String processing = 'processing';
-  static const String thinking = 'thinking';
-  static const String extracting = 'extracting';
-  static const String waitingForUser = 'waiting_for_user';
-  static const String summary = 'summary';
-  static const String saving = 'saving';
-  static const String completed = 'completed';
-  static const String error = 'error';
-}
-
-// ─── Backward-compat enum mapping (will be removed when backend is connected) ──
-// Translates between the old _ConvStep enum values and the new status strings
-// so existing UI code continues working without modification.
-enum _ConvStep {
-  initialVoice,
-  aiProcessing,
-  extracted,
-  askProject,
-  askFloor,
-  askPhase,
-  askActivity,
-  askQuantity,
-  askUnit,
-  askRate,
-  askBrand,
-  askLabourType,
-  askWorkerCount,
-  askHours,
-  askEquipment,
-  askFuel,
-  summary,
-  saving,
-  success,
-}
-
-// ─── Backward-compat ExtractedData class ──────────────────────────────────────
-// Thin wrapper over Map<String, dynamic> so all existing `_data.xxx` calls work.
+// ─── Extracted AI data model ──────────────────────────────────────────────────
 class _ExtractedData {
-  final Map<String, dynamic> _map;
+  String? itemName;
+  double? quantity;
+  String? unit;
+  double? rate;
+  String? brand;
+  String? projectId;
+  String? projectName;
+  String? floor;
+  String? phase;
+  String? phaseId;
+  String? activity;
 
-  _ExtractedData(this._map);
+  // Labour-specific
+  int? workerCount;
+  double? hours;
+  String? contractor;
+  String? workType;
+  String? category;
 
-  String? get itemName => _map['Item Name'] as String?;
-  set itemName(String? v) => _map['Item Name'] = v;
-  double? get quantity => _map['Quantity'] as double?;
-  set quantity(double? v) => _map['Quantity'] = v;
-  String? get unit => _map['Unit'] as String?;
-  set unit(String? v) => _map['Unit'] = v;
-  double? get rate => _map['Rate'] as double?;
-  set rate(double? v) => _map['Rate'] = v;
-  String? get brand => _map['Brand'] as String?;
-  set brand(String? v) => _map['Brand'] = v;
-  String? get projectId => _map['Project ID'] as String?;
-  set projectId(String? v) => _map['Project ID'] = v;
-  String? get projectName => _map['Project Name'] as String?;
-  set projectName(String? v) => _map['Project Name'] = v;
-  String? get floor => _map['Floor'] as String?;
-  set floor(String? v) => _map['Floor'] = v;
-  String? get phase => _map['Phase'] as String?;
-  set phase(String? v) => _map['Phase'] = v;
-  String? get phaseId => _map['Phase ID'] as String?;
-  set phaseId(String? v) => _map['Phase ID'] = v;
-  String? get activity => _map['Activity'] as String?;
-  set activity(String? v) => _map['Activity'] = v;
-  int? get workerCount => _map['Worker Count'] as int?;
-  set workerCount(int? v) => _map['Worker Count'] = v;
-  double? get hours => _map['Hours'] as double?;
-  set hours(double? v) => _map['Hours'] = v;
-  String? get contractor => _map['Contractor'] as String?;
-  set contractor(String? v) => _map['Contractor'] = v;
-  String? get workType => _map['Work Type'] as String?;
-  set workType(String? v) => _map['Work Type'] = v;
-  String? get category => _map['Category'] as String?;
-  set category(String? v) => _map['Category'] = v;
-  double? get fuelCost => _map['Fuel Cost'] as double?;
-  set fuelCost(double? v) => _map['Fuel Cost'] = v;
-  String? get operator0 => _map['Operator'] as String?;
-  set operator0(String? v) => _map['Operator'] = v;
-  String? get equipmentType => _map['Equipment Type'] as String?;
-  set equipmentType(String? v) => _map['Equipment Type'] = v;
-  String? get vendorName => _map['Vendor Name'] as String?;
-  set vendorName(String? v) => _map['Vendor Name'] = v;
+  // Equipment-specific
+  double? fuelCost;
+  String? operator0;
+  String? equipmentType;
+  String? vendorName;
 
   double getComputedAmount(String entryType) {
     if (entryType == 'labour') {
@@ -192,9 +57,36 @@ class _ExtractedData {
   bool get hasFloor => floor != null && floor!.trim().isNotEmpty;
   bool get hasPhase => phase != null && phase!.trim().isNotEmpty;
   bool get hasActivity => activity != null && activity!.trim().isNotEmpty;
+
+  // Labour-specific
   bool get hasWorkerCount => workerCount != null && workerCount! > 0;
   bool get hasHours => hours != null && hours! > 0;
+
+  // Equipment-specific
   bool get hasFuelCost => fuelCost != null;
+}
+
+// ─── Conversation step model ───────────────────────────────────────────────────
+enum _ConvStep {
+  initialVoice,  // Full initial recording
+  aiProcessing,  // AI progress animation
+  extracted,     // Show checklist of extracted fields
+  askProject,
+  askFloor,
+  askPhase,
+  askActivity,
+  askQuantity,
+  askUnit,
+  askRate,
+  askBrand,
+  askLabourType,
+  askWorkerCount,
+  askHours,
+  askEquipment,
+  askFuel,
+  summary,       // Final summary + Confirm & Save
+  saving,
+  success,
 }
 
 // ─── Blinking Cursor Widget ───────────────────────────────────────────────────
@@ -267,100 +159,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ── Entry type ───────────────────────────────────────────────────────────────
   late String _entryType; // 'material' | 'labour' | 'equipment'
 
-  // ── Backend-driven model state ────────────────────────────────────────────────
-  // _response holds the current view state. Every UI element renders from it.
-  // The local-parsing methods (_parseTranscriptInto etc.) populate this model.
-  // When the real backend is connected, only the population layer changes.
-  VoiceResponseModel _response = const VoiceResponseModel();
-
-  // ── Detected fields (replaces _ExtractedData's individual fields) ─────────────
-  final Map<String, dynamic> _detectedFields = {};
-
-  // ── Backward-compat wrappers so existing UI code continues working ────────────
-  // _data wraps _detectedFields; _step derives from _status.
-  // DELETE THESE AND ALL `_data.` / `_step` / `_ConvStep` REFERENCES
-  // WHEN THE BACKEND IS CONNECTED.
-  _ExtractedData get _data => _ExtractedData(_detectedFields);
+  // ── Extracted data ────────────────────────────────────────────────────────────
+  final _data = _ExtractedData();
   String _rawTranscript = '';
 
-  // ── Conversation status (replaces _ConvStep) ──────────────────────────────────
-  String _status = VoiceStatus.idle;
-  _ConvStep get _step => _convStepFromStatus(_status);
-  set _step(_ConvStep value) {
-    _status = _statusFromConvStep(value);
-  }
-
-  // Map from old _ConvStep to new status string (for backward compat assignments)
-  static String _statusFromConvStep(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.initialVoice:
-        return VoiceStatus.listening;
-      case _ConvStep.aiProcessing:
-        return VoiceStatus.processing;
-      case _ConvStep.extracted:
-        return VoiceStatus.extracting;
-      case _ConvStep.askProject:
-      case _ConvStep.askFloor:
-      case _ConvStep.askPhase:
-      case _ConvStep.askActivity:
-      case _ConvStep.askQuantity:
-      case _ConvStep.askUnit:
-      case _ConvStep.askRate:
-      case _ConvStep.askBrand:
-      case _ConvStep.askLabourType:
-      case _ConvStep.askWorkerCount:
-      case _ConvStep.askHours:
-      case _ConvStep.askEquipment:
-      case _ConvStep.askFuel:
-        return VoiceStatus.waitingForUser;
-      case _ConvStep.summary:
-        return VoiceStatus.summary;
-      case _ConvStep.saving:
-        return VoiceStatus.saving;
-      case _ConvStep.success:
-        return VoiceStatus.completed;
-    }
-  }
-
-  // Map from status string to old _ConvStep (for backward compat getter)
-  static _ConvStep _convStepFromStatus(String status) {
-    switch (status) {
-      case VoiceStatus.listening:
-      case VoiceStatus.idle:
-        return _ConvStep.initialVoice;
-      case VoiceStatus.processing:
-      case VoiceStatus.thinking:
-        return _ConvStep.aiProcessing;
-      case VoiceStatus.extracting:
-        return _ConvStep.extracted;
-      case VoiceStatus.summary:
-        return _ConvStep.summary;
-      case VoiceStatus.saving:
-        return _ConvStep.saving;
-      case VoiceStatus.completed:
-        return _ConvStep.success;
-      case VoiceStatus.error:
-        return _ConvStep.initialVoice; // fallback
-      case VoiceStatus.waitingForUser:
-        return _ConvStep.askProject; // will be refined dynamically
-      default:
-        return _ConvStep.initialVoice;
-    }
-  }
-
+  // ── Conversation state ────────────────────────────────────────────────────────
+  _ConvStep _step = _ConvStep.initialVoice;
   String? _saveError;
   String? _savedEntryId;
-
-  // ── Backend-driven question & suggestions ─────────────────────────────────────
-  String _backendQuestion = '';
-  List<String> _backendSuggestions = const [];
-
-  // ── Field progress (computed via _rebuildResponse, read from _response) ────────
 
   // ── Voice engine ──────────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
   bool _isListeningForAnswer = false;
-  bool _showAnalyzingLabel = false;
   String _partialAnswer = '';
 
   // ── Text input toggle & controllers ───────────────────────────────────────────
@@ -422,30 +232,25 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // Pre-populate project and other context from static session memory first
     if (_sessionMemory['projectId'] != null) {
-      _detectedFields['Project ID'] = _sessionMemory['projectId'];
-      _detectedFields['Project Name'] = _sessionMemory['projectName'];
+      _data.projectId = _sessionMemory['projectId'];
+      _data.projectName = _sessionMemory['projectName'];
     } else {
-      final pid = UserSession.projectId;
-      if (pid.isNotEmpty) {
-        _detectedFields['Project ID'] = pid;
+      _data.projectId = UserSession.projectId;
+      if (_data.projectId != null && _data.projectId!.isNotEmpty) {
         final match = _projects.cast<ProjectModel?>().firstWhere(
-              (p) => p?.id == pid,
+              (p) => p?.id == _data.projectId,
               orElse: () => null,
             );
-        _detectedFields['Project Name'] = match?.name;
+        _data.projectName = match?.name;
       }
     }
-    if (_sessionMemory['floor'] != null) _detectedFields['Floor'] = _sessionMemory['floor'];
-    if (_sessionMemory['phase'] != null) _detectedFields['Phase'] = _sessionMemory['phase'];
-    if (_sessionMemory['phaseId'] != null) _detectedFields['Phase ID'] = _sessionMemory['phaseId'];
-    if (_sessionMemory['activity'] != null) _detectedFields['Activity'] = _sessionMemory['activity'];
-
-    // Build initial response model from session
-    _rebuildResponse();
+    if (_sessionMemory['floor'] != null) _data.floor = _sessionMemory['floor'];
+    if (_sessionMemory['phase'] != null) _data.phase = _sessionMemory['phase'];
+    if (_sessionMemory['phaseId'] != null) _data.phaseId = _sessionMemory['phaseId'];
+    if (_sessionMemory['activity'] != null) _data.activity = _sessionMemory['activity'];
 
     // Auto-start initial voice entry recording on screen load
     if (_rawTranscript.isEmpty && _voiceCtrl.engineState == VoiceEngineState.idle) {
-      setState(() => _status = VoiceStatus.listening);
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _startInitialRecording();
       });
@@ -512,41 +317,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     await _voiceCtrl.stopListening();
   }
 
-  // ─── Stop & Analyze ───────────────────────────────────────────────────────────
-  // Single-button flow: stops recording, waits for the transcript to finalize,
-  // then immediately starts AI processing. No second "Continue" tap needed.
-  Future<void> _stopAndAnalyze() async {
-    setState(() => _showAnalyzingLabel = true);
-
-    // Step 1 — stop the microphone (voice engine transitions processing → parsed)
-    await _voiceCtrl.stopListening();
-    if (!mounted) return;
-
-    // Step 2 — wait for the voice engine's internal 800ms pipeline to finish
-    // and for _onVoiceChanged to capture the final transcript into _rawTranscript.
-    // (We keep _status at listening/idle during this wait so that
-    //  _onVoiceChanged still sees _step == _ConvStep.initialVoice.)
-    const maxWait = Duration(seconds: 3);
-    final start = DateTime.now();
-    while (_rawTranscript.isEmpty &&
-        DateTime.now().difference(start) < maxWait) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
-    }
-
-    // Fallback: read direct from controller if listener missed it
-    if (_rawTranscript.isEmpty) {
-      _rawTranscript = _voiceCtrl.finalTranscript;
-    }
-
-    setState(() => _showAnalyzingLabel = false);
-
-    // Step 3 — now flip to processing state and fire the AI chain
-    if (mounted && _rawTranscript.isNotEmpty) {
-      _beginAiProcessing();
-    }
-  }
-
   // ─── Reset Data ────────────────────────────────────────────────────────────────
   void _resetCurrentEntryData() {
     setState(() {
@@ -566,16 +336,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.vendorName = null;
       _rawTranscript = '';
       _partialAnswer = '';
-      _rebuildResponse();
     });
   }
 
   // ─── AI Processing transition ──────────────────────────────────────────────────
   void _beginAiProcessing() {
     setState(() {
-      _status = VoiceStatus.processing;
+      _step = _ConvStep.aiProcessing;
       _processingStage = 0;
-      _rebuildResponse();
     });
 
     _processingTimer?.cancel();
@@ -586,7 +354,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
       setState(() {
         _processingStage++;
-        _rebuildResponse();
       });
       if (_processingStage >= 6) {
         t.cancel();
@@ -605,8 +372,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
     if (_step == _ConvStep.initialVoice && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
-      final tempMap = <String, dynamic>{};
-      final temp = _ExtractedData(tempMap);
+      final temp = _ExtractedData();
       if (_sessionMemory['projectId'] != null) {
         temp.projectId = _sessionMemory['projectId'];
         temp.projectName = _sessionMemory['projectName'];
@@ -624,37 +390,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   void _parseTranscriptInto(_ExtractedData data, String text) {
     final t = text.toLowerCase().trim();
-
-    // ── Auto-detect entry type from conversation ──────────────────────────────
-    if (_entryType == 'material') {
-      const labourKeywords = [
-        'mason', 'masons', 'worker', 'workers', 'carpenter', 'carpenters',
-        'plumber', 'plumbers', 'electrician', 'electricians', 'helper',
-        'helpers', 'labour', 'labourer', 'labourers', 'welder', 'welders',
-        'painter', 'painters', 'foreman', 'engineer', 'engineers',
-        'supervisor', 'supervisors', 'driver', 'drivers',
-      ];
-      const equipmentKeywords = [
-        'jcb', 'excavator', 'crane', 'concrete mixer', 'generator',
-        'road roller', 'roller', 'dumper', 'dumptruck', 'bulldozer',
-        'forklift', 'tractor', 'compressor', 'drill', 'water pump',
-        'hoist', 'lift', 'vibrator',
-      ];
-      for (final kw in labourKeywords) {
-        if (t.contains(kw)) {
-          _entryType = 'labour';
-          break;
-        }
-      }
-      if (_entryType == 'material') {
-        for (final kw in equipmentKeywords) {
-          if (t.contains(kw)) {
-            _entryType = 'equipment';
-            break;
-          }
-        }
-      }
-    }
 
     // ── Quantity ─────────────────────────────────────────────────────────────
     final numMatch = RegExp(r'(\d+\.?\d*)').firstMatch(t);
@@ -907,102 +642,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     for (final step in orderedSteps) {
       if (_isStepMissing(step)) {
-        setState(() {
-          _step = step;
-          _rebuildResponse();
-        });
+        setState(() => _step = step);
         _scrollToBottom();
         return;
       }
     }
 
     _goToSummary();
-  }
-
-  // ─── Rebuild _response model from internal state ──────────────────────────────
-  // Called after every state mutation. When the real backend is connected,
-  // this method is replaced by the incoming response payload.
-  void _rebuildResponse() {
-    final orderedSteps = [
-      if (_entryType == 'labour') ...[
-        'Labour Type', 'Worker Count', 'Hours',
-      ],
-      if (_entryType == 'equipment') ...[
-        'Equipment Type', 'Hours',
-      ],
-      'Floor',
-      if (_entryType == 'material') 'Phase',
-      'Activity',
-      if (_entryType == 'material') ...[
-        'Quantity', 'Unit',
-      ],
-      if (_entryType == 'equipment') 'Fuel Cost',
-      'Rate',
-      if (_entryType == 'material') 'Brand',
-    ];
-
-    final List<String> missing = [];
-    for (final field in orderedSteps) {
-      final key = _fieldLabelToDetectedKey(field);
-      if (!_detectedFields.containsKey(key) ||
-          _detectedFields[key] == null ||
-          '${_detectedFields[key]}'.trim().isEmpty) {
-        missing.add(field);
-      }
-    }
-
-    final completed = orderedSteps.length - missing.length;
-    final total = orderedSteps.length;
-
-    // _completedFields and _totalFields live on _response only
-    final currentMissing = missing.isNotEmpty ? missing.first : null;
-
-    String? question;
-    if (_status == VoiceStatus.waitingForUser && currentMissing != null) {
-      question = _questionFor(
-        _convStepFromStatus(_status),
-      );
-      if (question.isEmpty) {
-        question = 'Please provide the $currentMissing.';
-      }
-    }
-
-    _backendQuestion = question ?? '';
-    _backendSuggestions = currentMissing != null ? _suggestionsForCurrentStep() : [];
-
-    _response = VoiceResponseModel(
-      status: _status,
-      entryType: _entryType,
-      transcript: _rawTranscript.isNotEmpty ? _rawTranscript : null,
-      partialTranscript: _partialAnswer.isNotEmpty ? _partialAnswer : null,
-      detectedFields: Map.from(_detectedFields),
-      missingFields: missing,
-      question: question ?? _backendQuestion,
-      suggestions: _backendSuggestions,
-      completedFields: completed,
-      totalFields: total,
-      errorMessage: _saveError,
-    );
-  }
-
-  static String _fieldLabelToDetectedKey(String label) {
-    switch (label) {
-      case 'Project': return 'Project ID';
-      case 'Project Name': return 'Project Name';
-      case 'Floor': return 'Floor';
-      case 'Phase': return 'Phase';
-      case 'Activity': return 'Activity';
-      case 'Labour Type': return 'Work Type';
-      case 'Worker Count': return 'Worker Count';
-      case 'Hours': return 'Hours';
-      case 'Equipment Type': return 'Item Name';
-      case 'Fuel Cost': return 'Fuel Cost';
-      case 'Quantity': return 'Quantity';
-      case 'Unit': return 'Unit';
-      case 'Rate': return 'Rate';
-      case 'Brand': return 'Brand';
-      default: return label;
-    }
   }
 
   bool _isStepMissing(_ConvStep step) {
@@ -1274,16 +920,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         default:
           break;
       }
-      _rebuildResponse();
     });
   }
 
   // ─── Go to summary ────────────────────────────────────────────────────────────
   void _goToSummary() {
-    setState(() {
-      _status = VoiceStatus.summary;
-      _rebuildResponse();
-    });
+    setState(() => _step = _ConvStep.summary);
     _scrollToBottom();
   }
 
@@ -1319,9 +961,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Save entry ───────────────────────────────────────────────────────────────
   Future<void> _saveEntry() async {
     setState(() {
-      _status = VoiceStatus.saving;
+      _step = _ConvStep.saving;
       _saveError = null;
-      _rebuildResponse();
     });
 
     try {
@@ -1389,24 +1030,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           await Provider.of<ProjectProvider>(context, listen: false).load();
         }
 
-        setState(() {
-          _status = VoiceStatus.completed;
-          _savedEntryId = serverTx?['_id']?.toString() ??
-              'VOICE-${DateTime.now().millisecondsSinceEpoch}';
-          _rebuildResponse();
-        });
+        setState(() => _step = _ConvStep.success);
       } else {
         setState(() {
-          _status = VoiceStatus.summary;
+          _step = _ConvStep.summary;
           _saveError = 'Failed to save. Please try again.';
-          _rebuildResponse();
         });
       }
     } catch (e) {
       setState(() {
-        _status = VoiceStatus.summary;
+        _step = _ConvStep.summary;
         _saveError = 'Error: ${e.toString()}';
-        _rebuildResponse();
       });
     }
   }
@@ -1478,6 +1112,29 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return list;
   }
 
+  int _getDetectedCount(_ExtractedData d) {
+    int count = 0;
+    if (d.hasProject) count++;
+    if (d.hasFloor) count++;
+    if (d.hasPhase) count++;
+    if (d.hasActivity) count++;
+    if (d.hasRate) count++;
+    
+    if (_entryType == 'material') {
+      if (d.hasItemName) count++;
+      if (d.hasQuantity) count++;
+      if (d.hasUnit) count++;
+    } else if (_entryType == 'labour') {
+      if (d.hasItemName) count++;
+      if (d.hasWorkerCount) count++;
+      if (d.hasHours) count++;
+    } else {
+      if (d.hasItemName) count++;
+      if (d.hasQuantity) count++;
+    }
+    return count;
+  }
+
   int _getTotalFieldsCount() {
     if (_entryType == 'material') return 8;
     if (_entryType == 'labour') return 8;
@@ -1520,35 +1177,41 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     String title = 'BuildTrack AI';
     String subtitle = 'AI Voice Entry';
 
-    switch (_response.status) {
-      case VoiceStatus.listening:
-      case VoiceStatus.idle:
+    switch (_step) {
+      case _ConvStep.initialVoice:
         title = 'BuildTrack AI';
         final label = _entryType == 'material' ? 'Material' : _entryType == 'labour' ? 'Labour' : 'Equipment';
         subtitle = 'AI Voice Entry • $label';
         break;
-      case VoiceStatus.processing:
-      case VoiceStatus.thinking:
+      case _ConvStep.aiProcessing:
         title = 'AI is Thinking...';
         subtitle = 'Analyzing voice input';
         break;
-      case VoiceStatus.extracting:
+      case _ConvStep.extracted:
         title = 'Extracted Information';
         subtitle = 'Review details';
         break;
-      case VoiceStatus.waitingForUser:
-      case VoiceStatus.summary:
-      case VoiceStatus.saving:
+      case _ConvStep.askProject:
+      case _ConvStep.askFloor:
+      case _ConvStep.askPhase:
+      case _ConvStep.askActivity:
+      case _ConvStep.askQuantity:
+      case _ConvStep.askUnit:
+      case _ConvStep.askRate:
+      case _ConvStep.askBrand:
+      case _ConvStep.askLabourType:
+      case _ConvStep.askWorkerCount:
+      case _ConvStep.askHours:
+      case _ConvStep.askEquipment:
+      case _ConvStep.askFuel:
+      case _ConvStep.summary:
+      case _ConvStep.saving:
         title = 'AI Assistant';
         subtitle = 'Smart conversational flow';
         break;
-      case VoiceStatus.completed:
+      case _ConvStep.success:
         title = 'Success';
         subtitle = 'Entry saved';
-        break;
-      case VoiceStatus.error:
-        title = 'Error';
-        subtitle = 'Something went wrong';
         break;
     }
 
@@ -1575,6 +1238,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             ),
           ),
           const SizedBox(width: 12),
+          AnimatedBuilder(
+            animation: _micOrbCtrl,
+            builder: (_, child) {
+              final scale = 1.0 + _micOrbCtrl.value * 0.08;
+              return Container(
+                width: 34 * scale,
+                height: 34 * scale,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppGradients.primaryButton,
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+              );
+            },
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1591,6 +1270,32 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    AnimatedBuilder(
+                      animation: _micPulseCtrl,
+                      builder: (_, __) {
+                        final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
+                        final dotColor = isListening
+                            ? const Color(0xFF22C55E)
+                            : _step == _ConvStep.aiProcessing
+                                ? AppColors.primaryPurple
+                                : (_step == _ConvStep.summary || _step == _ConvStep.saving)
+                                    ? const Color(0xFF22C55E)
+                                    : (_step != _ConvStep.initialVoice && _step != _ConvStep.success)
+                                        ? AppColors.primary
+                                        : AppColors.textLight;
+                        return Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: dotColor.withValues(
+                              alpha: isListening ? 0.5 + _micPulseCtrl.value * 0.5 : 1.0,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 5),
                     Text(
                       subtitle,
                       style: const TextStyle(fontSize: 11, color: AppColors.textLight),
@@ -1646,12 +1351,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     Widget content;
     final curData = _currentData;
 
-    switch (_response.status) {
-      case VoiceStatus.processing:
-      case VoiceStatus.thinking:
+    switch (_step) {
+      case _ConvStep.aiProcessing:
         content = _buildProcessingCard();
         break;
-      case VoiceStatus.completed:
+      case _ConvStep.success:
         content = Column(
           children: [
             _buildSuccessCard(),
@@ -1659,12 +1363,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ],
         );
         break;
-      case VoiceStatus.summary:
-      case VoiceStatus.saving:
+      case _ConvStep.summary:
+      case _ConvStep.saving:
         content = _buildSummaryCard();
         break;
       default:
-        final isInitial = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
+        final isInitial = _step == _ConvStep.initialVoice;
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1690,9 +1394,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Section 1: AI Status Banner ─────────────────────────────────────────────
   Widget _buildAiStatusCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing = _response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking;
-    final isAsking = _response.status == VoiceStatus.waitingForUser;
-    final isSummary = _response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving;
+    final isProcessing = _step == _ConvStep.aiProcessing;
+    final isAsking = _step != _ConvStep.initialVoice && !isProcessing &&
+        _step != _ConvStep.summary && _step != _ConvStep.saving && _step != _ConvStep.success;
+    final isSummary = _step == _ConvStep.summary || _step == _ConvStep.saving;
     final typeLabel = _entryType == 'material'
         ? 'Material Entry'
         : _entryType == 'labour'
@@ -1743,6 +1448,33 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
+            AnimatedBuilder(
+              animation: _micOrbCtrl,
+              builder: (_, __) {
+                final glow = isListening ? 0.25 + _micOrbCtrl.value * 0.15 : 0.12;
+                return Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFB137FF).withValues(alpha: glow),
+                        blurRadius: isListening ? 14 : 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1887,7 +1619,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               child: AnimatedBuilder(
                 animation: _micPulseCtrl,
                 builder: (_, __) {
-                  final timer = _voiceCtrl.elapsedDisplay;
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1900,17 +1631,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        timer,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary.withValues(alpha: 0.6),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
                       ...List.generate(3, (i) {
                         final phase = ((_micPulseCtrl.value * 3) - i).clamp(0.0, 1.0);
                         return Padding(
@@ -2047,8 +1767,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Section 4 & 6: AI Understanding Panel (Live Vertical List + Progress Bar) ──
   Widget _buildAiUnderstandingPanel(_ExtractedData currentData) {
     final detected = _getDetectedFieldsWithLabels(currentData);
-    final count = _response.completedFields;
-    final total = _response.totalFields > 0 ? _response.totalFields : _getTotalFieldsCount();
+    final count = _getDetectedCount(currentData);
+    final total = _getTotalFieldsCount();
     final progress = total > 0 ? count / total : 0.0;
     final isComplete = count >= total;
 
@@ -2314,11 +2034,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Section 8: AI Question Card (Premium Gradient Chat Bubble) ─────────────
   Widget _buildAiQuestionCard() {
-    final isAskingStep = _response.status == VoiceStatus.waitingForUser;
+    final isAskingStep = _step != _ConvStep.initialVoice &&
+        _step != _ConvStep.aiProcessing &&
+        _step != _ConvStep.extracted &&
+        _step != _ConvStep.summary &&
+        _step != _ConvStep.saving &&
+        _step != _ConvStep.success;
+        
     if (!isAskingStep) return const SizedBox.shrink();
 
-    final question = _response.question ?? _questionFor(_step);
-    final suggestions = _backendSuggestions.isNotEmpty ? _backendSuggestions : _suggestionsForCurrentStep();
+    final question = _questionFor(_step);
+    final suggestions = _suggestionsForCurrentStep();
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
 
     return Container(
@@ -2347,12 +2073,38 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                ),
+                const SizedBox(width: 8),
                 const Text(
                   'BuildTrack AI',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'AI FOREMAN',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ],
@@ -2717,7 +2469,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Section 14: Final Entry Summary ──────────────────────────────────────────
   Widget _buildSummaryCard() {
-    final isSaving = _response.status == VoiceStatus.saving;
+    final isSaving = _step == _ConvStep.saving;
     final amount = _data.getComputedAmount(_entryType);
 
     final details = <Map<String, String>>[
@@ -3002,14 +2754,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Dynamic Bottom Input Panel ───────────────────────────────────────────────
   Widget _buildBottomInputArea() {
-    if (_response.status == VoiceStatus.completed) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking) return const SizedBox.shrink();
+    if (_step == _ConvStep.success) return const SizedBox.shrink();
+    if (_step == _ConvStep.summary || _step == _ConvStep.saving) return const SizedBox.shrink();
+    if (_step == _ConvStep.aiProcessing) return const SizedBox.shrink();
 
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
-    final isInitialVoice = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
-    final isAskingStep = _response.status == VoiceStatus.waitingForUser;
+    final isInitialVoice = _step == _ConvStep.initialVoice;
+    final isAskingStep = !isInitialVoice && !isProcessing;
 
     return Container(
       decoration: BoxDecoration(
@@ -3067,67 +2819,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   ),
                 ),
               if (isInitialVoice) ...[
-                if (_showAnalyzingLabel) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Analyzing voice entry...',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else if (isListening) ...[
-                  AnimatedBuilder(
-                    animation: _waveCtrl,
-                    builder: (_, __) {
-                      final timer = _voiceCtrl.elapsedDisplay;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ...List.generate(5, (i) {
-                            final h = 8.0 + math.sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3).abs() * 12.0;
-                            return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                              width: 3.5,
-                              height: h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            );
-                          }),
-                          const SizedBox(width: 10),
-                          Text(
-                            timer,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary.withValues(alpha: 0.6),
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Listening',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
-                          ),
-                        ],
-                      );
-                    },
+                if (isListening) ...[
+                  const Text(
+                    '🎤 Listening...',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: _stopAndAnalyze,
+                    onPressed: _stopInitialRecording,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFFEF4444),
@@ -3419,7 +3118,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return AnimatedBuilder(
       animation: _waveCtrl,
       builder: (_, __) {
-        final timer = _voiceCtrl.elapsedDisplay;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -3438,18 +3136,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               );
             }),
             const SizedBox(width: 8),
-            Text(
-              timer,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary.withValues(alpha: 0.6),
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            const SizedBox(width: 4),
             const Text(
-              'Listening',
+              'Listening...',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
             ),
           ],
