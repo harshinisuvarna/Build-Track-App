@@ -164,7 +164,7 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(height: 14),
 
           const AppSectionHeader(title: 'Category Budget'),
-          CategoryBudgetSection(categoryBudget: report.categoryBudget),
+          const CategoryBudgetSection(),
 
           const SizedBox(height: 14),
 

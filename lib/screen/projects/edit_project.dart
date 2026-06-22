@@ -45,6 +45,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   String? _mainBuildingType;
   String? _buildingSubType;
   bool _isCustomSubType = false;
+  String? _buildingTypeError;
 
   late List<String> _selectedFloorChips;
 
@@ -341,6 +342,10 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_mainBuildingType == null) {
+      setState(() => _buildingTypeError = 'Please select a Building Type');
+      return;
+    }
     setState(() => _saving = true);
     try {
       double parseBudget(TextEditingController c) => double.tryParse(c.text) ?? 0.0;
@@ -538,6 +543,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                                 items: _buildingSubTypes.keys.toList(),
                                 onChanged: (val) => setState(() {
                                   _mainBuildingType = val;
+                                  _buildingTypeError = null;
                                   _buildingSubType = null;
                                   _isCustomSubType = false;
                                   _customSubTypeCtrl.clear();
@@ -564,6 +570,20 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                             const SizedBox(height: 8),
                             _field(controller: _customSubTypeCtrl, hint: 'e.g. Duplex, Penthouse...', icon: Icons.category_outlined),
                           ],
+                          if (_buildingTypeError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline, size: 14, color: Colors.red.shade400),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _buildingTypeError!,
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade400),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ]),
                       ),
                       const SizedBox(height: 16),

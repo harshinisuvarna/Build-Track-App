@@ -913,6 +913,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "activityId": _selectedActivityId ?? (_selectedActivity != null && _selectedActivity!.isNotEmpty ? _deriveActivityId(_selectedActivity) : null),
       "gst": double.tryParse(_gstCtrl.text) ?? 0,
       "isWithGst": _isWithGst,
+      "amount": _finalTotal(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
       // Upgrade legacy records: create executionContext if context fields exist

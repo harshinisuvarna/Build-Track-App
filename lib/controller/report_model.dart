@@ -6,6 +6,7 @@ class ReportModel {
     required this.materialCost,
     required this.labourCost,
     required this.equipmentCost,
+    required this.miscCost,
     required this.categoryBudget,
     required this.efficiencyNote,
     required this.targetMaterial,
@@ -18,6 +19,7 @@ class ReportModel {
   final double materialCost;
   final double labourCost;
   final double equipmentCost;
+  final double miscCost;
   final Map<String, double> categoryBudget;
   final double targetMaterial;
   final double targetLabour;
@@ -41,6 +43,7 @@ class ReportModel {
         materialCost: 0,
         labourCost: 0,
         equipmentCost: 0,
+        miscCost: 0,
         categoryBudget: {},
         efficiencyNote: 'No data available',
         targetMaterial: 0,
