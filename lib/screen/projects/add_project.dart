@@ -36,6 +36,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   // ── Building Type ──
   String? _mainBuildingType;
   String? _buildingSubType;
+  String? _buildingTypeError;
   final _customSubTypeCtrl = TextEditingController();
   bool _isCustomSubType = false;
 
@@ -246,6 +247,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           backgroundColor: Colors.orange,
         ),
       );
+      return;
+    }
+    if (_mainBuildingType == null) {
+      setState(() => _buildingTypeError = 'Please select a Building Type');
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -577,9 +582,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                           icon: Icons.person_outline_rounded,
                                         ),
                                       ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
+                                             ),
+                                 ),
+                                 const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -678,6 +683,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                           _buildingSubType = null;
                                           _isCustomSubType = false;
                                           _customSubTypeCtrl.clear();
+                                          _buildingTypeError = null;
                                         }),
                                       ),
                                     ],
@@ -733,6 +739,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 icon: Icons.category_outlined,
                               ),
                             ],
+                            if (_buildingTypeError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.error_outline,
+                                        size: 14, color: Colors.red.shade400),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _buildingTypeError!,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.red.shade400),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1267,7 +1291,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _saving ? null : _submit,
+              onPressed: (_saving || _mainBuildingType == null) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
                 disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),

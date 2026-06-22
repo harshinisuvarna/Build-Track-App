@@ -674,9 +674,19 @@ class ProjectModel {
       projectTypeStr =
           subType.isNotEmpty ? '$mainType → $subType' : mainType;
     }
-    // Normalize legacy ' / ' separator to ' → ' so edit screen always gets consistent format
-    if (projectTypeStr != null && projectTypeStr.contains(' / ')) {
-      projectTypeStr = projectTypeStr.replaceFirst(' / ', ' → ');
+    if (projectTypeStr != null) {
+      // Normalize legacy 'Business / Commercial' to 'Commercial'
+      if (projectTypeStr.contains('Business / Commercial')) {
+        projectTypeStr =
+            projectTypeStr.replaceAll('Business / Commercial', 'Commercial');
+      } else if (projectTypeStr.contains('Business/Commercial')) {
+        projectTypeStr =
+            projectTypeStr.replaceAll('Business/Commercial', 'Commercial');
+      }
+      // Normalize legacy ' / ' separator to ' → ' so edit screen always gets consistent format
+      if (projectTypeStr.contains(' / ')) {
+        projectTypeStr = projectTypeStr.replaceFirst(' / ', ' → ');
+      }
     }
 
 
