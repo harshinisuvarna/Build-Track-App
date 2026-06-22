@@ -109,6 +109,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showImageOptions() async {
+    final hasPhoto = _avatarBytes != null ||
+        (_user?.profilePhoto != null && _user!.profilePhoto!.isNotEmpty);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage();
+              },
+            ),
+            if (hasPhoto)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove Profile Photo',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removeProfilePhoto();
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    try {
+      final response = await ApiService.put(
+        '/users/profile/photo',
+        {
+          'profilePhoto': 'delete',
+        },
+      );
+
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo removed'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        final decoded = json.decode(response.body);
+        final userJson = decoded['user'] ?? decoded;
+
+        await UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
+
+        setState(() {
+          _avatarBytes = null;
+          _user = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove photo (${response.statusCode})'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error removing photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _pickImage() async {
     final picked = await pickImageFromGallery(context);
     debugPrint('picked: $picked');
@@ -267,13 +356,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_avatarBytes != null) {
       imageProvider = MemoryImage(_avatarBytes!);
     } else if (photoUrl != null && photoUrl.isNotEmpty) {
-      imageProvider = NetworkImage(photoUrl);
+      imageProvider = getProfileImageProvider(photoUrl);
     }
 
     return Stack(
       children: [
         GestureDetector(
-          onTap: _pickImage,
+          onTap: _showImageOptions,
           child: CircleAvatar(
             radius: 40,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -287,7 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           bottom: 0,
           right: 0,
           child: GestureDetector(
-            onTap: _pickImage,
+            onTap: _showImageOptions,
             child: Container(
               width: 28,
               height: 28,
@@ -367,10 +456,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSettingsTile(
             icon: Icons.notifications_outlined,
             label: 'Notifications',
-            trailing: _buildNotificationsBadge(),
+            trailing: Switch.adaptive(
+              value: _notificationsEnabled,
+              activeColor: AppColors.primary,
+              activeTrackColor: AppColors.primary.withValues(alpha: 0.25),
+              onChanged: (val) => setState(() => _notificationsEnabled = val),
+            ),
             onTap: () => setState(
                 () => _notificationsEnabled = !_notificationsEnabled),
             showDivider: false,
+            showChevron: false,
           ),
         ],
       ),
@@ -383,6 +478,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Widget? trailing,
     required VoidCallback onTap,
     required bool showDivider,
+    bool showChevron = true,
   }) {
     return Column(
       children: [
@@ -421,8 +517,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   trailing,
                   const SizedBox(width: 8),
                 ],
-                const Icon(Icons.chevron_right,
-                    color: AppColors.textLight, size: 20),
+                if (showChevron)
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textLight, size: 20),
               ],
             ),
           ),
@@ -430,33 +527,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (showDivider)
           const Divider(height: 1, indent: 18, endIndent: 18),
       ],
-    );
-  }
-
-  Widget _buildNotificationsBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: _notificationsEnabled
-            ? AppColors.primary.withValues(alpha: 0.1)
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _notificationsEnabled
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : Colors.grey.shade300,
-          width: 1.2,
-        ),
-      ),
-      child: Text(
-        _notificationsEnabled ? 'Enabled' : 'Disabled',
-        style: TextStyle(
-          color:
-              _notificationsEnabled ? AppColors.primary : AppColors.textLight,
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 

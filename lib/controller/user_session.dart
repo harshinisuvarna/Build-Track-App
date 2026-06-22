@@ -17,6 +17,7 @@ class UserSession extends ChangeNotifier {
   // ── In-memory state ────────────────────────────────────
   static String        _userId      = '';
   static UserRole      _role        = UserRole.mason;
+  static String?       _profilePhoto;
 
   // FIX 1: Store the raw display name from backend (e.g. "Contractor", "Site Manager")
   static String        _rawRoleName = '';
@@ -46,6 +47,7 @@ class UserSession extends ChangeNotifier {
   static List<String> get projectIds    => List.unmodifiable(_projectIds);
   static List<String> get permissions   => List.unmodifiable(_permissions);
   static bool         get isInitialized => _initialized;
+  static String?      get profilePhoto  => _profilePhoto;
 
   static bool get isAdmin      => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
@@ -101,6 +103,8 @@ class UserSession extends ChangeNotifier {
         ? raw.map((e) => e.toString()).toList()
         : [];
 
+    _profilePhoto = user['profilePhoto']?.toString();
+
     _initialized = true;
     await _persist();
     _instance.notifyListeners();
@@ -124,6 +128,7 @@ class UserSession extends ChangeNotifier {
       final data = json.decode(raw) as Map<String, dynamic>;
 
       _userId = data['id']?.toString() ?? '';
+      _profilePhoto = data['profilePhoto']?.toString();
 
       // FIX 1: Restore raw role name from persisted prefs
       final rawRoleStr = data['role']?.toString() ?? '';
@@ -165,6 +170,7 @@ class UserSession extends ChangeNotifier {
     _rawRoleName = '';
     _projectIds  = [];
     _permissions = [];
+    _profilePhoto = null;
     _initialized = false;
 
     final prefs = await SharedPreferences.getInstance();
@@ -182,11 +188,13 @@ class UserSession extends ChangeNotifier {
     String            projectId    = '',
     List<String>      permissions  = const [],
     String            rawRoleName  = '',
+    String?           profilePhoto,
   }) {
     _userId      = userId;
     _role        = role;
     // FIX 1: allow explicit rawRoleName for simulations
     _rawRoleName = rawRoleName.isNotEmpty ? rawRoleName : _enumToDisplay(role);
+    _profilePhoto = profilePhoto;
     final merged = List<String>.from(projectIds);
     if (projectId.isNotEmpty && !merged.contains(projectId)) {
       merged.insert(0, projectId);
@@ -254,6 +262,7 @@ class UserSession extends ChangeNotifier {
         'projectIds':  _projectIds,
         'projectId':   projectId,
         'permissions': _permissions,
+        'profilePhoto': _profilePhoto,
       }));
     } catch (e) {
       debugPrint('[UserSession] _persist error: $e');
