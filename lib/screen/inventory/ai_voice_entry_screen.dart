@@ -13,8 +13,9 @@ import 'package:provider/provider.dart';
 // All UI renders from this model. Backend integration just replaces the
 // population layer — the rendering pipeline stays identical.
 class VoiceResponseModel {
-  final String status; // idle | listening | processing | thinking | extracting |
-                       // waiting_for_user | summary | saving | completed | error
+  final String
+  status; // idle | listening | processing | thinking | extracting |
+  // waiting_for_user | summary | saving | completed | error
   final String? entryType;
   final String? transcript;
   final String? partialTranscript;
@@ -58,22 +59,21 @@ class VoiceResponseModel {
     double? confidence,
     String? errorMessage,
     String? welcomeMessage,
-  }) =>
-      VoiceResponseModel(
-        status: status ?? this.status,
-        entryType: entryType ?? this.entryType,
-        transcript: transcript ?? this.transcript,
-        partialTranscript: partialTranscript ?? this.partialTranscript,
-        detectedFields: detectedFields ?? this.detectedFields,
-        missingFields: missingFields ?? this.missingFields,
-        question: question ?? this.question,
-        suggestions: suggestions ?? this.suggestions,
-        completedFields: completedFields ?? this.completedFields,
-        totalFields: totalFields ?? this.totalFields,
-        confidence: confidence ?? this.confidence,
-        errorMessage: errorMessage ?? this.errorMessage,
-        welcomeMessage: welcomeMessage ?? this.welcomeMessage,
-      );
+  }) => VoiceResponseModel(
+    status: status ?? this.status,
+    entryType: entryType ?? this.entryType,
+    transcript: transcript ?? this.transcript,
+    partialTranscript: partialTranscript ?? this.partialTranscript,
+    detectedFields: detectedFields ?? this.detectedFields,
+    missingFields: missingFields ?? this.missingFields,
+    question: question ?? this.question,
+    suggestions: suggestions ?? this.suggestions,
+    completedFields: completedFields ?? this.completedFields,
+    totalFields: totalFields ?? this.totalFields,
+    confidence: confidence ?? this.confidence,
+    errorMessage: errorMessage ?? this.errorMessage,
+    welcomeMessage: welcomeMessage ?? this.welcomeMessage,
+  );
 
   bool get hasField => detectedFields.isNotEmpty;
   bool fieldHasValue(String key) =>
@@ -202,11 +202,7 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _ctrl,
-      child: Container(
-        width: 2,
-        height: 18,
-        color: AppColors.primary,
-      ),
+      child: Container(width: 2, height: 18, color: AppColors.primary),
     );
   }
 }
@@ -356,22 +352,27 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       if (pid.isNotEmpty) {
         _detectedFields['Project ID'] = pid;
         final match = _projects.cast<ProjectModel?>().firstWhere(
-              (p) => p?.id == pid,
-              orElse: () => null,
-            );
+          (p) => p?.id == pid,
+          orElse: () => null,
+        );
         _detectedFields['Project Name'] = match?.name;
       }
     }
-    if (_sessionMemory['floor'] != null) _detectedFields['Floor'] = _sessionMemory['floor'];
-    if (_sessionMemory['phase'] != null) _detectedFields['Phase'] = _sessionMemory['phase'];
-    if (_sessionMemory['phaseId'] != null) _detectedFields['Phase ID'] = _sessionMemory['phaseId'];
-    if (_sessionMemory['activity'] != null) _detectedFields['Activity'] = _sessionMemory['activity'];
+    if (_sessionMemory['floor'] != null)
+      _detectedFields['Floor'] = _sessionMemory['floor'];
+    if (_sessionMemory['phase'] != null)
+      _detectedFields['Phase'] = _sessionMemory['phase'];
+    if (_sessionMemory['phaseId'] != null)
+      _detectedFields['Phase ID'] = _sessionMemory['phaseId'];
+    if (_sessionMemory['activity'] != null)
+      _detectedFields['Activity'] = _sessionMemory['activity'];
 
     // Build initial response model from session
     _rebuildResponse();
 
     // Auto-start initial voice entry recording on screen load
-    if (_rawTranscript.isEmpty && _voiceCtrl.engineState == VoiceEngineState.idle) {
+    if (_rawTranscript.isEmpty &&
+        _voiceCtrl.engineState == VoiceEngineState.idle) {
       setState(() => _status = VoiceStatus.listening);
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _startInitialRecording();
@@ -430,7 +431,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (!mounted) return;
 
     final state = _voiceCtrl.engineState;
-    final text  = _voiceCtrl.finalTranscript.trim();
+    final text = _voiceCtrl.finalTranscript.trim();
     final partial = _voiceCtrl.partialTranscript;
 
     // Always sync partial transcript for live preview
@@ -439,7 +440,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       debugPrint('[VOICE] Partial: "$partial"');
     }
 
-    debugPrint('[VOICE] State: $state, isListeningForAnswer=$_isListeningForAnswer, status=$_status');
+    debugPrint(
+      '[VOICE] State: $state, isListeningForAnswer=$_isListeningForAnswer, status=$_status',
+    );
 
     // ─── PARSED: Engine has finalized speech ─────────────────────────────────────
     if (state == VoiceEngineState.parsed) {
@@ -480,7 +483,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
     if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
       if (_isListeningForAnswer) {
-        debugPrint('[VOICE] Engine went $state while waiting for answer — unsticking');
+        debugPrint(
+          '[VOICE] Engine went $state while waiting for answer — unsticking',
+        );
         _isListeningForAnswer = false;
         _unstickListening();
         return;
@@ -488,7 +493,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ─── PROCESSING: Engine is analyzing ─────────────────────────────────────────
-    if (state == VoiceEngineState.processing && text.isNotEmpty && _rawTranscript.isEmpty) {
+    if (state == VoiceEngineState.processing &&
+        text.isNotEmpty &&
+        _rawTranscript.isEmpty) {
       if (_status == VoiceStatus.listening) {
         debugPrint('[VOICE] Processing with transcript available: "$text"');
         _rawTranscript = text;
@@ -666,7 +673,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
-    if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
+    if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) &&
+        _voiceCtrl.isListening &&
+        _partialAnswer.isNotEmpty) {
       final tempMap = <String, dynamic>{};
       final temp = _ExtractedData(tempMap);
       if (_sessionMemory['projectId'] != null) {
@@ -675,8 +684,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
       if (_sessionMemory['floor'] != null) temp.floor = _sessionMemory['floor'];
       if (_sessionMemory['phase'] != null) temp.phase = _sessionMemory['phase'];
-      if (_sessionMemory['phaseId'] != null) temp.phaseId = _sessionMemory['phaseId'];
-      if (_sessionMemory['activity'] != null) temp.activity = _sessionMemory['activity'];
+      if (_sessionMemory['phaseId'] != null)
+        temp.phaseId = _sessionMemory['phaseId'];
+      if (_sessionMemory['activity'] != null)
+        temp.activity = _sessionMemory['activity'];
 
       _parseTranscriptInto(temp, _partialAnswer);
       return temp;
@@ -690,17 +701,52 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Auto-detect entry type from conversation ──────────────────────────────
     if (_entryType == 'material') {
       const labourKeywords = [
-        'mason', 'masons', 'worker', 'workers', 'carpenter', 'carpenters',
-        'plumber', 'plumbers', 'electrician', 'electricians', 'helper',
-        'helpers', 'labour', 'labourer', 'labourers', 'welder', 'welders',
-        'painter', 'painters', 'foreman', 'engineer', 'engineers',
-        'supervisor', 'supervisors', 'driver', 'drivers',
+        'mason',
+        'masons',
+        'worker',
+        'workers',
+        'carpenter',
+        'carpenters',
+        'plumber',
+        'plumbers',
+        'electrician',
+        'electricians',
+        'helper',
+        'helpers',
+        'labour',
+        'labourer',
+        'labourers',
+        'welder',
+        'welders',
+        'painter',
+        'painters',
+        'foreman',
+        'engineer',
+        'engineers',
+        'supervisor',
+        'supervisors',
+        'driver',
+        'drivers',
       ];
       const equipmentKeywords = [
-        'jcb', 'excavator', 'crane', 'concrete mixer', 'generator',
-        'road roller', 'roller', 'dumper', 'dumptruck', 'bulldozer',
-        'forklift', 'tractor', 'compressor', 'drill', 'water pump',
-        'hoist', 'lift', 'vibrator',
+        'jcb',
+        'excavator',
+        'crane',
+        'concrete mixer',
+        'generator',
+        'road roller',
+        'roller',
+        'dumper',
+        'dumptruck',
+        'bulldozer',
+        'forklift',
+        'tractor',
+        'compressor',
+        'drill',
+        'water pump',
+        'hoist',
+        'lift',
+        'vibrator',
       ];
       for (final kw in labourKeywords) {
         if (t.contains(kw)) {
@@ -726,18 +772,38 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // ── Unit ─────────────────────────────────────────────────────────────────
     const unitMap = {
-      'bag': 'Bags', 'bags': 'Bags',
-      'kg': 'Kg', 'kilo': 'Kg', 'kilos': 'Kg',
-      'ton': 'Tons', 'tons': 'Tons',
-      'cft': 'CFT', 'cubic feet': 'CFT',
-      'sqft': 'Sqft', 'square feet': 'Sqft',
-      'nos': 'Nos', 'number': 'Nos', 'piece': 'Nos', 'pieces': 'Nos',
-      'ltr': 'Ltrs', 'litre': 'Ltrs', 'litres': 'Ltrs', 'liter': 'Ltrs',
-      'cum': 'Cum', 'cubic meter': 'Cum', 'cubic metres': 'Cum',
-      'hour': 'Hours', 'hours': 'Hours', 'hr': 'Hours', 'hrs': 'Hours',
-      'day': 'Days', 'days': 'Days',
-      'rft': 'Rft', 'running feet': 'Rft',
-      'trip': 'Trips', 'trips': 'Trips',
+      'bag': 'Bags',
+      'bags': 'Bags',
+      'kg': 'Kg',
+      'kilo': 'Kg',
+      'kilos': 'Kg',
+      'ton': 'Tons',
+      'tons': 'Tons',
+      'cft': 'CFT',
+      'cubic feet': 'CFT',
+      'sqft': 'Sqft',
+      'square feet': 'Sqft',
+      'nos': 'Nos',
+      'number': 'Nos',
+      'piece': 'Nos',
+      'pieces': 'Nos',
+      'ltr': 'Ltrs',
+      'litre': 'Ltrs',
+      'litres': 'Ltrs',
+      'liter': 'Ltrs',
+      'cum': 'Cum',
+      'cubic meter': 'Cum',
+      'cubic metres': 'Cum',
+      'hour': 'Hours',
+      'hours': 'Hours',
+      'hr': 'Hours',
+      'hrs': 'Hours',
+      'day': 'Days',
+      'days': 'Days',
+      'rft': 'Rft',
+      'running feet': 'Rft',
+      'trip': 'Trips',
+      'trips': 'Trips',
     };
     for (final entry in unitMap.entries) {
       if (t.contains(entry.key)) {
@@ -747,13 +813,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ── Rate ─────────────────────────────────────────────────────────────────
-    final rateMatch =
-        RegExp(r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)')
-            .firstMatch(t);
+    final rateMatch = RegExp(
+      r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
+    ).firstMatch(t);
     if (rateMatch != null) {
       data.rate = double.tryParse(rateMatch.group(1) ?? '');
     } else {
-      final priceMatch = RegExp(r'(?:₹|rs\.?|rupees?)\s*(\d+\.?\d*)').firstMatch(t);
+      final priceMatch = RegExp(
+        r'(?:₹|rs\.?|rupees?)\s*(\d+\.?\d*)',
+      ).firstMatch(t);
       if (priceMatch != null) {
         data.rate = double.tryParse(priceMatch.group(1) ?? '');
       }
@@ -761,18 +829,31 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // ── Brand ─────────────────────────────────────────────────────────────────
     const brands = [
-      'ultratech', 'ambuja', 'acc', 'india cement', 'tata',
-      'jk cement', 'dalmia', 'ramco', 'jsw', 'steel authority',
-      'birla', 'shree', 'jcb', 'caterpillar', 'l&t', 'volvo',
-      'mahindra', 'atlas copco', 'komatsu',
+      'ultratech',
+      'ambuja',
+      'acc',
+      'india cement',
+      'tata',
+      'jk cement',
+      'dalmia',
+      'ramco',
+      'jsw',
+      'steel authority',
+      'birla',
+      'shree',
+      'jcb',
+      'caterpillar',
+      'l&t',
+      'volvo',
+      'mahindra',
+      'atlas copco',
+      'komatsu',
     ];
     for (final b in brands) {
       if (t.contains(b)) {
         data.brand = b
             .split(' ')
-            .map((w) => w.isNotEmpty
-                ? w[0].toUpperCase() + w.substring(1)
-                : w)
+            .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w)
             .join(' ');
         break;
       }
@@ -781,14 +862,28 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Material name ─────────────────────────────────────────────────────────
     if (_entryType == 'material') {
       const materials = {
-        'cement': 'Cement', 'concrete': 'Ready-Mix Concrete',
-        'steel': 'Steel', 'rod': 'Steel Rod', 'rebar': 'Steel Rebar',
-        'brick': 'Brick', 'sand': 'Sand', 'aggregate': 'Aggregate',
-        'gravel': 'Gravel', 'tile': 'Tiles', 'paint': 'Paint',
-        'pipe': 'PVC Pipe', 'wire': 'Wire', 'plywood': 'Plywood',
-        'timber': 'Timber', 'wood': 'Wood', 'glass': 'Glass',
-        'marble': 'Marble', 'granite': 'Granite', 'block': 'Block',
-        'drywall': 'Drywall', 'plaster': 'Plaster',
+        'cement': 'Cement',
+        'concrete': 'Ready-Mix Concrete',
+        'steel': 'Steel',
+        'rod': 'Steel Rod',
+        'rebar': 'Steel Rebar',
+        'brick': 'Brick',
+        'sand': 'Sand',
+        'aggregate': 'Aggregate',
+        'gravel': 'Gravel',
+        'tile': 'Tiles',
+        'paint': 'Paint',
+        'pipe': 'PVC Pipe',
+        'wire': 'Wire',
+        'plywood': 'Plywood',
+        'timber': 'Timber',
+        'wood': 'Wood',
+        'glass': 'Glass',
+        'marble': 'Marble',
+        'granite': 'Granite',
+        'block': 'Block',
+        'drywall': 'Drywall',
+        'plaster': 'Plaster',
       };
       for (final entry in materials.entries) {
         if (t.contains(entry.key)) {
@@ -803,15 +898,24 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Labour details ───────────────────────────────────────────────────────
     if (_entryType == 'labour') {
       const trades = {
-        'masonry': 'Masonry', 'mason': 'Masonry',
-        'plumbing': 'Plumbing', 'plumber': 'Plumbing',
-        'electrical': 'Electrical', 'electrician': 'Electrical',
-        'carpentry': 'Carpentry', 'carpenter': 'Carpentry',
-        'welding': 'Welding', 'welder': 'Welding',
-        'painting': 'Painting', 'painter': 'Painting',
-        'helper': 'Helper', 'labourer': 'General Labour',
-        'driver': 'Driver', 'supervisor': 'Supervisor',
-        'foreman': 'Foreman', 'engineer': 'Engineer',
+        'masonry': 'Masonry',
+        'mason': 'Masonry',
+        'plumbing': 'Plumbing',
+        'plumber': 'Plumbing',
+        'electrical': 'Electrical',
+        'electrician': 'Electrical',
+        'carpentry': 'Carpentry',
+        'carpenter': 'Carpentry',
+        'welding': 'Welding',
+        'welder': 'Welding',
+        'painting': 'Painting',
+        'painter': 'Painting',
+        'helper': 'Helper',
+        'labourer': 'General Labour',
+        'driver': 'Driver',
+        'supervisor': 'Supervisor',
+        'foreman': 'Foreman',
+        'engineer': 'Engineer',
       };
       for (final entry in trades.entries) {
         if (t.contains(entry.key)) {
@@ -820,7 +924,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
 
-      final workerMatch = RegExp(r'(\d+)\s*(?:mason|worker|carpenter|plumber|electrician|helper|labor|labour|painter|welder|man|men)s?').firstMatch(t);
+      final workerMatch = RegExp(
+        r'(\d+)\s*(?:mason|worker|carpenter|plumber|electrician|helper|labor|labour|painter|welder|man|men)s?',
+      ).firstMatch(t);
       if (workerMatch != null) {
         data.workerCount = int.tryParse(workerMatch.group(1) ?? '');
       }
@@ -831,7 +937,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.unit = 'Hours';
       }
 
-      final nameMatch = RegExp(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b').firstMatch(text);
+      final nameMatch = RegExp(
+        r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b',
+      ).firstMatch(text);
       if (nameMatch != null) {
         data.itemName = nameMatch.group(0);
       } else if (data.workerCount != null && data.workType != null) {
@@ -846,14 +954,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Equipment details ────────────────────────────────────────────────────
     if (_entryType == 'equipment') {
       const equipment = {
-        'jcb': 'JCB Excavator', 'excavator': 'Excavator',
-        'crane': 'Crane', 'mixer': 'Concrete Mixer',
-        'generator': 'Generator', 'roller': 'Road Roller',
-        'dumper': 'Dumper', 'truck': 'Truck',
-        'bulldozer': 'Bulldozer', 'forklift': 'Forklift',
-        'tractor': 'Tractor', 'compressor': 'Compressor',
-        'drill': 'Drill Machine', 'pump': 'Water Pump',
-        'lift': 'Hoist / Lift', 'vibrator': 'Vibrator',
+        'jcb': 'JCB Excavator',
+        'excavator': 'Excavator',
+        'crane': 'Crane',
+        'mixer': 'Concrete Mixer',
+        'generator': 'Generator',
+        'roller': 'Road Roller',
+        'dumper': 'Dumper',
+        'truck': 'Truck',
+        'bulldozer': 'Bulldozer',
+        'forklift': 'Forklift',
+        'tractor': 'Tractor',
+        'compressor': 'Compressor',
+        'drill': 'Drill Machine',
+        'pump': 'Water Pump',
+        'lift': 'Hoist / Lift',
+        'vibrator': 'Vibrator',
       };
       for (final entry in equipment.entries) {
         if (t.contains(entry.key)) {
@@ -868,11 +984,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.unit = 'Hours';
       }
 
-      final fuelMatch = RegExp(r'(?:fuel|diesel)\s*(?:of|cost|rate|is)?\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)').firstMatch(t);
+      final fuelMatch = RegExp(
+        r'(?:fuel|diesel)\s*(?:of|cost|rate|is)?\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
+      ).firstMatch(t);
       if (fuelMatch != null) {
         data.fuelCost = double.tryParse(fuelMatch.group(1) ?? '');
       } else {
-        final fuelMatch2 = RegExp(r'(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)\s*(?:for)?\s*(?:fuel|diesel)').firstMatch(t);
+        final fuelMatch2 = RegExp(
+          r'(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)\s*(?:for)?\s*(?:fuel|diesel)',
+        ).firstMatch(t);
         if (fuelMatch2 != null) {
           data.fuelCost = double.tryParse(fuelMatch2.group(1) ?? '');
         }
@@ -896,9 +1016,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // ── Phase / Activity ──────────────────────────────────────────────────────
     const phaseKeywords = [
-      'foundation', 'structural', 'plumbing', 'electrical',
-      'finishing', 'roofing', 'excavation', 'superstructure',
-      
+      'foundation',
+      'structural',
+      'plumbing',
+      'electrical',
+      'finishing',
+      'roofing',
+      'excavation',
+      'superstructure',
     ];
     for (final p in phaseKeywords) {
       if (t.contains(p)) {
@@ -986,7 +1111,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // Auto-start listening for the next answer
     Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted && _status == VoiceStatus.waitingForUser && !_isListeningForAnswer) {
+      if (mounted &&
+          _status == VoiceStatus.waitingForUser &&
+          !_isListeningForAnswer) {
         _startAnswerListening();
       }
     });
@@ -1016,7 +1143,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
         suggestions = _suggestionsForField(field);
       }
-      debugPrint('[AI DEBUG] _rebuildResponse: question="$question" for field=$field');
+      debugPrint(
+        '[AI DEBUG] _rebuildResponse: question="$question" for field=$field',
+      );
     }
 
     _backendQuestion = question ?? '';
@@ -1092,7 +1221,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       case 'Unit':
         return 'What unit of measurement are we tracking this in? (e.g. Bags, Kg, Tons)';
       case 'Rate':
-        final unitLabel = _data.unit ?? (_entryType == 'material' ? 'unit' : 'hour');
+        final unitLabel =
+            _data.unit ?? (_entryType == 'material' ? 'unit' : 'hour');
         return 'Got that. What purchase rate per $unitLabel should I log in ₹?';
       case 'Brand':
         return 'What brand is it? (e.g. UltraTech, Ambuja)';
@@ -1107,23 +1237,58 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       case 'Project':
         return _projects.take(5).map((p) => p.name).toList();
       case 'Floor':
-        return ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', 'Basement', 'Terrace'];
+        return [
+          'Ground Floor',
+          '1st Floor',
+          '2nd Floor',
+          '3rd Floor',
+          'Basement',
+          'Terrace',
+        ];
       case 'Phase':
-        return ['Foundation Work', 'Structural Work', 'Finishing', 'Roofing', 'Plumbing Work', 'Electrical Work'];
+        return [
+          'Foundation Work',
+          'Structural Work',
+          'Finishing',
+          'Roofing',
+          'Plumbing Work',
+          'Electrical Work',
+        ];
       case 'Activity':
-        return ['Column Casting', 'Slab Work', 'PCC', 'Brick Laying', 'Plastering', 'Excavation'];
+        return [
+          'Column Casting',
+          'Slab Work',
+          'PCC',
+          'Brick Laying',
+          'Plastering',
+          'Excavation',
+        ];
       case 'Unit':
         return ['Bags', 'Kg', 'Tons', 'Sqft', 'Nos', 'Ltrs', 'Hours'];
       case 'Brand':
         return ['UltraTech', 'Ambuja', 'ACC', 'JK Cement', 'Tata', 'JSW'];
       case 'Labour Type':
-        return ['Mason', 'Helper', 'Carpenter', 'Plumber', 'Electrician', 'Painter'];
+        return [
+          'Mason',
+          'Helper',
+          'Carpenter',
+          'Plumber',
+          'Electrician',
+          'Painter',
+        ];
       case 'Worker Count':
         return ['2', '4', '6', '8', '10', '12'];
       case 'Hours':
         return ['4', '6', '8', '10', '12'];
       case 'Equipment':
-        return ['JCB Excavator', 'Crane', 'Concrete Mixer', 'Dumper', 'Generator', 'Road Roller'];
+        return [
+          'JCB Excavator',
+          'Crane',
+          'Concrete Mixer',
+          'Dumper',
+          'Generator',
+          'Road Roller',
+        ];
       default:
         return [];
     }
@@ -1170,7 +1335,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (answer.isNotEmpty) {
       final field = _activeField;
       if (field != null) {
-        debugPrint('[VOICE] Applying captured answer for field "$field": "$answer"');
+        debugPrint(
+          '[VOICE] Applying captured answer for field "$field": "$answer"',
+        );
         _applyAnswerForField(field, answer);
       }
     }
@@ -1183,7 +1350,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
 
     final missing = _getStillNeededFieldsFor(_data);
-    debugPrint('[AI] After answer: detected=$_detectedFields, missing=$missing');
+    debugPrint(
+      '[AI] After answer: detected=$_detectedFields, missing=$missing',
+    );
 
     // 6. Advance conversation or show review
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -1242,11 +1411,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       switch (field) {
         case 'Project':
           final match = _projects.cast<ProjectModel?>().firstWhere(
-                (p) =>
-                    p!.name.toLowerCase().contains(t) ||
-                    t.contains(p.name.toLowerCase()),
-                orElse: () => null,
-              );
+            (p) =>
+                p!.name.toLowerCase().contains(t) ||
+                t.contains(p.name.toLowerCase()),
+            orElse: () => null,
+          );
           if (match != null) {
             _data.projectId = match.id;
             _data.projectName = match.name;
@@ -1317,7 +1486,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           break;
 
         case 'Fuel':
-          if (t.contains('no') || t.contains('none') || t.contains('zero') || t == '0') {
+          if (t.contains('no') ||
+              t.contains('none') ||
+              t.contains('zero') ||
+              t == '0') {
             _data.fuelCost = 0;
           } else {
             final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
@@ -1336,15 +1508,28 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
         case 'Unit':
           const unitMap = {
-            'bag': 'Bags', 'bags': 'Bags',
-            'kg': 'Kg', 'kilo': 'Kg',
-            'ton': 'Tons', 'tons': 'Tons',
-            'sqft': 'Sqft', 'square feet': 'Sqft',
-            'hour': 'Hours', 'hours': 'Hours', 'hr': 'Hours', 'hrs': 'Hours',
-            'day': 'Days', 'days': 'Days',
-            'nos': 'Nos', 'piece': 'Nos', 'pieces': 'Nos',
-            'ltr': 'Ltrs', 'litres': 'Ltrs', 'liters': 'Ltrs',
-            'cum': 'Cum', 'cubic': 'Cum',
+            'bag': 'Bags',
+            'bags': 'Bags',
+            'kg': 'Kg',
+            'kilo': 'Kg',
+            'ton': 'Tons',
+            'tons': 'Tons',
+            'sqft': 'Sqft',
+            'square feet': 'Sqft',
+            'hour': 'Hours',
+            'hours': 'Hours',
+            'hr': 'Hours',
+            'hrs': 'Hours',
+            'day': 'Days',
+            'days': 'Days',
+            'nos': 'Nos',
+            'piece': 'Nos',
+            'pieces': 'Nos',
+            'ltr': 'Ltrs',
+            'litres': 'Ltrs',
+            'liters': 'Ltrs',
+            'cum': 'Cum',
+            'cubic': 'Cum',
           };
           bool found = false;
           for (final entry in unitMap.entries) {
@@ -1384,7 +1569,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
       _rebuildResponse();
-      debugPrint('[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}');
+      debugPrint(
+        '[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}',
+      );
     });
   }
 
@@ -1403,7 +1590,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Database helpers ─────────────────────────────────────────────────────────
   String? _derivePhaseId(String? phaseName) {
-    if (phaseName == null || phaseName.isEmpty || _data.projectId == null) return null;
+    if (phaseName == null || phaseName.isEmpty || _data.projectId == null)
+      return null;
     final project = _projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _data.projectId,
       orElse: () => null,
@@ -1416,7 +1604,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   String? _deriveActivityId(String? activityName) {
-    if (activityName == null || activityName.isEmpty || _data.projectId == null) return null;
+    if (activityName == null || activityName.isEmpty || _data.projectId == null)
+      return null;
     final project = _projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _data.projectId,
       orElse: () => null,
@@ -1431,6 +1620,25 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Save entry ───────────────────────────────────────────────────────────────
+  String _mapUnitToBackend(String? rawUnit) {
+    if (rawUnit == null || rawUnit.isEmpty) return 'unit';
+    final lower = rawUnit.toLowerCase();
+    
+    if (lower.contains('bag')) return 'bag';
+    if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
+    if (lower.contains('ton')) return 'ton';
+    if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
+    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) return 'sqm';
+    if (lower.contains('day')) return 'day';
+    if (lower.contains('hour') || lower.contains('hr')) return 'hour';
+    if (lower.contains('ltr') || lower.contains('liter')) return 'ltr';
+    if (lower.contains('rft') || lower.contains('running')) return 'rft';
+    if (lower.contains('trip') || lower.contains('truck')) return 'truck';
+    if (lower.contains('nos') || lower.contains('piece')) return 'unit';
+    
+    return 'unit';
+  }
+
   Future<void> _saveEntry() async {
     if (_isProcessing) {
       debugPrint('[AI] Already saving — ignoring duplicate');
@@ -1450,8 +1658,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       final String txType = _entryType == 'labour'
           ? 'Wages'
           : _entryType == 'equipment'
-              ? 'Expense'
-              : 'Materials';
+          ? 'Expense'
+          : 'Materials';
 
       final double qty = _entryType == 'labour'
           ? ((_data.workerCount ?? 1) * (_data.hours ?? 1)).toDouble()
@@ -1461,12 +1669,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       final double totalAmount = (qty * rate) + fuel;
 
       final payload = <String, dynamic>{
-        'title': _data.itemName ??
+        'title':
+            _data.itemName ??
             (_entryType == 'labour'
                 ? 'Labour Log'
                 : _entryType == 'equipment'
-                    ? 'Equipment Rental'
-                    : 'Material Delivery'),
+                ? 'Equipment Rental'
+                : 'Material Delivery'),
         'type': txType,
         'project': _data.projectId ?? '',
         'floor': _data.floor ?? '',
@@ -1477,9 +1686,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'category': _entryType == 'labour'
             ? (_data.workType ?? 'General Labour')
             : _entryType == 'equipment'
-                ? (_data.itemName ?? 'Equipment')
-                : 'Materials',
-        'unit': _data.unit ?? (_entryType == 'material' ? 'Bags' : 'hour'),
+            ? (_data.itemName ?? 'Equipment')
+            : 'Materials',
+        'unit': _mapUnitToBackend(_data.unit ?? (_entryType == 'material' ? 'Bags' : 'hour')),
         'quantity': qty,
         'rate': rate,
         'amount': totalAmount,
@@ -1488,14 +1697,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'paidAmount': 0,
         'date': DateTime.now().toIso8601String(),
         if (_entryType == 'material' && _data.hasBrand) 'brand': _data.brand,
-        if (_entryType == 'equipment' && _data.fuelCost != null) 'fuelCost': fuel,
+        if (_entryType == 'equipment' && _data.fuelCost != null)
+          'fuelCost': fuel,
+        'createdBy': UserSession.userId,
       };
 
       final result = await ApiService.addTransaction(payload);
 
       if (result != null) {
         final serverTx = result['transaction'] ?? result;
-        _savedEntryId = serverTx?['_id']?.toString() ??
+        _savedEntryId =
+            serverTx?['_id']?.toString() ??
             'VOICE-${DateTime.now().millisecondsSinceEpoch}';
 
         // Update session memory
@@ -1515,7 +1727,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         if (!mounted) return;
         setState(() {
           _status = VoiceStatus.completed;
-          _savedEntryId = serverTx?['_id']?.toString() ??
+          _savedEntryId =
+              serverTx?['_id']?.toString() ??
               'VOICE-${DateTime.now().millisecondsSinceEpoch}';
           _rebuildResponse();
         });
@@ -1589,28 +1802,54 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   List<_DetectedField> _getDetectedFieldsWithLabels(_ExtractedData d) {
     final list = <_DetectedField>[];
     if (d.hasProject) {
-      list.add(_DetectedField(label: 'Project', value: d.projectName ?? d.projectId!));
+      list.add(
+        _DetectedField(label: 'Project', value: d.projectName ?? d.projectId!),
+      );
     }
     if (_entryType == 'material') {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Material', value: d.itemName!));
-      if (d.hasQuantity) list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
+      if (d.hasItemName)
+        list.add(_DetectedField(label: 'Material', value: d.itemName!));
+      if (d.hasQuantity)
+        list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
       if (d.hasUnit) list.add(_DetectedField(label: 'Unit', value: d.unit!));
       if (d.hasBrand) list.add(_DetectedField(label: 'Brand', value: d.brand!));
     } else if (_entryType == 'labour') {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Labour Type', value: d.workType ?? d.itemName!));
-      if (d.hasWorkerCount) list.add(_DetectedField(label: 'Worker Count', value: '${d.workerCount}'));
-      if (d.hasHours) list.add(_DetectedField(label: 'Hours', value: '${d.hours}'));
+      if (d.hasItemName)
+        list.add(
+          _DetectedField(
+            label: 'Labour Type',
+            value: d.workType ?? d.itemName!,
+          ),
+        );
+      if (d.hasWorkerCount)
+        list.add(
+          _DetectedField(label: 'Worker Count', value: '${d.workerCount}'),
+        );
+      if (d.hasHours)
+        list.add(_DetectedField(label: 'Hours', value: '${d.hours}'));
     } else {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Equipment', value: d.itemName!));
-      if (d.hasQuantity) list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
-      if (d.hasFuelCost) list.add(_DetectedField(label: 'Fuel Cost', value: '₹ ${d.fuelCost!.toStringAsFixed(0)}'));
+      if (d.hasItemName)
+        list.add(_DetectedField(label: 'Equipment', value: d.itemName!));
+      if (d.hasQuantity)
+        list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
+      if (d.hasFuelCost)
+        list.add(
+          _DetectedField(
+            label: 'Fuel Cost',
+            value: '₹ ${d.fuelCost!.toStringAsFixed(0)}',
+          ),
+        );
     }
-    if (d.hasRate) list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
+    if (d.hasRate)
+      list.add(
+        _DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'),
+      );
     if (d.hasFloor) list.add(_DetectedField(label: 'Floor', value: d.floor!));
     if (_entryType == 'material') {
       if (d.hasPhase) list.add(_DetectedField(label: 'Phase', value: d.phase!));
     }
-    if (d.hasActivity) list.add(_DetectedField(label: 'Activity', value: d.activity!));
+    if (d.hasActivity)
+      list.add(_DetectedField(label: 'Activity', value: d.activity!));
     return list;
   }
 
@@ -1656,7 +1895,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       case VoiceStatus.listening:
       case VoiceStatus.idle:
         title = 'BuildTrack AI';
-        final label = _entryType == 'material' ? 'Material' : _entryType == 'labour' ? 'Labour' : 'Equipment';
+        final label = _entryType == 'material'
+            ? 'Material'
+            : _entryType == 'labour'
+            ? 'Labour'
+            : 'Equipment';
         subtitle = 'AI Voice Entry • $label';
         break;
       case VoiceStatus.processing:
@@ -1703,7 +1946,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: const Color(0xFFF4F6FC),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back, size: 18, color: AppColors.textDark),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 18,
+                color: AppColors.textDark,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -1725,15 +1972,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   children: [
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          if (isListening && _status == VoiceStatus.listening)
-            _buildLiveChip(),
+          if (isListening && _status == VoiceStatus.listening) _buildLiveChip(),
         ],
       ),
     );
@@ -1745,9 +1994,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       builder: (_, __) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.1 + _micPulseCtrl.value * 0.1),
+          color: const Color(
+            0xFFEF4444,
+          ).withValues(alpha: 0.1 + _micPulseCtrl.value * 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
+          border: Border.all(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1761,12 +2014,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ),
             ),
             const SizedBox(width: 4),
-            const Text('LIVE',
-                style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFEF4444),
-                    letterSpacing: 0.5)),
+            const Text(
+              'LIVE',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFEF4444),
+                letterSpacing: 0.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -1796,7 +2052,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         content = _buildSummaryCard();
         break;
       default:
-        final isInitial = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
+        final isInitial =
+            _response.status == VoiceStatus.listening ||
+            _response.status == VoiceStatus.idle;
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1822,14 +2080,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Section 1: AI Status Banner ─────────────────────────────────────────────
   Widget _buildAiStatusCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing = _response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking;
+    final isProcessing =
+        _response.status == VoiceStatus.processing ||
+        _response.status == VoiceStatus.thinking;
     final isAsking = _response.status == VoiceStatus.waitingForUser;
-    final isSummary = _response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving;
+    final isSummary =
+        _response.status == VoiceStatus.summary ||
+        _response.status == VoiceStatus.saving;
     final typeLabel = _entryType == 'material'
         ? 'Material Entry'
         : _entryType == 'labour'
-            ? 'Labour Entry'
-            : 'Equipment Entry';
+        ? 'Labour Entry'
+        : 'Equipment Entry';
 
     Color dotColor;
     String stateLabel;
@@ -1892,7 +2154,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
@@ -1909,7 +2174,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       ),
                     ],
                   ),
-                  if (!isListening && !isProcessing && !isAsking && !isSummary) ...[
+                  if (!isListening &&
+                      !isProcessing &&
+                      !isAsking &&
+                      !isSummary) ...[
                     const SizedBox(height: 2),
                     Text(
                       _examplePhrase,
@@ -1930,15 +2198,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               animation: _micPulseCtrl,
               builder: (_, __) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: dotColor.withValues(
-                      alpha: isListening ? 0.10 + _micPulseCtrl.value * 0.06 : 0.08,
+                      alpha: isListening
+                          ? 0.10 + _micPulseCtrl.value * 0.06
+                          : 0.08,
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: dotColor.withValues(alpha: 0.3),
-                    ),
+                    border: Border.all(color: dotColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1991,7 +2262,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: AppColors.primary.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2044,7 +2315,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       ),
                       const SizedBox(width: 6),
                       ...List.generate(3, (i) {
-                        final phase = ((_micPulseCtrl.value * 3) - i).clamp(0.0, 1.0);
+                        final phase = ((_micPulseCtrl.value * 3) - i).clamp(
+                          0.0,
+                          1.0,
+                        );
                         return Padding(
                           padding: const EdgeInsets.only(left: 2),
                           child: Opacity(
@@ -2073,7 +2347,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 Text(
                   _partialAnswer.isNotEmpty
                       ? _partialAnswer
-                      : (_rawTranscript.isNotEmpty ? _rawTranscript : 'Speak naturally...'),
+                      : (_rawTranscript.isNotEmpty
+                            ? _rawTranscript
+                            : 'Speak naturally...'),
                   style: TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w600,
@@ -2108,13 +2384,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               height: 6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF22C55E).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
+                color: const Color(
+                  0xFF22C55E,
+                ).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF22C55E).withValues(alpha: 0.3),
                     blurRadius: 5 * _micPulseCtrl.value,
                     spreadRadius: 1,
-                  )
+                  ),
                 ],
               ),
             );
@@ -2153,7 +2431,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               final offset = i * (math.pi / 10);
               final baseHeight = 5.0 + (math.sin(phase + offset).abs() * 16.0);
               final randNoise = math.sin(phase * 4.0 + i).abs() * 5.0;
-              final finalHeight = ((baseHeight + randNoise) * vol).clamp(4.0, 36.0);
+              final finalHeight = ((baseHeight + randNoise) * vol).clamp(
+                4.0,
+                36.0,
+              );
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
@@ -2180,7 +2461,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   Widget _buildAiUnderstandingPanel(_ExtractedData currentData) {
     final detected = _getDetectedFieldsWithLabels(currentData);
     final count = _response.completedFields;
-    final total = _response.totalFields > 0 ? _response.totalFields : _getTotalFieldsCount();
+    final total = _response.totalFields > 0
+        ? _response.totalFields
+        : _getTotalFieldsCount();
     final progress = total > 0 ? count / total : 0.0;
     final isComplete = count >= total;
 
@@ -2197,7 +2480,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2215,9 +2498,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3.5,
+                ),
                 decoration: BoxDecoration(
-                  color: isComplete ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+                  color: isComplete
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -2225,7 +2513,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: isComplete ? const Color(0xFF16A34A) : AppColors.primary,
+                    color: isComplete
+                        ? const Color(0xFF16A34A)
+                        : AppColors.primary,
                   ),
                 ),
               ),
@@ -2288,7 +2578,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 shape: BoxShape.circle,
                 color: Color(0xFFDCFCE7),
               ),
-              child: const Icon(Icons.check, size: 12, color: Color(0xFF16A34A)),
+              child: const Icon(
+                Icons.check,
+                size: 12,
+                color: Color(0xFF16A34A),
+              ),
             ),
             const SizedBox(width: 10),
             Text(
@@ -2338,7 +2632,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2381,7 +2675,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               final isActive = field == activeField;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: isActive
                       ? AppColors.primary.withValues(alpha: 0.08)
@@ -2402,9 +2699,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isActive ? AppColors.primary : Colors.transparent,
+                        color: isActive
+                            ? AppColors.primary
+                            : Colors.transparent,
                         border: Border.all(
-                          color: isActive ? AppColors.primary : const Color(0xFFD97706),
+                          color: isActive
+                              ? AppColors.primary
+                              : const Color(0xFFD97706),
                           width: 1.5,
                         ),
                       ),
@@ -2415,7 +2716,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: isActive ? AppColors.primary : const Color(0xFFB45309),
+                        color: isActive
+                            ? AppColors.primary
+                            : const Color(0xFFB45309),
                       ),
                     ),
                   ],
@@ -2441,7 +2744,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final suggestions = _backendSuggestions.isNotEmpty
         ? _backendSuggestions
         : (field != null ? _suggestionsForField(field) : <String>[]);
-    debugPrint('[AI DEBUG] _buildAiQuestionCard: showing question="$question" for field=$field');
+    debugPrint(
+      '[AI DEBUG] _buildAiQuestionCard: showing question="$question" for field=$field',
+    );
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
 
     return Container(
@@ -2497,30 +2802,32 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     ),
                   ),
                   const SizedBox(height: 5),
-                  ...confirmed.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          size: 13,
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${f.label}: ${f.value}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  ...confirmed.map(
+                    (f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${f.label}: ${f.value}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                 ],
               ),
             ),
@@ -2534,7 +2841,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
           // ── Question ──
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, suggestions.isEmpty ? 16 : 0),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              suggestions.isEmpty ? 16 : 0,
+            ),
             child: Text(
               question,
               style: const TextStyle(
@@ -2582,27 +2894,34 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: options.map((opt) => GestureDetector(
-        onTap: () => _handleTypedAnswer(opt),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.4),
+      children: options
+          .map(
+            (opt) => GestureDetector(
+              onTap: () => _handleTypedAnswer(opt),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  opt,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
-          ),
-          child: Text(
-            opt,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
@@ -2627,9 +2946,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       stages.add(hasQuantity ? 'Quantity detected' : 'Detecting quantity');
       states.add(hasQuantity);
     } else if (_entryType == 'labour') {
-      stages.add(hasMaterial ? 'Labour type identified' : 'Finding labour type');
+      stages.add(
+        hasMaterial ? 'Labour type identified' : 'Finding labour type',
+      );
       states.add(hasMaterial);
-      stages.add(_data.hasWorkerCount ? 'Worker count detected' : 'Extracting worker count');
+      stages.add(
+        _data.hasWorkerCount
+            ? 'Worker count detected'
+            : 'Extracting worker count',
+      );
       states.add(_data.hasWorkerCount);
       stages.add(_data.hasHours ? 'Hours detected' : 'Extracting hours');
       states.add(_data.hasHours);
@@ -2662,7 +2987,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Row(
@@ -2673,7 +2998,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   color: Color(0xFFF0EDFF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.cloud_upload_outlined,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -2692,7 +3021,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -2711,7 +3043,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     const SizedBox(height: 4),
                     Text(
                       'Analyzing Entry...',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -2732,7 +3068,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -2758,11 +3094,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
                 if (isCompleted) {
                   if (states[i]) {
-                    indicator = const Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 18);
+                    indicator = const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF22C55E),
+                      size: 18,
+                    );
                     textColor = AppColors.textDark;
                     fontWeight = FontWeight.w600;
                   } else {
-                    indicator = const Icon(Icons.refresh_rounded, color: AppColors.primary, size: 18);
+                    indicator = const Icon(
+                      Icons.refresh_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    );
                     textColor = AppColors.textLight;
                     fontWeight = FontWeight.w500;
                   }
@@ -2772,7 +3116,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   );
                   textColor = AppColors.primary;
@@ -2783,7 +3129,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     height: 14,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.textLight.withValues(alpha: 0.5), width: 1.5),
+                      border: Border.all(
+                        color: AppColors.textLight.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
                     ),
                   );
                   textColor = AppColors.textLight;
@@ -2798,7 +3147,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       const SizedBox(width: 12),
                       Text(
                         isCompleted
-                            ? (states[i] ? label : 'Finding ${stages[i].split(" ").last}...')
+                            ? (states[i]
+                                  ? label
+                                  : 'Finding ${stages[i].split(" ").last}...')
                             : (isCurrent ? '$label...' : label),
                         style: TextStyle(
                           fontSize: 13.5,
@@ -2823,12 +3174,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
           child: const Row(
             children: [
-              Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary, size: 18),
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                color: AppColors.primary,
+                size: 18,
+              ),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Tip: You can keep the app open. We\'ll notify you when ready.',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -2848,67 +3207,54 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'label': 'Project',
         'value': _data.projectName ?? _data.projectId ?? '—',
       },
-      {
-        'label': 'Floor',
-        'value': _data.floor ?? '—',
-      },
-      if (_entryType == 'material') {
-        'label': 'Phase',
-        'value': _data.phase ?? '—',
-      },
-      {
-        'label': 'Activity',
-        'value': _data.activity ?? '—',
-      },
+      {'label': 'Floor', 'value': _data.floor ?? '—'},
+      if (_entryType == 'material')
+        {'label': 'Phase', 'value': _data.phase ?? '—'},
+      {'label': 'Activity', 'value': _data.activity ?? '—'},
       if (_entryType == 'material') ...[
-        {
-          'label': 'Material',
-          'value': _data.itemName ?? '—',
-        },
+        {'label': 'Material', 'value': _data.itemName ?? '—'},
         {
           'label': 'Quantity',
-          'value': _data.hasQuantity ? '${_data.quantity} ${_data.unit ?? ''}' : '—',
+          'value': _data.hasQuantity
+              ? '${_data.quantity} ${_data.unit ?? ''}'
+              : '—',
         },
       ] else if (_entryType == 'labour') ...[
-        {
-          'label': 'Labour Type',
-          'value': _data.workType ?? '—',
-        },
+        {'label': 'Labour Type', 'value': _data.workType ?? '—'},
         {
           'label': 'Worker Count',
           'value': _data.hasWorkerCount ? '${_data.workerCount}' : '—',
         },
         {
           'label': 'Hours',
-          'value': _data.hasHours ? '${_data.hours} ${_data.unit ?? 'Hours'}' : '—',
+          'value': _data.hasHours
+              ? '${_data.hours} ${_data.unit ?? 'Hours'}'
+              : '—',
         },
       ] else ...[
-        {
-          'label': 'Equipment',
-          'value': _data.itemName ?? '—',
-        },
+        {'label': 'Equipment', 'value': _data.itemName ?? '—'},
         {
           'label': 'Hours',
-          'value': _data.hasQuantity ? '${_data.quantity} ${_data.unit ?? 'Hours'}' : '—',
+          'value': _data.hasQuantity
+              ? '${_data.quantity} ${_data.unit ?? 'Hours'}'
+              : '—',
         },
       ],
       {
         'label': 'Rate',
         'value': _data.hasRate ? '₹ ${_data.rate!.toStringAsFixed(0)}' : '—',
       },
-      if (_entryType == 'equipment' && _data.hasFuelCost) {
-        'label': 'Fuel Cost',
-        'value': '₹ ${_data.fuelCost!.toStringAsFixed(0)}',
-      },
+      if (_entryType == 'equipment' && _data.hasFuelCost)
+        {
+          'label': 'Fuel Cost',
+          'value': '₹ ${_data.fuelCost!.toStringAsFixed(0)}',
+        },
       {
         'label': 'Amount',
         'value': amount > 0 ? '₹ ${amount.toStringAsFixed(0)}' : '—',
         'highlight': 'true',
       },
-      {
-        'label': 'Confidence',
-        'value': '98%',
-      }
+      {'label': 'Confidence', 'value': '98%'},
     ];
 
     return Container(
@@ -2921,7 +3267,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2948,7 +3294,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.receipt_long, color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.receipt_long,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     const Text(
@@ -2962,7 +3312,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF22C55E).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
@@ -2973,8 +3326,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.verified_rounded,
-                              color: Color(0xFF86EFAC), size: 12),
+                          Icon(
+                            Icons.verified_rounded,
+                            color: Color(0xFF86EFAC),
+                            size: 12,
+                          ),
                           SizedBox(width: 4),
                           Text(
                             '98% Confidence',
@@ -3006,8 +3362,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         (_entryType == 'labour'
                             ? 'Labour Log'
                             : _entryType == 'equipment'
-                                ? 'Equipment Entry'
-                                : 'Material Entry'),
+                            ? 'Equipment Entry'
+                            : 'Material Entry'),
                     style: TextStyle(
                       fontSize: 12.5,
                       color: Colors.white.withValues(alpha: 0.75),
@@ -3048,8 +3404,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                           color: isHighlight
                               ? AppColors.primary
                               : item['label'] == 'Confidence'
-                                  ? const Color(0xFF16A34A)
-                                  : AppColors.textDark,
+                              ? const Color(0xFF16A34A)
+                              : AppColors.textDark,
                         ),
                       ),
                       if (idx < details.length - 1) ...[
@@ -3079,13 +3435,21 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                           },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: Color(0xFFDDD8F5), width: 1.5),
+                      side: const BorderSide(
+                        color: Color(0xFFDDD8F5),
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text(
                       'Edit Details',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -3097,7 +3461,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
                     child: isSaving
@@ -3106,12 +3472,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
                             'Confirm & Save',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                 ),
@@ -3125,13 +3496,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Dynamic Bottom Input Panel ───────────────────────────────────────────────
   Widget _buildBottomInputArea() {
-    if (_response.status == VoiceStatus.completed) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking) return const SizedBox.shrink();
+    if (_response.status == VoiceStatus.completed)
+      return const SizedBox.shrink();
+    if (_response.status == VoiceStatus.summary ||
+        _response.status == VoiceStatus.saving)
+      return const SizedBox.shrink();
+    if (_response.status == VoiceStatus.processing ||
+        _response.status == VoiceStatus.thinking)
+      return const SizedBox.shrink();
 
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
-    final isInitialVoice = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
+    final isInitialVoice =
+        _response.status == VoiceStatus.listening ||
+        _response.status == VoiceStatus.idle;
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
 
     return Container(
@@ -3144,7 +3522,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, -4),
-          )
+          ),
         ],
       ),
       child: SafeArea(
@@ -3162,7 +3540,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Text(
                     _partialAnswer,
@@ -3182,10 +3562,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('Processing speech...', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                      const Text(
+                        'Processing speech...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -3199,12 +3588,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
                         ),
                         SizedBox(width: 10),
                         Text(
                           'Analyzing voice entry...',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -3218,9 +3614,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ...List.generate(5, (i) {
-                            final h = 8.0 + math.sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3).abs() * 12.0;
+                            final h =
+                                8.0 +
+                                math
+                                        .sin(
+                                          _waveCtrl.value * 2 * math.pi +
+                                              i * math.pi / 3,
+                                        )
+                                        .abs() *
+                                    12.0;
                             return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 2.2),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 2.2,
+                              ),
                               width: 3.5,
                               height: h,
                               decoration: BoxDecoration(
@@ -3236,13 +3642,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary.withValues(alpha: 0.6),
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 6),
                           const Text(
                             'Listening',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ],
                       );
@@ -3254,12 +3666,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFFEF4444),
-                      side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+                      side: const BorderSide(
+                        color: Color(0xFFEF4444),
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
-                    child: const Text('Stop & Analyze', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Stop & Analyze',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ] else if (_rawTranscript.isNotEmpty) ...[
                   Row(
@@ -3272,11 +3692,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary, width: 1.5),
+                            side: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
                             minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Re-record', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Re-record',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -3287,10 +3715,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             elevation: 0,
                           ),
-                          child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ],
@@ -3319,12 +3752,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       _stopAnswerListening();
                     },
                     icon: const Icon(Icons.stop_circle_outlined, size: 16),
-                    label: const Text('Done Answering', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Done Answering',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
+                      side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(double.infinity, 46),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ] else ...[
@@ -3333,7 +3774,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => setState(() => _showKeyboardInput = false),
+                          onTap: () =>
+                              setState(() => _showKeyboardInput = false),
                           child: Container(
                             width: 44,
                             height: 44,
@@ -3341,7 +3783,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.mic_rounded, color: AppColors.primary, size: 20),
+                            child: const Icon(
+                              Icons.mic_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -3350,7 +3796,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F6FC),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDDD8F5)),
+                              border: Border.all(
+                                color: const Color(0xFFDDD8F5),
+                              ),
                             ),
                             child: TextField(
                               controller: _textCtrl,
@@ -3358,9 +3806,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                               style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: _hintForCurrentStep,
-                                hintStyle: const TextStyle(color: AppColors.textLight, fontSize: 13),
+                                hintStyle: const TextStyle(
+                                  color: AppColors.textLight,
+                                  fontSize: 13,
+                                ),
                                 border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                               ),
                               onSubmitted: _handleTypedAnswer,
                             ),
@@ -3373,10 +3827,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFF173EEA), Color(0xFFB137FF)]),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                            child: const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ),
                       ],
@@ -3396,14 +3856,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F6FC),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDDD8F5)),
+                              border: Border.all(
+                                color: const Color(0xFFDDD8F5),
+                              ),
                             ),
-                            child: const Icon(Icons.keyboard_outlined, color: AppColors.textDark, size: 20),
+                            child: const Icon(
+                              Icons.keyboard_outlined,
+                              color: AppColors.textDark,
+                              size: 20,
+                            ),
                           ),
                         ),
-                        Expanded(
-                          child: _buildMicWithWaves(),
-                        ),
+                        Expanded(child: _buildMicWithWaves()),
                         const SizedBox(width: 44),
                       ],
                     ),
@@ -3434,7 +3898,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   height: 96 + pulse * 20,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFB137FF).withValues(alpha: isListening ? 0.06 : 0.02),
+                    color: const Color(
+                      0xFFB137FF,
+                    ).withValues(alpha: isListening ? 0.06 : 0.02),
                   ),
                 ),
                 Container(
@@ -3442,7 +3908,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   height: 84 + pulse * 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF173EEA).withValues(alpha: isListening ? 0.10 : 0.04),
+                    color: const Color(
+                      0xFF173EEA,
+                    ).withValues(alpha: isListening ? 0.10 : 0.04),
                   ),
                 ),
                 Container(
@@ -3482,7 +3950,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (isListening) _buildWaveSide(isLeft: true) else const SizedBox(width: 50),
+        if (isListening)
+          _buildWaveSide(isLeft: true)
+        else
+          const SizedBox(width: 50),
         const SizedBox(width: 14),
         GestureDetector(
           onTap: isListening ? _stopAnswerListening : _startAnswerListening,
@@ -3501,7 +3972,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   color: const Color(0xFFB137FF).withValues(alpha: 0.3),
                   blurRadius: 12,
                   spreadRadius: 2,
-                )
+                ),
               ],
             ),
             child: Icon(
@@ -3512,7 +3983,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
         ),
         const SizedBox(width: 14),
-        if (isListening) _buildWaveSide(isLeft: false) else const SizedBox(width: 50),
+        if (isListening)
+          _buildWaveSide(isLeft: false)
+        else
+          const SizedBox(width: 50),
       ],
     );
   }
@@ -3553,7 +4027,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             const Icon(Icons.mic, color: AppColors.primary, size: 18),
             const SizedBox(width: 8),
             ...List.generate(5, (i) {
-              final height = 8.0 + math.sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3).abs() * 12.0;
+              final height =
+                  8.0 +
+                  math
+                          .sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3)
+                          .abs() *
+                      12.0;
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2.2),
                 width: 3.5,
@@ -3577,7 +4056,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             const SizedBox(width: 4),
             const Text(
               'Listening',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
             ),
           ],
         );
@@ -3608,7 +4091,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: const Color(0xFF16A34A).withValues(alpha: 0.05),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -3622,7 +4105,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     colors: [Color(0xFF22C55E), Color(0xFF10B981)],
                   ),
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 36),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 18),
               const Text(
@@ -3637,7 +4124,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               Text(
                 'Your $_entryType entry has been saved and added to today\'s log.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppColors.textLight, height: 1.5),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textLight,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 20),
               Container(
@@ -3668,10 +4159,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             elevation: 0,
           ),
-          child: const Text('Add Another Entry', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Add Another Entry',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
@@ -3680,9 +4176,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary, width: 1.5),
             minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('View All Entries', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'View All Entries',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -3703,7 +4204,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(_saveError ?? '', style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+            child: Text(
+              _saveError ?? '',
+              style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
+            ),
           ),
         ],
       ),
@@ -3714,8 +4218,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textLight, fontWeight: FontWeight.w500)),
-        Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textLight,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
       ],
     );
   }
@@ -3724,27 +4242,51 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final field = _activeField;
     if (field == null) return 'Type your answer...';
     switch (field) {
-      case 'Project': return 'Type or say project name...';
-      case 'Floor': return 'e.g. Ground Floor, 1st Floor...';
-      case 'Phase': return 'e.g. Foundation Work...';
-      case 'Activity': return 'e.g. Column Casting, PCC...';
-      case 'Labour Type': return 'e.g. Mason, Helper, Carpenter...';
-      case 'Worker Count': return 'e.g. 5, 8, 12...';
-      case 'Hours': return 'e.g. 6, 8, 10 hours...';
-      case 'Equipment': return 'e.g. JCB Excavator, Crane...';
-      case 'Fuel': return 'e.g. 500, 1200 or 0 for none...';
-      case 'Quantity': return 'Enter quantity...';
-      case 'Unit': return 'e.g. Bags, Kg, Hours...';
-      case 'Rate': return 'Rate in ₹ per unit...';
-      case 'Brand': return 'e.g. UltraTech, Tata...';
-      default: return 'Type your answer...';
+      case 'Project':
+        return 'Type or say project name...';
+      case 'Floor':
+        return 'e.g. Ground Floor, 1st Floor...';
+      case 'Phase':
+        return 'e.g. Foundation Work...';
+      case 'Activity':
+        return 'e.g. Column Casting, PCC...';
+      case 'Labour Type':
+        return 'e.g. Mason, Helper, Carpenter...';
+      case 'Worker Count':
+        return 'e.g. 5, 8, 12...';
+      case 'Hours':
+        return 'e.g. 6, 8, 10 hours...';
+      case 'Equipment':
+        return 'e.g. JCB Excavator, Crane...';
+      case 'Fuel':
+        return 'e.g. 500, 1200 or 0 for none...';
+      case 'Quantity':
+        return 'Enter quantity...';
+      case 'Unit':
+        return 'e.g. Bags, Kg, Hours...';
+      case 'Rate':
+        return 'Rate in ₹ per unit...';
+      case 'Brand':
+        return 'e.g. UltraTech, Tata...';
+      default:
+        return 'Type your answer...';
     }
   }
 
   String _monthName(int m) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[(m - 1).clamp(0, 11)];
   }

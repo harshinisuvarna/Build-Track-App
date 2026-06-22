@@ -3,6 +3,7 @@ import 'package:buildtrack_mobile/common/controllers/voice_recording_controller.
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
@@ -98,8 +99,7 @@ class VoiceConfirmationSheet extends StatefulWidget {
   const VoiceConfirmationSheet({super.key, this.initialType});
 
   @override
-  State<VoiceConfirmationSheet> createState() =>
-      _VoiceConfirmationSheetState();
+  State<VoiceConfirmationSheet> createState() => _VoiceConfirmationSheetState();
 }
 
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
@@ -135,8 +135,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
 
   // Units list
   static const _units = [
-    'Bags', 'Kg', 'Tons', 'CFT', 'Sqft', 'Rft', 'Nos', 'Ltrs',
-    'Cum', 'Days', 'Hours', 'Per Day', 'Trips',
+    'Bags',
+    'Kg',
+    'Tons',
+    'CFT',
+    'Sqft',
+    'Rft',
+    'Nos',
+    'Ltrs',
+    'Cum',
+    'Days',
+    'Hours',
+    'Per Day',
+    'Trips',
   ];
 
   // Payment modes
@@ -220,8 +231,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         final label = _entry.type == 'material'
             ? 'material'
             : _entry.type == 'labour'
-                ? 'labour type'
-                : 'equipment name';
+            ? 'labour type'
+            : 'equipment name';
         return 'What is the $label?';
       case _StepId.quantity:
         return 'Got it! What is the quantity?';
@@ -252,8 +263,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         return _entry.type == 'material'
             ? 'Material Name'
             : _entry.type == 'labour'
-                ? 'Labour Name / Type'
-                : 'Equipment Name';
+            ? 'Labour Name / Type'
+            : 'Equipment Name';
       case _StepId.quantity:
         return 'Quantity';
       case _StepId.unit:
@@ -397,12 +408,17 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _entry.phase = null;
           _entry.activity = null;
           try {
-            final provider =
-                Provider.of<ProjectProvider>(context, listen: false);
-            final match = provider.projects.where(
-              (p) => p.name.toLowerCase().contains(text.toLowerCase()) ||
-                  text.toLowerCase().contains(p.name.toLowerCase()),
-            ).firstOrNull;
+            final provider = Provider.of<ProjectProvider>(
+              context,
+              listen: false,
+            );
+            final match = provider.projects
+                .where(
+                  (p) =>
+                      p.name.toLowerCase().contains(text.toLowerCase()) ||
+                      text.toLowerCase().contains(p.name.toLowerCase()),
+                )
+                .firstOrNull;
             if (match != null) {
               _entry.projectId = match.id;
               _entry.projectName = match.name;
@@ -427,21 +443,23 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _entry.itemName = text;
           break;
 
-        case _StepId.quantity: {
-          final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
-          _entry.quantity = cleaned.isNotEmpty ? cleaned : text;
-          break;
-        }
+        case _StepId.quantity:
+          {
+            final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
+            _entry.quantity = cleaned.isNotEmpty ? cleaned : text;
+            break;
+          }
 
         case _StepId.unit:
           _entry.unit = text;
           break;
 
-        case _StepId.rate: {
-          final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
-          _entry.rate = cleaned.isNotEmpty ? cleaned : text;
-          break;
-        }
+        case _StepId.rate:
+          {
+            final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
+            _entry.rate = cleaned.isNotEmpty ? cleaned : text;
+            break;
+          }
 
         default:
           break;
@@ -464,10 +482,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   }
 
   Widget _buildTapToAnswerButton() {
-    final isListening =
-        _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing =
-        _voiceCtrl.engineState == VoiceEngineState.processing;
+    final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
+    final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
 
     return Column(
       children: [
@@ -483,14 +499,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.red, size: 16),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _sttError,
-                      style: const TextStyle(
-                          color: Colors.red, fontSize: 12),
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
                     ),
                   ),
                 ],
@@ -503,8 +517,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             child: SizedBox(
               width: 20,
               height: 20,
-              child:
-                  CircularProgressIndicator(strokeWidth: 2.5),
+              child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
           ),
         Center(
@@ -514,45 +527,32 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 : _handleTapToAnswer,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 28, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               decoration: BoxDecoration(
-                gradient: isListening
-                    ? null
-                    : AppGradients.primaryButton,
-                color: isListening
-                    ? const Color(0xFFEEF0F8)
-                    : null,
+                gradient: isListening ? null : AppGradients.primaryButton,
+                color: isListening ? const Color(0xFFEEF0F8) : null,
                 borderRadius: BorderRadius.circular(50),
                 border: isListening
-                    ? Border.all(
-                        color:
-                            _blue.withValues(alpha: 0.3))
+                    ? Border.all(color: _blue.withValues(alpha: 0.3))
                     : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isListening
-                        ? Icons.mic
-                        : Icons.mic_none_rounded,
-                    color:
-                        isListening ? _blue : Colors.white,
+                    isListening ? Icons.mic : Icons.mic_none_rounded,
+                    color: isListening ? _blue : Colors.white,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     isListening
-                        ? (_voiceCtrl.partialTranscript
-                                .isNotEmpty
-                            ? _voiceCtrl.partialTranscript
-                            : 'Listening...')
+                        ? (_voiceCtrl.partialTranscript.isNotEmpty
+                              ? _voiceCtrl.partialTranscript
+                              : 'Listening...')
                         : 'Tap to Answer',
                     style: TextStyle(
-                      color: isListening
-                          ? _textGray
-                          : Colors.white,
+                      color: isListening ? _textGray : Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -567,6 +567,25 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   }
 
   // ── Save logic ──────────────────────────────────────────────────────────────
+  String _mapUnitToBackend(String? rawUnit) {
+    if (rawUnit == null || rawUnit.isEmpty) return 'unit';
+    final lower = rawUnit.toLowerCase();
+    
+    if (lower.contains('bag')) return 'bag';
+    if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
+    if (lower.contains('ton')) return 'ton';
+    if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
+    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) return 'sqm';
+    if (lower.contains('day')) return 'day';
+    if (lower.contains('hour') || lower.contains('hr')) return 'hour';
+    if (lower.contains('ltr') || lower.contains('liter')) return 'ltr';
+    if (lower.contains('rft') || lower.contains('running')) return 'rft';
+    if (lower.contains('trip') || lower.contains('truck')) return 'truck';
+    if (lower.contains('nos') || lower.contains('piece')) return 'unit';
+    
+    return 'unit';
+  }
+
   Future<void> _saveEntry() async {
     setState(() {
       _isSaving = true;
@@ -577,8 +596,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       final rawType = _entry.type == 'labour'
           ? 'Wages'
           : _entry.type == 'equipment'
-              ? 'Expense'
-              : 'Materials';
+          ? 'Expense'
+          : 'Materials';
 
       final qty = double.tryParse(_entry.quantity ?? '') ?? 0;
       final rate = double.tryParse(_entry.rate ?? '') ?? 0;
@@ -596,7 +615,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         'phase': _entry.phase ?? '',
         'activity': _entry.activity ?? '',
         'category': _entry.category ?? _entry.itemName ?? '',
-        'unit': _entry.unit ?? '',
+        'unit': _mapUnitToBackend(_entry.unit),
         'quantity': qty,
         'rate': rate,
         'amount': totalAmount,
@@ -609,12 +628,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         if (gstPct > 0) 'gstPercent': gstPct,
         if (gstPct > 0) 'gstAmount': gstAmount,
         if ((_entry.notes ?? '').isNotEmpty) 'notes': _entry.notes,
-        if (_entry.type == 'equipment' &&
-            (_entry.operator0 ?? '').isNotEmpty)
+        if (_entry.type == 'equipment' && (_entry.operator0 ?? '').isNotEmpty)
           'operator': _entry.operator0,
-        if (_entry.type == 'equipment' &&
-            (_entry.fuelCost ?? '').isNotEmpty)
+        if (_entry.type == 'equipment' && (_entry.fuelCost ?? '').isNotEmpty)
           'fuelCost': double.tryParse(_entry.fuelCost ?? '') ?? 0,
+        'createdBy': UserSession.userId,
       };
 
       final result = await ApiService.addTransaction(payload);
@@ -622,8 +640,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       if (result != null) {
         // Refresh provider
         if (mounted) {
-          final provider =
-              Provider.of<ProjectProvider>(context, listen: false);
+          final provider = Provider.of<ProjectProvider>(context, listen: false);
           await provider.load();
         }
         setState(() {
@@ -862,7 +879,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(11, (i) {
             final phase = _waveCtrl.value + (i / 11);
-            final h = 4 + 16.0 * math.pow(math.sin(phase * math.pi * 2).abs(), 0.7);
+            final h =
+                4 + 16.0 * math.pow(math.sin(phase * math.pi * 2).abs(), 0.7);
             return Container(
               width: 3.5,
               height: h,
@@ -887,7 +905,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       chips.add(_AnswerChip(icon: icon, value: val));
     }
 
-    addChip(Icons.category_outlined, _entry.typeLabel != 'Entry' ? _entry.typeLabel : null);
+    addChip(
+      Icons.category_outlined,
+      _entry.typeLabel != 'Entry' ? _entry.typeLabel : null,
+    );
     addChip(Icons.business_outlined, _entry.projectName);
     addChip(Icons.layers_outlined, _entry.floor);
     addChip(Icons.construction_outlined, _entry.phase);
@@ -895,17 +916,15 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     addChip(Icons.inventory_2_outlined, _entry.itemName);
 
     if (_entry.quantity != null && _entry.rate != null) {
-      addChip(Icons.calculate_outlined,
-          '₹${_formatAmount(_entry.computedAmount)}');
+      addChip(
+        Icons.calculate_outlined,
+        '₹${_formatAmount(_entry.computedAmount)}',
+      );
     }
 
     if (chips.isEmpty) return const SizedBox.shrink();
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: chips,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: chips);
   }
 
   // ── Step: entry type ───────────────────────────────────────────────────────
@@ -918,22 +937,33 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         const SizedBox(height: 12),
         Row(
           children: [
-            _buildTypeCard('material', Icons.inventory_2_outlined,
-                'Material', 'Cement, Steel, Sand…'),
+            _buildTypeCard(
+              'material',
+              Icons.inventory_2_outlined,
+              'Material',
+              'Cement, Steel, Sand…',
+            ),
             const SizedBox(width: 10),
             _buildTypeCard(
-                'labour', Icons.people_outline, 'Labour', 'Mason, Carpenter…'),
+              'labour',
+              Icons.people_outline,
+              'Labour',
+              'Mason, Carpenter…',
+            ),
             const SizedBox(width: 10),
-            _buildTypeCard('equipment', Icons.construction_outlined,
-                'Equipment', 'JCB, Mixer…'),
+            _buildTypeCard(
+              'equipment',
+              Icons.construction_outlined,
+              'Equipment',
+              'JCB, Mixer…',
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTypeCard(
-      String type, IconData icon, String label, String sub) {
+  Widget _buildTypeCard(String type, IconData icon, String label, String sub) {
     final selected = _entry.type == type;
     return Expanded(
       child: GestureDetector(
@@ -1008,23 +1038,25 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         if (projects.isEmpty)
           _buildEmptyHint('No projects found. Add a project first.')
         else
-          ...projects.map((p) => _buildSelectableCard(
-                icon: Icons.business_outlined,
-                title: p.name,
-                subtitle: p.city.isNotEmpty ? p.city : p.sector,
-                isSelected: _entry.projectId == p.id,
-                onTap: () {
-                  setState(() {
-                    _entry.projectId = p.id;
-                    _entry.projectName = p.name;
-                    // Reset downstream
-                    _entry.floor = null;
-                    _entry.phase = null;
-                    _entry.activity = null;
-                  });
-                  Future.delayed(const Duration(milliseconds: 200), _goToNext);
-                },
-              )),
+          ...projects.map(
+            (p) => _buildSelectableCard(
+              icon: Icons.business_outlined,
+              title: p.name,
+              subtitle: p.city.isNotEmpty ? p.city : p.sector,
+              isSelected: _entry.projectId == p.id,
+              onTap: () {
+                setState(() {
+                  _entry.projectId = p.id;
+                  _entry.projectName = p.name;
+                  // Reset downstream
+                  _entry.floor = null;
+                  _entry.phase = null;
+                  _entry.activity = null;
+                });
+                Future.delayed(const Duration(milliseconds: 200), _goToNext);
+              },
+            ),
+          ),
       ],
     );
   }
@@ -1045,15 +1077,17 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       children: [
         _buildSectionLabel('SELECT FLOOR'),
         const SizedBox(height: 12),
-        ...floors.map((f) => _buildSelectableCard(
-              icon: Icons.layers_outlined,
-              title: f,
-              isSelected: _entry.floor == f,
-              onTap: () {
-                setState(() => _entry.floor = f);
-                Future.delayed(const Duration(milliseconds: 200), _goToNext);
-              },
-            )),
+        ...floors.map(
+          (f) => _buildSelectableCard(
+            icon: Icons.layers_outlined,
+            title: f,
+            isSelected: _entry.floor == f,
+            onTap: () {
+              setState(() => _entry.floor = f);
+              Future.delayed(const Duration(milliseconds: 200), _goToNext);
+            },
+          ),
+        ),
         _buildCustomTextField(
           hint: 'Or type a custom floor…',
           onSubmit: (val) {
@@ -1075,7 +1109,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       orElse: () => _placeholderProject(),
     );
 
-    final phases = project.selectedPhases
+    final phases =
+        project.selectedPhases
             ?.map((p) => p.phaseName)
             .where((n) => n.isNotEmpty)
             .toList() ??
@@ -1086,18 +1121,20 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       children: [
         _buildSectionLabel('SELECT PHASE'),
         const SizedBox(height: 12),
-        ...phases.map((ph) => _buildSelectableCard(
-              icon: Icons.construction_outlined,
-              title: ph,
-              isSelected: _entry.phase == ph,
-              onTap: () {
-                setState(() {
-                  _entry.phase = ph;
-                  _entry.activity = null;
-                });
-                Future.delayed(const Duration(milliseconds: 200), _goToNext);
-              },
-            )),
+        ...phases.map(
+          (ph) => _buildSelectableCard(
+            icon: Icons.construction_outlined,
+            title: ph,
+            isSelected: _entry.phase == ph,
+            onTap: () {
+              setState(() {
+                _entry.phase = ph;
+                _entry.activity = null;
+              });
+              Future.delayed(const Duration(milliseconds: 200), _goToNext);
+            },
+          ),
+        ),
         _buildCustomTextField(
           hint: 'Or type a custom phase…',
           onSubmit: (val) {
@@ -1136,15 +1173,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       children: [
         _buildSectionLabel('SELECT ACTIVITY'),
         const SizedBox(height: 12),
-        ...activities.take(10).map((act) => _buildSelectableCard(
-              icon: Icons.task_outlined,
-              title: act,
-              isSelected: _entry.activity == act,
-              onTap: () {
-                setState(() => _entry.activity = act);
-                Future.delayed(const Duration(milliseconds: 200), _goToNext);
-              },
-            )),
+        ...activities
+            .take(10)
+            .map(
+              (act) => _buildSelectableCard(
+                icon: Icons.task_outlined,
+                title: act,
+                isSelected: _entry.activity == act,
+                onTap: () {
+                  setState(() => _entry.activity = act);
+                  Future.delayed(const Duration(milliseconds: 200), _goToNext);
+                },
+              ),
+            ),
         _buildCustomTextField(
           hint: 'Or type a custom activity…',
           onSubmit: (val) {
@@ -1163,8 +1204,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     final suggestions = _entry.type == 'material'
         ? _materialSuggestions
         : _entry.type == 'labour'
-            ? _labourSuggestions
-            : _equipmentSuggestions;
+        ? _labourSuggestions
+        : _equipmentSuggestions;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1175,15 +1216,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           spacing: 8,
           runSpacing: 8,
           children: suggestions
-              .map((s) => _buildPill(
-                    s,
-                    selected: _entry.itemName == s,
-                    onTap: () {
-                      setState(() => _entry.itemName = s);
-                      Future.delayed(
-                          const Duration(milliseconds: 150), _goToNext);
-                    },
-                  ))
+              .map(
+                (s) => _buildPill(
+                  s,
+                  selected: _entry.itemName == s,
+                  onTap: () {
+                    setState(() => _entry.itemName = s);
+                    Future.delayed(
+                      const Duration(milliseconds: 150),
+                      _goToNext,
+                    );
+                  },
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 16),
@@ -1234,15 +1279,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           spacing: 8,
           runSpacing: 8,
           children: _units
-              .map((u) => _buildPill(
-                    u,
-                    selected: _entry.unit == u,
-                    onTap: () {
-                      setState(() => _entry.unit = u);
-                      Future.delayed(
-                          const Duration(milliseconds: 150), _goToNext);
-                    },
-                  ))
+              .map(
+                (u) => _buildPill(
+                  u,
+                  selected: _entry.unit == u,
+                  onTap: () {
+                    setState(() => _entry.unit = u);
+                    Future.delayed(
+                      const Duration(milliseconds: 150),
+                      _goToNext,
+                    );
+                  },
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 14),
@@ -1275,7 +1324,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             _goToNext();
           },
         ),
-        if ((_entry.quantity ?? '').isNotEmpty && (_entry.rate ?? '').isNotEmpty) ...[
+        if ((_entry.quantity ?? '').isNotEmpty &&
+            (_entry.rate ?? '').isNotEmpty) ...[
           const SizedBox(height: 16),
           _buildAmountPreview(),
         ],
@@ -1341,29 +1391,53 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
 
         // Material-specific
         if (_entry.type == 'material') ...[
-          _buildOptionalField('Brand', Icons.local_offer_outlined,
-              _entry.brand, (v) => setState(() => _entry.brand = v)),
-          _buildOptionalField('Supplier', Icons.store_outlined, _entry.supplier,
-              (v) => setState(() => _entry.supplier = v)),
-          _buildOptionalField('Category', Icons.category_outlined,
-              _entry.category, (v) => setState(() => _entry.category = v)),
+          _buildOptionalField(
+            'Brand',
+            Icons.local_offer_outlined,
+            _entry.brand,
+            (v) => setState(() => _entry.brand = v),
+          ),
+          _buildOptionalField(
+            'Supplier',
+            Icons.store_outlined,
+            _entry.supplier,
+            (v) => setState(() => _entry.supplier = v),
+          ),
+          _buildOptionalField(
+            'Category',
+            Icons.category_outlined,
+            _entry.category,
+            (v) => setState(() => _entry.category = v),
+          ),
           _buildOptionalGst(),
         ],
 
         // Equipment-specific
         if (_entry.type == 'equipment') ...[
-          _buildOptionalField('Operator Name', Icons.person_outline,
-              _entry.operator0, (v) => setState(() => _entry.operator0 = v)),
-          _buildOptionalField('Fuel Cost (₹)', Icons.local_gas_station_outlined,
-              _entry.fuelCost, (v) => setState(() => _entry.fuelCost = v),
-              keyboardType: TextInputType.number),
+          _buildOptionalField(
+            'Operator Name',
+            Icons.person_outline,
+            _entry.operator0,
+            (v) => setState(() => _entry.operator0 = v),
+          ),
+          _buildOptionalField(
+            'Fuel Cost (₹)',
+            Icons.local_gas_station_outlined,
+            _entry.fuelCost,
+            (v) => setState(() => _entry.fuelCost = v),
+            keyboardType: TextInputType.number,
+          ),
         ],
 
         // All types
         _buildPaymentModeField(),
-        _buildOptionalField('Notes', Icons.notes_outlined, _entry.notes,
-            (v) => setState(() => _entry.notes = v),
-            maxLines: 3),
+        _buildOptionalField(
+          'Notes',
+          Icons.notes_outlined,
+          _entry.notes,
+          (v) => setState(() => _entry.notes = v),
+          maxLines: 3,
+        ),
 
         const SizedBox(height: 20),
         _buildGradientButton(
@@ -1372,10 +1446,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           onTap: _goToNext,
         ),
         const SizedBox(height: 12),
-        _buildSkipButton(
-          label: 'Skip optional details',
-          onTap: _goToNext,
-        ),
+        _buildSkipButton(label: 'Skip optional details', onTap: _goToNext),
       ],
     );
   }
@@ -1406,14 +1477,18 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
-          prefixIcon:
-              Icon(icon, size: 20, color: _blue.withValues(alpha: 0.7)),
+          prefixIcon: Icon(icon, size: 20, color: _blue.withValues(alpha: 0.7)),
           labelText: label,
           labelStyle: const TextStyle(
-              fontSize: 13, color: _textGray, fontWeight: FontWeight.w600),
+            fontSize: 13,
+            color: _textGray,
+            fontWeight: FontWeight.w600,
+          ),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -1437,14 +1512,22 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
-          prefixIcon: Icon(Icons.percent_outlined,
-              size: 20, color: _blue.withValues(alpha: 0.7)),
+          prefixIcon: Icon(
+            Icons.percent_outlined,
+            size: 20,
+            color: _blue.withValues(alpha: 0.7),
+          ),
           labelText: 'GST %',
           labelStyle: const TextStyle(
-              fontSize: 13, color: _textGray, fontWeight: FontWeight.w600),
+            fontSize: 13,
+            color: _textGray,
+            fontWeight: FontWeight.w600,
+          ),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -1461,13 +1544,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
       child: Row(
         children: [
-          Icon(Icons.payment_outlined,
-              size: 20, color: _blue.withValues(alpha: 0.7)),
+          Icon(
+            Icons.payment_outlined,
+            size: 20,
+            color: _blue.withValues(alpha: 0.7),
+          ),
           const SizedBox(width: 10),
           const Text(
             'Payment Mode',
             style: TextStyle(
-                fontSize: 13, color: _textGray, fontWeight: FontWeight.w600),
+              fontSize: 13,
+              color: _textGray,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const Spacer(),
           DropdownButtonHideUnderline(
@@ -1521,8 +1610,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             children: [
               // Type badge
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   gradient: AppGradients.primaryButton,
                   borderRadius: BorderRadius.circular(20),
@@ -1542,14 +1633,20 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               _reviewRow('Floor', _entry.floor),
               _reviewRow('Phase', _entry.phase),
               _reviewRow('Activity', _entry.activity),
-              _reviewRow(_entry.type == 'material'
-                  ? 'Material'
-                  : _entry.type == 'labour'
-                      ? 'Labour'
-                      : 'Equipment', _entry.itemName),
+              _reviewRow(
+                _entry.type == 'material'
+                    ? 'Material'
+                    : _entry.type == 'labour'
+                    ? 'Labour'
+                    : 'Equipment',
+                _entry.itemName,
+              ),
               _reviewRow('Quantity', _entry.quantity),
               _reviewRow('Unit', _entry.unit),
-              _reviewRow('Rate', _entry.rate != null ? '₹${_entry.rate}' : null),
+              _reviewRow(
+                'Rate',
+                _entry.rate != null ? '₹${_entry.rate}' : null,
+              ),
               const Divider(height: 20, color: Color(0xFFEEF0F8)),
               _reviewRowAmount(
                 'Total Amount',
@@ -1799,8 +1896,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                     : const Color(0xFFF0F2FF),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon,
-                  size: 18, color: isSelected ? _blue : _textGray),
+              child: Icon(
+                icon,
+                size: 18,
+                color: isSelected ? _blue : _textGray,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1835,8 +1935,11 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  Widget _buildPill(String label,
-      {required bool selected, required VoidCallback onTap}) {
+  Widget _buildPill(
+    String label, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1898,8 +2001,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             hintText: hint,
             hintStyle: const TextStyle(fontSize: 13.5, color: _textGray),
             border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             suffixIcon: IconButton(
               icon: const Icon(Icons.send_rounded, color: _blue, size: 20),
               onPressed: () => onSubmit(ctrl.text),
@@ -1931,10 +2036,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFDDE4F8)),
             boxShadow: [
-              BoxShadow(
-                color: _blue.withValues(alpha: 0.04),
-                blurRadius: 10,
-              ),
+              BoxShadow(color: _blue.withValues(alpha: 0.04), blurRadius: 10),
             ],
           ),
           child: TextField(
@@ -1959,8 +2061,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 fontWeight: FontWeight.w700,
               ),
               border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 16,
+              ),
             ),
           ),
         ),
@@ -2115,8 +2219,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         color: _cardBg,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(message,
-          style: const TextStyle(color: _textGray, fontSize: 14)),
+      child: Text(
+        message,
+        style: const TextStyle(color: _textGray, fontSize: 14),
+      ),
     );
   }
 
@@ -2179,19 +2285,45 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   ];
 
   static const _materialSuggestions = [
-    'Cement', 'Steel', 'Sand', 'Aggregate', 'Bricks', 'Blocks',
-    'Tiles', 'Paint', 'Putty', 'Pipes', 'Electrical Materials',
-    'Plumbing Materials', 'Doors', 'Windows', 'Glass',
+    'Cement',
+    'Steel',
+    'Sand',
+    'Aggregate',
+    'Bricks',
+    'Blocks',
+    'Tiles',
+    'Paint',
+    'Putty',
+    'Pipes',
+    'Electrical Materials',
+    'Plumbing Materials',
+    'Doors',
+    'Windows',
+    'Glass',
   ];
 
   static const _labourSuggestions = [
-    'Mason', 'Helper', 'Carpenter', 'Bar Bender', 'Electrician',
-    'Plumber', 'Painter', 'Tile Worker', 'Fabricator', 'Welder',
+    'Mason',
+    'Helper',
+    'Carpenter',
+    'Bar Bender',
+    'Electrician',
+    'Plumber',
+    'Painter',
+    'Tile Worker',
+    'Fabricator',
+    'Welder',
   ];
 
   static const _equipmentSuggestions = [
-    'JCB', 'Tractor', 'Concrete Mixer', 'Vibrator', 'Scaffolding',
-    'Cutting Machine', 'Welding Machine', 'Water Tanker',
+    'JCB',
+    'Tractor',
+    'Concrete Mixer',
+    'Vibrator',
+    'Scaffolding',
+    'Cutting Machine',
+    'Welding Machine',
+    'Water Tanker',
   ];
 }
 
@@ -2211,15 +2343,16 @@ class _AnswerChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primaryBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 13, color: AppColors.primaryBlue.withValues(alpha: 0.7)),
+          Icon(
+            icon,
+            size: 13,
+            color: AppColors.primaryBlue.withValues(alpha: 0.7),
+          ),
           const SizedBox(width: 5),
           Text(
             value,
