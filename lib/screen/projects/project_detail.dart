@@ -1872,6 +1872,7 @@ class _EntryTile extends StatelessWidget {
                 'remarks': matched['remarks'] ?? '',
                 'categoryName': matched['category'] ?? '',
                 'quantity': (matched['quantity'] ?? 0).toDouble(),
+                'overtime': (matched['overtime'] ?? 0).toDouble(),
                 'subType': matched['subType'] ?? '',
                 'materialType': matched['materialType'] ?? '',
               };

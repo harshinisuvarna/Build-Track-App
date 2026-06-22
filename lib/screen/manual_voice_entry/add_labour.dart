@@ -123,6 +123,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     return '';
   }
 
+  double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -348,18 +358,25 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
       }
       _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
-      final double qty = (argsData['quantity'] as num?)?.toDouble() ?? 0.0;
+      final double qty = _parseDouble(argsData['quantity']);
       _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
-      final double rate = (argsData['rate'] as num?)?.toDouble() ?? 0.0;
+      final double rate = _parseDouble(argsData['rate']);
       _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
       final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
       if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
       else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
       else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
+      final catVal = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _categoryCtrl.text = catVal;
+      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks']);
       _notesCtrl.text = _safeString(argsData['notes']);
+      double overtimeVal = _parseDouble(argsData['overtime']);
+      if (overtimeVal == 0) {
+        final double totalAmt = _parseDouble(argsData['amount'] ?? argsData['totalAmount'] ?? argsData['billAmount']);
+        overtimeVal = (totalAmt - (qty * rate)).clamp(0.0, double.infinity);
+      }
+      _overtimeCtrl.text = overtimeVal > 0 ? (overtimeVal % 1 == 0 ? overtimeVal.toInt().toString() : overtimeVal.toString()) : '';
       if (argsData['date'] != null) {
         try { _selectedDate = DateTime.parse(argsData['date'].toString()); } catch (_) {}
       }
@@ -367,7 +384,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
         _isAddAndPay = true;
         _paymentMethod = argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
-        _existingPaidAmount = (argsData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _existingPaidAmount = _parseDouble(argsData['paidAmount']);
       }
       debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
@@ -400,18 +417,25 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    final double freshRate = _parseDouble(latest['rate']);
     _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
     else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
     else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks']);
     _notesCtrl.text = _safeString(latest['notes']);
+    double freshOvertime = _parseDouble(latest['overtime']);
+    if (freshOvertime == 0) {
+      final double totalAmount = _parseDouble(latest['amount'] ?? latest['totalAmount']);
+      freshOvertime = (totalAmount - (freshQty * freshRate)).clamp(0.0, double.infinity);
+    }
+    _overtimeCtrl.text = freshOvertime > 0 ? (freshOvertime % 1 == 0 ? freshOvertime.toInt().toString() : freshOvertime.toString()) : '';
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
@@ -419,7 +443,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
       _isAddAndPay = true;
       _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
@@ -456,13 +480,18 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
       else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
+      final catVal = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _categoryCtrl.text = catVal;
+      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks']);
       _notesCtrl.text = _safeString(argsData['notes']);
-      final double rateVal = (argsData['rate'] as num?)?.toDouble()
-          ?? (argsData['dailyWage'] as num?)?.toDouble()
-          ?? (argsData['hourlyRate'] as num?)?.toDouble()
-          ?? 0.0;
+      double overtimeVal = _parseDouble(argsData['overtime']);
+      final double qtyVal = _parseDouble(argsData['quantity']);
+      final double rateVal = _parseDouble(argsData['rate'] ?? argsData['dailyWage'] ?? argsData['hourlyRate']);
+      if (overtimeVal == 0) {
+        final double totalAmt = _parseDouble(argsData['amount'] ?? argsData['totalAmount'] ?? argsData['billAmount']);
+        overtimeVal = (totalAmt - (qtyVal * rateVal)).clamp(0.0, double.infinity);
+      }
+      _overtimeCtrl.text = overtimeVal > 0 ? (overtimeVal % 1 == 0 ? overtimeVal.toInt().toString() : overtimeVal.toString()) : '';
       if (rateVal > 0) {
         _rateCtrl.text = rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString();
       }
@@ -497,17 +526,25 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    _rateCtrl.text = _safeString(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    final double freshRate = _parseDouble(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
     else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
     else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks']);
     _notesCtrl.text = _safeString(latest['notes']);
+    double freshOvertime = _parseDouble(latest['overtime']);
+    if (freshOvertime == 0) {
+      final double totalAmount = _parseDouble(latest['amount'] ?? latest['totalAmount']);
+      freshOvertime = (totalAmount - (freshQty * freshRate)).clamp(0.0, double.infinity);
+    }
+    _overtimeCtrl.text = freshOvertime > 0 ? (freshOvertime % 1 == 0 ? freshOvertime.toInt().toString() : freshOvertime.toString()) : '';
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
@@ -806,9 +843,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final payload = {
       "title": _nameCtrl.text.trim(),
       "type": "Wages",
-      "category": _categoryCtrl.text.trim().isEmpty
-          ? "General Labour"
-          : _categoryCtrl.text.trim(),
+      "category": _categoryCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
       "unit": _selectedUnit == null
@@ -833,6 +868,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       "activityId": _selectedActivityId ?? (_selectedActivity != null && _selectedActivity!.isNotEmpty ? _deriveActivityId(_selectedActivity) : null),
       "amount": _totalCost(),
       "overtime": double.tryParse(_overtimeCtrl.text) ?? 0,
+      "remarks": _workTypeCtrl.text.trim(),
+      "notes": _notesCtrl.text.trim(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
@@ -1516,7 +1553,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
         _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
       }
       
-      _categoryCtrl.text = tx['category']?.toString() ?? '';
+      final catVal = tx['category']?.toString() ?? '';
+      _categoryCtrl.text = catVal;
       _workTypeCtrl.text = tx['remarks']?.toString() ?? '';
       
       final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
@@ -1999,7 +2037,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    if (RoleManager.canApprovePayments)
+                    if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 

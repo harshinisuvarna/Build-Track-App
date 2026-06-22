@@ -131,6 +131,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return '';
   }
 
+  double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -357,9 +367,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
       }
       _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
-      final double qty = (argsData['quantity'] as num?)?.toDouble() ?? 0.0;
+      final double qty = _parseDouble(argsData['quantity']);
       _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
-      final double rate = (argsData['rate'] as num?)?.toDouble() ?? 0.0;
+      final double rate = _parseDouble(argsData['rate']);
       _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
       final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
       if (rawUnit == 'bag' || rawUnit == 'bags') { _selectedUnit = 'bag'; }
@@ -369,20 +379,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       else if (rawUnit == 'unit' || rawUnit == 'pcs') { _selectedUnit = 'unit'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit; }
       _brandCtrl.text = _safeString(argsData['brand']);
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
+      final catVal = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _categoryCtrl.text = catVal;
       _supplierCtrl.text = _safeString(argsData['supplier'] ?? argsData['vendor']);
       _notesCtrl.text = _safeString(argsData['notes']);
       if (argsData['date'] != null) {
         try { _selectedDate = DateTime.parse(argsData['date'].toString()); } catch (_) {}
       }
-      final gstVal = argsData['gst'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(argsData['gst'] ?? argsData['gstPercentage']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = argsData['isWithGst'] == true || argsData['isWithGst'] == 'true';
       final pStatus = argsData['paymentStatus']?.toString().toLowerCase() ?? argsData['status']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
         _isAddAndPay = true;
         _paymentMethod = argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
-        _existingPaidAmount = (argsData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _existingPaidAmount = _parseDouble(argsData['paidAmount']);
       }
       debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
@@ -418,9 +429,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     // This OVERWRITES the stale route-arg prefill from Layer 1 with fresh data.
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
+    final double freshRate = _parseDouble(latest['rate']);
     _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'bag' || freshUnit == 'bags') { _selectedUnit = 'bag'; }
@@ -430,19 +441,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     else if (freshUnit == 'unit' || freshUnit == 'pcs') { _selectedUnit = 'unit'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit; }
     _brandCtrl.text = _safeString(latest['brand']);
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
     _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
     _notesCtrl.text = _safeString(latest['notes']);
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
-    _gstCtrl.text = (latest['gst'] ?? 0).toString();
+    final double freshGst = _parseDouble(latest['gst'] ?? latest['gstPercentage']);
+    _gstCtrl.text = freshGst > 0 ? (freshGst % 1 == 0 ? freshGst.toInt().toString() : freshGst.toString()) : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     final freshPStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
     if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
       _isAddAndPay = true;
       _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
@@ -492,18 +505,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       else if (rawUnit == 'unit' || rawUnit == 'pcs') { _selectedUnit = 'unit'; }
       else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit; }
       _brandCtrl.text = _safeString(argsData['brand']);
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
+      final catVal = _safeString(argsData['categoryName'] ?? argsData['category']);
+      _categoryCtrl.text = catVal;
       _supplierCtrl.text = _safeString(argsData['supplier'] ?? argsData['vendor']);
       _notesCtrl.text = _safeString(argsData['notes']);
-      final double rateVal = (argsData['rate'] as num?)?.toDouble()
-          ?? (argsData['dailyWage'] as num?)?.toDouble()
-          ?? (argsData['hourlyRate'] as num?)?.toDouble()
-          ?? 0.0;
+      final double rateVal = _parseDouble(argsData['rate'] ?? argsData['dailyWage'] ?? argsData['hourlyRate']);
       if (rateVal > 0) {
         _rateCtrl.text = rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString();
       }
-      final gstVal = argsData['gst'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(argsData['gst'] ?? argsData['gstPercentage']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = argsData['isWithGst'] == true || argsData['isWithGst'] == 'true';
       debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
     }
@@ -538,9 +549,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
     _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
+    final double freshQty = _parseDouble(latest['quantity']);
     _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    _rateCtrl.text = _safeString(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    final double freshRate = _parseDouble(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
     if (freshUnit == 'bag' || freshUnit == 'bags') { _selectedUnit = 'bag'; }
     else if (freshUnit == 'sqft' || freshUnit == 'sq.ft') { _selectedUnit = 'Sq.ft'; }
@@ -549,13 +561,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     else if (freshUnit == 'unit' || freshUnit == 'pcs') { _selectedUnit = 'unit'; }
     else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit; }
     _brandCtrl.text = _safeString(latest['brand']);
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
     _supplierCtrl.text = _safeString(latest['supplier'] ?? latest['vendor']);
     _notesCtrl.text = _safeString(latest['notes']);
     if (latest['date'] != null) {
       try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
     }
-    _gstCtrl.text = (latest['gst'] ?? 0).toString();
+    final double freshGst = _parseDouble(latest['gst'] ?? latest['gstPercentage']);
+    _gstCtrl.text = freshGst > 0 ? (freshGst % 1 == 0 ? freshGst.toInt().toString() : freshGst.toString()) : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
@@ -879,9 +893,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "title": _nameCtrl.text.trim(),
       "type": "Materials",
       "subType": "Purchase",
-      "category": _categoryCtrl.text.trim().isEmpty
-          ? "General"
-          : _categoryCtrl.text.trim(),
+      "category": _categoryCtrl.text.trim(),
       "brand": _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       "supplier": _supplierCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
@@ -1293,14 +1305,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
       
       _brandCtrl.text = tx['brand']?.toString() ?? '';
-      _categoryCtrl.text = tx['category']?.toString() ?? '';
+      final catVal = tx['category']?.toString() ?? '';
+      _categoryCtrl.text = catVal;
       _supplierCtrl.text = tx['supplier']?.toString() ?? '';
       
-      final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+      final double rateVal = _parseDouble(tx['rate']);
       _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
       
-      final gstVal = tx['gst'] ?? 0;
-      _gstCtrl.text = gstVal.toString();
+      final double gstVal = _parseDouble(tx['gst']);
+      _gstCtrl.text = gstVal > 0 ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString()) : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
       
       final pStatus = tx['paymentStatus']?.toString().toLowerCase();
@@ -2403,7 +2416,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                     ),
 
                     // ── PAYMENT SECTION ────────────────────────────────────
-                    if (RoleManager.canApprovePayments)
+                    if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 
