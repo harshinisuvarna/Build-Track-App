@@ -2,24 +2,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'package:buildtrack_mobile/config/api_config.dart';
 import 'package:flutter/foundation.dart';
+
 
 class ApiService {
   static List<ProjectModel>? mockProjects;
 
-  static String get baseUrl {
-    /*return 'https://build-track.onrender.com/api';
-    if (kReleaseMode) {
-      return 'https://build-track.onrender.com/api';
-    }
-    if (kIsWeb) {
-      return 'http://localhost:5001/api';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5001/api';
-    }*/
-    return 'http://localhost:5001/api';
-  }
+  static String get baseUrl => ApiConfig.baseUrl;
+
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();

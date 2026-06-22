@@ -340,11 +340,39 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       case VoiceStatus.completed:
         return _ConvStep.success;
       case VoiceStatus.error:
-        return _ConvStep.initialVoice; // fallback
+        return _ConvStep.initialVoice;
       case VoiceStatus.waitingForUser:
-        return _ConvStep.askProject; // will be refined dynamically
+        // NOTE: Do NOT use this to derive the question.
+        // Use _nextMissingFieldStep() which reads fresh missing fields.
+        return _ConvStep.askProject;
       default:
         return _ConvStep.initialVoice;
+    }
+  }
+
+  // ── BUG 5 FIX: Convert the FIRST missing field label → the correct _ConvStep ──
+  // This is the single function that decides which question to ask next.
+  // It reads fresh missing fields every time — never stale state.
+  _ConvStep _nextMissingFieldStep() {
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI DEBUG] _nextMissingFieldStep: missingFields=$missing');
+    if (missing.isEmpty) return _ConvStep.summary;
+    final first = missing.first;
+    switch (first) {
+      case 'Project':      return _ConvStep.askProject;
+      case 'Floor':        return _ConvStep.askFloor;
+      case 'Phase':        return _ConvStep.askPhase;
+      case 'Activity':     return _ConvStep.askActivity;
+      case 'Labour Type':  return _ConvStep.askLabourType;
+      case 'Worker Count': return _ConvStep.askWorkerCount;
+      case 'Hours':        return _entryType == 'labour' ? _ConvStep.askHours : _ConvStep.askHours;
+      case 'Equipment':    return _ConvStep.askEquipment;
+      case 'Fuel':         return _ConvStep.askFuel;
+      case 'Quantity':     return _ConvStep.askQuantity;
+      case 'Unit':         return _ConvStep.askUnit;
+      case 'Rate':         return _ConvStep.askRate;
+      case 'Brand':        return _ConvStep.askBrand;
+      default:             return _ConvStep.askProject;
     }
   }
 
@@ -487,19 +515,43 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _partialAnswer = _voiceCtrl.partialTranscript;
     });
 
+    debugPrint('[AI DEBUG] _onVoiceChanged: engineState=$state, isListeningForAnswer=$_isListeningForAnswer, step=$_step');
+
     if (state == VoiceEngineState.parsed) {
       final text = _voiceCtrl.finalTranscript.trim();
+      debugPrint('[AI DEBUG] finalTranscript: "$text"');
       if (_step == _ConvStep.initialVoice) {
         if (text.isNotEmpty) {
           _rawTranscript = text;
         }
       } else if (_isListeningForAnswer) {
         _isListeningForAnswer = false;
+        setState(() {});
         if (text.isNotEmpty) {
           _handleVoiceAnswer(text);
+        } else {
+          // BUG 3 FIX: Empty result after listening — unstick the UI
+          debugPrint('[AI DEBUG] Empty transcript after listening — resetting listening state');
+          _unstickListening();
         }
       }
+    } else if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
+      // BUG 3 FIX: Engine went idle/error without a parsed result
+      if (_isListeningForAnswer) {
+        debugPrint('[AI DEBUG] Engine went $state while listening for answer — resetting');
+        _isListeningForAnswer = false;
+        _unstickListening();
+      }
     }
+  }
+
+  // BUG 3 FIX: Force-reset the listening UI without losing detected fields
+  void _unstickListening() {
+    if (!mounted) return;
+    setState(() {
+      _partialAnswer = '';
+      _rebuildResponse();
+    });
   }
 
   // ─── Recording control helpers ────────────────────────────────────────────────
@@ -840,7 +892,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     ];
     for (final p in phaseKeywords) {
       if (t.contains(p)) {
-        data.phase = p[0].toUpperCase() + p.substring(1) + ' Work';
+        data.phase = '${p[0].toUpperCase()}${p.substring(1)} Work';
         break;
       }
     }
@@ -881,94 +933,73 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Conversation field navigation ─────────────────────────────────────────────
+  // BUG 1 & 5 FIX: Always re-derive from fresh missing fields — never from stale _step
   void _advanceToNextMissingField() {
-    final orderedSteps = [
-      _ConvStep.askProject,
-      if (_entryType == 'labour') ...[
-        _ConvStep.askLabourType,
-        _ConvStep.askWorkerCount,
-        _ConvStep.askHours,
-      ],
-      if (_entryType == 'equipment') ...[
-        _ConvStep.askEquipment,
-        _ConvStep.askHours,
-      ],
-      _ConvStep.askFloor,
-      if (_entryType == 'material') _ConvStep.askPhase,
-      _ConvStep.askActivity,
-      if (_entryType == 'material') ...[
-        _ConvStep.askQuantity,
-        _ConvStep.askUnit,
-      ],
-      if (_entryType == 'equipment') _ConvStep.askFuel,
-      _ConvStep.askRate,
-      if (_entryType == 'material') _ConvStep.askBrand,
-    ];
-
-    for (final step in orderedSteps) {
-      if (_isStepMissing(step)) {
-        setState(() {
-          _step = step;
-          _rebuildResponse();
-        });
-        _scrollToBottom();
-        return;
-      }
+    // Step 1: Re-parse full transcript to catch any newly detected fields
+    if (_rawTranscript.isNotEmpty) {
+      _parseTranscriptInto(_data, _rawTranscript);
     }
 
-    _goToSummary();
+    // Step 2: Get fresh missing fields (single source of truth)
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI DEBUG] _advanceToNextMissingField: transcript="$_rawTranscript"');
+    debugPrint('[AI DEBUG] _advanceToNextMissingField: detectedFields=$_detectedFields');
+    debugPrint('[AI DEBUG] _advanceToNextMissingField: missingFields=$missing');
+
+    if (missing.isEmpty) {
+      debugPrint('[AI DEBUG] All fields collected → going to summary');
+      _goToSummary();
+      return;
+    }
+
+    // Step 3: Convert first missing label → correct _ConvStep
+    final nextStep = _nextMissingFieldStep();
+    debugPrint('[AI DEBUG] _advanceToNextMissingField: nextStep=$nextStep, question=${_questionFor(nextStep)}');
+
+    setState(() {
+      _step = nextStep;
+      _status = VoiceStatus.waitingForUser;
+      _rebuildResponse();
+    });
+    _scrollToBottom();
+
+    // Step 4: Auto-start listening for the next answer
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted && _status == VoiceStatus.waitingForUser) {
+        _startAnswerListening();
+      }
+    });
   }
 
   // ─── Rebuild _response model from internal state ──────────────────────────────
-  // Called after every state mutation. When the real backend is connected,
-  // this method is replaced by the incoming response payload.
+  // BUG 4 FIX: Single source of truth — _getStillNeededFieldsFor() drives everything.
+  // _response.missingFields and the "Still Needed" panel always match.
   void _rebuildResponse() {
-    final orderedSteps = [
-      if (_entryType == 'labour') ...[
-        'Labour Type', 'Worker Count', 'Hours',
-      ],
-      if (_entryType == 'equipment') ...[
-        'Equipment Type', 'Hours',
-      ],
-      'Floor',
-      if (_entryType == 'material') 'Phase',
-      'Activity',
-      if (_entryType == 'material') ...[
-        'Quantity', 'Unit',
-      ],
-      if (_entryType == 'equipment') 'Fuel Cost',
-      'Rate',
-      if (_entryType == 'material') 'Brand',
-    ];
+    // Always derive missing from the single authoritative function
+    final missing = _getStillNeededFieldsFor(_data);
 
-    final List<String> missing = [];
-    for (final field in orderedSteps) {
-      final key = _fieldLabelToDetectedKey(field);
-      if (!_detectedFields.containsKey(key) ||
-          _detectedFields[key] == null ||
-          '${_detectedFields[key]}'.trim().isEmpty) {
-        missing.add(field);
-      }
-    }
+    // Total = all fields for this entry type (from _getStillNeededFieldsFor when nothing detected)
+    final allFields = _getAllFieldsFor();
+    final total = allFields.length;
+    final completed = total - missing.length;
 
-    final completed = orderedSteps.length - missing.length;
-    final total = orderedSteps.length;
-
-    // _completedFields and _totalFields live on _response only
-    final currentMissing = missing.isNotEmpty ? missing.first : null;
-
+    // BUG 1 & 5 FIX: Question derived from FIRST missing field — never from stale _step
     String? question;
-    if (_status == VoiceStatus.waitingForUser && currentMissing != null) {
-      question = _questionFor(
-        _convStepFromStatus(_status),
-      );
+    List<String> suggestions = [];
+    if (_status == VoiceStatus.waitingForUser && missing.isNotEmpty) {
+      final nextStep = _nextMissingFieldStep();
+      question = _questionFor(nextStep);
       if (question.isEmpty) {
-        question = 'Please provide the $currentMissing.';
+        question = 'Please provide the ${missing.first}.';
       }
+      suggestions = _suggestionsForStep(nextStep);
+      debugPrint('[AI DEBUG] _rebuildResponse: question="$question" for step=$nextStep');
     }
 
     _backendQuestion = question ?? '';
-    _backendSuggestions = currentMissing != null ? _suggestionsForCurrentStep() : [];
+    _backendSuggestions = suggestions;
+
+    debugPrint('[AI DEBUG] _rebuildResponse: status=$_status, detected=$_detectedFields, missing=$missing');
 
     _response = VoiceResponseModel(
       status: _status,
@@ -985,6 +1016,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
+  // Returns the full list of field labels for this entry type (used for total count)
+  List<String> _getAllFieldsFor() {
+    final list = <String>['Project'];
+    if (_entryType == 'labour') {
+      list.addAll(['Labour Type', 'Worker Count', 'Hours']);
+    } else if (_entryType == 'equipment') {
+      list.addAll(['Equipment', 'Hours', 'Fuel']);
+    } else {
+      list.addAll(['Material', 'Quantity', 'Unit']);
+    }
+    list.addAll(['Floor', 'Activity', 'Rate']);
+    if (_entryType == 'material') list.add('Phase');
+    return list;
+  }
+
+  // ignore: unused_element
   static String _fieldLabelToDetectedKey(String label) {
     switch (label) {
       case 'Project': return 'Project ID';
@@ -1005,6 +1052,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
+  // ignore: unused_element
   bool _isStepMissing(_ConvStep step) {
     switch (step) {
       case _ConvStep.askProject:
@@ -1084,8 +1132,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  List<String> _suggestionsForCurrentStep() {
-    switch (_step) {
+  // BUG 5 FIX: Renamed and made explicit — takes the step parameter directly
+  List<String> _suggestionsForStep(_ConvStep step) {
+    switch (step) {
       case _ConvStep.askProject:
         return _projects.take(5).map((p) => p.name).toList();
       case _ConvStep.askFloor:
@@ -1111,18 +1160,62 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
+  // ignore: unused_element
+  List<String> _suggestionsForCurrentStep() => _suggestionsForStep(_step);
+
   // ─── Answer voice listener ────────────────────────────────────────────────────
   Future<void> _startAnswerListening() async {
     _isListeningForAnswer = true;
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
+    debugPrint('[AI DEBUG] _startAnswerListening: started, step=$_step');
   }
 
+  // BUG 2 FIX: "Done Answering" — fully stops listening and refreshes all state
   Future<void> _stopAnswerListening() async {
+    debugPrint('[AI DEBUG] _stopAnswerListening tapped');
+
+    // 1. Stop the microphone
     await _voiceCtrl.stopListening();
+
+    if (!mounted) return;
+
+    // 2. Grab whatever partial transcript we have (if any)
+    final partial = _voiceCtrl.partialTranscript.trim().isNotEmpty
+        ? _voiceCtrl.partialTranscript.trim()
+        : _voiceCtrl.finalTranscript.trim();
+
+    // 3. If there's something useful, apply it as the answer
+    if (partial.isNotEmpty && _isListeningForAnswer) {
+      debugPrint('[AI DEBUG] _stopAnswerListening: applying partial answer "$partial"');
+      _isListeningForAnswer = false;
+      _applyAnswer(_step, partial);
+      // Re-extract from full accumulated transcript too
+      _parseTranscriptInto(_data, _rawTranscript);
+    } else {
+      _isListeningForAnswer = false;
+    }
+
+    // 4. Recalculate everything and refresh UI — BUG 2, 4, 6 fix
+    setState(() {
+      _partialAnswer = '';
+      // Recompute extracted fields from full transcript
+      if (_rawTranscript.isNotEmpty) {
+        _parseTranscriptInto(_data, _rawTranscript);
+      }
+      _rebuildResponse();
+    });
+
+    debugPrint('[AI DEBUG] _stopAnswerListening done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}');
+
+    // 5. Advance conversation to next missing field
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _advanceToNextMissingField();
+    });
   }
 
   void _handleVoiceAnswer(String text) {
+    debugPrint('[AI DEBUG] _handleVoiceAnswer: "$text", step=$_step');
     _applyAnswer(_step, text);
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _advanceToNextMissingField();
@@ -1274,7 +1367,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         default:
           break;
       }
+      // BUG 6 FIX: Always re-parse the full transcript after any answer to catch fields
+      if (_rawTranscript.isNotEmpty) {
+        _parseTranscriptInto(_data, _rawTranscript);
+      }
       _rebuildResponse();
+      debugPrint('[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}');
     });
   }
 
@@ -2317,8 +2415,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
     if (!isAskingStep) return const SizedBox.shrink();
 
-    final question = _response.question ?? _questionFor(_step);
-    final suggestions = _backendSuggestions.isNotEmpty ? _backendSuggestions : _suggestionsForCurrentStep();
+    // BUG 1 FIX: Always derive question from fresh missing fields — never stale _step
+    final nextStep = _nextMissingFieldStep();
+    final question = _response.question?.isNotEmpty == true
+        ? _response.question!
+        : _questionFor(nextStep);
+    final suggestions = _backendSuggestions.isNotEmpty
+        ? _backendSuggestions
+        : _suggestionsForStep(nextStep);
+    debugPrint('[AI DEBUG] _buildAiQuestionCard: showing question="$question" for step=$nextStep');
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
 
     return Container(
@@ -3189,8 +3294,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 if (isListening) ...[
                   _buildSmallMicListening(),
                   const SizedBox(height: 12),
+                  // BUG 2 FIX: onPressed is verified connected to _stopAnswerListening
                   OutlinedButton.icon(
-                    onPressed: _stopAnswerListening,
+                    onPressed: () {
+                      debugPrint('[AI DEBUG] Done Answering button tapped');
+                      _stopAnswerListening();
+                    },
                     icon: const Icon(Icons.stop_circle_outlined, size: 16),
                     label: const Text('Done Answering', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
