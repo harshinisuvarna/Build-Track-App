@@ -388,7 +388,20 @@ if (extracted["activity"] != null) {
   _data.activity =
       extracted["activity"].toString();
 }
+if (extracted["phase"] != null) {
+  _data.phase =
+      extracted["phase"].toString();
+}
 
+if (extracted["floor"] != null) {
+  _data.floor =
+      extracted["floor"].toString();
+}
+
+if (extracted["rate"] != null) {
+  _data.rate =
+      (extracted["rate"] as num).toDouble();
+}
 if (extracted["equipment_name"] != null) {
   _data.itemName =
       extracted["equipment_name"].toString();
