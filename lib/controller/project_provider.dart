@@ -453,6 +453,11 @@ Future<void> _backfillCompletedActivities() async {
         return p;
       }).toList();
 
+      // Save in-memory progress before load() overwrites _selectedProject,
+      // so we don't lose optimistic updates from toggleActivityCompletion
+      // or updateProjectProgress when the API returns stale data.
+      final double? prevProgress = _selectedProject?.progress;
+
       if (_selectedProject != null) {
         final existingIdx =
             _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
@@ -465,6 +470,13 @@ Future<void> _backfillCompletedActivities() async {
         }
       } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
+      }
+
+      // Restore the in-memory progress — it is always more recent than
+      // the API value because mutations update _selectedProject directly
+      // and only persist asynchronously.
+      if (prevProgress != null && _selectedProject != null) {
+        _selectedProject = _selectedProject!.copyWith(progress: prevProgress);
       }
 
       if (_selectedProject != null) {
