@@ -696,12 +696,19 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 color: isOver ? Colors.redAccent : purple,
               ),
               const SizedBox(width: 4),
-              Text(
-                sub,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isOver ? Colors.redAccent : purple,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    sub,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isOver ? Colors.redAccent : purple,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                  ),
                 ),
               ),
             ],
