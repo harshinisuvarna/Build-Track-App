@@ -294,7 +294,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
 
     if (state == VoiceEngineState.parsed) {
-      final text = _voiceCtrl.finalTranscript.trim();
+      final text = _voiceCtrl.finalTranscript.trim().isNotEmpty
+          ? _voiceCtrl.finalTranscript.trim()
+          : _voiceCtrl.partialTranscript.trim();	
       if (_step == _ConvStep.initialVoice) {
         if (text.isNotEmpty) {
           _rawTranscript = text;
