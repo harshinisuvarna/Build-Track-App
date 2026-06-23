@@ -273,6 +273,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   String? _saveError;
   String? _savedEntryId;
 
+  // ── Edit mode state ──────────────────────────────────────────────────
+  bool _isEditing = false;
+  final Map<String, TextEditingController> _editControllers = {};
+  Map<String, dynamic>? _savedEditFields;
+  String? _editError;
+
   // ── Backend-driven question & suggestions ─────────────────────────────────────
   String _backendQuestion = '';
   List<String> _backendSuggestions = const [];
@@ -392,6 +398,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _focusNode.dispose();
     _scrollCtrl.dispose();
     _processingTimer?.cancel();
+    _disposeEditControllers();
     super.dispose();
   }
 
@@ -1750,6 +1757,300 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         _rebuildResponse();
       });
     }
+  }
+
+  // ─── Edit mode methods ──────────────────────────────────────────────────
+  void _enterEditMode() {
+    _savedEditFields = Map<String, dynamic>.from(_detectedFields);
+    _editError = null;
+    _editControllers.clear();
+
+    _editControllers['project'] = TextEditingController(
+      text: _data.projectName ?? _data.projectId ?? '',
+    );
+    _editControllers['floor'] = TextEditingController(
+      text: _data.floor ?? '',
+    );
+    _editControllers['activity'] = TextEditingController(
+      text: _data.activity ?? '',
+    );
+
+    if (_entryType == 'material') {
+      _editControllers['phase'] = TextEditingController(
+        text: _data.phase ?? '',
+      );
+      _editControllers['material'] = TextEditingController(
+        text: _data.itemName ?? '',
+      );
+      _editControllers['quantity'] = TextEditingController(
+        text: _data.hasQuantity ? '${_data.quantity}' : '',
+      );
+      _editControllers['unit'] = TextEditingController(
+        text: _data.unit ?? '',
+      );
+    } else if (_entryType == 'labour') {
+      _editControllers['labourType'] = TextEditingController(
+        text: _data.workType ?? _data.itemName ?? '',
+      );
+      _editControllers['workers'] = TextEditingController(
+        text: _data.hasWorkerCount ? '${_data.workerCount}' : '',
+      );
+      _editControllers['hours'] = TextEditingController(
+        text: _data.hasHours ? '${_data.hours}' : '',
+      );
+    } else {
+      _editControllers['equipment'] = TextEditingController(
+        text: _data.itemName ?? '',
+      );
+      _editControllers['hours'] = TextEditingController(
+        text: _data.hasQuantity ? '${_data.quantity}' : '',
+      );
+    }
+
+    _editControllers['rate'] = TextEditingController(
+      text: _data.hasRate ? '${_data.rate}' : '',
+    );
+
+    setState(() => _isEditing = true);
+  }
+
+  void _cancelEdit() {
+    if (_savedEditFields != null) {
+      _detectedFields.clear();
+      _detectedFields.addAll(_savedEditFields!);
+    }
+    _disposeEditControllers();
+    _savedEditFields = null;
+    _editError = null;
+    setState(() {
+      _isEditing = false;
+      _rebuildResponse();
+    });
+  }
+
+  void _disposeEditControllers() {
+    for (final ctrl in _editControllers.values) {
+      ctrl.dispose();
+    }
+    _editControllers.clear();
+  }
+
+  void _saveEditChanges() {
+    _editError = null;
+
+    if (!_isEditValid()) {
+      setState(() => _editError = 'Please complete all required fields.');
+      return;
+    }
+
+    _data.projectName = _editControllers['project']!.text.trim();
+    _data.projectId = _editControllers['project']!.text.trim();
+    _data.floor = _editControllers['floor']!.text.trim();
+    _data.activity = _editControllers['activity']!.text.trim();
+
+    if (_entryType == 'material') {
+      _data.phase = _editControllers['phase']!.text.trim();
+      _data.itemName = _editControllers['material']!.text.trim();
+      _data.quantity = double.tryParse(_editControllers['quantity']!.text) ?? 0;
+      _data.unit = _editControllers['unit']!.text.trim();
+    } else if (_entryType == 'labour') {
+      final labourType = _editControllers['labourType']!.text.trim();
+      _data.workType = labourType;
+      _data.itemName = labourType;
+      _data.workerCount = int.tryParse(_editControllers['workers']!.text) ?? 0;
+      _data.hours = double.tryParse(_editControllers['hours']!.text) ?? 0;
+    } else {
+      _data.itemName = _editControllers['equipment']!.text.trim();
+      final hrs = double.tryParse(_editControllers['hours']!.text) ?? 0;
+      _data.quantity = hrs;
+      _data.hours = hrs;
+    }
+
+    _data.rate = double.tryParse(_editControllers['rate']!.text) ?? 0;
+
+    _disposeEditControllers();
+    _savedEditFields = null;
+
+    setState(() {
+      _isEditing = false;
+      _rebuildResponse();
+    });
+  }
+
+  bool _isEditValid() {
+    if (_editControllers['project']?.text.trim().isEmpty ?? true) return false;
+
+    if (_entryType == 'material') {
+      if (_editControllers['material']?.text.trim().isEmpty ?? true) return false;
+      if ((double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0) <= 0) return false;
+      if (_editControllers['unit']?.text.trim().isEmpty ?? true) return false;
+    } else if (_entryType == 'labour') {
+      if (_editControllers['labourType']?.text.trim().isEmpty ?? true) return false;
+      if ((int.tryParse(_editControllers['workers']?.text ?? '') ?? 0) <= 0) return false;
+      if ((double.tryParse(_editControllers['hours']?.text ?? '') ?? 0) <= 0) return false;
+    } else {
+      if (_editControllers['equipment']?.text.trim().isEmpty ?? true) return false;
+      if ((double.tryParse(_editControllers['hours']?.text ?? '') ?? 0) <= 0) return false;
+    }
+
+    if ((double.tryParse(_editControllers['rate']?.text ?? '') ?? 0) <= 0) return false;
+
+    return true;
+  }
+
+  double _getLiveEditAmount() {
+    final rateText = _editControllers['rate']?.text ?? '';
+    final rate = double.tryParse(rateText) ?? 0;
+    if (_entryType == 'material') {
+      final qty = double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0;
+      return qty * rate;
+    } else if (_entryType == 'labour') {
+      final workers = double.tryParse(_editControllers['workers']?.text ?? '') ?? 0;
+      final hours = double.tryParse(_editControllers['hours']?.text ?? '') ?? 0;
+      return workers * hours * rate;
+    } else {
+      final hours = double.tryParse(_editControllers['hours']?.text ?? '') ?? 0;
+      return hours * rate;
+    }
+  }
+
+  Widget _buildEditField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textLight,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const Divider(height: 1, color: Color(0xFFF7F5FC)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditFormFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildEditField(
+          label: 'Project',
+          controller: _editControllers['project']!,
+        ),
+        if (_entryType == 'material') ...[
+          _buildEditField(
+            label: 'Material',
+            controller: _editControllers['material']!,
+          ),
+          _buildEditField(
+            label: 'Quantity',
+            controller: _editControllers['quantity']!,
+            keyboardType: TextInputType.number,
+          ),
+          _buildEditField(
+            label: 'Unit',
+            controller: _editControllers['unit']!,
+          ),
+        ] else if (_entryType == 'labour') ...[
+          _buildEditField(
+            label: 'Labour Type',
+            controller: _editControllers['labourType']!,
+          ),
+          _buildEditField(
+            label: 'Workers Count',
+            controller: _editControllers['workers']!,
+            keyboardType: TextInputType.number,
+          ),
+          _buildEditField(
+            label: 'Hours Worked',
+            controller: _editControllers['hours']!,
+            keyboardType: TextInputType.number,
+          ),
+        ] else ...[
+          _buildEditField(
+            label: 'Equipment',
+            controller: _editControllers['equipment']!,
+          ),
+          _buildEditField(
+            label: 'Hours Used',
+            controller: _editControllers['hours']!,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+        _buildEditField(
+          label: 'Rate (₹)',
+          controller: _editControllers['rate']!,
+          keyboardType: TextInputType.number,
+        ),
+        _buildEditField(
+          label: 'Floor',
+          controller: _editControllers['floor']!,
+        ),
+        if (_entryType == 'material')
+          _buildEditField(
+            label: 'Phase',
+            controller: _editControllers['phase']!,
+          ),
+        _buildEditField(
+          label: 'Activity',
+          controller: _editControllers['activity']!,
+        ),
+        if (_editError != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 14),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _editError!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   void _scrollToBottom() {
@@ -3200,7 +3501,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Section 14: Final Entry Summary ──────────────────────────────────────────
   Widget _buildSummaryCard() {
     final isSaving = _response.status == VoiceStatus.saving;
-    final amount = _data.getComputedAmount(_entryType);
+    final amount = _isEditing ? _getLiveEditAmount() : _data.getComputedAmount(_entryType);
 
     final details = <Map<String, String>>[
       {
@@ -3377,7 +3678,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           const Divider(height: 1, color: Color(0xFFEEEBF8)),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
+            child: _isEditing ? _buildEditFormFields() : Column(
               children: List.generate(details.length, (idx) {
                 final item = details[idx];
                 final isHighlight = item['highlight'] == 'true';
@@ -3418,76 +3719,149 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               }),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isSaving
-                        ? null
-                        : () {
-                            setState(() {
-                              _status = VoiceStatus.waitingForUser;
-                              _saveError = null;
-                            });
-                            _startAnswerListening();
-                          },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(
-                        color: Color(0xFFDDD8F5),
-                        width: 1.5,
-                      ),
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Edit Details',
+          if (!_isEditing) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F8FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFEBE8FF)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tip: You can keep the app open. We\'ll notify you when ready.',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 11.5,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isSaving ? null : _saveEntry,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                ],
+              ),
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: _isEditing
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _cancelEdit,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(
+                              color: Color(0xFFFCA5A5),
+                              width: 1.5,
                             ),
-                          )
-                        : const Text(
-                            'Confirm & Save',
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _saveEditChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isSaving ? null : _enterEditMode,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textDark,
+                            side: const BorderSide(
+                              color: Color(0xFFDDD8F5),
+                              width: 1.5,
+                            ),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Edit Details',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSaving ? null : _saveEntry,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Confirm & Save',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
