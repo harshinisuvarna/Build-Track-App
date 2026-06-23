@@ -9,6 +9,7 @@ import '../../controller/report_model.dart';
 import '../../controller/project_provider.dart';
 import '../../models/project_model.dart';
 import '../../controller/report_provider.dart';
+import 'dart:math' as math;
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
@@ -262,6 +263,49 @@ class ChartSection extends StatelessWidget {
     final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
     final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
 
+    // Pick a "nice" interval so we always get ~4-5 evenly spaced labels,
+    // never more — this is what prevents the vertical overlap.
+    double niceInterval(double max) {
+      if (max <= 0) return 1;
+      final raw = max / 4; // aim for ~4 divisions
+      final magnitude = math.pow(10, (math.log(raw) / math.ln10).floor());
+      final residual = raw / magnitude;
+      double niceResidual;
+      if (residual <= 1) {
+        niceResidual = 1;
+      } else if (residual <= 2) {
+        niceResidual = 2;
+      } else if (residual <= 5) {
+        niceResidual = 5;
+      } else {
+        niceResidual = 10;
+      }
+      return niceResidual * magnitude;
+    }
+
+    final leftInterval = niceInterval(maxY);
+
+    // IMPORTANT: round the chart ceiling itself UP to a clean multiple of
+    // leftInterval. Without this, maxY (e.g. 6.3L) doesn't line up with the
+    // last interval tick (e.g. 6L), and fl_chart renders a label at both —
+    // that's what causes the two close labels to visually collide.
+    final roundedMaxY = (maxY / leftInterval).ceil() * leftInterval;
+
+    // Format compactly, used both for the label and to size reservedSize
+    String formatY(double value) {
+      if (value >= 100000) {
+        return '₹${(value / 100000).toStringAsFixed(value % 100000 == 0 ? 0 : 1)}L';
+      } else if (value >= 1000) {
+        return '₹${(value / 1000).toStringAsFixed(0)}K';
+      }
+      return '₹${value.toInt()}';
+    }
+
+    // Size reservedSize off the widest label we'll actually show,
+    // so labels never get clipped or visually collide with the chart area.
+    final widestLabelLength = formatY(roundedMaxY).length;
+    final dynamicReservedSize = (widestLabelLength * 7.0 + 14).clamp(44.0, 72.0);
+
     final isExceeded = categories.any(
       (e) =>
           (e['actual'] as double) > (e['target'] as double) &&
@@ -297,7 +341,7 @@ class ChartSection extends StatelessWidget {
               child: LineChart(
                 LineChartData(
                   minY: 0,
-                  maxY: maxY,
+                  maxY: roundedMaxY,
                   gridData: const FlGridData(
                     show: true,
                     drawVerticalLine: false,
@@ -326,26 +370,20 @@ class ChartSection extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 62, // wider to fit ₹ + compact number
+                        reservedSize: dynamicReservedSize,
+                        interval: leftInterval,
                         getTitlesWidget: (value, meta) {
-                          // Compact formatter: 1,20,000 → ₹1.2L, 5,000 → ₹5K
-                          String label;
-                          if (value >= 100000) {
-                            label = '₹${(value / 100000).toStringAsFixed(1)}L';
-                          } else if (value >= 1000) {
-                            label = '₹${(value / 1000).toStringAsFixed(0)}K';
-                          } else {
-                            label = '₹${value.toInt()}';
-                          }
                           return SideTitleWidget(
                             axisSide: meta.axisSide,
                             space: 6,
                             child: Text(
-                              label,
+                              formatY(value),
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.visible,
                             ),
                           );
                         },
