@@ -16,7 +16,7 @@ enum VoiceEngineState { idle, listening, processing, parsed, error }
 class VoiceRecordingController extends ChangeNotifier {
   VoiceRecordingController({
     this.listenForSeconds = 45,
-    this.pauseForSeconds  = 4,
+    this.pauseForSeconds  = 6,
   });
 
   // Configuration
@@ -58,6 +58,9 @@ class VoiceRecordingController extends ChangeNotifier {
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _sessionTimer;
   Timer? _forceParsedTimer;
+  // Guard: prevents multiple competing code paths from all emitting 'parsed'.
+  // Reset to false at the start of every new recording session.
+  bool _parsedEmitted = false;
 
   // ─── Init ──────────────────────────────────────────────────────────────────
   Future<bool> _ensureInitialised() async {
@@ -90,12 +93,12 @@ class VoiceRecordingController extends ChangeNotifier {
     if (_engineState == VoiceEngineState.listening) return;
 
     _forceParsedTimer?.cancel();
+    _parsedEmitted = false;  // reset guard for new session
 
     _partialTranscript   = '';
     _finalTranscript     = '';
     _errorMessage        = '';
     _elapsedSeconds      = 0;
-    _setEngineState(VoiceEngineState.listening);
 
     final ready = await _ensureInitialised();
     if (!ready) {
@@ -104,6 +107,7 @@ class VoiceRecordingController extends ChangeNotifier {
       return;
     }
 
+    _setEngineState(VoiceEngineState.listening);
     _sessionTimer?.cancel();
 
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -138,20 +142,13 @@ class VoiceRecordingController extends ChangeNotifier {
     await _stt.stop();
     // Force transition to processing immediately
     _setEngineState(VoiceEngineState.processing);
-    // Schedule forced transition to parsed with 800ms timeout
-    _forceParsedTimer?.cancel();
-    _forceParsedTimer = Timer(const Duration(milliseconds: 800), () {
-      if (_engineState == VoiceEngineState.processing) {
-        debugPrint('[VOICE] Force transition: processing -> parsed');
-        _setEngineState(VoiceEngineState.parsed);
-      }
-    });
   }
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
   Future<void> cancelListening() async {
     _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
+    _parsedEmitted = false;
     await _stt.cancel();
     _partialTranscript = '';
     _finalTranscript   = '';
@@ -162,6 +159,7 @@ class VoiceRecordingController extends ChangeNotifier {
   void reset() {
     _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
+    _parsedEmitted     = false;
     _partialTranscript = '';
     _finalTranscript   = '';
     _errorMessage      = '';
@@ -176,6 +174,7 @@ class VoiceRecordingController extends ChangeNotifier {
   Future<void> resetEngine() async {
     _forceParsedTimer?.cancel();
     _sessionTimer?.cancel();
+    _parsedEmitted     = false;
     _partialTranscript = '';
     _finalTranscript   = '';
     _errorMessage      = '';
@@ -188,20 +187,20 @@ class VoiceRecordingController extends ChangeNotifier {
   // ─── STT Callbacks ────────────────────────────────────────────────────────
 
   void _onResult(SpeechRecognitionResult result) {
-    if (_engineState != VoiceEngineState.listening) return;
+    if (_engineState != VoiceEngineState.listening && _engineState != VoiceEngineState.processing) return;
 
     if (result.finalResult) {
       debugPrint('[VOICE] Final result: "${result.recognizedWords}"');
       _finalTranscript   = result.recognizedWords;
       _partialTranscript = result.recognizedWords;
       _sessionTimer?.cancel();
-      _forceParsedTimer?.cancel();
-      _setEngineState(VoiceEngineState.processing);
-      // Brief delay then emit parsed
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (_engineState == VoiceEngineState.processing) {
-          _setEngineState(VoiceEngineState.parsed);
-        }
+      _forceParsedTimer?.cancel();  // stop competing timer
+      if (_engineState != VoiceEngineState.processing) {
+        _setEngineState(VoiceEngineState.processing);
+      }
+      // Short delay so UI can show 'processing' briefly before parsed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _emitParsed();
       });
     } else {
       _partialTranscript = result.recognizedWords;
@@ -215,11 +214,13 @@ class VoiceRecordingController extends ChangeNotifier {
     if (status == 'done' || status == 'notListening') {
       _sessionTimer?.cancel();
       if (_engineState == VoiceEngineState.listening) {
-        _forceParsedTimer?.cancel();
         _setEngineState(VoiceEngineState.processing);
-        Future.delayed(const Duration(milliseconds: 800), () {
+        _forceParsedTimer?.cancel();
+        // FIX: Use _emitParsed() so if _onResult already fired parsed,
+        // this timer is a no-op (guard prevents double emission).
+        _forceParsedTimer = Timer(const Duration(milliseconds: 600), () {
           if (_engineState == VoiceEngineState.processing) {
-            _setEngineState(VoiceEngineState.parsed);
+            _emitParsed();
           }
         });
       }
@@ -231,13 +232,10 @@ class VoiceRecordingController extends ChangeNotifier {
     _forceParsedTimer?.cancel();
     if (error.errorMsg == 'error_no_match' ||
         error.errorMsg == 'error_speech_timeout') {
-      if (_engineState == VoiceEngineState.listening) {
+      if (_engineState == VoiceEngineState.listening ||
+          _engineState == VoiceEngineState.processing) {
         _setEngineState(VoiceEngineState.processing);
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (_engineState == VoiceEngineState.processing) {
-            _setEngineState(VoiceEngineState.parsed);
-          }
-        });
+        _emitParsed();
       }
       return;
     }
@@ -247,6 +245,18 @@ class VoiceRecordingController extends ChangeNotifier {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  // Single parsed emitter — all code paths must call this instead of
+  // _setEngineState(parsed) directly. The _parsedEmitted flag ensures
+  // only the FIRST caller wins; all subsequent calls are ignored.
+  void _emitParsed() {
+    if (_parsedEmitted) {
+      debugPrint('[VOICE] _emitParsed: already emitted — ignoring duplicate');
+      return;
+    }
+    _parsedEmitted = true;
+    _setEngineState(VoiceEngineState.parsed);
+  }
 
   void _setEngineState(VoiceEngineState s) {
     if (_engineState == s) return;
