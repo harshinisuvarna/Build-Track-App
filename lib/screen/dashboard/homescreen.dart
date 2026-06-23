@@ -963,37 +963,46 @@ class _SupervisorDashboard extends StatefulWidget {
 
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   List<dynamic> _pendingTransactions = [];
-  List<dynamic> _pendingUpdates = [];
+  List<dynamic> _historyTransactions = [];
   bool _isLoading = true;
   String? _error;
+
+  // Track which tab to show: 'pending' or 'history'
+  String _activeTab = 'pending';
 
   @override
   void initState() {
     super.initState();
-    _loadApprovals();
+    _loadAll();
   }
 
-  Future<void> _loadApprovals() async {
+  Future<void> _loadAll() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
-    final data = await ApiService.fetchPendingApprovals();
+
+    // Fetch both in parallel
+    final results = await Future.wait([
+      ApiService.fetchPendingApprovals(),
+      ApiService.fetchApprovalsHistory(),
+    ]);
+
     if (!mounted) return;
-    if (data != null) {
-      setState(() {
-        _pendingTransactions =
-            (data['transactions'] as List?) ?? [];
-        _pendingUpdates =
-            (data['projectUpdates'] as List?) ?? [];
-        _isLoading = false;
-      });
-    } else {
-      setState(() {
-        _error = 'Failed to load approvals';
-        _isLoading = false;
-      });
-    }
+
+    final pendingData = results[0];
+    final historyData = results[1];
+
+    setState(() {
+      _pendingTransactions =
+          (pendingData?['transactions'] as List?) ?? [];
+      _historyTransactions =
+          (historyData?['transactions'] as List?) ?? [];
+      _isLoading = false;
+      if (pendingData == null && historyData == null) {
+        _error = 'Failed to load data';
+      }
+    });
   }
 
   Future<void> _handleApprove(String id) async {
@@ -1007,7 +1016,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      _loadApprovals();
+      _loadAll();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1031,73 +1040,152 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      _loadApprovals();
+      _loadAll();
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final pendingCount = _pendingTransactions.length + _pendingUpdates.length;
+Widget build(BuildContext context) {
+  final pendingCount = _pendingTransactions.length;
+  final approvedCount = _historyTransactions
+      .where((t) => t['approvalStatus'] == 'Approved')
+      .length;
+  final rejectedCount = _historyTransactions
+      .where((t) => t['approvalStatus'] == 'Rejected')
+      .length;
 
-    return RefreshIndicator(
-      onRefresh: _loadApprovals,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Summary chips ──────────────────────────────────────────
-            Row(
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // ── Summary chips (tappable tabs) ──────────────────────────────
+      Row(
+        children: [
+          _summaryChip(
+            '$pendingCount',
+            'Pending',
+            AppTheme.warning,
+            isActive: _activeTab == 'pending',
+            onTap: () => setState(() => _activeTab = 'pending'),
+          ),
+          const SizedBox(width: 8),
+          _summaryChip(
+            '$approvedCount',
+            'Approved',
+            AppTheme.success,
+            isActive: _activeTab == 'approved',
+            onTap: () => setState(() => _activeTab = 'approved'),
+          ),
+          const SizedBox(width: 8),
+          _summaryChip(
+            '$rejectedCount',
+            'Rejected',
+            AppTheme.error,
+            isActive: _activeTab == 'rejected',
+            onTap: () => setState(() => _activeTab = 'rejected'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 16),
+
+      // ── Refresh button row ─────────────────────────────────────────
+      Align(
+        alignment: Alignment.centerRight,
+        child: GestureDetector(
+          onTap: _loadAll,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _summaryChip(
-                  '$pendingCount',
-                  'Pending',
-                  AppTheme.warning,
-                ),
-                const SizedBox(width: 8),
-                _summaryChip(
-                  '${_pendingTransactions.where((t) => t['approvalStatus'] == 'Approved').length}',
-                  'Approved',
-                  AppTheme.success,
-                ),
-                const SizedBox(width: 8),
-                _summaryChip(
-                  '${_pendingTransactions.where((t) => t['approvalStatus'] == 'Rejected').length}',
-                  'Rejected',
-                  AppTheme.error,
+                const Icon(Icons.refresh,
+                    size: 14, color: AppColors.primary),
+                const SizedBox(width: 4),
+                const Text('Refresh',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      // ── Content ────────────────────────────────────────────────────
+      if (_isLoading)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        )
+      else if (_error != null)
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              children: [
+                Text(_error!,
+                    style: const TextStyle(
+                        color: AppColors.textLight)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadAll,
+                  child: const Text('Retry'),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+        )
+      else
+        _buildActiveTabContent(
+          pendingCount: pendingCount,
+          approvedCount: approvedCount,
+          rejectedCount: rejectedCount,
+        ),
+    ],
+  );
+}
 
-            // ── Content ────────────────────────────────────────────────
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary),
-                ),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Text(_error!,
-                          style: const TextStyle(
-                              color: AppColors.textLight)),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _loadApprovals,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (pendingCount == 0)
+  Widget _buildActiveTabContent({
+    required int pendingCount,
+    required int approvedCount,
+    required int rejectedCount,
+  }) {
+    switch (_activeTab) {
+      case 'approved':
+        final approved = _historyTransactions
+            .where((t) => t['approvalStatus'] == 'Approved')
+            .toList();
+        return _buildHistoryList(
+          items: approved,
+          emptyMessage: 'No approved entries yet',
+          emptyIcon: Icons.check_circle_outline,
+          emptyColor: AppTheme.success,
+        );
+
+      case 'rejected':
+        final rejected = _historyTransactions
+            .where((t) => t['approvalStatus'] == 'Rejected')
+            .toList();
+        return _buildHistoryList(
+          items: rejected,
+          emptyMessage: 'No rejected entries',
+          emptyIcon: Icons.cancel_outlined,
+          emptyColor: AppTheme.error,
+        );
+
+      default: // 'pending'
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (pendingCount == 0)
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(top: 8),
@@ -1116,8 +1204,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                   children: [
                     Icon(Icons.check_circle_outline,
                         size: 48,
-                        color: AppColors.textLight
-                            .withValues(alpha: 0.5)),
+                        color: AppColors.textLight.withValues(alpha: 0.5)),
                     const SizedBox(height: 12),
                     const Text(
                       'No pending approvals',
@@ -1149,41 +1236,183 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                 ),
               ),
             ],
+            const SizedBox(height: 20),
+            _buildRecentHistorySection(),
           ],
-        ),
+        );
+    }
+  }
+
+  Widget _buildRecentHistorySection() {
+    // Combine Approved + Rejected, newest first, capped at 10.
+    final combined = _historyTransactions
+        .where((t) =>
+            t['approvalStatus'] == 'Approved' ||
+            t['approvalStatus'] == 'Rejected')
+        .toList()
+      ..sort((a, b) {
+        DateTime parse(dynamic tx) {
+          final raw = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
+          try {
+            return DateTime.parse(raw.toString());
+          } catch (_) {
+            return DateTime.fromMillisecondsSinceEpoch(0);
+          }
+        }
+        return parse(b).compareTo(parse(a));
+      });
+
+    final recent = combined.take(10).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AppSectionHeader(title: 'Recent History'),
+        const SizedBox(height: 8),
+        if (recent.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.history,
+                    size: 40,
+                    color: AppColors.textLight.withValues(alpha: 0.4)),
+                const SizedBox(height: 10),
+                const Text(
+                  'No history yet',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...recent.map((tx) =>
+              _HistoryTxCard(tx: tx as Map<String, dynamic>)),
+      ],
+    );
+  }
+
+  Widget _buildHistoryList({
+  required List<dynamic> items,
+  required String emptyMessage,
+  required IconData emptyIcon,
+  required Color emptyColor,
+}) {
+  if (items.isEmpty) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(emptyIcon,
+              size: 48, color: emptyColor.withValues(alpha: 0.4)),
+          const SizedBox(height: 12),
+          Text(
+            emptyMessage,
+            style: const TextStyle(
+              color: AppColors.textLight,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Total history loaded: ${_historyTransactions.length}',
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textLight),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _summaryChip(String count, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionHeader(
+          title: _activeTab == 'approved'
+              ? 'Recently Approved'
+              : 'Recently Rejected',
         ),
-        child: Column(
-          children: [
-            Text(
-              count,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+        const SizedBox(height: 8),
+        ...items.map((tx) =>
+            _HistoryTxCard(tx: tx as Map<String, dynamic>)),
+      ],
+    );
+  }
+
+  Widget _summaryChip(
+    String count,
+    String label,
+    Color color, {
+    bool isActive = false,
+    VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive
+                ? color.withValues(alpha: 0.18)
+                : color.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive
+                  ? color
+                  : color.withValues(alpha: 0.25),
+              width: isActive ? 2 : 1,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
+          ),
+          child: Column(
+            children: [
+              Text(
+                count,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1357,6 +1586,239 @@ class _PendingTxCard extends StatelessWidget {
   }
 }
 
+// ── History transaction card (read-only, shows status) ────────────────────────
+
+class _HistoryTxCard extends StatelessWidget {
+  const _HistoryTxCard({required this.tx});
+  final Map<String, dynamic> tx;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = tx['title']?.toString() ?? 'Entry';
+    final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+    final type = tx['type']?.toString() ?? '';
+    final approvalStatus = tx['approvalStatus']?.toString() ?? '';
+    final createdByName =
+        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)
+                ?.toString() ??
+            'Unknown';
+    final projectName =
+        (tx['project'] is Map ? tx['project']['projectName'] : null)
+                ?.toString() ??
+            'Unknown Project';
+    final approvedByName =
+        (tx['approvedBy'] is Map ? tx['approvedBy']['name'] : null)
+                ?.toString();
+    final rejectionReason = tx['rejectionReason']?.toString() ?? '';
+
+    String dateStr = '';
+    final rawDate = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
+    if (rawDate != null) {
+      try {
+        final d = DateTime.parse(rawDate.toString());
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
+      } catch (_) {}
+    }
+
+    final bool isApproved = approvalStatus == 'Approved';
+
+    IconData typeIcon;
+    Color typeColor;
+    switch (type.toLowerCase()) {
+      case 'wages':
+        typeIcon = Icons.people_outlined;
+        typeColor = const Color(0xFF2E7D32);
+        break;
+      case 'expense':
+        typeIcon = Icons.precision_manufacturing_outlined;
+        typeColor = const Color(0xFFE65100);
+        break;
+      default:
+        typeIcon = Icons.category_outlined;
+        typeColor = AppColors.primary;
+    }
+
+    final statusColor = isApproved
+        ? const Color(0xFF059669)
+        : Colors.red;
+    final statusBg = isApproved
+        ? const Color(0xFFD1FAE5)
+        : const Color(0xFFFFEEEE);
+    final statusIcon = isApproved
+        ? Icons.check_circle_rounded
+        : Icons.cancel_rounded;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: statusColor.withValues(alpha: 0.2),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(typeIcon, color: typeColor, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        createdByName,
+                        style: const TextStyle(
+                            fontSize: 11.5, color: AppColors.textLight),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '₹${amount.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon,
+                              size: 11, color: statusColor),
+                          const SizedBox(width: 3),
+                          Text(
+                            approvalStatus,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.folder_outlined,
+                    size: 12, color: AppColors.textLight),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    projectName,
+                    style: const TextStyle(
+                        fontSize: 11.5, color: AppColors.textLight),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (dateStr.isNotEmpty) ...[
+                  const Icon(Icons.calendar_today_outlined,
+                      size: 11, color: AppColors.textLight),
+                  const SizedBox(width: 3),
+                  Text(dateStr,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textLight)),
+                ],
+              ],
+            ),
+            if (approvedByName != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(statusIcon, size: 11, color: statusColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    isApproved
+                        ? 'Approved by $approvedByName'
+                        : 'Rejected by $approvedByName',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: statusColor,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ],
+            if (!isApproved &&
+                rejectionReason.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.15)),
+                ),
+                child: Text(
+                  'Reason: $rejectionReason',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 
 // MASON DASHBOARD (TASK 3 UPDATED)
