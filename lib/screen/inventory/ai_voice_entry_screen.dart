@@ -235,7 +235,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (_sessionMemory['projectId'] != null) {
       _data.projectId = _sessionMemory['projectId'];
       _data.projectName = _sessionMemory['projectName'];
-    } else {
+    } else if (_projects.length == 1) {
       _data.projectId = UserSession.projectId;
       if (_data.projectId != null && _data.projectId!.isNotEmpty) {
         final match = _projects.cast<ProjectModel?>().firstWhere(
