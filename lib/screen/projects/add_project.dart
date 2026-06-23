@@ -2243,12 +2243,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             onPressed: () {
               final name = _customStageNameCtrl.text.trim();
               if (name.isEmpty) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
               setState(
                 () =>
                     _phases.add(ConstructionPhase(name: name, isCustom: true)),
               );
-              FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
@@ -2319,6 +2319,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             onPressed: () {
               final name = ctrl.text.trim();
               if (name.isEmpty) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
               setState(
                 () => phase.activities.add(
                   ConstructionActivity(
@@ -2328,8 +2330,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   ),
                 ),
               );
-              FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
