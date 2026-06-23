@@ -13,6 +13,21 @@ import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 
+class _EntryOption {
+  const _EntryOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.route,
+    required this.type,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String route;
+  final String type;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
@@ -355,6 +370,179 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
+}
+
+// ── Entry Type Selector (shared by all dashboard variants) ──────────────────
+Widget _voiceEntryOption({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+}) {
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E5FF)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF0FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: const Color(0xFF4A6CF7), size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1D2E),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8E92A9),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFC0C3D6),
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showEntryTypeSelector(BuildContext context) {
+  const options = <_EntryOption>[
+    _EntryOption(
+      icon: Icons.inventory_2_outlined,
+      title: 'Material Entry',
+      subtitle: 'Add material purchases, usage and inventory updates',
+      route: '/review-material',
+      type: 'material',
+    ),
+    _EntryOption(
+      icon: Icons.engineering_outlined,
+      title: 'Labour Entry',
+      subtitle: 'Add worker attendance, labour work and labour costs',
+      route: '/review-labour',
+      type: 'labour',
+    ),
+    _EntryOption(
+      icon: Icons.precision_manufacturing_outlined,
+      title: 'Equipment Entry',
+      subtitle: 'Add equipment usage, machine hours and equipment expenses',
+      route: '/review-equipment',
+      type: 'equipment',
+    ),
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDE0F0),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Entry Type',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1A1D2E),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Choose what you want to update',
+                style: TextStyle(color: Color(0xFF8E92A9), fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              for (final opt in options)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _voiceEntryOption(
+                    icon: opt.icon,
+                    title: opt.title,
+                    subtitle: opt.subtitle,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.pushNamed(
+                        context,
+                        opt.route,
+                        arguments: {'type': opt.type},
+                      );
+                    },
+                  ),
+                ),
+              InkWell(
+                onTap: () => Navigator.pop(ctx),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 10,
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF8E92A9),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 // ADMIN DASHBOARD
@@ -722,7 +910,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/review-material'),
+        onTap: () => _showEntryTypeSelector(context),
         borderRadius: BorderRadius.circular(18),
         splashColor: Colors.white.withValues(alpha: 0.15),
         child: Ink(
