@@ -887,6 +887,23 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> fetchApprovalsHistory() async {
+  try {
+    final response = await get('/approvals/history');
+    if (kDebugMode) {
+      print('fetchApprovalsHistory status: ${response.statusCode}');
+      print('fetchApprovalsHistory body: ${response.body}');
+    }
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    }
+    return null;
+  } catch (e) {
+    if (kDebugMode) print('fetchApprovalsHistory error: $e');
+    return null;
+  }
+}
+
   static Future<bool> approveTransaction(String txId) async {
     try {
       final response = await put('/transactions/$txId/approve', {});
