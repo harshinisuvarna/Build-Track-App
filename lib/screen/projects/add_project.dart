@@ -455,6 +455,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             const SizedBox(height: 16),
             Expanded(
               child: SingleChildScrollView(
+                key: const PageStorageKey<String>('add_project_scroll_key'),
                 controller: _scrollController,
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
@@ -2226,7 +2227,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
+            },
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -2239,11 +2243,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             onPressed: () {
               final name = _customStageNameCtrl.text.trim();
               if (name.isEmpty) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
               setState(
                 () =>
                     _phases.add(ConstructionPhase(name: name, isCustom: true)),
               );
-              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
@@ -2298,7 +2303,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
+            },
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -2311,6 +2319,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             onPressed: () {
               final name = ctrl.text.trim();
               if (name.isEmpty) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(ctx);
               setState(
                 () => phase.activities.add(
                   ConstructionActivity(
@@ -2320,7 +2330,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   ),
                 ),
               );
-              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
