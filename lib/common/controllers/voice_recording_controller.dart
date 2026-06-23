@@ -83,6 +83,11 @@ class VoiceRecordingController extends ChangeNotifier {
     return _sttInitialised;
   }
 
+  /// Pre-initialize the speech-to-text engine to minimize latency when recording starts.
+  Future<bool> preInitialize() async {
+    return _ensureInitialised();
+  }
+
   void _onSoundLevel(double level) {
     _soundLevel = level;
     notifyListeners();
@@ -106,6 +111,10 @@ class VoiceRecordingController extends ChangeNotifier {
       _setEngineState(VoiceEngineState.error);
       return;
     }
+
+    try {
+      await _stt.cancel();
+    } catch (_) {}
 
     _setEngineState(VoiceEngineState.listening);
     _sessionTimer?.cancel();
@@ -255,6 +264,10 @@ class VoiceRecordingController extends ChangeNotifier {
       return;
     }
     _parsedEmitted = true;
+    if (_finalTranscript.isEmpty && _partialTranscript.isNotEmpty) {
+      debugPrint('[VOICE] _emitParsed: fallback transcript copied from partial: "$_partialTranscript"');
+      _finalTranscript = _partialTranscript;
+    }
     _setEngineState(VoiceEngineState.parsed);
   }
 

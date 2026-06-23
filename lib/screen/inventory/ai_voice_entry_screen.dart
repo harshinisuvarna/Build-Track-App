@@ -341,6 +341,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     _voiceCtrl = VoiceRecordingController();
     _voiceCtrl.addListener(_onVoiceChanged);
+    _voiceCtrl.preInitialize(); // Pre-initialize STT so it starts instantly on tap
   }
 
   @override
@@ -376,15 +377,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // Build initial response model from session
     _rebuildResponse();
-
-    // Auto-start initial voice entry recording on screen load
-    if (_rawTranscript.isEmpty &&
-        _voiceCtrl.engineState == VoiceEngineState.idle) {
-      setState(() => _status = VoiceStatus.listening);
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) _startInitialRecording();
-      });
-    }
   }
 
   @override
@@ -453,7 +445,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (!mounted) return;
 
     final state = _voiceCtrl.engineState;
-    final text = _voiceCtrl.finalTranscript.trim();
+    final text = _voiceCtrl.finalTranscript.trim().isNotEmpty
+        ? _voiceCtrl.finalTranscript.trim()
+        : _voiceCtrl.partialTranscript.trim();
     final partial = _voiceCtrl.partialTranscript;
 
     // Always sync partial transcript for live preview
@@ -545,14 +539,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   void _restartInitialRecording() {
     if (!mounted) return;
-    setState(() => _status = VoiceStatus.listening);
-    _startInitialRecording();
+    setState(() {
+      _status = VoiceStatus.idle;
+      _rebuildResponse();
+    });
   }
 
   // ─── Recording control helpers ────────────────────────────────────────────────
   Future<void> _startInitialRecording() async {
     print("Listening: true");
     print("Recording: true");
+    setState(() {
+      _status = VoiceStatus.listening;
+      _rebuildResponse();
+    });
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
   }
@@ -574,6 +574,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // Step 1 — stop the microphone
     debugPrint('[VOICE] Stop & Analyze pressed');
     await _voiceCtrl.stopListening();
+    // Allow the speech engine a small moment to flush the final recognized words
+    await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
 
     // Step 2 — capture transcript directly (before any reset)
@@ -741,6 +743,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
       _parseTranscriptInto(temp, _partialAnswer);
       return temp;
+    } else if (_status == VoiceStatus.waitingForUser &&
+        _voiceCtrl.isListening &&
+        _partialAnswer.isNotEmpty) {
+      final tempMap = Map<String, dynamic>.from(_detectedFields);
+      final field = _activeField;
+      if (field != null) {
+        _applyAnswerForFieldToMap(tempMap, field, _partialAnswer);
+      }
+      return _ExtractedData(tempMap);
     }
     return _data;
   }
@@ -1158,15 +1169,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
     _scrollToBottom();
-
-    // Auto-start listening for the next answer
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted &&
-          _status == VoiceStatus.waitingForUser &&
-          !_isListeningForAnswer) {
-        _startAnswerListening();
-      }
-    });
   }
 
   // ─── Rebuild _response model from internal state ──────────────────────────────
@@ -1373,17 +1375,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       // 1. Stop the microphone (transitions state to processing)
       await _voiceCtrl.stopListening();
       debugPrint('[VOICE] _stopAnswerListening: mic stopped');
+      // Allow the speech engine a small moment to flush the final recognized words
+      await Future.delayed(const Duration(milliseconds: 250));
       if (!mounted) { _isProcessing = false; return; }
 
-      // 2. Reset STT engine for next listen (cancel() without changing state)
-      await _voiceCtrl.resetEngine();
-      debugPrint('[VOICE] _stopAnswerListening: engine reset');
-
-      // 3. Capture answer transcript
+      // 2. Capture answer transcript FIRST before resetting the engine!
       final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
           ? _voiceCtrl.finalTranscript.trim()
           : _voiceCtrl.partialTranscript.trim();
       debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
+
+      // 3. Reset STT engine for next listen (cancel() without changing state)
+      await _voiceCtrl.resetEngine();
+      debugPrint('[VOICE] _stopAnswerListening: engine reset');
 
       _isListeningForAnswer = false;
       _cancelAllTimers();
@@ -1494,173 +1498,178 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   void _applyAnswerForField(String field, String text) {
-    final t = text.toLowerCase().trim();
     setState(() {
-      switch (field) {
-        case 'Project':
-          final match = _projects.cast<ProjectModel?>().firstWhere(
-            (p) =>
-                p!.name.toLowerCase().contains(t) ||
-                t.contains(p.name.toLowerCase()),
-            orElse: () => null,
-          );
-          if (match != null) {
-            _data.projectId = match.id;
-            _data.projectName = match.name;
-          } else {
-            _data.projectName = text.trim();
-          }
-          break;
-
-        case 'Floor':
-          if (t.contains('ground') || t == 'g') {
-            _data.floor = 'Ground Floor';
-          } else if (t.contains('basement') || t == 'b') {
-            _data.floor = 'Basement';
-          } else if (t.contains('1') || t.contains('first') || t == '1st') {
-            _data.floor = '1st Floor';
-          } else if (t.contains('2') || t.contains('second') || t == '2nd') {
-            _data.floor = '2nd Floor';
-          } else if (t.contains('3') || t.contains('third') || t == '3rd') {
-            _data.floor = '3rd Floor';
-          } else if (t.contains('terrace') || t.contains('roof')) {
-            _data.floor = 'Terrace';
-          } else {
-            _data.floor = text.trim();
-          }
-          break;
-
-        case 'Phase':
-          _data.phase = text.trim();
-          break;
-
-        case 'Activity':
-          _data.activity = text.trim();
-          break;
-
-        case 'Labour Type':
-          _data.workType = text.trim();
-          if (_data.workerCount != null) {
-            _data.itemName = '${_data.workerCount} ${_data.workType}s';
-          } else {
-            _data.itemName = '${_data.workType} Team';
-          }
-          break;
-
-        case 'Worker Count':
-          final num = RegExp(r'(\d+)').firstMatch(t);
-          if (num != null) {
-            _data.workerCount = int.tryParse(num.group(1) ?? '');
-          }
-          if (_data.workType != null && _data.workerCount != null) {
-            _data.itemName = '${_data.workerCount} ${_data.workType}s';
-          }
-          break;
-
-        case 'Hours':
-          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (num != null) {
-            final val = double.tryParse(num.group(1) ?? '');
-            if (_entryType == 'labour') {
-              _data.hours = val;
-            } else {
-              _data.quantity = val;
-            }
-          }
-          break;
-
-        case 'Equipment':
-          _data.itemName = text.trim();
-          break;
-
-        case 'Fuel':
-          if (t.contains('no') ||
-              t.contains('none') ||
-              t.contains('zero') ||
-              t == '0') {
-            _data.fuelCost = 0;
-          } else {
-            final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-            if (num != null) {
-              _data.fuelCost = double.tryParse(num.group(1) ?? '');
-            }
-          }
-          break;
-
-        case 'Quantity':
-          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (num != null) {
-            _data.quantity = double.tryParse(num.group(0) ?? '');
-          }
-          break;
-
-        case 'Unit':
-          const unitMap = {
-            'bag': 'Bags',
-            'bags': 'Bags',
-            'kg': 'Kg',
-            'kilo': 'Kg',
-            'ton': 'Tons',
-            'tons': 'Tons',
-            'sqft': 'Sqft',
-            'square feet': 'Sqft',
-            'hour': 'Hours',
-            'hours': 'Hours',
-            'hr': 'Hours',
-            'hrs': 'Hours',
-            'day': 'Days',
-            'days': 'Days',
-            'nos': 'Nos',
-            'piece': 'Nos',
-            'pieces': 'Nos',
-            'ltr': 'Ltrs',
-            'litres': 'Ltrs',
-            'liters': 'Ltrs',
-            'cum': 'Cum',
-            'cubic': 'Cum',
-          };
-          bool found = false;
-          for (final entry in unitMap.entries) {
-            if (t.contains(entry.key)) {
-              _data.unit = entry.value;
-              found = true;
-              break;
-            }
-          }
-          if (!found) _data.unit = text.trim();
-          break;
-
-        case 'Rate':
-          final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (rateNum != null) {
-            _data.rate = double.tryParse(rateNum.group(0) ?? '');
-          }
-          break;
-
-        case 'Brand':
-          _data.brand = text.trim();
-          break;
-
-        default:
-          break;
-      }
-      // Extract fields from answer text into a temp object, then merge only NEW keys
-      // (never overwrite existing detected fields)
-      if (text.isNotEmpty) {
-        final tempFields = <String, dynamic>{};
-        final tempData = _ExtractedData(tempFields);
-        _parseTranscriptInto(tempData, text);
-        tempFields.forEach((key, value) {
-          if (!_detectedFields.containsKey(key) && value != null) {
-            _detectedFields[key] = value;
-          }
-        });
-      }
+      _applyAnswerForFieldToMap(_detectedFields, field, text);
       _rebuildResponse();
       debugPrint(
         '[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}',
       );
     });
+  }
+
+  void _applyAnswerForFieldToMap(Map<String, dynamic> fields, String field, String text) {
+    final t = text.toLowerCase().trim();
+    final data = _ExtractedData(fields);
+    switch (field) {
+      case 'Project':
+        final match = _projects.cast<ProjectModel?>().firstWhere(
+          (p) =>
+              p!.name.toLowerCase().contains(t) ||
+              t.contains(p.name.toLowerCase()),
+          orElse: () => null,
+        );
+        if (match != null) {
+          data.projectId = match.id;
+          data.projectName = match.name;
+        } else {
+          data.projectName = text.trim();
+        }
+        break;
+
+      case 'Floor':
+        if (t.contains('ground') || t == 'g') {
+          data.floor = 'Ground Floor';
+        } else if (t.contains('basement') || t == 'b') {
+          data.floor = 'Basement';
+        } else if (t.contains('1') || t.contains('first') || t == '1st') {
+          data.floor = '1st Floor';
+        } else if (t.contains('2') || t.contains('second') || t == '2nd') {
+          data.floor = '2nd Floor';
+        } else if (t.contains('3') || t.contains('third') || t == '3rd') {
+          data.floor = '3rd Floor';
+        } else if (t.contains('terrace') || t.contains('roof')) {
+          data.floor = 'Terrace';
+        } else {
+          data.floor = text.trim();
+        }
+        break;
+
+      case 'Phase':
+        data.phase = text.trim();
+        break;
+
+      case 'Activity':
+        data.activity = text.trim();
+        break;
+
+      case 'Labour Type':
+        data.workType = text.trim();
+        if (data.workerCount != null) {
+          data.itemName = '${data.workerCount} ${data.workType}s';
+        } else {
+          data.itemName = '${data.workType} Team';
+        }
+        break;
+
+      case 'Worker Count':
+        final num = RegExp(r'(\d+)').firstMatch(t);
+        if (num != null) {
+          data.workerCount = int.tryParse(num.group(1) ?? '');
+        }
+        if (data.workType != null && data.workerCount != null) {
+          data.itemName = '${data.workerCount} ${data.workType}s';
+        }
+        break;
+
+      case 'Hours':
+        final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (num != null) {
+          final val = double.tryParse(num.group(1) ?? '');
+          if (_entryType == 'labour') {
+            data.hours = val;
+          } else {
+            data.quantity = val;
+          }
+        }
+        break;
+
+      case 'Equipment':
+        data.itemName = text.trim();
+        break;
+
+      case 'Fuel':
+        if (t.contains('no') ||
+            t.contains('none') ||
+            t.contains('zero') ||
+            t == '0') {
+          data.fuelCost = 0;
+        } else {
+          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+          if (num != null) {
+            data.fuelCost = double.tryParse(num.group(1) ?? '');
+          }
+        }
+        break;
+
+      case 'Quantity':
+        final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (num != null) {
+          data.quantity = double.tryParse(num.group(0) ?? '');
+        }
+        break;
+
+      case 'Unit':
+        const unitMap = {
+          'bag': 'Bags',
+          'bags': 'Bags',
+          'kg': 'Kg',
+          'kilo': 'Kg',
+          'ton': 'Tons',
+          'tons': 'Tons',
+          'sqft': 'Sqft',
+          'square feet': 'Sqft',
+          'hour': 'Hours',
+          'hours': 'Hours',
+          'hr': 'Hours',
+          'hrs': 'Hours',
+          'day': 'Days',
+          'days': 'Days',
+          'nos': 'Nos',
+          'piece': 'Nos',
+          'pieces': 'Nos',
+          'ltr': 'Ltrs',
+          'litres': 'Ltrs',
+          'liters': 'Ltrs',
+          'cum': 'Cum',
+          'cubic': 'Cum',
+        };
+        bool found = false;
+        for (final entry in unitMap.entries) {
+          if (t.contains(entry.key)) {
+            data.unit = entry.value;
+            found = true;
+            break;
+          }
+        }
+        if (!found) data.unit = text.trim();
+        break;
+
+      case 'Rate':
+        final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (rateNum != null) {
+          data.rate = double.tryParse(rateNum.group(0) ?? '');
+        }
+        break;
+
+      case 'Brand':
+        data.brand = text.trim();
+        break;
+
+      default:
+        break;
+    }
+    // Extract fields from answer text into a temp object, then merge only NEW keys
+    // (never overwrite existing detected fields)
+    if (text.isNotEmpty) {
+      final tempFields = <String, dynamic>{};
+      final tempData = _ExtractedData(tempFields);
+      _parseTranscriptInto(tempData, text);
+      tempFields.forEach((key, value) {
+        if (!fields.containsKey(key) && value != null) {
+          fields[key] = value;
+        }
+      });
+    }
   }
 
   // ─── Go to summary ────────────────────────────────────────────────────────────
