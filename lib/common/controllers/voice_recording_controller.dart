@@ -169,6 +169,22 @@ class VoiceRecordingController extends ChangeNotifier {
     _setEngineState(VoiceEngineState.idle);
   }
 
+  // ─── Reset STT engine without changing state ─────────────────────────────
+  // Calls stt.cancel() to properly reset the recognizer for the next listen()
+  // without reverting the state machine. This avoids the stale recognizer bug
+  // where notListening fires immediately after a new listen() call.
+  Future<void> resetEngine() async {
+    _forceParsedTimer?.cancel();
+    _sessionTimer?.cancel();
+    _partialTranscript = '';
+    _finalTranscript   = '';
+    _errorMessage      = '';
+    _elapsedSeconds    = 0;
+    debugPrint('[VOICE] resetEngine: cancelling STT (state=$_engineState)');
+    await _stt.cancel();
+    debugPrint('[VOICE] resetEngine: done (state=$_engineState)');
+  }
+
   // ─── STT Callbacks ────────────────────────────────────────────────────────
 
   void _onResult(SpeechRecognitionResult result) {

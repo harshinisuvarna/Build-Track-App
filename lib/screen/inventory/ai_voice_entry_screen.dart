@@ -313,6 +313,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ── Processing stages ─────────────────────────────────────────────────────────
   int _processingStage = 0;
   Timer? _processingTimer;
+  Timer? _answerTimeoutTimer;
 
   @override
   void initState() {
@@ -398,6 +399,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _focusNode.dispose();
     _scrollCtrl.dispose();
     _processingTimer?.cancel();
+    _answerTimeoutTimer?.cancel();
     _disposeEditControllers();
     super.dispose();
   }
@@ -417,6 +419,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   void _cancelAllTimers() {
     _processingTimer?.cancel();
     _processingTimer = null;
+    _answerTimeoutTimer?.cancel();
+    _answerTimeoutTimer = null;
+  }
+
+  // ─── 30-second answer timeout ───────────────────────────────────────────────
+  void _startAnswerTimeout() {
+    _answerTimeoutTimer?.cancel();
+    _answerTimeoutTimer = Timer(const Duration(seconds: 30), () {
+      debugPrint('[VOICE] Answer timeout reached — auto-stopping');
+      if (_isListeningForAnswer && !_isProcessing && mounted) {
+        _stopAnswerListening();
+      }
+    });
   }
 
   // ─── Speech failed — recover without losing detected fields ─────────────────
@@ -470,6 +485,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
       // Answer listening (user responding to an AI question)
       if (_isListeningForAnswer) {
+        if (_isProcessing) {
+          debugPrint('[VOICE] Parsed while processing — ignoring');
+          return;
+        }
         _isListeningForAnswer = false;
         debugPrint('[VOICE] Answer listening stopped');
         if (text.isNotEmpty) {
@@ -490,6 +509,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
     if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
       if (_isListeningForAnswer) {
+        if (_isProcessing) {
+          debugPrint('[VOICE] $state while processing — ignoring');
+          return;
+        }
         debugPrint(
           '[VOICE] Engine went $state while waiting for answer — unsticking',
         );
@@ -606,10 +629,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return;
     }
     _isProcessing = true;
-    debugPrint('[AI] Begin processing, transcript="$_rawTranscript"');
+    debugPrint('[AI] PROCESSING: begin, transcript="$_rawTranscript"');
 
     _cancelAllTimers();
-    if (!mounted) return;
+    if (!mounted) {
+      _isProcessing = false;
+      return;
+    }
 
     setState(() {
       _status = VoiceStatus.processing;
@@ -639,18 +665,30 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
 
-    // 3-second processing timeout safeguard
-    Future.delayed(const Duration(seconds: 3), () {
+    // 5-second processing timeout safeguard
+    Future.delayed(const Duration(seconds: 5), () {
       if (!mounted || _status != VoiceStatus.processing) return;
-      debugPrint('[AI] Processing timeout (3s) — forcing extraction');
+      debugPrint('[AI] Processing timeout (5s) — forcing extraction');
       _cancelAllTimers();
-      if (_rawTranscript.isEmpty) {
-        _rawTranscript = _voiceCtrl.finalTranscript.trim().isNotEmpty
-            ? _voiceCtrl.finalTranscript.trim()
-            : _voiceCtrl.partialTranscript.trim();
-        debugPrint('[AI] Fallback transcript: "$_rawTranscript"');
+      try {
+        if (_rawTranscript.isEmpty) {
+          _rawTranscript = _voiceCtrl.finalTranscript.trim().isNotEmpty
+              ? _voiceCtrl.finalTranscript.trim()
+              : _voiceCtrl.partialTranscript.trim();
+          debugPrint('[AI] Fallback transcript: "$_rawTranscript"');
+        }
+        _finishExtraction();
+      } catch (e, stack) {
+        debugPrint('[AI ERROR] Timeout extraction: $e');
+        debugPrint('[AI ERROR] $stack');
+        _isProcessing = false;
+        if (mounted) {
+          setState(() {
+            _status = VoiceStatus.waitingForUser;
+            _rebuildResponse();
+          });
+        }
       }
-      _finishExtraction();
     });
   }
 
@@ -659,8 +697,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     debugPrint('[AI] Raw transcript: "$_rawTranscript"');
     debugPrint('[AI] Detected fields before: $_detectedFields');
 
-    if (_rawTranscript.isNotEmpty) {
-      _parseTranscriptInto(_data, _rawTranscript);
+    try {
+      if (_rawTranscript.isNotEmpty) {
+        _parseTranscriptInto(_data, _rawTranscript);
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _finishExtraction parse: $e');
+      debugPrint('[AI ERROR] $stack');
     }
 
     debugPrint('[AI] Detected fields after: $_detectedFields');
@@ -1303,73 +1346,97 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Answer voice listener ────────────────────────────────────────────────────
   Future<void> _startAnswerListening() async {
+    if (_isProcessing) {
+      debugPrint('[VOICE] Processing in progress — not starting listening');
+      return;
+    }
     _isListeningForAnswer = true;
-    print("Listening: true");
-    print("Recording: true");
+    _startAnswerTimeout();
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
-    debugPrint('[AI DEBUG] _startAnswerListening: started, status=$_status');
+    debugPrint('[VOICE] _startAnswerListening: started, status=$_status');
   }
 
   // "Done Answering" — fully stops listening and refreshes all state
   Future<void> _stopAnswerListening() async {
-    debugPrint('[AI] _stopAnswerListening tapped');
+    debugPrint('[VOICE] _stopAnswerListening tapped');
 
     if (_isProcessing) {
-      debugPrint('[AI] Already processing — ignoring stop');
+      debugPrint('[VOICE] Already processing — ignoring stop');
       return;
     }
+    _isProcessing = true;
+    _answerTimeoutTimer?.cancel();
+    debugPrint('[VOICE] _stopAnswerListening: LOCKED processing');
 
-    // 1. Stop the microphone
-    await _voiceCtrl.stopListening();
-    if (!mounted) return;
+    try {
+      // 1. Stop the microphone (transitions state to processing)
+      await _voiceCtrl.stopListening();
+      debugPrint('[VOICE] _stopAnswerListening: mic stopped');
+      if (!mounted) { _isProcessing = false; return; }
 
-    // 2. CAPTURE ANSWER TRANSCRIPT BEFORE any cancel/reset
-    final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
-        ? _voiceCtrl.finalTranscript.trim()
-        : _voiceCtrl.partialTranscript.trim();
+      // 2. Reset STT engine for next listen (cancel() without changing state)
+      await _voiceCtrl.resetEngine();
+      debugPrint('[VOICE] _stopAnswerListening: engine reset');
 
-    debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
+      // 3. Capture answer transcript
+      final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
+          ? _voiceCtrl.finalTranscript.trim()
+          : _voiceCtrl.partialTranscript.trim();
+      debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
 
-    // 3. Now clean up the voice engine safely
-    await _voiceCtrl.cancelListening();
-    _voiceCtrl.reset();
+      _isListeningForAnswer = false;
+      _cancelAllTimers();
 
-    _isListeningForAnswer = false;
-    _cancelAllTimers();
+      // 4. If we have a transcript, merge it into detected data
+      if (answer.isNotEmpty) {
+        final field = _activeField;
+        if (field != null) {
+          debugPrint(
+            '[VOICE] Applying captured answer for field "$field": "$answer"',
+          );
+          _applyAnswerForField(field, answer);
+        }
+      } else {
+        debugPrint('[VOICE] _stopAnswerListening: empty transcript — still advancing');
+      }
 
-    // 4. If we have a transcript, merge it into detected data
-    if (answer.isNotEmpty) {
-      final field = _activeField;
-      if (field != null) {
-        debugPrint(
-          '[VOICE] Applying captured answer for field "$field": "$answer"',
-        );
-        _applyAnswerForField(field, answer);
+      // 5. Recalculate everything and refresh UI
+      if (!mounted) { _isProcessing = false; return; }
+      setState(() {
+        _partialAnswer = '';
+        _rebuildResponse();
+      });
+
+      final missing = _getStillNeededFieldsFor(_data);
+      debugPrint('[VOICE] After answer: detected=$_detectedFields, missing=$missing');
+
+      // 6. Advance conversation or show review
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _isProcessing = false;
+        debugPrint('[VOICE] _stopAnswerListening: releasing processing lock');
+        if (!mounted) return;
+        if (missing.isEmpty && _detectedFields.isNotEmpty) {
+          debugPrint('[VOICE] _stopAnswerListening: all fields → summary');
+          _goToSummary();
+        } else {
+          debugPrint('[VOICE] _stopAnswerListening: more fields needed → advancing');
+          _advanceToNextMissingField();
+        }
+      });
+    } catch (e, stack) {
+      debugPrint('[VOICE ERROR] _stopAnswerListening: $e');
+      debugPrint('[VOICE ERROR] $stack');
+      _isProcessing = false;
+      _isListeningForAnswer = false;
+      if (mounted) {
+        setState(() {
+          _status = VoiceStatus.waitingForUser;
+          _saveError = 'Error processing: $e';
+          _rebuildResponse();
+        });
       }
     }
-
-    // 5. Recalculate everything and refresh UI
-    if (!mounted) return;
-    setState(() {
-      _partialAnswer = '';
-      _rebuildResponse();
-    });
-
-    final missing = _getStillNeededFieldsFor(_data);
-    debugPrint(
-      '[AI] After answer: detected=$_detectedFields, missing=$missing',
-    );
-
-    // 6. Advance conversation or show review
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      if (missing.isEmpty && _detectedFields.isNotEmpty) {
-        _goToSummary();
-      } else {
-        _advanceToNextMissingField();
-      }
-    });
   }
 
   void _handleVoiceAnswer(String text) {
@@ -1378,10 +1445,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return;
     }
     _isProcessing = true;
-    final field = _activeField;
-    debugPrint('[AI] _handleVoiceAnswer: answer="$text", field=$field');
-    if (field != null) {
-      _applyAnswerForField(field, text);
+    debugPrint('[AI] TRANSCRIPT: answer="$text"');
+    try {
+      final field = _activeField;
+      debugPrint('[AI] _handleVoiceAnswer: field=$field');
+      if (field != null) {
+        _applyAnswerForField(field, text);
+        debugPrint('[AI] PROCESSING: applied answer to "$field"');
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _handleVoiceAnswer: $e');
+      debugPrint('[AI ERROR] $stack');
     }
     _isProcessing = false;
     debugPrint('[AI] After apply, missing: ${_getStillNeededFieldsFor(_data)}');
@@ -1400,10 +1474,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return;
     }
     _isProcessing = true;
+    debugPrint('[AI] TRANSCRIPT: typed answer="$text"');
     _textCtrl.clear();
-    final field = _activeField;
-    if (field != null) {
-      _applyAnswerForField(field, text.trim());
+    try {
+      final field = _activeField;
+      if (field != null) {
+        _applyAnswerForField(field, text.trim());
+        debugPrint('[AI] PROCESSING: applied typed answer to "$field"');
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _handleTypedAnswer: $e');
+      debugPrint('[AI ERROR] $stack');
     }
     _isProcessing = false;
     _focusNode.unfocus();
