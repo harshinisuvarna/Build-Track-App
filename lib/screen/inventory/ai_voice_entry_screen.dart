@@ -355,7 +355,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (_sessionMemory['projectId'] != null) {
       _detectedFields['Project ID'] = _sessionMemory['projectId'];
       _detectedFields['Project Name'] = _sessionMemory['projectName'];
-    } else {
+    } else if (_projects.length == 1) {
       final pid = UserSession.projectId;
       if (pid.isNotEmpty) {
         _detectedFields['Project ID'] = pid;
