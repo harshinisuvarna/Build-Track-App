@@ -102,8 +102,9 @@ abstract final class VoiceStatus {
 // Thin wrapper over Map<String, dynamic> so all existing `_data.xxx` calls work.
 class _ExtractedData {
   final Map<String, dynamic> _map;
+  final ProjectProvider? _projectProvider;
 
-  _ExtractedData(this._map);
+  _ExtractedData(this._map, [this._projectProvider]);
 
   String? get itemName => _map['Item Name'] as String?;
   set itemName(String? v) => _map['Item Name'] = v;
@@ -115,17 +116,35 @@ class _ExtractedData {
   set rate(double? v) => _map['Rate'] = v;
   String? get brand => _map['Brand'] as String?;
   set brand(String? v) => _map['Brand'] = v;
-  String? get projectId => _map['Project ID'] as String?;
+  
+  String? get projectId => _projectProvider != null
+      ? _projectProvider!.selectedProject?.id
+      : _map['Project ID'] as String?;
   set projectId(String? v) => _map['Project ID'] = v;
-  String? get projectName => _map['Project Name'] as String?;
+  
+  String? get projectName => _projectProvider != null
+      ? _projectProvider!.selectedProject?.name
+      : _map['Project Name'] as String?;
   set projectName(String? v) => _map['Project Name'] = v;
-  String? get floor => _map['Floor'] as String?;
+  
+  String? get floor => _projectProvider != null
+      ? _projectProvider!.selectedFloor
+      : _map['Floor'] as String?;
   set floor(String? v) => _map['Floor'] = v;
-  String? get phase => _map['Phase'] as String?;
+  
+  String? get phase => _projectProvider != null
+      ? _projectProvider!.selectedPhase
+      : _map['Phase'] as String?;
   set phase(String? v) => _map['Phase'] = v;
-  String? get phaseId => _map['Phase ID'] as String?;
+  
+  String? get phaseId => _projectProvider != null
+      ? _projectProvider!.selectedPhaseId
+      : _map['Phase ID'] as String?;
   set phaseId(String? v) => _map['Phase ID'] = v;
-  String? get activity => _map['Activity'] as String?;
+  
+  String? get activity => _projectProvider != null
+      ? _projectProvider!.selectedActivity
+      : _map['Activity'] as String?;
   set activity(String? v) => _map['Activity'] = v;
   int? get workerCount => _map['Worker Count'] as int?;
   set workerCount(int? v) => _map['Worker Count'] = v;
@@ -224,16 +243,6 @@ class AiVoiceEntryScreen extends StatefulWidget {
 
 class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     with TickerProviderStateMixin {
-  // ── Conversational Session Memory ──────────────────────────────────────────
-  static final Map<String, dynamic> _sessionMemory = {
-    'projectId': null,
-    'projectName': null,
-    'floor': null,
-    'phase': null,
-    'phaseId': null,
-    'activity': null,
-  };
-
   // ── Entry type ───────────────────────────────────────────────────────────────
   late String _entryType; // 'material' | 'labour' | 'equipment'
 
@@ -247,7 +256,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   final Map<String, dynamic> _detectedFields = {};
 
   // ── Data wrappers ─────────────────────────────────────────────────────────────
-  _ExtractedData get _data => _ExtractedData(_detectedFields);
+  _ExtractedData get _data => _ExtractedData(
+        _detectedFields,
+        Provider.of<ProjectProvider>(context, listen: false),
+      );
   String _rawTranscript = '';
 
   // ── Session phase (single source of truth state machine) ──────────────────────
@@ -351,31 +363,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _entryType = (args?['type'] as String?) ?? 'material';
 
-    // Pre-populate project and other context from static session memory first
-    if (_sessionMemory['projectId'] != null) {
-      _detectedFields['Project ID'] = _sessionMemory['projectId'];
-      _detectedFields['Project Name'] = _sessionMemory['projectName'];
-    } else if (_projects.length == 1) {
-      final pid = UserSession.projectId;
-      if (pid.isNotEmpty) {
-        _detectedFields['Project ID'] = pid;
-        final match = _projects.cast<ProjectModel?>().firstWhere(
-          (p) => p?.id == pid,
-          orElse: () => null,
-        );
-        _detectedFields['Project Name'] = match?.name;
-      }
-    }
-    if (_sessionMemory['floor'] != null)
-      _detectedFields['Floor'] = _sessionMemory['floor'];
-    if (_sessionMemory['phase'] != null)
-      _detectedFields['Phase'] = _sessionMemory['phase'];
-    if (_sessionMemory['phaseId'] != null)
-      _detectedFields['Phase ID'] = _sessionMemory['phaseId'];
-    if (_sessionMemory['activity'] != null)
-      _detectedFields['Activity'] = _sessionMemory['activity'];
-
-    // Build initial response model from session
+    // Build initial response model
     _rebuildResponse();
   }
 
@@ -396,16 +384,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     super.dispose();
   }
 
-  // ─── Example Phrases ──────────────────────────────────────────────────────────
-  String get _examplePhrase {
-    if (_entryType == 'material') {
-      return '20 bags of UltraTech cement for foundation work on first floor';
-    } else if (_entryType == 'labour') {
-      return '8 masons worked today for 6 hours on brick laying';
-    } else {
-      return 'JCB worked 5 hours today for excavation';
-    }
-  }
+
 
   // ─── Cancel all orphanable timers ──────────────────────────────────────────────
   void _cancelAllTimers() {
@@ -501,18 +480,36 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
-    if (state == VoiceEngineState.idle || state == VoiceEngineState.error) {
+    if (state == VoiceEngineState.error) {
+      debugPrint('[VOICE ERROR] Engine error: ${_voiceCtrl.errorMessage}');
+      if (mounted) {
+        setState(() {
+          _saveError = _voiceCtrl.errorMessage;
+          _status = VoiceStatus.idle;
+          _isListeningForAnswer = false;
+          _rebuildResponse();
+        });
+      }
+      return;
+    }
+
+    if (state == VoiceEngineState.idle) {
       if (_isListeningForAnswer) {
         if (_isProcessing) {
-          debugPrint('[VOICE] $state while processing — ignoring');
+          debugPrint('[VOICE] idle while processing — ignoring');
           return;
         }
         debugPrint(
-          '[VOICE] Engine went $state while waiting for answer — unsticking',
+          '[VOICE] Engine went idle while waiting for answer — unsticking',
         );
         _isListeningForAnswer = false;
         _unstickListening();
         return;
+      } else if (_status == VoiceStatus.listening) {
+        setState(() {
+          _status = VoiceStatus.idle;
+          _rebuildResponse();
+        });
       }
     }
 
@@ -551,6 +548,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     print("Recording: true");
     setState(() {
       _status = VoiceStatus.listening;
+      _saveError = null;
       _rebuildResponse();
     });
     await _voiceCtrl.startListening();
@@ -620,13 +618,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.vendorName = null;
       _rawTranscript = '';
       _partialAnswer = '';
-
-      _sessionMemory['projectId'] = null;
-      _sessionMemory['projectName'] = null;
-      _sessionMemory['floor'] = null;
-      _sessionMemory['phase'] = null;
-      _sessionMemory['phaseId'] = null;
-      _sessionMemory['activity'] = null;
       _rebuildResponse();
     });
   }
@@ -736,17 +727,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         _voiceCtrl.isListening &&
         _partialAnswer.isNotEmpty) {
       final tempMap = <String, dynamic>{};
-      final temp = _ExtractedData(tempMap);
-      if (_sessionMemory['projectId'] != null) {
-        temp.projectId = _sessionMemory['projectId'];
-        temp.projectName = _sessionMemory['projectName'];
-      }
-      if (_sessionMemory['floor'] != null) temp.floor = _sessionMemory['floor'];
-      if (_sessionMemory['phase'] != null) temp.phase = _sessionMemory['phase'];
-      if (_sessionMemory['phaseId'] != null)
-        temp.phaseId = _sessionMemory['phaseId'];
-      if (_sessionMemory['activity'] != null)
-        temp.activity = _sessionMemory['activity'];
+      final temp = _ExtractedData(
+        tempMap,
+        Provider.of<ProjectProvider>(context, listen: false),
+      );
 
       _parseTranscriptInto(temp, _partialAnswer);
       return temp;
@@ -1068,58 +1052,64 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ── Floor ─────────────────────────────────────────────────────────────────
-    if (t.contains('basement')) {
-      data.floor = 'Basement';
-    } else if (t.contains('ground floor') || t.contains('g floor')) {
-      data.floor = 'Ground Floor';
-    } else if (t.contains('1st') || t.contains('first floor')) {
-      data.floor = '1st Floor';
-    } else if (t.contains('2nd') || t.contains('second floor')) {
-      data.floor = '2nd Floor';
-    } else if (t.contains('3rd') || t.contains('third floor')) {
-      data.floor = '3rd Floor';
-    } else if (t.contains('terrace') || t.contains('roof')) {
-      data.floor = 'Terrace';
-    }
-
-    // ── Phase / Activity ──────────────────────────────────────────────────────
-    const phaseKeywords = [
-      'foundation',
-      'structural',
-      'plumbing',
-      'electrical',
-      'finishing',
-      'roofing',
-      'excavation',
-      'superstructure',
-    ];
-    for (final p in phaseKeywords) {
-      if (t.contains(p)) {
-        data.phase = '${p[0].toUpperCase()}${p.substring(1)} Work';
-        break;
+    if (data.floor == null || data.floor!.trim().isEmpty) {
+      if (t.contains('basement')) {
+        data.floor = 'Basement';
+      } else if (t.contains('ground floor') || t.contains('g floor')) {
+        data.floor = 'Ground Floor';
+      } else if (t.contains('1st') || t.contains('first floor')) {
+        data.floor = '1st Floor';
+      } else if (t.contains('2nd') || t.contains('second floor')) {
+        data.floor = '2nd Floor';
+      } else if (t.contains('3rd') || t.contains('third floor')) {
+        data.floor = '3rd Floor';
+      } else if (t.contains('terrace') || t.contains('roof')) {
+        data.floor = 'Terrace';
       }
     }
 
-    const activityKeywords = {
-      'column casting': 'Column Casting',
-      'beam casting': 'Beam Casting',
-      'slab': 'Slab Work',
-      'pcc': 'PCC',
-      'footing': 'Footing Work',
-      'block work': 'Block Work',
-      'brick laying': 'Brick Laying',
-      'plastering': 'Plastering',
-      'tile': 'Tiling',
-      'plumbing': 'Plumbing',
-      'wiring': 'Wiring',
-      'painting': 'Painting',
-      'excavation': 'Excavation',
-      'backfilling': 'Backfilling',
-    };
-    for (final entry in activityKeywords.entries) {
-      if (t.contains(entry.key)) {
-        data.activity = entry.value;
-        break;
+    // ── Phase / Activity ──────────────────────────────────────────────────────
+    if (data.phase == null || data.phase!.trim().isEmpty) {
+      const phaseKeywords = [
+        'foundation',
+        'structural',
+        'plumbing',
+        'electrical',
+        'finishing',
+        'roofing',
+        'excavation',
+        'superstructure',
+      ];
+      for (final p in phaseKeywords) {
+        if (t.contains(p)) {
+          data.phase = '${p[0].toUpperCase()}${p.substring(1)} Work';
+          break;
+        }
+      }
+    }
+
+    if (data.activity == null || data.activity!.trim().isEmpty) {
+      const activityKeywords = {
+        'column casting': 'Column Casting',
+        'beam casting': 'Beam Casting',
+        'slab': 'Slab Work',
+        'pcc': 'PCC',
+        'footing': 'Footing Work',
+        'block work': 'Block Work',
+        'brick laying': 'Brick Laying',
+        'plastering': 'Plastering',
+        'tile': 'Tiling',
+        'plumbing': 'Plumbing',
+        'wiring': 'Wiring',
+        'painting': 'Painting',
+        'excavation': 'Excavation',
+        'backfilling': 'Backfilling',
+      };
+      for (final entry in activityKeywords.entries) {
+        if (t.contains(entry.key)) {
+          data.activity = entry.value;
+          break;
+        }
       }
     }
 
@@ -1237,19 +1227,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // Returns the full list of field labels for this entry type (used for total count)
   // Must match _getStillNeededFieldsFor priority order.
   List<String> _getAllFieldsFor() {
-    final list = <String>['Project'];
     if (_entryType == 'material') {
-      list.addAll(['Material', 'Quantity', 'Unit']);
+      return ['Material', 'Quantity', 'Unit', 'Rate'];
     } else if (_entryType == 'labour') {
-      list.addAll(['Labour Type', 'Worker Count', 'Hours']);
-    } else if (_entryType == 'equipment') {
-      list.addAll(['Equipment', 'Hours', 'Fuel']);
+      return ['Labour Type', 'Worker Count', 'Hours', 'Rate'];
+    } else {
+      return ['Equipment Name', 'Hours', 'Rate'];
     }
-    list.add('Rate');
-    list.add('Floor');
-    if (_entryType == 'material') list.add('Phase');
-    list.add('Activity');
-    return list;
   }
 
   // ─── Question generation (field-name-driven, no _ConvStep) ────────────────────
@@ -1814,13 +1798,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             serverTx?['_id']?.toString() ??
             'VOICE-${DateTime.now().millisecondsSinceEpoch}';
 
-        // Update session memory
-        _sessionMemory['projectId'] = _data.projectId;
-        _sessionMemory['projectName'] = _data.projectName;
-        _sessionMemory['floor'] = _data.floor;
-        _sessionMemory['phase'] = _data.phase;
-        _sessionMemory['phaseId'] = _data.phaseId;
-        _sessionMemory['activity'] = _data.activity;
+
 
         // Refresh project data
         if (mounted) {
@@ -2167,50 +2145,34 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // Conversational flow: what → how many → what unit → what price → where.
   List<String> _getStillNeededFieldsFor(_ExtractedData d) {
     final list = <String>[];
-    if (!d.hasProject) list.add('Project');
-
     if (_entryType == 'material') {
       if (!d.hasItemName) list.add('Material');
       if (!d.hasQuantity) list.add('Quantity');
       if (!d.hasUnit) list.add('Unit');
+      if (!d.hasRate) list.add('Rate');
     } else if (_entryType == 'labour') {
       if (!d.hasItemName) list.add('Labour Type');
       if (!d.hasWorkerCount) list.add('Worker Count');
       if (!d.hasHours) list.add('Hours');
+      if (!d.hasRate) list.add('Rate');
     } else if (_entryType == 'equipment') {
-      if (!d.hasItemName) list.add('Equipment');
+      if (!d.hasItemName) list.add('Equipment Name');
       if (!d.hasQuantity) list.add('Hours');
-    }
-
-    if (!d.hasRate) list.add('Rate');
-    if (!d.hasFloor) list.add('Floor');
-
-    if (_entryType == 'material') {
-      if (!d.hasPhase) list.add('Phase');
-    }
-
-    if (!d.hasActivity) list.add('Activity');
-
-    if (_entryType == 'equipment') {
-      if (!d.hasFuelCost) list.add('Fuel');
+      if (!d.hasRate) list.add('Rate');
     }
     return list;
   }
 
   List<_DetectedField> _getDetectedFieldsWithLabels(_ExtractedData d) {
     final list = <_DetectedField>[];
-    if (d.hasProject) {
-      list.add(
-        _DetectedField(label: 'Project', value: d.projectName ?? d.projectId!),
-      );
-    }
     if (_entryType == 'material') {
       if (d.hasItemName)
         list.add(_DetectedField(label: 'Material', value: d.itemName!));
       if (d.hasQuantity)
         list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
       if (d.hasUnit) list.add(_DetectedField(label: 'Unit', value: d.unit!));
-      if (d.hasBrand) list.add(_DetectedField(label: 'Brand', value: d.brand!));
+      if (d.hasRate)
+        list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
     } else if (_entryType == 'labour') {
       if (d.hasItemName)
         list.add(
@@ -2225,39 +2187,254 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         );
       if (d.hasHours)
         list.add(_DetectedField(label: 'Hours', value: '${d.hours}'));
-    } else {
+      if (d.hasRate)
+        list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
+    } else { // equipment
       if (d.hasItemName)
-        list.add(_DetectedField(label: 'Equipment', value: d.itemName!));
+        list.add(_DetectedField(label: 'Equipment Name', value: d.itemName!));
       if (d.hasQuantity)
         list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
-      if (d.hasFuelCost)
-        list.add(
-          _DetectedField(
-            label: 'Fuel Cost',
-            value: '₹ ${d.fuelCost!.toStringAsFixed(0)}',
-          ),
-        );
+      if (d.hasRate)
+        list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
     }
-    if (d.hasRate)
-      list.add(
-        _DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'),
-      );
-    if (d.hasFloor) list.add(_DetectedField(label: 'Floor', value: d.floor!));
-    if (_entryType == 'material') {
-      if (d.hasPhase) list.add(_DetectedField(label: 'Phase', value: d.phase!));
-    }
-    if (d.hasActivity)
-      list.add(_DetectedField(label: 'Activity', value: d.activity!));
     return list;
   }
 
   int _getTotalFieldsCount() => _getAllFieldsFor().length;
+
+  Map<String, dynamic> _getVoiceFields(String entryType, _ExtractedData d) {
+    if (entryType == 'material') {
+      return {
+        'Material': d.itemName,
+        'Quantity': d.quantity,
+        'Unit': d.unit,
+        'Rate': d.rate,
+      };
+    } else if (entryType == 'labour') {
+      return {
+        'Labour Type': d.workType ?? d.itemName,
+        'Worker Count': d.workerCount,
+        'Hours': d.hours,
+        'Rate': d.rate,
+      };
+    } else {
+      return {
+        'Equipment Name': d.itemName,
+        'Hours': d.quantity,
+        'Rate': d.rate,
+      };
+    }
+  }
+
+  bool _isVoiceFieldPresent(String key, dynamic val) {
+    if (val == null) return false;
+    if (val is String) return val.trim().isNotEmpty;
+    if (val is num) return val > 0;
+    return false;
+  }
+
+  bool get _isProjectContextSelected {
+    final hasProj = _data.projectId != null && _data.projectId!.isNotEmpty;
+    final hasFloor = _data.floor != null && _data.floor!.trim().isNotEmpty;
+    final hasPhase = _data.phase != null && _data.phase!.trim().isNotEmpty;
+    final hasAct = _data.activity != null && _data.activity!.trim().isNotEmpty;
+    return hasProj && hasFloor && hasPhase && hasAct;
+  }
+
+  void _selectProject() {
+    _showSelectorBottomSheet<ProjectModel>(
+      title: 'Select Project',
+      items: _projects,
+      labelExtractor: (p) => p.name,
+      onSelected: (p) {
+        Provider.of<ProjectProvider>(context, listen: false).selectProject(p);
+        setState(() {
+          _saveError = null;
+          _rebuildResponse();
+        });
+      },
+    );
+  }
+
+  void _selectFloor() {
+    if (_data.projectId == null || _data.projectId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a project first.')),
+      );
+      return;
+    }
+    final project = _projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _data.projectId,
+      orElse: () => null,
+    );
+    final floors = project?.floors ?? ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', 'Basement', 'Terrace'];
+    _showSelectorBottomSheet<String>(
+      title: 'Select Floor',
+      items: floors,
+      labelExtractor: (f) => f,
+      onSelected: (f) {
+        Provider.of<ProjectProvider>(context, listen: false).selectFloor(f);
+        setState(() {
+          _saveError = null;
+          _rebuildResponse();
+        });
+      },
+    );
+  }
+
+  void _selectPhase() {
+    if (_data.projectId == null || _data.projectId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a project first.')),
+      );
+      return;
+    }
+    final project = _projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _data.projectId,
+      orElse: () => null,
+    );
+    final phases = project?.selectedPhases ?? [];
+    _showSelectorBottomSheet<ProjectPhase>(
+      title: 'Select Phase',
+      items: phases,
+      labelExtractor: (ph) => ph.phaseName,
+      onSelected: (ph) {
+        Provider.of<ProjectProvider>(context, listen: false).selectPhase(ph.phaseName, ph.id);
+        setState(() {
+          _saveError = null;
+          _rebuildResponse();
+        });
+      },
+    );
+  }
+
+  void _selectActivity() {
+    if (_data.projectId == null || _data.projectId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a project first.')),
+      );
+      return;
+    }
+    if (_data.phase == null || _data.phase!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a phase first.')),
+      );
+      return;
+    }
+    final project = _projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _data.projectId,
+      orElse: () => null,
+    );
+    final phases = project?.selectedPhases ?? [];
+    final phase = phases.cast<ProjectPhase?>().firstWhere(
+      (ph) => ph?.phaseName == _data.phase,
+      orElse: () => null,
+    );
+    final activities = phase?.activities ?? [];
+    _showSelectorBottomSheet<ProjectActivity>(
+      title: 'Select Activity',
+      items: activities,
+      labelExtractor: (act) => act.name,
+      onSelected: (act) {
+        Provider.of<ProjectProvider>(context, listen: false).selectActivity(act.name);
+        setState(() {
+          _saveError = null;
+          _rebuildResponse();
+        });
+      },
+    );
+  }
+
+  void _showSelectorBottomSheet<T>({
+    required String title,
+    required List<T> items,
+    required String Function(T) labelExtractor,
+    required void Function(T) onSelected,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.only(top: 8, bottom: 20),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.5,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text(
+                    'No items available.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 2),
+                        title: Text(
+                          labelExtractor(item),
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.textLight),
+                        onTap: () {
+                          onSelected(item);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   // ──────────────────────────────────────────────────────────────────────────────
   // BUILD
   // ──────────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    // Listen reactively to ProjectProvider to rebuild this screen when Project Context changes
+    Provider.of<ProjectProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FC),
       body: SafeArea(
@@ -2365,69 +2542,61 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     letterSpacing: 0.3,
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                  ),
                 ),
               ],
             ),
           ),
-          if (isListening && _status == VoiceStatus.listening) _buildLiveChip(),
+          _buildStatusBadge(isListening),
         ],
       ),
     );
   }
 
-  Widget _buildLiveChip() {
-    return AnimatedBuilder(
-      animation: _micPulseCtrl,
-      builder: (_, __) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(
-            0xFFEF4444,
-          ).withValues(alpha: 0.1 + _micPulseCtrl.value * 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+  Widget _buildStatusBadge(bool isListening) {
+    final statusText = isListening ? 'Listening' : 'Ready';
+    final color = isListening ? const Color(0xFFEF4444) : AppColors.textLight;
+    final bgColor = isListening ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9);
+    final borderColor = isListening ? const Color(0xFFFCA5A5) : const Color(0xFFE2E8F0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFEF4444),
-              ),
+          const SizedBox(width: 5),
+          Text(
+            statusText,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.2,
             ),
-            const SizedBox(width: 4),
-            const Text(
-              'LIVE',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFFEF4444),
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Main Body Selector ───────────────────────────────────────────────────────
   Widget _buildMainBody() {
     Widget content;
     final curData = _currentData;
@@ -2450,19 +2619,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         content = _buildSummaryCard();
         break;
       default:
-        final isInitial =
-            _response.status == VoiceStatus.listening ||
-            _response.status == VoiceStatus.idle;
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAiStatusCard(),
-            if (isInitial || _voiceCtrl.isListening) ...[
-              _buildLiveTranscript(),
-            ],
+            if (_saveError != null) _buildErrorCard(),
+            _buildProjectContextCard(),
+            _buildVoiceListeningCard(),
             _buildAiUnderstandingPanel(curData),
             _buildMissingInformationPanel(curData),
             _buildAiQuestionCard(),
+            _buildExampleHintCard(),
           ],
         );
         break;
@@ -2475,169 +2641,205 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 1: AI Status Banner ─────────────────────────────────────────────
-  Widget _buildAiStatusCard() {
+  // ─── Section 2: Project Context Card ──────────────────────────────────────────
+  Widget _buildProjectContextCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing =
-        _response.status == VoiceStatus.processing ||
-        _response.status == VoiceStatus.thinking;
-    final isAsking = _response.status == VoiceStatus.waitingForUser;
-    final isSummary =
-        _response.status == VoiceStatus.summary ||
-        _response.status == VoiceStatus.saving;
-    final typeLabel = _entryType == 'material'
-        ? 'Material Entry'
-        : _entryType == 'labour'
-        ? 'Labour Entry'
-        : 'Equipment Entry';
-
-    Color dotColor;
-    String stateLabel;
-    Color stateLabelColor;
-
-    if (isListening) {
-      dotColor = const Color(0xFF22C55E);
-      stateLabel = 'Listening';
-      stateLabelColor = const Color(0xFF16A34A);
-    } else if (isProcessing) {
-      dotColor = AppColors.primaryPurple;
-      stateLabel = 'Understanding';
-      stateLabelColor = AppColors.primaryPurple;
-    } else if (isAsking) {
-      dotColor = AppColors.primary;
-      stateLabel = 'AI is Asking';
-      stateLabelColor = AppColors.primary;
-    } else if (isSummary) {
-      dotColor = const Color(0xFF22C55E);
-      stateLabel = 'Ready to Save';
-      stateLabelColor = const Color(0xFF16A34A);
-    } else {
-      dotColor = AppColors.textLight;
-      stateLabel = 'Ready';
-      stateLabelColor = AppColors.textLight;
-    }
+    final allSelected = _isProjectContextSelected;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF173EEA).withValues(alpha: 0.06),
-            const Color(0xFFB137FF).withValues(alpha: 0.04),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFDDD8F5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.business_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Project Context',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              if (allSelected)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outlined,
+                        color: Color(0xFF16A34A),
+                        size: 11,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Selected',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Select project details before speaking',
+            style: TextStyle(
+              fontSize: 11.5,
+              color: AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDropdownCard(
+                  label: 'Project',
+                  value: _data.projectName,
+                  onTap: _selectProject,
+                  enabled: !isListening,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildDropdownCard(
+                  label: 'Floor',
+                  value: _data.floor,
+                  onTap: _selectFloor,
+                  enabled: !isListening,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDropdownCard(
+                  label: 'Phase',
+                  value: _data.phase,
+                  onTap: _selectPhase,
+                  enabled: !isListening,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildDropdownCard(
+                  label: 'Activity',
+                  value: _data.activity,
+                  onTap: _selectActivity,
+                  enabled: !isListening,
+                ),
+              ),
+            ],
+          ),
+          if (allSelected) ...[
+            const SizedBox(height: 12),
+            const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Color(0xFF16A34A),
+                  size: 14,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Project Context Selected',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF16A34A),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownCard({
+    required String label,
+    required String? value,
+    required VoidCallback onTap,
+    bool enabled = true,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: enabled ? Colors.white : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled ? const Color(0xFFDDD8F5) : const Color(0xFFE2E8F0),
+          ),
+        ),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'BuildTrack AI',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryBlue,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          typeLabel.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (!isListening &&
-                      !isProcessing &&
-                      !isAsking &&
-                      !isSummary) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _examplePhrase,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textLight,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value ?? 'Select $label',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: value != null ? AppColors.textDark : AppColors.textLight.withValues(alpha: 0.7),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            AnimatedBuilder(
-              animation: _micPulseCtrl,
-              builder: (_, __) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: dotColor.withValues(
-                      alpha: isListening
-                          ? 0.10 + _micPulseCtrl.value * 0.06
-                          : 0.08,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: dotColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: dotColor.withValues(
-                            alpha: isListening
-                                ? 0.6 + _micPulseCtrl.value * 0.4
-                                : 1.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        stateLabel,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: stateLabelColor,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            Icon(
+              Icons.keyboard_arrow_down,
+              color: enabled ? AppColors.textLight : AppColors.textLight.withValues(alpha: 0.4),
+              size: 20,
             ),
           ],
         ),
@@ -2645,15 +2847,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 2 & 3: Live Transcript & Waveform Card ───────────────────────────
-  Widget _buildLiveTranscript() {
+  Widget _buildVoiceListeningCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
+    if (!isListening) return const SizedBox.shrink();
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFDDD8F5)),
         boxShadow: [
           BoxShadow(
@@ -2669,102 +2872,109 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'YOU SAID',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textLight,
-                  letterSpacing: 0.5,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.mic_none,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Voice Listening',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
               ),
-              if (isListening) _buildLiveTranscriptIndicator(),
+              _buildLiveTranscriptIndicator(),
             ],
           ),
           const SizedBox(height: 12),
-          if (isListening && _partialAnswer.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: AnimatedBuilder(
-                animation: _micPulseCtrl,
+          _buildLiveWaveform(),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              AnimatedBuilder(
+                animation: _waveCtrl,
                 builder: (_, __) {
                   final timer = _voiceCtrl.elapsedDisplay;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Listening',
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        timer,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary.withValues(alpha: 0.6),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ...List.generate(3, (i) {
-                        final phase = ((_micPulseCtrl.value * 3) - i).clamp(
-                          0.0,
-                          1.0,
-                        );
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 2),
-                          child: Opacity(
-                            opacity: 0.3 + phase * 0.7,
-                            child: const Text(
-                              '.',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.primary,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
+                  return Text(
+                    timer,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
                   );
                 },
               ),
-            )
-          else
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _partialAnswer.isNotEmpty
-                      ? _partialAnswer
-                      : (_rawTranscript.isNotEmpty
-                            ? _rawTranscript
-                            : 'Speak naturally...'),
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w600,
-                    color: _partialAnswer.isEmpty && _rawTranscript.isEmpty
-                        ? AppColors.textLight
-                        : AppColors.textDark,
-                    height: 1.4,
+              const SizedBox(width: 8),
+              const Text(
+                'Listening... Speak now',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ],
+          ),
+          if (_partialAnswer.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Text(
+                _partialAnswer,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textDark,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ] else ...[
+            if (_rawTranscript.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
                   ),
                 ),
-                if (isListening && _partialAnswer.isNotEmpty) ...[
-                  const SizedBox(width: 4),
-                  const _BlinkingCursor(),
-                ],
-              ],
-            ),
-          const SizedBox(height: 16),
-          _buildLiveWaveform(),
+                child: Text(
+                  _rawTranscript,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -2782,9 +2992,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               height: 6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(
-                  0xFF22C55E,
-                ).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
+                color: const Color(0xFF22C55E).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF22C55E).withValues(alpha: 0.3),
@@ -2821,23 +3029,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       animation: _waveCtrl,
       builder: (_, __) {
         return SizedBox(
-          height: 40,
+          height: 36,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(24, (i) {
               final phase = _waveCtrl.value * 2 * math.pi;
               final offset = i * (math.pi / 10);
-              final baseHeight = 5.0 + (math.sin(phase + offset).abs() * 16.0);
-              final randNoise = math.sin(phase * 4.0 + i).abs() * 5.0;
-              final finalHeight = ((baseHeight + randNoise) * vol).clamp(
-                4.0,
-                36.0,
-              );
+              final baseHeight = 4.0 + (math.sin(phase + offset).abs() * 14.0);
+              final randNoise = math.sin(phase * 4.0 + i).abs() * 4.0;
+              final finalHeight = ((baseHeight + randNoise) * vol).clamp(4.0, 32.0);
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
-                margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                width: 3.5,
+                margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                width: 3.0,
                 height: finalHeight,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -2855,15 +3060,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 4 & 6: AI Understanding Panel (Live Vertical List + Progress Bar) ──
   Widget _buildAiUnderstandingPanel(_ExtractedData currentData) {
-    final detected = _getDetectedFieldsWithLabels(currentData);
-    final count = _response.completedFields;
-    final total = _response.totalFields > 0
-        ? _response.totalFields
-        : _getTotalFieldsCount();
-    final progress = total > 0 ? count / total : 0.0;
-    final isComplete = count >= total;
+    final voiceFields = _getVoiceFields(_entryType, currentData);
+    final total = voiceFields.length;
+    int completed = 0;
+    voiceFields.forEach((key, val) {
+      if (_isVoiceFieldPresent(key, val)) completed++;
+    });
+
+    final progress = total > 0 ? completed / total : 0.0;
+    final isComplete = completed >= total;
 
     return Container(
       width: double.infinity,
@@ -2887,19 +3093,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isComplete ? 'AI Understanding' : 'AI Understanding Entry...',
-                style: const TextStyle(
+              const Text(
+                'AI Understanding Entry',
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textDark,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3.5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                 decoration: BoxDecoration(
                   color: isComplete
                       ? const Color(0xFFDCFCE7)
@@ -2907,7 +3110,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isComplete ? 'Complete' : '$count / $total',
+                  '$completed / $total',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -2932,90 +3135,59 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             ),
           ),
           const SizedBox(height: 12),
-          if (detected.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Waiting for voice input...',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: AppColors.textLight,
-                  fontStyle: FontStyle.italic,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: voiceFields.entries.map((e) {
+              final isPresent = _isVoiceFieldPresent(e.key, e.value);
+              final displayVal = e.value is num
+                  ? (e.value as num).toStringAsFixed(e.value % 1 == 0 ? 0 : 2)
+                  : e.value?.toString() ?? '';
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isPresent ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPresent ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+                  ),
                 ),
-              ),
-            )
-          else
-            Column(
-              children: detected
-                  .map((field) => _buildDetectedFieldRow(field))
-                  .toList(),
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPresent ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+                      color: isPresent ? const Color(0xFF16A34A) : AppColors.textLight,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isPresent ? '${e.key}: $displayVal' : e.key,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isPresent ? const Color(0xFF16A34A) : AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetectedFieldRow(_DetectedField field) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 350),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, val, child) {
-        return Transform.translate(
-          offset: Offset(-10 * (1 - val), 0),
-          child: Opacity(opacity: val, child: child),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFDCFCE7),
-              ),
-              child: const Icon(
-                Icons.check,
-                size: 12,
-                color: Color(0xFF16A34A),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              '${field.label}:',
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textLight,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                field.value,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Section 5 & 7: Still Needed Panel (field-name-driven) ─────────────────
   Widget _buildMissingInformationPanel(_ExtractedData currentData) {
-    final needed = _getStillNeededFieldsFor(currentData);
-    if (needed.isEmpty) return const SizedBox.shrink();
+    final voiceFields = _getVoiceFields(_entryType, currentData);
+    final missing = voiceFields.entries
+        .where((e) => !_isVoiceFieldPresent(e.key, e.value))
+        .map((e) => e.key)
+        .toList();
 
-    // Active field is derived directly from missingFields — no step enum needed
-    final activeField = _activeField;
+    if (missing.isEmpty) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
@@ -3055,7 +3227,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Text(
-                  '${needed.length} field${needed.length == 1 ? '' : 's'}',
+                  '${missing.length} field${missing.length == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
@@ -3069,24 +3241,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           Wrap(
             spacing: 7,
             runSpacing: 7,
-            children: needed.map((field) {
-              final isActive = field == activeField;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+            children: missing.map((field) {
+              return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : const Color(0xFFFFFBEB),
+                  color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isActive
-                        ? AppColors.primary.withValues(alpha: 0.3)
-                        : const Color(0xFFFEF3C7),
-                    width: isActive ? 1.5 : 1,
+                    color: const Color(0xFFFEF3C7),
                   ),
                 ),
                 child: Row(
@@ -3097,13 +3262,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isActive
-                            ? AppColors.primary
-                            : Colors.transparent,
                         border: Border.all(
-                          color: isActive
-                              ? AppColors.primary
-                              : const Color(0xFFD97706),
+                          color: const Color(0xFFD97706),
                           width: 1.5,
                         ),
                       ),
@@ -3111,18 +3271,73 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     const SizedBox(width: 6),
                     Text(
                       field,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: isActive
-                            ? AppColors.primary
-                            : const Color(0xFFB45309),
+                        color: Color(0xFFB45309),
                       ),
                     ),
                   ],
                 ),
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExampleHintCard() {
+    String example = "";
+    if (_entryType == 'material') {
+      example = '"20 bags of UltraTech cement at 420 rupees per bag"';
+    } else if (_entryType == 'labour') {
+      example = '"8 masons worked 9 hours at 850 rupees"';
+    } else {
+      example = '"JCB excavator worked 6 hours at 1200 rupees per hour"';
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F8FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEBE8FF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.lightbulb_outline_rounded,
+            color: AppColors.primary,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Example Phrase:',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  example,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textDark,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -3329,20 +3544,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final states = <bool>[];
 
     final hasMaterial = _data.hasItemName;
-    final hasBrand = _data.hasBrand;
     final hasQuantity = _data.hasQuantity;
-    final hasProject = _data.hasProject;
-    final hasFloor = _data.hasFloor;
-    final hasPhase = _data.hasPhase;
-    final hasActivity = _data.hasActivity;
+    final hasUnit = _data.hasUnit;
+    final hasRate = _data.hasRate;
 
     if (_entryType == 'material') {
       stages.add(hasMaterial ? 'Material identified' : 'Finding material');
       states.add(hasMaterial);
-      stages.add(hasBrand ? 'Brand identified' : 'Finding brand');
-      states.add(hasBrand);
       stages.add(hasQuantity ? 'Quantity detected' : 'Detecting quantity');
       states.add(hasQuantity);
+      stages.add(hasUnit ? 'Unit identified' : 'Finding unit');
+      states.add(hasUnit);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     } else if (_entryType == 'labour') {
       stages.add(
         hasMaterial ? 'Labour type identified' : 'Finding labour type',
@@ -3356,21 +3570,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       states.add(_data.hasWorkerCount);
       stages.add(_data.hasHours ? 'Hours detected' : 'Extracting hours');
       states.add(_data.hasHours);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     } else {
       stages.add(hasMaterial ? 'Equipment identified' : 'Finding equipment');
       states.add(hasMaterial);
       stages.add(hasQuantity ? 'Hours detected' : 'Extracting hours');
       states.add(hasQuantity);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     }
-
-    stages.add(hasFloor ? 'Floor detected' : 'Resolving floor');
-    states.add(hasFloor);
-    stages.add(hasProject ? 'Project matched' : 'Matching project');
-    states.add(hasProject);
-    stages.add(hasPhase ? 'Phase matched' : 'Finding phase');
-    states.add(hasPhase);
-    stages.add(hasActivity ? 'Activity matched' : 'Finding activity');
-    states.add(hasActivity);
 
     return Column(
       children: [
@@ -3967,261 +4176,71 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Dynamic Bottom Input Panel ───────────────────────────────────────────────
   Widget _buildBottomInputArea() {
-    if (_response.status == VoiceStatus.completed)
+    if (_response.status == VoiceStatus.completed) {
       return const SizedBox.shrink();
+    }
     if (_response.status == VoiceStatus.summary ||
-        _response.status == VoiceStatus.saving)
+        _response.status == VoiceStatus.saving) {
       return const SizedBox.shrink();
+    }
     if (_response.status == VoiceStatus.processing ||
-        _response.status == VoiceStatus.thinking)
+        _response.status == VoiceStatus.thinking) {
       return const SizedBox.shrink();
+    }
 
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
     final isInitialVoice =
         _response.status == VoiceStatus.listening ||
         _response.status == VoiceStatus.idle;
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: const Border(top: BorderSide(color: Color(0xFFEEEBF8))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: Color(0xFFEEEBF8))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black12,
             blurRadius: 16,
-            offset: const Offset(0, -4),
+            offset: Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isListening && _partialAnswer.isNotEmpty && isInitialVoice)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  child: Text(
-                    _partialAnswer,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textDark,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              if (isProcessing)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Processing speech...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               if (isInitialVoice) ...[
-                if (_showAnalyzingLabel) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Analyzing voice entry...',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left: Recording Status
+                    Expanded(
+                      flex: 3,
+                      child: _buildRecordingStatusLeft(isListening),
                     ),
-                  ),
-                ] else if (isListening) ...[
-                  AnimatedBuilder(
-                    animation: _waveCtrl,
-                    builder: (_, __) {
-                      final timer = _voiceCtrl.elapsedDisplay;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ...List.generate(5, (i) {
-                            final h =
-                                8.0 +
-                                math
-                                        .sin(
-                                          _waveCtrl.value * 2 * math.pi +
-                                              i * math.pi / 3,
-                                        )
-                                        .abs() *
-                                    12.0;
-                            return Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 2.2,
-                              ),
-                              width: 3.5,
-                              height: h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            );
-                          }),
-                          const SizedBox(width: 10),
-                          Text(
-                            timer,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary.withValues(alpha: 0.6),
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Listening',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _stopAndAnalyze,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFEF4444),
-                      side: const BorderSide(
-                        color: Color(0xFFEF4444),
-                        width: 1.5,
-                      ),
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
+                    // Center: Large microphone button
+                    Expanded(
+                      flex: 2,
+                      child: _buildLargeMicButtonRedesigned(isListening),
                     ),
-                    child: const Text(
-                      'Stop & Analyze',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    // Right: Stop & Analyze
+                    Expanded(
+                      flex: 3,
+                      child: _buildStopAnalyzeButtonRight(isListening),
                     ),
-                  ),
-                ] else if (_rawTranscript.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _resetCurrentEntryData();
-                            _startInitialRecording();
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(
-                              color: AppColors.primary,
-                              width: 1.5,
-                            ),
-                            minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Re-record',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _beginAiProcessing,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  _buildBigMicButton(false),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Speak naturally. I\'ll handle the rest.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ],
-              if (isAskingStep) ...[
+                  ],
+                ),
+              ] else if (isAskingStep) ...[
                 if (isListening) ...[
                   _buildSmallMicListening(),
                   const SizedBox(height: 12),
-                  // BUG 2 FIX: onPressed is verified connected to _stopAnswerListening
                   OutlinedButton.icon(
-                    onPressed: () {
-                      debugPrint('[AI DEBUG] Done Answering button tapped');
-                      _stopAnswerListening();
-                    },
+                    onPressed: _stopAnswerListening,
                     icon: const Icon(Icons.stop_circle_outlined, size: 16),
                     label: const Text(
                       'Done Answering',
@@ -4245,8 +4264,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () =>
-                              setState(() => _showKeyboardInput = false),
+                          onTap: () => setState(() => _showKeyboardInput = false),
                           child: Container(
                             width: 44,
                             height: 44,
@@ -4352,65 +4370,173 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 9: Microphone Redesign (BuildTrack Gradient, pulsing, glow) ───────
-  Widget _buildBigMicButton(bool isListening) {
-    return Center(
-      child: GestureDetector(
-        onTap: isListening ? _stopInitialRecording : _startInitialRecording,
-        child: AnimatedBuilder(
-          animation: _micPulseCtrl,
-          builder: (_, child) {
-            final pulse = isListening ? _micPulseCtrl.value : 0.0;
-            return Stack(
-              alignment: Alignment.center,
+  Widget _buildRecordingStatusLeft(bool isListening) {
+    if (!_isProjectContextSelected) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Recording Status',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Context Locked',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (!isListening) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Recording Status',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+          SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Color(0xFF16A34A), size: 14),
+              SizedBox(width: 4),
+              Text(
+                'Ready To Record',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // Active recording
+    return AnimatedBuilder(
+      animation: _waveCtrl,
+      builder: (context, _) {
+        final timer = _voiceCtrl.elapsedDisplay;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Recording Status',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textLight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
               children: [
                 Container(
-                  width: 96 + pulse * 20,
-                  height: 96 + pulse * 20,
-                  decoration: BoxDecoration(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(
-                      0xFFB137FF,
-                    ).withValues(alpha: isListening ? 0.06 : 0.02),
+                    color: Color(0xFFEF4444),
                   ),
                 ),
-                Container(
-                  width: 84 + pulse * 10,
-                  height: 84 + pulse * 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(
-                      0xFF173EEA,
-                    ).withValues(alpha: isListening ? 0.10 : 0.04),
-                  ),
-                ),
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFB137FF).withValues(alpha: 0.35),
-                        blurRadius: 18 + pulse * 10,
-                        spreadRadius: 2 + pulse * 4,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    isListening ? Icons.stop_rounded : Icons.mic_rounded,
-                    color: Colors.white,
-                    size: 32,
+                const SizedBox(width: 6),
+                Text(
+                  'Listening ($timer)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFEF4444),
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLargeMicButtonRedesigned(bool isListening) {
+    final isEnabled = _isProjectContextSelected;
+
+    return Center(
+      child: GestureDetector(
+        onTap: isEnabled
+            ? (isListening ? _stopInitialRecording : _startInitialRecording)
+            : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: !isEnabled
+                ? const Color(0xFFF1F5F9)
+                : (isListening ? const Color(0xFFEF4444) : AppColors.primary),
+            border: Border.all(
+              color: !isEnabled
+                  ? const Color(0xFFCBD5E1)
+                  : (isListening ? const Color(0xFFFCA5A5) : AppColors.primary.withValues(alpha: 0.2)),
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            isListening ? Icons.stop_rounded : Icons.mic_rounded,
+            color: !isEnabled ? const Color(0xFF94A3B8) : Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStopAnalyzeButtonRight(bool isListening) {
+    final isEnabled = isListening;
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        height: 40,
+        child: TextButton(
+          onPressed: isEnabled ? _stopAndAnalyze : null,
+          style: TextButton.styleFrom(
+            backgroundColor: isEnabled ? AppColors.primary : const Color(0xFFF1F5F9),
+            foregroundColor: isEnabled ? Colors.white : const Color(0xFF94A3B8),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color: isEnabled ? AppColors.primary : const Color(0xFFE2E8F0),
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: const Text(
+            'Stop & Analyze',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
