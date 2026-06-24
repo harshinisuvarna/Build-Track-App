@@ -69,6 +69,10 @@ class ProjectProvider extends ChangeNotifier {
   List<EntryModel> _entries = [];
   List<PhaseModel> _phases = [];
   ProjectModel? _selectedProject;
+  String? _selectedFloor;
+  String? _selectedPhase;
+  String? _selectedPhaseId;
+  String? _selectedActivity;
   bool _isLoading = false;
   String _error = '';
 
@@ -76,6 +80,10 @@ class ProjectProvider extends ChangeNotifier {
   List<EntryModel> get entries => List.unmodifiable(_entries);
   List<PhaseModel> get phases => List.unmodifiable(_phases);
   ProjectModel? get selectedProject => _selectedProject;
+  String? get selectedFloor => _selectedFloor;
+  String? get selectedPhase => _selectedPhase;
+  String? get selectedPhaseId => _selectedPhaseId;
+  String? get selectedActivity => _selectedActivity;
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
@@ -534,6 +542,20 @@ Future<void> _backfillCompletedActivities() async {
       if (_selectedProject != null) {
         UserSession.projectId = _selectedProject!.id;
       }
+
+      final cachedProjId = prefs.getString('buildtrack_selected_project_id');
+      if (cachedProjId == _selectedProject?.id) {
+        _selectedFloor = prefs.getString('buildtrack_selected_floor');
+        _selectedPhase = prefs.getString('buildtrack_selected_phase');
+        _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
+        _selectedActivity = prefs.getString('buildtrack_selected_activity');
+      } else {
+        _selectedFloor = null;
+        _selectedPhase = null;
+        _selectedPhaseId = null;
+        _selectedActivity = null;
+      }
+
       // Backfill any completed activities that never got a saved date
       await _backfillCompletedActivities();
 
@@ -629,9 +651,70 @@ Future<void> _backfillCompletedActivities() async {
     }
   }
 
+  Future<void> _saveContextPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_selectedProject != null) {
+        await prefs.setString('buildtrack_selected_project_id', _selectedProject!.id);
+      } else {
+        await prefs.remove('buildtrack_selected_project_id');
+      }
+      if (_selectedFloor != null) {
+        await prefs.setString('buildtrack_selected_floor', _selectedFloor!);
+      } else {
+        await prefs.remove('buildtrack_selected_floor');
+      }
+      if (_selectedPhase != null) {
+        await prefs.setString('buildtrack_selected_phase', _selectedPhase!);
+      } else {
+        await prefs.remove('buildtrack_selected_phase');
+      }
+      if (_selectedPhaseId != null) {
+        await prefs.setString('buildtrack_selected_phase_id', _selectedPhaseId!);
+      } else {
+        await prefs.remove('buildtrack_selected_phase_id');
+      }
+      if (_selectedActivity != null) {
+        await prefs.setString('buildtrack_selected_activity', _selectedActivity!);
+      } else {
+        await prefs.remove('buildtrack_selected_activity');
+      }
+    } catch (e) {
+      dev.log('_saveContextPrefs error: $e');
+    }
+  }
+
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     UserSession.projectId = project.id;
+    _selectedFloor = null;
+    _selectedPhase = null;
+    _selectedPhaseId = null;
+    _selectedActivity = null;
+    _saveContextPrefs();
+    notifyListeners();
+  }
+
+  void selectFloor(String? floor) {
+    _selectedFloor = floor;
+    _selectedPhase = null;
+    _selectedPhaseId = null;
+    _selectedActivity = null;
+    _saveContextPrefs();
+    notifyListeners();
+  }
+
+  void selectPhase(String? phase, String? phaseId) {
+    _selectedPhase = phase;
+    _selectedPhaseId = phaseId;
+    _selectedActivity = null;
+    _saveContextPrefs();
+    notifyListeners();
+  }
+
+  void selectActivity(String? activity) {
+    _selectedActivity = activity;
+    _saveContextPrefs();
     notifyListeners();
   }
 

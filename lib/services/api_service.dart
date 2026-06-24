@@ -947,4 +947,30 @@ class ApiService {
       return false;
     }
   }
+
+  /// Fetches recent transactions created by the currently logged-in user only.
+static Future<List<dynamic>> fetchMyRecentEntries() async {
+  try {
+    final response = await get('/transactions/my?limit=10');
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is List) return decoded;
+      return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
+    }
+    // Fallback: try with createdBy param if /my route doesn't exist yet
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
+    if (userId.isNotEmpty) {
+      final fallback = await get('/transactions?createdBy=$userId&limit=10');
+      if (fallback.statusCode == 200) {
+        final decoded = json.decode(fallback.body);
+        if (decoded is List) return decoded;
+        return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
+      }
+    }
+  } catch (e) {
+    debugPrint('fetchMyRecentEntries error: $e');
+  }
+  return [];
+}
 }
