@@ -38,6 +38,7 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
 import 'package:buildtrack_mobile/screen/approvals/approvals_screen.dart';
+import 'package:buildtrack_mobile/screen/inventory/fulfillment_payment_screen.dart';
 import 'package:buildtrack_mobile/screen/admin/admin_overview_screen.dart';
 
 void main() {
@@ -158,6 +159,7 @@ class MyApp extends StatelessWidget {
         '/add-material':  (_) => const AddMaterialScreen(),
         '/add-labour':    (_) => const AddLabourScreen(),
         '/add-equipment': (_) => const AddEquipmentScreen(),
+        '/fulfillment-payment': (_) => const FulfillmentPaymentScreen(),
       },
 
       onGenerateRoute: (settings) {

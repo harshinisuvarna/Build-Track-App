@@ -28,6 +28,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
   // ── State loaded from route args ─────────────────────────────────────────
   bool _argsLoaded = false;
+  Map _args = {};
   EntryStatus _entryStatus = EntryStatus.pending;
   PaymentStatus _payStatus = PaymentStatus.pending;
   double _billAmount = 0;
@@ -48,6 +49,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     _argsLoaded = true;
 
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    _args = args;
     final statusStr = args['status'] as String? ?? 'pending';
     _entryStatus = EntryStatus.values.firstWhere(
       (e) => e.name == statusStr,
@@ -695,79 +697,66 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
     return GestureDetector(
       onTap: () {
-        showPaymentSheet(
+        final projectProvider = context.read<ProjectProvider>();
+        String pName = 'Unknown Project';
+        String pId = _args['projectId'] ?? _args['project'] ?? '';
+        final matchedProj = projectProvider.projects.where(
+          (p) => p.id == pId
+        );
+        if (matchedProj.isNotEmpty) {
+          pName = matchedProj.first.name;
+        }
+
+        final payArgs = {
+          'id': id,
+          'projectId': pId,
+          'projectName': pName,
+          'itemId': _args['itemId'] ?? '',
+          'itemName': _args['name'] ?? _args['title'] ?? title,
+          'itemType': type,
+          'quantity': (_args['quantity'] as num?)?.toDouble() ?? 0.0,
+          'rate': (_args['rate'] as num?)?.toDouble() ?? 0.0,
+          'totalAmount': _billAmount,
+          'paidAmount': _paidAmount,
+          'outstandingAmount': (_billAmount - _paidAmount).clamp(0.0, double.infinity),
+          'paymentStatus': _payStatus,
+          'receipt': _paymentReceiptFile ?? _args['receipt'] ?? '',
+          'transactionDetails': _args,
+        };
+
+        Navigator.pushNamed(
           context,
-          entryTitle: title,
-          entryRef: ref,
-          totalAmount: _billAmount,
-          alreadyPaid: _paidAmount,
-          vendorName: supplier,
-          category: type,
-        ).then((result) async {
-          if (result != null && mounted) {
-            final paid = result['amount'] as double? ?? 0;
-            final outstanding = (_billAmount - _paidAmount).clamp(0.0, double.infinity);
-            if (paid > outstanding) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Payment amount cannot exceed the outstanding amount.')),
-                );
-              }
-              return;
-            }
-            final newStatus = result['status'] as PaymentStatus?;
-            final receiptFile = result['receipt'] as String?;
-            final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
+          '/fulfillment-payment',
+          arguments: payArgs,
+        ).then((updated) async {
+          if (updated == true && mounted) {
+            // Fetch latest transaction details to refresh details page
+            final latest = await ApiService.fetchTransactionById(id);
+            if (latest != null && mounted) {
+              setState(() {
+                _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                
+                final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? 'pending';
+                if (pStatus == 'paid') {
+                  _payStatus = PaymentStatus.paid;
+                } else if (pStatus == 'partial') {
+                  _payStatus = PaymentStatus.partial;
+                } else if (pStatus == 'overdue') {
+                  _payStatus = PaymentStatus.overdue;
+                } else {
+                  _payStatus = PaymentStatus.pending;
+                }
 
-            final totalPaid = _paidAmount + paid;
-            final newStatusVal =
-                newStatus ??
-                (totalPaid >= _billAmount
-                    ? PaymentStatus.paid
-                    : PaymentStatus.partial);
-
-            // Map paymentStatus enum back to standard Mongoose backend strings
-            String newStatusStr = 'Pending';
-            if (newStatusVal == PaymentStatus.paid) {
-              newStatusStr = 'Paid';
-            } else if (newStatusVal == PaymentStatus.partial) {
-              newStatusStr = 'Partial';
-            }
-
-            // Sync payment update with the MongoDB database
-            if (id.isNotEmpty) {
-              String apiPaymentMode = result['method'] ?? '';
-              if (apiPaymentMode == 'Bank Transfer' ||
-                  apiPaymentMode == 'Card') {
-                apiPaymentMode = 'Bank';
-              }
-
-              await ApiService.updateTransactionPayment(id, {
-                'paymentStatus': newStatusStr,
-                'paidAmount': totalPaid,
-                'paymentMode': apiPaymentMode,
-                'notes': result['note'] ?? '',
-                'paymentDate': customPaymentDate.toIso8601String(),
+                _paymentHistory = latest['paymentHistory'] is List 
+                    ? List.from(latest['paymentHistory']) 
+                    : [];
+                
+                // If there's an updated receipt in the transaction, load it
+                if (latest['attachments'] is List && latest['attachments'].isNotEmpty) {
+                  _paymentReceiptFile = latest['attachments'].first?.toString();
+                }
               });
-              if (context.mounted) {
-                context.read<ProjectProvider>().load();
-              }
             }
-
-            setState(() {
-              _paidAmount = totalPaid;
-              _payStatus = newStatusVal;
-              _paymentHistory.add({
-                'date': customPaymentDate.toIso8601String(),
-                'method': result['method'] ?? 'Cash',
-                'amount': paid,
-                'note': result['note'] ?? '',
-              });
-              // Store payment receipt separately — never overwrites invoice
-              if (receiptFile != null && receiptFile.isNotEmpty) {
-                _paymentReceiptFile = receiptFile;
-              }
-            });
           }
         });
       },
