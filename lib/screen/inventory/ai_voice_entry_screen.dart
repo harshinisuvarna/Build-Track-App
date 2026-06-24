@@ -620,6 +620,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.vendorName = null;
       _rawTranscript = '';
       _partialAnswer = '';
+
+      _sessionMemory['projectId'] = null;
+      _sessionMemory['projectName'] = null;
+      _sessionMemory['floor'] = null;
+      _sessionMemory['phase'] = null;
+      _sessionMemory['phaseId'] = null;
+      _sessionMemory['activity'] = null;
       _rebuildResponse();
     });
   }
