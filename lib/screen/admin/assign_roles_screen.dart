@@ -359,9 +359,8 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         'permissions': selectedPermissions,
         if (_selectedProjectIds.isNotEmpty)
           'projectIds': _selectedProjectIds.toList(),
-        if (_selectedOverseesRoles.isNotEmpty)
-          'overseesRoles': _selectedOverseesRoles.toList(),
-        // Only send password if admin typed a new one
+        // Always send overseesRoles in edit mode (even if empty, to clear it)
+        'overseesRoles': _selectedOverseesRoles.toList(),
         if (pass.isNotEmpty) 'password': pass,
       };
 
@@ -395,8 +394,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         'permissions':       selectedPermissions,
         if (_selectedProjectIds.isNotEmpty)
           'projectIds': _selectedProjectIds.toList(),
-        if ((_selectedRole == 'Supervisor' || _isCustomRoleSelected) &&
-            _selectedOverseesRoles.isNotEmpty)
+        if (_selectedOverseesRoles.isNotEmpty)
           'overseesRoles': _selectedOverseesRoles.toList(),
       };
 
