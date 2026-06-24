@@ -293,6 +293,7 @@ class ProjectModel {
   final double progress;
   final double totalBudget;
   final double spentAmount;
+  final double totalIncome;
   final DateTime startDate;
 
 
@@ -352,6 +353,7 @@ class ProjectModel {
     required this.progress,
     required this.totalBudget,
     required this.spentAmount,
+    this.totalIncome = 0.0,
     required this.startDate,
     required this.location,
     this.clientName,
@@ -396,6 +398,7 @@ class ProjectModel {
     double? progress,
     double? totalBudget,
     double? spentAmount,
+    double? totalIncome,
     DateTime? startDate,
     String? location,
     String? clientName,
@@ -438,6 +441,7 @@ class ProjectModel {
       progress: progress ?? this.progress,
       totalBudget: totalBudget ?? this.totalBudget,
       spentAmount: spentAmount ?? this.spentAmount,
+      totalIncome: totalIncome ?? this.totalIncome,
       startDate: startDate ?? this.startDate,
       location: location ?? this.location,
       clientName: clientName ?? this.clientName,
@@ -515,6 +519,7 @@ class ProjectModel {
       'stage': stage.name,
       'progress': progress,
       'spentAmount': spentAmount,
+      'totalIncome': totalIncome,
       'totalBudget': totalBudget,
 
 
@@ -720,6 +725,7 @@ class ProjectModel {
       ),
       progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
       spentAmount: (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
+      totalIncome: (j['totalIncome'] as num?)?.toDouble() ?? 0.0,
       totalBudget: (j['totalBudget'] as num?)?.toDouble() ??
           (budget?['total'] as num?)?.toDouble() ??
           0.0,

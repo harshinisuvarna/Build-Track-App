@@ -340,7 +340,12 @@ Future<void> _backfillCompletedActivities() async {
         final apiMaterials = await ApiService.fetchMaterials();
         debugPrint('fetchMaterials: ${apiMaterials.length} items');
 
-        _entries = apiMaterials.map<EntryModel>((json) {
+        final filteredMaterials = apiMaterials.where((json) {
+          final rawType = (json['type'] ?? '').toString().toLowerCase();
+          return rawType != 'income' && rawType != 'revenue';
+        }).toList();
+
+        _entries = filteredMaterials.map<EntryModel>((json) {
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
           if (rawType == 'labour' || rawType == 'wages') {

@@ -264,6 +264,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               .trim()
               .toLowerCase();
 
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
           String category = 'material';
           if (rawCat == 'labour' ||
               rawCat == 'wages' ||

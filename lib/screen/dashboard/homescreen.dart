@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 // --- TASK 3: Imported API Service ---
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'dart:convert';
 
 class _EntryOption {
   const _EntryOption({
@@ -545,7 +546,6 @@ void _showEntryTypeSelector(BuildContext context) {
   );
 }
 
-// ADMIN DASHBOARD
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
@@ -559,10 +559,701 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
 
+  List<dynamic> _revenueEntries = [];
+  bool _loadingRevenue = false;
+  String? _lastProjectId;
+
+  double get _totalRevenueSum {
+    return _revenueEntries.fold<double>(0.0, (sum, tx) {
+      final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+      return sum + amount;
+    });
+  }
+
+  Future<void> _loadRevenue(String projectId) async {
+    setState(() {
+      _loadingRevenue = true;
+    });
+    try {
+      final response = await ApiService.get('/transactions?project=$projectId&type=Income');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        List<dynamic> entries = [];
+        if (decoded is List) {
+          entries = decoded;
+        } else if (decoded is Map) {
+          entries = (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+        }
+        
+        // Sort entries by date descending to make sure they are in correct order (most recent first)
+        entries.sort((a, b) {
+          final dateA = DateTime.tryParse(a['date']?.toString() ?? '') ?? DateTime.now();
+          final dateB = DateTime.tryParse(b['date']?.toString() ?? '') ?? DateTime.now();
+          return dateB.compareTo(dateA);
+        });
+
+        if (mounted && projectId == _lastProjectId) {
+          setState(() {
+            _revenueEntries = entries;
+            _loadingRevenue = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _loadingRevenue = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingRevenue = false;
+        });
+      }
+    }
+  }
+
+  void _showAddRevenueDialog(BuildContext context, String projectId) {
+    final titleCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    String selectedMode = 'Bank Transfer';
+    DateTime selectedDate = DateTime.now();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Record Revenue Inflow',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Payment Title / Milestone',
+                  hintText: 'e.g. Milestone 1 Payment, Advance Payment',
+                  border: UnderlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Amount Received (₹)',
+                  hintText: 'e.g. 500000',
+                  border: UnderlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: selectedMode,
+                decoration: const InputDecoration(
+                  labelText: 'Payment Mode',
+                  border: UnderlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'UPI', child: Text('UPI')),
+                  DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
+                  DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                  DropdownMenuItem(value: 'Cheque', child: Text('Cheque')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setModalState(() {
+                      selectedMode = val;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setModalState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Colors.black26)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Date Received', style: TextStyle(color: Colors.black54)),
+                      Text(
+                        '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    final title = titleCtrl.text.trim();
+                    final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a payment title')),
+                      );
+                      return;
+                    }
+                    if (amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a valid amount')),
+                      );
+                      return;
+                    }
+
+                    final payload = {
+                      'title': title,
+                      'type': 'Income',
+                      'project': projectId,
+                      'amount': amount,
+                      'date': selectedDate.toIso8601String(),
+                      'paymentStatus': 'Paid',
+                      'paymentMode': selectedMode,
+                      'paidAmount': amount,
+                    };
+
+                    final result = await ApiService.addTransaction(payload);
+                    if (result != null) {
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Revenue inflow recorded successfully')),
+                        );
+                        context.read<ProjectProvider>().load();
+                        _loadRevenue(projectId);
+                      }
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to record revenue inflow')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Save Inflow', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRevenueHistory(BuildContext context) {
+    if (_loadingRevenue) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final project = Provider.of<ProjectProvider>(context, listen: false).selectedProject;
+    final projectName = project?.name ?? 'Project';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionHeader(
+          title: 'Revenue Inflow Timeline',
+          actionLabel: _revenueEntries.isNotEmpty ? 'View All' : '',
+          onAction: () {
+            if (_revenueEntries.isNotEmpty) {
+              _showAllRevenueHistory(context, projectName);
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        if (_revenueEntries.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.receipt_long_outlined, size: 36, color: textGray),
+                const SizedBox(height: 8),
+                const Text(
+                  'No revenue recorded yet',
+                  style: TextStyle(
+                    color: textGray,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ..._revenueEntries.take(3).map((tx) => _revenueTile(context, tx)),
+      ],
+    );
+  }
+
+  void _showAllRevenueHistory(BuildContext context, String projectName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Revenue History',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                projectName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: textGray,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: textDark),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: _revenueEntries.length,
+                        itemBuilder: (context, index) {
+                          return _revenueTile(context, _revenueEntries[index]);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showRevenueDetailDialog(BuildContext context, Map<String, dynamic> tx) {
+    final title = tx['title']?.toString() ?? 'Revenue Inflow';
+    final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+    final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
+    
+    DateTime date = DateTime.now();
+    if (tx['date'] != null) {
+      try {
+        date = DateTime.parse(tx['date'].toString());
+      } catch (_) {}
+    }
+    
+    final dateStr = '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)} ${date.year}';
+    final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    
+    final project = Provider.of<ProjectProvider>(context, listen: false).selectedProject;
+    final projectName = project?.name ?? 'Project';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'REVENUE DETAILS',
+                        style: TextStyle(
+                          color: Color(0xFF2E7D32),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: textDark, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Project: $projectName',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: textGray,
+                  ),
+                ),
+                const Divider(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'AMOUNT RECEIVED',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: textGray,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '+${formatCurrency(amount)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              color: Color(0xFF2E7D32),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'PAYMENT METHOD',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: textGray,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.account_balance_wallet_outlined, size: 16, color: textDark),
+                              const SizedBox(width: 6),
+                              Text(
+                                paymentMode,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: textDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'DATE RECEIVED',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: textGray,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined, size: 14, color: textDark),
+                              const SizedBox(width: 6),
+                              Text(
+                                dateStr,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: textDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'TIME RECEIVED',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: textGray,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time_outlined, size: 14, color: textDark),
+                              const SizedBox(width: 6),
+                              Text(
+                                timeStr,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: textDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _revenueTile(BuildContext context, Map<String, dynamic> tx) {
+    final title = tx['title']?.toString() ?? 'Revenue Inflow';
+    final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+    final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
+    
+    DateTime date = DateTime.now();
+    if (tx['date'] != null) {
+      try {
+        date = DateTime.parse(tx['date'].toString());
+      } catch (_) {}
+    }
+    
+    final dateStr = '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)}';
+
+    return GestureDetector(
+      onTap: () {
+        _showRevenueDetailDialog(context, tx);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                dateStr,
+                style: const TextStyle(
+                  color: Color(0xFF2E7D32),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'via $paymentMode',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: textGray,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '+${formatCurrency(amount)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (month < 1 || month > 12) return 'Jan';
+    return months[month - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final project = provider.selectedProject;
+
+    if (project != null && project.id != _lastProjectId) {
+      _lastProjectId = project.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadRevenue(project.id);
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -574,7 +1265,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'OVERALL PROGRESS',
                 style: TextStyle(
                   fontSize: 12,
@@ -592,7 +1283,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     project != null
                         ? '${(project.progress * 100).toStringAsFixed(1)}%'
                         : '—',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
                       color: textDark,
@@ -603,7 +1294,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     children: [
                       Text(
                         project?.name ?? 'No project',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: primaryBlue,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -611,7 +1302,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       ),
                       Text(
                         project != null ? project.city : '',
-                        style: TextStyle(color: textGray, fontSize: 13),
+                        style: const TextStyle(color: textGray, fontSize: 13),
                       ),
                     ],
                   ),
@@ -667,7 +1358,71 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _costCard(
+                'TOTAL REVENUE',
+                project != null ? formatCurrency(_totalRevenueSum) : '₹—',
+                'Cash Inflow',
+                false,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _costCard(
+                'NET CASH FLOW',
+                project != null
+                    ? formatCurrency(
+                        _totalRevenueSum -
+                            context.read<ProjectProvider>().totalSpentForProject(
+                                  project.id,
+                                ),
+                      )
+                    : '₹—',
+                project != null
+                    ? (_totalRevenueSum -
+                                context
+                                    .read<ProjectProvider>()
+                                    .totalSpentForProject(project.id) >=
+                           0
+                       ? 'Net Profit'
+                       : 'Net Loss')
+                    : '—',
+                project != null &&
+                    (_totalRevenueSum -
+                            context
+                                .read<ProjectProvider>()
+                                .totalSpentForProject(project.id) <
+                       0),
+                isInvoice: true,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 14),
+        if (project != null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: const BorderSide(color: AppColors.primary, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.add, color: AppColors.primary, size: 18),
+              label: const Text(
+                'Record Revenue Inflow',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              onPressed: () => _showAddRevenueDialog(context, project.id),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildRevenueHistory(context),
+          const SizedBox(height: 14),
+        ],
         _buildSpeakUpdate(context),
         const SizedBox(height: 14),
         _buildRecentActivity(context),
