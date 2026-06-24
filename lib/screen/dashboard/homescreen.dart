@@ -2009,7 +2009,7 @@ class _HistoryTxCard extends StatelessWidget {
 }
 
 
-// MASON DASHBOARD (TASK 3 UPDATED)
+// MASON DASHBOARD
 class _MasonDashboard extends StatefulWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
@@ -2019,21 +2019,23 @@ class _MasonDashboard extends StatefulWidget {
 }
 
 class _MasonDashboardState extends State<_MasonDashboard> {
-  // --- TASK 3: REPLACED HARDCODED LIST WITH FUTURE ---
-  late Future<List<dynamic>> _tasksFuture;
+  late Future<List<dynamic>> _recentEntriesFuture;
 
   @override
   void initState() {
     super.initState();
-    _tasksFuture = ApiService.fetchDailyTasks();
+    _recentEntriesFuture = ApiService.fetchMyRecentEntries();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use role label from session (covers custom roles like "Contractor")
+    final userName = UserSession.roleLabel;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Greeting card
+        // Greeting card — shows role name (or custom role name)
         AppCard(
           child: Row(
             children: [
@@ -2050,19 +2052,23 @@ class _MasonDashboardState extends State<_MasonDashboard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Good Morning, Mason', style: AppTheme.heading3),
-                  Text('Ready for today\'s tasks', style: AppTheme.caption),
+                  Text('Good Morning, ${UserSession.roleLabel}',
+                      style: AppTheme.heading3),
+                  Text('Ready for today\'s work', style: AppTheme.caption),
                 ],
               ),
             ],
           ),
         ),
 
-        // Add Entry button (primary action)
+        const SizedBox(height: 12),
+
+        // Add Entry buttons
         AppButton(
           label: 'Add Daily Update',
           icon: Icons.add_circle_outline,
-          onPressed: () => Navigator.pushNamed(context, '/update-progress'),
+          onPressed: () =>
+              Navigator.pushNamed(context, '/update-progress'),
         ),
         const SizedBox(height: 8),
         AppButton(
@@ -2073,43 +2079,74 @@ class _MasonDashboardState extends State<_MasonDashboard> {
         ),
         const SizedBox(height: 16),
 
-        // Today's tasks with FutureBuilder
-        const AppSectionHeader(title: "Today's Tasks"),
+        // Recent Entries
+        AppSectionHeader(
+          title: 'Recent Entries',
+          actionLabel: 'View All',
+          onAction: () => Navigator.pushNamed(context, '/logs'),
+        ),
+        const SizedBox(height: 8),
+
         FutureBuilder<List<dynamic>>(
-          future: _tasksFuture,
+          future: _recentEntriesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 30),
                 child: Center(
-                  child: CircularProgressIndicator(color: AppTheme.primary),
+                  child:
+                      CircularProgressIndicator(color: AppTheme.primary),
                 ),
               );
             }
             if (snapshot.hasError) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Failed to load tasks from server.',
+                  'Failed to load recent entries.',
                   style: TextStyle(color: Colors.red),
                 ),
               );
             }
 
-            final liveTasks = snapshot.data ?? [];
-            if (liveTasks.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'No tasks assigned for today.',
-                  style: TextStyle(color: Colors.grey),
+            final entries = snapshot.data ?? [];
+            if (entries.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.inbox_outlined,
+                        size: 36, color: AppColors.textLight),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No entries yet',
+                      style: TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
 
             return Column(
-              children: liveTasks
-                  .map((t) => _taskCard(t as Map<String, dynamic>))
+              children: entries
+                  .take(5)
+                  .map((e) =>
+                      _recentEntryTile(e as Map<String, dynamic>))
                   .toList(),
             );
           },
@@ -2118,38 +2155,144 @@ class _MasonDashboardState extends State<_MasonDashboard> {
     );
   }
 
-  Widget _taskCard(Map<String, dynamic> task) {
-    final statusMap = {
-      'Completed': AppStatus.completed,
-      'In Progress': AppStatus.inProgress,
-      'Not Started': AppStatus.notStarted,
-    };
+  Widget _recentEntryTile(Map<String, dynamic> entry) {
+    final title =
+        entry['title']?.toString() ?? entry['description']?.toString() ?? 'Entry';
+    final type = entry['type']?.toString() ?? '';
+    final amount = (entry['amount'] as num?)?.toDouble() ?? 0.0;
+    final approvalStatus = entry['approvalStatus']?.toString() ?? 'Pending';
 
-    // Smart parsing for dynamic backend data
-    final taskName = task['task'] ?? task['title'] ?? 'Task';
-    final phaseStr = task['phase'] ?? task['category'] ?? 'General';
-    final statusStr = task['status'] ?? 'Not Started';
+    // Date formatting
+    final rawDate = entry['date'] ?? entry['createdAt'];
+    String timeLabel = '';
+    if (rawDate != null) {
+      try {
+        final d = DateTime.parse(rawDate.toString());
+        final diff = DateTime.now().difference(d);
+        if (diff.inMinutes < 60) {
+          timeLabel = '${diff.inMinutes}m ago';
+        } else if (diff.inHours < 24) {
+          timeLabel = '${diff.inHours}h ago';
+        } else if (diff.inDays == 1) {
+          timeLabel = 'Yesterday';
+        } else {
+          timeLabel = '${diff.inDays}d ago';
+        }
+      } catch (_) {}
+    }
 
-    return AppCard(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    // Type icon & color
+    IconData icon;
+    Color iconColor;
+    Color iconBg;
+    switch (type.toLowerCase()) {
+      case 'wages':
+        icon = Icons.people_outlined;
+        iconColor = const Color(0xFF2E7D32);
+        iconBg = const Color(0xFFE8F5E9);
+        break;
+      case 'expense':
+        icon = Icons.precision_manufacturing_outlined;
+        iconColor = const Color(0xFFE65100);
+        iconBg = const Color(0xFFFFF3E0);
+        break;
+      default:
+        icon = Icons.category_outlined;
+        iconColor = AppColors.primary;
+        iconBg = const Color(0xFFEEF0FF);
+    }
+
+    // Approval status badge
+    Color statusColor;
+    Color statusBg;
+    switch (approvalStatus.toLowerCase()) {
+      case 'approved':
+        statusColor = const Color(0xFF059669);
+        statusBg = const Color(0xFFD1FAE5);
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        statusBg = const Color(0xFFFFEEEE);
+        break;
+      default:
+        statusColor = const Color(0xFFD97706);
+        statusBg = const Color(0xFFFEF3C7);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, '/logs'),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Row(
               children: [
-                Text(
-                  taskName,
-                  style: AppTheme.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w700,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${amount.toStringAsFixed(0)}${timeLabel.isNotEmpty ? ' • $timeLabel' : ''}',
+                        style: TextStyle(
+                            fontSize: 12.5, color: AppColors.textLight),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(phaseStr, style: AppTheme.caption),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    approvalStatus,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          AppStatusBadge(status: statusMap[statusStr] ?? AppStatus.notStarted),
-        ],
+        ),
       ),
     );
   }
