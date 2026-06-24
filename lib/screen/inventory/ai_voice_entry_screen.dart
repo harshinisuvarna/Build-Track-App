@@ -319,8 +319,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   late final AnimationController _waveCtrl;
 
   // ── Projects ──────────────────────────────────────────────────────────────────
-  List<ProjectModel> get _projects =>
+  List<ProjectModel> get _projects {
+    final projects = 
       Provider.of<ProjectProvider>(context, listen: false).projects;
+
+    debugPrint(
+      "AI PROJECTS: ${projects.map((e) => "${e.name} (${e.id})").toList()}",
+    );
+
+    return projects;
+  }
+
 
   // ── Processing stages ─────────────────────────────────────────────────────────
   int _processingStage = 0;
