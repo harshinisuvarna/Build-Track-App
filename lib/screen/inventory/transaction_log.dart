@@ -194,6 +194,26 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     return 'Older';
   }
 
+  String _formatRelativeTime(dynamic dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final dt = DateTime.parse(dateStr.toString()).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inMinutes < 60) {
+        return '${diff.inMinutes}m ago';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours}h ago';
+      } else if (diff.inDays == 1) {
+        return 'Yesterday';
+      } else {
+        return '${diff.inDays}d ago';
+      }
+    } catch (_) {
+      return dateStr.toString();
+    }
+  }
+
   /// Returns an ordered map: Today → Yesterday → This Week → Older.
   Map<String, List<Map<String, dynamic>>> _groupByDate(
       List<Map<String, dynamic>> logs) {
@@ -339,6 +359,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'ref': ref,
             'amount': '${isPositive ? "+" : "-"}${t['quantity'] ?? 0}',
             'date': _formatDate(t['date']),
+            'rawDate': t['date'],
             'isPositive': isPositive,
             'icon': icon,
             'receipt': (t['attachments'] is List && t['attachments'].isNotEmpty)
@@ -356,6 +377,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'lastUpdated': t['updatedAt'] != null
                 ? _formatDate(t['updatedAt'])
                 : _formatDate(t['date']),
+            'rawLastUpdated': t['updatedAt'] ?? t['date'],
             'projectId': pId,
             'createdBy': t['createdBy'] ?? '',
             'id': tId,
@@ -1040,7 +1062,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                 'title': log['title'],
                 'ref': log['ref'],
                 'amount': log['amount'],
-                'date': log['date'],
+                'date': log['rawDate'] ?? log['date'],
                 'isPositive': isPositive,
                 'type': logCategory,
                 'name': log['title'] ?? _itemName,
@@ -1055,7 +1077,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                 'paidAmount': paidAmt,
                 'supplier': log['supplier'] ?? '',
                 'paymentMethod': log['method'] ?? '',
-                'lastUpdated': log['lastUpdated'] ?? log['date'] ?? '',
+                'lastUpdated': log['rawLastUpdated'] ?? log['lastUpdated'] ?? log['date'] ?? '',
                 'paymentHistory': log['paymentHistory'],
               },
             ).then((_) {
@@ -1145,7 +1167,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        log['date'] as String? ?? '',
+                        _formatRelativeTime(log['rawDate'] ?? log['date']),
                         style: AppTheme.caption.copyWith(color: textGray),
                       ),
                       if (receipt != null && receipt.isNotEmpty)

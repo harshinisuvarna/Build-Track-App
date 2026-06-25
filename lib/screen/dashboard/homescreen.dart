@@ -1903,61 +1903,189 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildProjectSelector(context, provider),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         const ApprovalsAlertWidget(),
-        const SizedBox(height: 14),
-        AppCard(
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.6),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6B7280).withValues(alpha: 0.06),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'OVERALL PROGRESS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: textGray,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.trending_up_rounded,
+                          color: AppColors.primary,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'OVERALL PROGRESS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (project != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          color: textGray,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${project.city[0].toUpperCase()}${project.city.substring(1)}',
+                          style: const TextStyle(
+                            color: textGray,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
                     project != null
                         ? '${(project.progress * 100).toStringAsFixed(1)}%'
                         : '—',
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w800,
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
                       color: textDark,
+                      letterSpacing: -1.0,
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          project?.name ?? 'No project',
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: textDark,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Current Milestone',
+                          style: TextStyle(
+                            color: textGray.withValues(alpha: 0.8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 8,
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1EEFA),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        FractionallySizedBox(
+                          widthFactor: (project?.progress ?? 0).clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.progressBar,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryPurple.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        project?.name ?? 'No project',
-                        style: const TextStyle(
-                          color: primaryBlue,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                        'Progress status',
+                        style: TextStyle(
+                          color: textGray.withValues(alpha: 0.7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
-                        project != null ? project.city : '',
-                        style: const TextStyle(color: textGray, fontSize: 13),
+                        project != null
+                            ? '${(project.progress * 100).toStringAsFixed(0)}% Completed'
+                            : '—',
+                        style: const TextStyle(
+                          color: AppColors.primaryPurple,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              AppProgressBar(label: '', percent: project?.progress ?? 0),
             ],
           ),
         ),
+        const SizedBox(height: 16),
 
         Row(
           children: [
@@ -2052,7 +2180,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           const SizedBox(height: 14),
         ],
         _buildSpeakUpdate(context),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         _buildRecentActivity(context),
       ],
     );
@@ -2062,44 +2190,84 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
     final selectedName = provider.selectedProject?.name ?? 'Select Project';
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      elevation: 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _showProjectPicker(context, provider),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6B7280).withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showProjectPicker(context, provider),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
-                  const Icon(Icons.architecture, color: primaryBlue, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    selectedName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: textDark,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.domain_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ACTIVE PROJECT',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: textGray.withValues(alpha: 0.7),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          selectedName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: textDark,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.unfold_more_rounded,
+                      color: textGray,
+                      size: 18,
                     ),
                   ),
                 ],
               ),
-              const Icon(Icons.keyboard_arrow_down, color: textGray),
-            ],
+            ),
           ),
         ),
       ),
@@ -2217,72 +2385,106 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     bool isOver, {
     bool isInvoice = false,
   }) {
+    final cardColor = Colors.white.withValues(alpha: 0.95);
+    final accentColor = isOver
+        ? Colors.redAccent
+        : (isInvoice ? AppColors.primaryPurple : AppColors.primaryBlue);
+    final iconData = isInvoice ? Icons.account_balance_wallet_outlined : Icons.monetization_on_outlined;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(
-            color: isOver ? const Color(0xFFE040FB) : purple,
-            width: 3,
-          ),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.6),
+          width: 1.5,
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+          BoxShadow(
+            color: const Color(0xFF6B7280).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: textGray,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: textGray.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  iconData,
+                  size: 14,
+                  color: accentColor,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
                 color: textDark,
+                letterSpacing: -0.5,
               ),
               maxLines: 1,
             ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                isInvoice ? Icons.receipt_outlined : Icons.trending_up,
-                size: 13,
-                color: isOver ? Colors.redAccent : purple,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    sub,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isOver ? Colors.redAccent : purple,
-                      fontWeight: FontWeight.w600,
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isInvoice ? Icons.trending_flat : (isOver ? Icons.trending_up : Icons.trending_down),
+                  size: 12,
+                  color: accentColor,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      sub,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: accentColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
                     ),
-                    maxLines: 1,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -2290,56 +2492,100 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   }
 
   Widget _buildSpeakUpdate(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showEntryTypeSelector(context),
-        borderRadius: BorderRadius.circular(18),
-        splashColor: Colors.white.withValues(alpha: 0.15),
-        child: Ink(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: AppGradients.primaryButton,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryBlue.withValues(alpha: 0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: AppGradients.primaryButton,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryBlue.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.mic, color: Colors.white, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Speak Update',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+          BoxShadow(
+            color: AppColors.primaryPurple.withValues(alpha: 0.2),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showEntryTypeSelector(context),
+            splashColor: Colors.white.withValues(alpha: 0.2),
+            highlightColor: Colors.white.withValues(alpha: 0.1),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.mic_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'AI FOREMAN IS LISTENING',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Speak Update',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Colors.greenAccent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'AI FOREMAN IS LISTENING',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2364,31 +2610,58 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             arguments: {'projectId': null},
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         if (recent.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28),
+            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
+                  color: const Color(0xFF6B7280).withValues(alpha: 0.03),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inbox_outlined, size: 36, color: textGray),
-                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: textGray.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.history_toggle_off_rounded,
+                    size: 32,
+                    color: textGray.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   'No recent activity',
                   style: TextStyle(
-                    color: textGray,
+                    color: textDark.withValues(alpha: 0.8),
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Updates you speak or enter will appear here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textGray.withValues(alpha: 0.7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -2409,19 +2682,19 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 
     switch (entry.type) {
       case EntryType.labour:
-        icon = Icons.people_outlined;
+        icon = Icons.engineering_rounded;
         badgeBg = const Color(0xFFE8F5E9);
         badgeColor = const Color(0xFF2E7D32);
         badgeLabel = 'Labour';
         break;
       case EntryType.equipment:
-        icon = Icons.precision_manufacturing_outlined;
+        icon = Icons.construction_rounded;
         badgeBg = const Color(0xFFFFF3E0);
         badgeColor = Colors.orange;
         badgeLabel = 'Equipment';
         break;
       case EntryType.material:
-        icon = Icons.category_outlined;
+        icon = Icons.inventory_2_rounded;
         badgeBg = const Color(0xFFEEF0FF);
         badgeColor = primaryBlue;
         badgeLabel = 'Material';
@@ -2445,78 +2718,90 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final title = entry.description.isNotEmpty ? entry.description : badgeLabel;
     final subtitle = '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: () => Navigator.pushNamed(context, '/logs'),
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F2FF),
-                    borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6B7280).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.pushNamed(context, '/logs'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: badgeColor, size: 20),
                   ),
-                  child: Icon(icon, color: primaryBlue, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: textDark,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: textDark,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(fontSize: 12.5, color: textGray),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textGray.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      badgeLabel,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

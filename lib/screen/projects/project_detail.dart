@@ -570,8 +570,7 @@ class _TrackerActivityRow extends StatelessWidget {
               onTap: () => _openUpdateProgress(context),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                width: 30,
-                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
@@ -580,9 +579,44 @@ class _TrackerActivityRow extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                child: const Icon(Icons.add_rounded, size: 16, color: AppColors.primary),
+                child: const Text(
+                  'ADD',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ),
             ),
+            if (done) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _showActivityDetails(context),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.20),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    'VIEW',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.success,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -612,6 +646,281 @@ class _TrackerActivityRow extends StatelessWidget {
       }
     });
   }
+
+  void _showActivityDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        final maxH = MediaQuery.of(context).size.height * 0.75;
+        final formattedDate = _completedDateLabel() ?? 'Completed';
+
+        return SafeArea(
+          top: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag indicator
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDDE0F0),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                phaseName,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Scrollable Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Status & Date Row
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.success),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Completed on $formattedDate',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          // Notes/Remarks Section
+                          if (activity.notes != null && activity.notes!.trim().isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Notes & Remarks',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF9FAFB),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                              ),
+                              child: Text(
+                                activity.notes!,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  height: 1.5,
+                                  color: AppColors.textDark,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                          
+                          // Photos Section
+                          if ((activity.photos != null && activity.photos!.isNotEmpty) ||
+                              (activity.photo != null && activity.photo!.isNotEmpty)) ...[
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Progress Photos',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildProgressPhotosList(context, activity),
+                          ],
+
+                          // Empty details placeholder
+                          if ((activity.notes == null || activity.notes!.trim().isEmpty) &&
+                              (activity.photo == null || activity.photo!.isEmpty) &&
+                              (activity.photos == null || activity.photos!.isEmpty)) ...[
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF9FAFB),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                              ),
+                              child: const Center(
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.info_outline_rounded, color: Colors.grey, size: 28),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'No additional notes or photos recorded for this activity.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildThumbnailImage(String photoUrl) {
+    Widget img;
+    if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
+      try {
+        final base64String = photoUrl.split(';base64,').last;
+        final bytes = base64.decode(base64String);
+        img = Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: 80,
+          height: 80,
+        );
+      } catch (e) {
+        img = Container(
+          color: const Color(0xFFF3F4F6),
+          child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24),
+        );
+      }
+    } else {
+      img = Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        width: 80,
+        height: 80,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFFF3F4F6),
+            child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24),
+          );
+        },
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: img,
+    );
+  }
+
+  Widget _buildProgressPhotosList(BuildContext context, ProjectActivity activity) {
+    final photos = (activity.photos != null && activity.photos!.isNotEmpty)
+        ? activity.photos!
+        : [activity.photo!];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: photos.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final url = entry.value;
+        return GestureDetector(
+          onTap: () => _openPhotoGallery(context, photos, idx),
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEEF0FF), width: 1.5),
+            ),
+            child: _buildThumbnailImage(url),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _openPhotoGallery(BuildContext context, List<String> photos, int initialIndex) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (context) => _GalleryDialog(
+        photos: photos,
+        initialIndex: initialIndex,
+      ),
+    );
+  }
+
+
 }
 
 // ── Summary Card ─────────────────────────────────────────────────────────────
@@ -2161,6 +2470,126 @@ class _AllProjectEntriesScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _GalleryDialog extends StatefulWidget {
+  final List<String> photos;
+  final int initialIndex;
+
+  const _GalleryDialog({required this.photos, required this.initialIndex});
+
+  @override
+  State<_GalleryDialog> createState() => _GalleryDialogState();
+}
+
+class _GalleryDialogState extends State<_GalleryDialog> {
+  late int _currentIndex;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Semi-transparent backdrop
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.9),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          // PageView for swipeable images
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemCount: widget.photos.length,
+            itemBuilder: (context, index) {
+              final photoUrl = widget.photos[index];
+              Widget imageWidget;
+              if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
+                try {
+                  final base64String = photoUrl.split(';base64,').last;
+                  final bytes = base64.decode(base64String);
+                  imageWidget = Image.memory(bytes, fit: BoxFit.contain);
+                } catch (e) {
+                  imageWidget = const Icon(Icons.broken_image, color: Colors.white, size: 48);
+                }
+              } else {
+                imageWidget = Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.broken_image, color: Colors.white, size: 48);
+                  },
+                );
+              }
+              return InteractiveViewer(
+                maxScale: 4.0,
+                minScale: 1.0,
+                child: Center(child: imageWidget),
+              );
+            },
+          ),
+          // Floating Close Button (Top right)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          // Paging Indicator (Bottom)
+          Positioned(
+            bottom: 40,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${_currentIndex + 1} / ${widget.photos.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

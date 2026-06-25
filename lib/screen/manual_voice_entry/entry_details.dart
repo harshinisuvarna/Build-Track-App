@@ -156,6 +156,51 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
+  String _formatDateTimeWithTime(dynamic dateVal) {
+    if (dateVal == null) return '';
+    final str = dateVal.toString().trim();
+    if (str.isEmpty) return '';
+    
+    DateTime? dt;
+    try {
+      dt = DateTime.parse(str).toLocal();
+    } catch (_) {
+      dt = DateTime.tryParse(str)?.toLocal();
+    }
+
+    if (dt == null) {
+      return str;
+    }
+
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+
+    final hour = dt.hour;
+    final minute = dt.minute;
+    final ampm = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final displayMinute = minute.toString().padLeft(2, '0');
+    final timeStr = '$displayHour:$displayMinute $ampm';
+
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    final String relativeStr;
+    if (diff.inMinutes < 60) {
+      relativeStr = '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      relativeStr = '${diff.inHours}h ago';
+    } else if (diff.inDays == 1) {
+      relativeStr = 'Yesterday';
+    } else {
+      relativeStr = '${diff.inDays}d ago';
+    }
+
+    return '$dateStr • $timeStr ($relativeStr)';
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -165,27 +210,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String ref = args['ref'] as String? ?? '#INV-0000';
     final String amount = args['amount'] as String? ?? '+0';
     final String date = _customDate ?? args['date'] as String? ?? 'Unknown date';
-    String displayDate = date;
-    if (displayDate.contains('T')) {
-      try {
-        final dt = DateTime.parse(displayDate);
-        final months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        displayDate = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-      } catch (_) {}
-    }
+    final String displayDate = _formatDateTimeWithTime(date);
     final String type = args['type'] as String? ?? 'material';
     final String name = args['name'] as String? ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
@@ -196,42 +221,17 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String projectId = args['projectId'] as String? ?? '';
     final String supplier = args['supplier'] as String? ?? '';
     final String initialMethod = args['paymentMethod'] as String? ?? '';
-    final String initialLastUpdated = args['lastUpdated'] as String? ?? date;
 
-    final String method = _paymentHistory.isNotEmpty
+    final String method = (_paymentHistory.isNotEmpty && _paidAmount > 0)
         ? (_paymentHistory.last['method'] ??
               _paymentHistory.last['paymentMode'] ??
               initialMethod)
-        : initialMethod;
+        : (_paidAmount > 0 ? initialMethod : '');
 
-    final String lastUpdated = _paymentHistory.isNotEmpty
-        ? (_paymentHistory.last['date'] != null
-              ? (() {
-                  try {
-                    final dt = DateTime.parse(
-                      _paymentHistory.last['date'].toString(),
-                    );
-                    final months = [
-                      'Jan',
-                      'Feb',
-                      'Mar',
-                      'Apr',
-                      'May',
-                      'Jun',
-                      'Jul',
-                      'Aug',
-                      'Sep',
-                      'Oct',
-                      'Nov',
-                      'Dec',
-                    ];
-                    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-                  } catch (_) {
-                    return _paymentHistory.last['date'].toString();
-                  }
-                })()
-              : initialLastUpdated)
-        : initialLastUpdated;
+    final String rawLastUpdated = _paymentHistory.isNotEmpty
+        ? (_paymentHistory.last['date']?.toString() ?? date)
+        : date;
+    final String lastUpdated = _formatDateTimeWithTime(rawLastUpdated);
 
     final bool canEdit = EntryPermissions.canEdit(
       status: _entryStatus.name,
@@ -895,32 +895,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               final item = displayedHistory[index] ?? {};
 
               // Parse date
-              String formattedDate = 'Unknown Date';
               final rawDate = item['date'] ?? item['paymentDate'];
-              if (rawDate != null) {
-                try {
-                  final dt = DateTime.parse(rawDate.toString());
-                  // Simple human readable format: e.g. "19 May 2026"
-                  final months = [
-                    'Jan',
-                    'Feb',
-                    'Mar',
-                    'Apr',
-                    'May',
-                    'Jun',
-                    'Jul',
-                    'Aug',
-                    'Sep',
-                    'Oct',
-                    'Nov',
-                    'Dec',
-                  ];
-                  formattedDate =
-                      '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-                } catch (_) {
-                  formattedDate = rawDate.toString();
-                }
-              }
+              final String formattedDate = _formatDateTimeWithTime(rawDate);
 
               final double amt = (item['amount'] as num?)?.toDouble() ?? 0;
               final String method = item['method'] as String? ?? 'Cash';

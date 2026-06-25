@@ -179,7 +179,9 @@ class ProjectActivity {
   final bool isCustom;
   final bool completed;
   final DateTime? completedAt;
-
+  final String? notes;
+  final String? photo;
+  final List<String>? photos;
 
   ProjectActivity({
     required this.id,
@@ -187,13 +189,20 @@ class ProjectActivity {
     this.isCustom = false,
     this.completed = false,
     this.completedAt,
+    this.notes,
+    this.photo,
+    this.photos,
   });
-
 
   ProjectActivity copyWith({
     bool? completed,
     DateTime? completedAt,
     bool clearCompletedAt = false,
+    bool clearPhoto = false,
+    bool clearPhotos = false,
+    String? notes,
+    String? photo,
+    List<String>? photos,
   }) {
     return ProjectActivity(
       id: id,
@@ -203,9 +212,11 @@ class ProjectActivity {
       completedAt: clearCompletedAt
           ? null
           : (completedAt ?? this.completedAt),
+      notes: notes ?? this.notes,
+      photo: clearPhoto ? null : (photo ?? this.photo),
+      photos: clearPhotos ? null : (photos ?? this.photos),
     );
   }
-
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -213,8 +224,10 @@ class ProjectActivity {
         'isCustom': isCustom,
         'completed': completed,
         if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
+        if (notes != null) 'notes': notes,
+        'photo': photo,
+        'photos': photos,
       };
-
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
         id: (j['id'] ?? j['_id'])?.toString() ?? '',
@@ -223,6 +236,11 @@ class ProjectActivity {
         completed: (j['completed'] as bool?) ?? false,
         completedAt: j['completedAt'] != null
             ? DateTime.tryParse(j['completedAt'].toString())
+            : null,
+        notes: j['notes']?.toString(),
+        photo: j['photo']?.toString(),
+        photos: j['photos'] != null
+            ? List<String>.from(j['photos'] as List)
             : null,
       );
 }
