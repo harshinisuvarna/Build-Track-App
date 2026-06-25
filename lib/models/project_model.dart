@@ -175,6 +175,9 @@ class ProjectActivity {
   final bool isCustom;
   final bool completed;
   final DateTime? completedAt;
+  final String? notes;
+  final String? photo;
+  final List<String>? photos;
 
   ProjectActivity({
     required this.id,
@@ -182,39 +185,61 @@ class ProjectActivity {
     this.isCustom = false,
     this.completed = false,
     this.completedAt,
+    this.notes,
+    this.photo,
+    this.photos,
   });
 
   ProjectActivity copyWith({
     bool? completed,
     DateTime? completedAt,
     bool clearCompletedAt = false,
+    bool clearPhoto = false,
+    bool clearPhotos = false,
+    String? notes,
+    String? photo,
+    List<String>? photos,
   }) {
     return ProjectActivity(
       id: id,
       name: name,
       isCustom: isCustom,
       completed: completed ?? this.completed,
-      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
+      completedAt: clearCompletedAt
+          ? null
+          : (completedAt ?? this.completedAt),
+      notes: notes ?? this.notes,
+      photo: clearPhoto ? null : (photo ?? this.photo),
+      photos: clearPhotos ? null : (photos ?? this.photos),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'isCustom': isCustom,
-    'completed': completed,
-    if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'isCustom': isCustom,
+        'completed': completed,
+        if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
+        if (notes != null) 'notes': notes,
+        'photo': photo,
+        'photos': photos,
+      };
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
-    id: (j['id'] ?? j['_id'])?.toString() ?? '',
-    name: (j['name'] ?? '').toString(),
-    isCustom: (j['isCustom'] as bool?) ?? false,
-    completed: (j['completed'] as bool?) ?? false,
-    completedAt: j['completedAt'] != null
-        ? DateTime.tryParse(j['completedAt'].toString())
-        : null,
-  );
+        id: (j['id'] ?? j['_id'])?.toString() ?? '',
+        name: (j['name'] ?? '').toString(),
+        isCustom: (j['isCustom'] as bool?) ?? false,
+        completed: (j['completed'] as bool?) ?? false,
+        completedAt: j['completedAt'] != null
+            ? DateTime.tryParse(j['completedAt'].toString())
+            : null,
+        notes: j['notes']?.toString(),
+        photo: j['photo']?.toString(),
+        photos: j['photos'] != null
+            ? List<String>.from(j['photos'] as List)
+            : null,
+      );
+}
 }
 
 class ProjectPhase {
@@ -275,6 +300,7 @@ class ProjectModel {
   final double progress;
   final double totalBudget;
   final double spentAmount;
+  final double totalIncome;
   final DateTime startDate;
 
   final String location;
@@ -325,6 +351,7 @@ class ProjectModel {
     required this.progress,
     required this.totalBudget,
     required this.spentAmount,
+    this.totalIncome = 0.0,
     required this.startDate,
     required this.location,
     this.clientName,
@@ -368,6 +395,7 @@ class ProjectModel {
     double? progress,
     double? totalBudget,
     double? spentAmount,
+    double? totalIncome,
     DateTime? startDate,
     String? location,
     String? clientName,
@@ -410,6 +438,7 @@ class ProjectModel {
       progress: progress ?? this.progress,
       totalBudget: totalBudget ?? this.totalBudget,
       spentAmount: spentAmount ?? this.spentAmount,
+      totalIncome: totalIncome ?? this.totalIncome,
       startDate: startDate ?? this.startDate,
       location: location ?? this.location,
       clientName: clientName ?? this.clientName,
@@ -482,6 +511,7 @@ class ProjectModel {
       'stage': stage.name,
       'progress': progress,
       'spentAmount': spentAmount,
+      'totalIncome': totalIncome,
       'totalBudget': totalBudget,
 
       'startDate': startDate.toIso8601String(),
@@ -667,8 +697,8 @@ class ProjectModel {
       ),
       progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
       spentAmount: (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
-      totalBudget:
-          (j['totalBudget'] as num?)?.toDouble() ??
+      totalIncome: (j['totalIncome'] as num?)?.toDouble() ?? 0.0,
+      totalBudget: (j['totalBudget'] as num?)?.toDouble() ??
           (budget?['total'] as num?)?.toDouble() ??
           0.0,
       startDate: parsedStartDate,

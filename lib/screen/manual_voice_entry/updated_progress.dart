@@ -5,8 +5,8 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'dart:convert';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -38,7 +38,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   final TextEditingController _notesCtrl = TextEditingController();
   late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
-  PickedAttachment? _attachment;
+  List<PhotoAttachment> _attachments = [];
 
   // ── Full phase catalogue ─────────────────────────────────────────────────
   late final List<ConstructionPhase> _catalogue;
@@ -97,7 +97,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           _selectedFloor = floors.first;
         }
 
-        // Sync progress from provider
+        // Sync progress & pre-fill completed details from provider
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           final provider = context.read<ProjectProvider>();
@@ -106,7 +106,29 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             orElse: () => null,
           );
           if (project != null) {
-            setState(() => _completionProgress = project.progress);
+            setState(() {
+              _completionProgress = project.progress;
+              
+              // Find matching activity
+              final matchedAct = project.selectedPhases
+                  ?.expand((ph) => ph.activities)
+                  .cast<ProjectActivity?>()
+                  .firstWhere((act) => act?.id == activityId || act?.name == activityName, orElse: () => null);
+                  
+              if (matchedAct != null) {
+                if (matchedAct.notes != null && matchedAct.notes!.trim().isNotEmpty) {
+                  _notesCtrl.text = matchedAct.notes!;
+                }
+                if (matchedAct.completedAt != null) {
+                  _selectedDate = matchedAct.completedAt!;
+                }
+                if (matchedAct.photos != null && matchedAct.photos!.isNotEmpty) {
+                  _attachments = matchedAct.photos!.map((url) => PhotoAttachment.remote(url)).toList();
+                } else if (matchedAct.photo != null && matchedAct.photo!.isNotEmpty) {
+                  _attachments = [PhotoAttachment.remote(matchedAct.photo!)];
+                }
+              }
+            });
           }
         });
       }
@@ -809,12 +831,164 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle('Progress Photos'),
-        UploadBox(
-          attachment: _attachment,
-          emptyLabel: 'Tap to add site photo or proof of work',
-          onPicked: (a) => setState(() => _attachment = a),
-          onRemove: () => setState(() => _attachment = null),
-        ),
+        if (_attachments.isEmpty)
+          GestureDetector(
+            onTap: () async {
+              final result = await pickAttachmentDirect(context);
+              if (result != null) {
+                setState(() {
+                  _attachments.add(PhotoAttachment.local(result));
+                });
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFCCCFE8),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.cloud_upload_outlined,
+                      color: primaryBlue,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tap to add site photos (Up to 4)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF1A1D3B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'PNG, JPG, JPEG',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF8A90A8),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ..._attachments.asMap().entries.map((entry) {
+                final index = entry.key;
+                final att = entry.value;
+                return Stack(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFEEF0FF), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: att.isImage
+                            ? Image(
+                                image: att.imageProvider,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                color: att.iconBg,
+                                child: Center(
+                                  child: Icon(att.icon, color: att.iconColor, size: 28),
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _attachments.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              if (_attachments.length < 4)
+                GestureDetector(
+                  onTap: () async {
+                    final result = await pickAttachmentDirect(context);
+                    if (result != null) {
+                      setState(() {
+                        _attachments.add(PhotoAttachment.local(result));
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFCCCFE8),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.add_a_photo_outlined,
+                        color: primaryBlue,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }
@@ -950,7 +1124,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   // ── SUBMIT CTA ───────────────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context, ProjectProvider provider) {
     // Label changes based on whether there's an activity to mark done
-    final label = _launchedFromTracker && _prefillActivityId != null
+    final label = (_launchedFromTracker && _prefillActivityId != null) || _selectedActivityName != null
         ? 'Mark as Done & Submit'
         : 'Submit Progress Update';
 
@@ -963,69 +1137,94 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               orElse: () => null,
             );
 
-        // 1. Update project-level progress percentage
-        if (project != null) {
-          await provider.updateProjectProgress(project.id, _completionProgress);
+        // 1. Identify target activity and toggle completion + details
+        String? targetActivityId = _prefillActivityId;
+        if (targetActivityId == null && _selectedActivityName != null && project != null) {
+          final matchedAct = project.selectedPhases
+              ?.expand((ph) => ph.activities)
+              .cast<ProjectActivity?>()
+              .firstWhere((act) => act?.name == _selectedActivityName, orElse: () => null);
+          if (matchedAct != null) {
+            targetActivityId = matchedAct.id;
+          }
         }
 
-        // 2. If launched from tracker, toggle the activity to completed
-        //    and record completion date via the provider
-        if (_launchedFromTracker &&
-            _prefillActivityId != null &&
-            _selectedProjectId != null) {
-          await provider.toggleActivityCompletion(
-            _selectedProjectId!,
-            _prefillActivityId!,
+        final targetProjectId = _selectedProjectId ?? project?.id;
+        bool success = false;
+        if (targetProjectId != null && targetActivityId != null) {
+          success = await provider.toggleActivityCompletion(
+            targetProjectId,
+            targetActivityId,
             completedAt: _selectedDate, // pass date from the form
+            notes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+            photo: _attachments.isNotEmpty ? _attachments.first.dataUri : null,
+            photos: _attachments.map((a) => a.dataUri).toList(),
+            manualProgress: _completionProgress,
           );
+        } else if (targetProjectId != null) {
+          success = await provider.updateProjectProgress(
+              targetProjectId, _completionProgress);
         }
 
         if (context.mounted) {
-          // Show success snackbar with the completion date
-          final months = [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-          ];
-          final dateLabel =
-              '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+          if (success) {
+            // Show success snackbar with the completion date
+            final months = [
+              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+            ];
+            final dateLabel =
+                '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _launchedFromTracker && _selectedActivityName != null
-                          ? '${_selectedActivityName!} marked done · $dateLabel'
-                          : 'Progress updated · $dateLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _launchedFromTracker &&
+                                _selectedActivityName != null
+                            ? '${_selectedActivityName!} marked done · $dateLabel'
+                            : 'Progress updated · $dateLabel',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+            );
 
-          Navigator.maybePop(context);
+            Navigator.maybePop(context);
+          } else {
+            // Show error snackbar
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Failed to save progress details. Please check network connection and try again.',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
         }
       },
       child: Container(
@@ -1065,5 +1264,61 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         ),
       ),
     );
+  }
+}
+
+class PhotoAttachment {
+  final PickedAttachment? localAttachment;
+  final String? remoteUrl;
+
+  PhotoAttachment.local(this.localAttachment) : remoteUrl = null;
+  PhotoAttachment.remote(this.remoteUrl) : localAttachment = null;
+
+  bool get isImage {
+    if (localAttachment != null) {
+      return localAttachment!.isImage;
+    }
+    final url = remoteUrl!.toLowerCase();
+    return url.startsWith('data:image/') ||
+        url.contains(';base64,') ||
+        url.endsWith('.png') ||
+        url.endsWith('.jpg') ||
+        url.endsWith('.jpeg') ||
+        url.endsWith('.webp') ||
+        url.endsWith('.gif');
+  }
+
+  String get dataUri {
+    if (localAttachment != null) {
+      return localAttachment!.dataUri;
+    }
+    return remoteUrl!;
+  }
+
+  ImageProvider get imageProvider {
+    if (localAttachment != null) {
+      return localAttachment!.imageProvider!;
+    }
+    final url = remoteUrl!;
+    if (url.startsWith('data:image/') && url.contains(';base64,')) {
+      final base64String = url.split(';base64,').last;
+      return MemoryImage(base64.decode(base64String));
+    }
+    return NetworkImage(url);
+  }
+
+  IconData get icon {
+    if (localAttachment != null) return localAttachment!.icon;
+    return Icons.insert_drive_file_outlined;
+  }
+
+  Color get iconColor {
+    if (localAttachment != null) return localAttachment!.iconColor;
+    return const Color(0xFF6B7280);
+  }
+
+  Color get iconBg {
+    if (localAttachment != null) return localAttachment!.iconBg;
+    return const Color(0xFFF3F4F6);
   }
 }
