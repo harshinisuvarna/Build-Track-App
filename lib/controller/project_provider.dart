@@ -505,9 +505,18 @@ class ProjectProvider extends ChangeNotifier {
                 json['name'] ??
                 'Entry',
             brand: json['materialName'] ?? json['brand'] ?? json['name'],
-            ratePerUnit: (json['rate'] is num)
-                ? (json['rate'] as num).toDouble()
-                : 0,
+            ratePerUnit:
+                (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
+            floor: json['floor']?.toString(),
+            phase: json['phase'] != null
+                ? ProjectStage.values.firstWhere(
+                    (e) => e.name == json['phase'],
+                    orElse: () => ProjectStage.preConstruction,
+                  )
+                : null,
+            phaseId: json['phaseId']?.toString(),
+            activity: json['activity']?.toString(),
+            activityId: json['activityId']?.toString(),
             unit: json['unit']?.toString(),
             createdBy: createdBy, // FIX 3b
           );
@@ -934,8 +943,10 @@ class ProjectProvider extends ChangeNotifier {
       ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
       floor: floor ?? entry.floor,
       phase: phase ?? entry.phase,
-      createdBy:
-          UserSession.userId, // FIX 3b: tag new entries with current user
+      phaseId: entry.phaseId,
+      activity: entry.activity,
+      activityId: entry.activityId,
+      createdBy: UserSession.userId, // FIX 3b: tag new entries with current user
     );
 
     _entries.add(updatedEntry);
