@@ -7,12 +7,14 @@ import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // --- TASK 3: Imported API Service ---
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
+import 'dart:typed_data';
 
 class _EntryOption {
   const _EntryOption({
@@ -614,11 +616,20 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     }
   }
 
-  void _showAddRevenueDialog(BuildContext context, String projectId) {
-    final titleCtrl = TextEditingController();
-    final amountCtrl = TextEditingController();
-    String selectedMode = 'Bank Transfer';
+  void _showAddRevenueDialog(BuildContext context, String projectId, {Map<String, dynamic>? editingTx, VoidCallback? onSave}) {
+    final titleCtrl = TextEditingController(text: editingTx?['title']?.toString() ?? '');
+    final amountCtrl = TextEditingController(text: editingTx?['amount']?.toString() ?? '');
+    final notesCtrl = TextEditingController(text: editingTx?['notes']?.toString() ?? '');
+    String selectedMode = editingTx?['paymentMode']?.toString() ?? 'Bank Transfer';
     DateTime selectedDate = DateTime.now();
+    if (editingTx?['date'] != null) {
+      try {
+        selectedDate = DateTime.parse(editingTx!['date'].toString());
+      } catch (_) {}
+    }
+    PickedImage? pickedImage;
+    List<dynamic> attachments = editingTx?['attachments'] is List ? editingTx!['attachments'] as List : [];
+    String? existingImageUrl = attachments.isNotEmpty ? attachments.first.toString() : null;
 
     showModalBottomSheet(
       context: context,
@@ -627,167 +638,380 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(4),
+      builder: (ctx) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (ctx, setModalState) => Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDE0F0),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Record Revenue Inflow',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: textDark,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Title / Milestone',
-                  hintText: 'e.g. Milestone 1 Payment, Advance Payment',
-                  border: UnderlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Amount Received (₹)',
-                  hintText: 'e.g. 500000',
-                  border: UnderlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: selectedMode,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Mode',
-                  border: UnderlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'UPI', child: Text('UPI')),
-                  DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
-                  DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                  DropdownMenuItem(value: 'Cheque', child: Text('Cheque')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setModalState(() {
-                      selectedMode = val;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setModalState(() {
-                      selectedDate = picked;
-                    });
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.black26)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Date Received', style: TextStyle(color: Colors.black54)),
-                      Text(
-                        '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+                Text(
+                  editingTx != null ? 'Edit Revenue Inflow' : 'Record Revenue Inflow',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: textDark,
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Payment Title / Milestone',
+                    hintText: 'e.g. Milestone 1 Payment, Advance Payment',
+                    border: UnderlineInputBorder(),
                   ),
-                  onPressed: () async {
-                    final title = titleCtrl.text.trim();
-                    final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
-                    if (title.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a payment title')),
-                      );
-                      return;
-                    }
-                    if (amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid amount')),
-                      );
-                      return;
-                    }
-
-                    final payload = {
-                      'title': title,
-                      'type': 'Income',
-                      'project': projectId,
-                      'amount': amount,
-                      'date': selectedDate.toIso8601String(),
-                      'paymentStatus': 'Paid',
-                      'paymentMode': selectedMode,
-                      'paidAmount': amount,
-                    };
-
-                    final result = await ApiService.addTransaction(payload);
-                    if (result != null) {
-                      if (context.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Revenue inflow recorded successfully')),
-                        );
-                        context.read<ProjectProvider>().load();
-                        _loadRevenue(projectId);
-                      }
-                    } else {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to record revenue inflow')),
-                        );
-                      }
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Amount Received (₹)',
+                    hintText: 'e.g. 500000',
+                    border: UnderlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Payment Mode',
+                    border: UnderlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'UPI', child: Text('UPI')),
+                    DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
+                    DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                    DropdownMenuItem(value: 'Cheque', child: Text('Cheque')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setModalState(() {
+                        selectedMode = val;
+                      });
                     }
                   },
-                  child: const Text('Save Inflow', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      final now = DateTime.now();
+                      setModalState(() {
+                        selectedDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          now.hour,
+                          now.minute,
+                          now.second,
+                        );
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.black26)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Date Received', style: TextStyle(color: Colors.black54)),
+                        Text(
+                          '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes / Remarks (Optional)',
+                    hintText: 'e.g. Initial payment received for start of work',
+                    border: UnderlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Image Picker Button
+                InkWell(
+                  onTap: () async {
+                    final img = await pickImageFromGallery(context);
+                    if (img != null) {
+                      setModalState(() {
+                        pickedImage = img;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.black26)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.image_outlined, color: Colors.black54, size: 20),
+                            SizedBox(width: 8),
+                            Text('Upload Receipt Proof (Optional)', style: TextStyle(color: Colors.black54)),
+                          ],
+                        ),
+                        if (pickedImage != null)
+                          Row(
+                            children: [
+                              const Text(
+                                'Selected',
+                                style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    pickedImage = null;
+                                  });
+                                },
+                                child: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                              ),
+                            ],
+                          )
+                        else if (existingImageUrl != null)
+                          Row(
+                            children: [
+                              const Text(
+                                'Has Image',
+                                style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    existingImageUrl = null;
+                                  });
+                                },
+                                child: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                              ),
+                            ],
+                          )
+                        else
+                          const Icon(Icons.chevron_right, color: Colors.black26),
+                      ],
+                    ),
+                  ),
+                ),
+                if (pickedImage != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      height: 80,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: FutureBuilder<Uint8List>(
+                          future: pickedImage!.readAsBytes(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return Image.memory(
+                                snapshot.data!,
+                                fit: BoxFit.cover,
+                              );
+                            }
+                            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else if (existingImageUrl != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      height: 80,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          existingImageUrl!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image_outlined, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isSaving ? null : () async {
+                      final title = titleCtrl.text.trim();
+                      final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                      if (title.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a payment title')),
+                        );
+                        return;
+                      }
+                      if (amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a valid amount')),
+                        );
+                        return;
+                      }
+
+                      setModalState(() {
+                        isSaving = true;
+                      });
+
+                      try {
+                        String? base64Image;
+                        if (pickedImage != null) {
+                          final bytes = await pickedImage!.readAsBytes();
+                          base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                        }
+
+                        final payload = {
+                          'title': title,
+                          'type': 'Income',
+                          'project': projectId,
+                          'amount': amount,
+                          'date': selectedDate.toIso8601String(),
+                          'paymentStatus': 'Paid',
+                          'paymentMode': selectedMode,
+                          'paidAmount': amount,
+                          'notes': notesCtrl.text.trim(),
+                          if (base64Image != null) 'receiptImage': base64Image,
+                          if (base64Image == null && editingTx != null)
+                            'attachments': existingImageUrl != null ? [existingImageUrl] : [],
+                        };
+
+                        final bool isEdit = editingTx != null;
+                        final bool success;
+
+                        if (isEdit) {
+                          final txId = editingTx?['_id']?.toString() ?? editingTx?['id']?.toString() ?? '';
+                          success = await ApiService.updateTransaction(txId, payload);
+                        } else {
+                          final result = await ApiService.addTransaction(payload);
+                          success = result != null;
+                        }
+
+                        if (success) {
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isEdit
+                                      ? 'Revenue inflow updated successfully'
+                                      : 'Revenue inflow recorded successfully',
+                                ),
+                              ),
+                            );
+                            context.read<ProjectProvider>().load();
+                            if (onSave != null) {
+                              onSave();
+                            } else {
+                              _loadRevenue(projectId);
+                            }
+                          }
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isEdit ? 'Failed to update revenue inflow' : 'Failed to record revenue inflow',
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      } finally {
+                        if (ctx.mounted) {
+                          setModalState(() {
+                            isSaving = false;
+                          });
+                        }
+                      }
+                    },
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            editingTx != null ? 'Save Changes' : 'Save Inflow',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Widget _buildRevenueHistory(BuildContext context) {
     if (_loadingRevenue) {
@@ -803,52 +1027,87 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppSectionHeader(
+        const AppSectionHeader(
           title: 'Revenue Inflow Timeline',
-          actionLabel: _revenueEntries.isNotEmpty ? 'View All' : '',
-          onAction: () {
-            if (_revenueEntries.isNotEmpty) {
-              _showAllRevenueHistory(context, projectName);
-            }
-          },
         ),
         const SizedBox(height: 8),
-        if (_revenueEntries.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28),
-            decoration: BoxDecoration(
-              color: Colors.white,
+        if (project != null)
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
+              onTap: () => _showAllRevenueHistory(context, projectName, project.id),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey[100]!),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.receipt_long_outlined, size: 36, color: textGray),
-                const SizedBox(height: 8),
-                const Text(
-                  'No revenue recorded yet',
-                  style: TextStyle(
-                    color: textGray,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE8F5E9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long,
+                            color: Color(0xFF2E7D32),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'View Full Revenue Timeline',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: textDark,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Click to view all logged inflows',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: textGray,
+                      size: 20,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          )
-        else
-          ..._revenueEntries.take(3).map((tx) => _revenueTile(context, tx)),
+          ),
       ],
     );
   }
 
-  void _showAllRevenueHistory(BuildContext context, String projectName) {
+  void _showAllRevenueHistory(BuildContext context, String projectName, String projectId) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -857,75 +1116,124 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (_, scrollController) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.6,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (_, scrollController) {
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Revenue History',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: textDark,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                projectName,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: textGray,
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: textDark),
-                          onPressed: () => Navigator.pop(ctx),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Revenue History',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    projectName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: textGray,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    _showAddRevenueDialog(context, projectId, onSave: () async {
+                                      await _loadRevenue(projectId);
+                                      setSheetState(() {});
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: primaryBlue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.add, size: 14, color: Colors.white),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Record Payment',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: textDark),
+                                  onPressed: () => Navigator.pop(ctx),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Expanded(
+                          child: ListView.builder(
+                            controller: scrollController,
+                            itemCount: _revenueEntries.length,
+                            itemBuilder: (context, index) {
+                              return _revenueTile(
+                                context,
+                                _revenueEntries[index],
+                                onRefresh: () async {
+                                  await _loadRevenue(projectId);
+                                  setSheetState(() {});
+                                },
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
-                    Expanded(
-                      child: ListView.builder(
-                        controller: scrollController,
-                        itemCount: _revenueEntries.length,
-                        itemBuilder: (context, index) {
-                          return _revenueTile(context, _revenueEntries[index]);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         );
@@ -933,10 +1241,14 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  void _showRevenueDetailDialog(BuildContext context, Map<String, dynamic> tx) {
+  void _showRevenueDetailDialog(BuildContext context, Map<String, dynamic> tx, {VoidCallback? onRefresh}) {
     final title = tx['title']?.toString() ?? 'Revenue Inflow';
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
+    final paymentStatus = tx['paymentStatus']?.toString() ?? 'Paid';
+    final rawId = tx['_id']?.toString() ?? tx['id']?.toString() ?? '';
+    final refId = rawId.isNotEmpty ? rawId.toUpperCase() : 'N/A';
+    final List<dynamic> attachments = tx['attachments'] is List ? tx['attachments'] as List : [];
     
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
@@ -946,27 +1258,28 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     }
     
     final dateStr = '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)} ${date.year}';
-    final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final timeStr = _formatTime12Hour(date);
     
     final project = Provider.of<ProjectProvider>(context, listen: false).selectedProject;
     final projectName = project?.name ?? 'Project';
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
@@ -974,175 +1287,408 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'REVENUE DETAILS',
-                        style: TextStyle(
-                          color: Color(0xFF2E7D32),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 0.8,
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F5E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF2E7D32),
+                      size: 52,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Revenue Received',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: textGray,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '+${formatCurrency(amount)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 32,
+                      color: Color(0xFF2E7D32),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: List.generate(
+                      30,
+                      (index) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          height: 1,
+                          color: index % 2 == 0 ? Colors.grey[300] : Colors.transparent,
                         ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: textDark, size: 20),
-                      onPressed: () => Navigator.pop(ctx),
+                  ),
+                  const SizedBox(height: 20),
+                  _receiptRow('PROJECT', projectName),
+                  _receiptRow('PAYMENT METHOD', paymentMode),
+                  _receiptRow('DATE RECEIVED', dateStr),
+                  _receiptRow('TIME RECEIVED', timeStr),
+                  _receiptRow('REFERENCE ID', refId),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'STATUS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textGray,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: paymentStatus.toLowerCase() == 'paid' 
+                                ? const Color(0xFFE8F5E9) 
+                                : const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            paymentStatus.toUpperCase(),
+                            style: TextStyle(
+                              color: paymentStatus.toLowerCase() == 'paid' 
+                                  ? const Color(0xFF2E7D32) 
+                                  : const Color(0xFFE65100),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: textDark,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Project: $projectName',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: textGray,
-                  ),
-                ),
-                const Divider(height: 32),
-                Row(
-                  children: [
-                    Expanded(
+                  if (tx['notes'] != null && tx['notes'].toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'AMOUNT RECEIVED',
+                            'NOTES / REMARKS',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w800,
                               color: textGray,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
-                            '+${formatCurrency(amount)}',
+                            tx['notes'].toString().trim(),
                             style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 24,
-                              color: Color(0xFF2E7D32),
+                              fontSize: 13,
+                              color: textDark,
+                              height: 1.4,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'PAYMENT METHOD',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: textGray,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.account_balance_wallet_outlined, size: 16, color: textDark),
-                              const SizedBox(width: 6),
-                              Text(
-                                paymentMode,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: textDark,
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'DATE RECEIVED',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: textGray,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.calendar_today_outlined, size: 14, color: textDark),
-                              const SizedBox(width: 6),
-                              Text(
-                                dateStr,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: textDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                  if (attachments.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[200]!),
                       ),
-                    ),
-                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'TIME RECEIVED',
+                            'PROOF OF PAYMENT',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w800,
                               color: textGray,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.access_time_outlined, size: 14, color: textDark),
-                              const SizedBox(width: 6),
-                              Text(
-                                timeStr,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: textDark,
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/receipt-viewer',
+                                arguments: {'receipt': attachments.first.toString()},
+                              );
+                            },
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    attachments.first.toString(),
+                                    height: 150,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        height: 150,
+                                        color: Colors.grey[100],
+                                        alignment: Alignment.center,
+                                        child: const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              'Error loading proof image',
+                                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        height: 150,
+                                        color: Colors.grey[100],
+                                        alignment: Alignment.center,
+                                        child: const CircularProgressIndicator(strokeWidth: 2),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Container(
+                                  margin: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.fullscreen, color: Colors.white, size: 14),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Tap to zoom',
+                                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            _confirmDeleteTransaction(context, tx, onRefresh);
+                          },
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          label: const Text('Delete Inflow', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showAddRevenueDialog(context, project?.id ?? tx['project']?.toString() ?? '', editingTx: tx, onSave: onRefresh);
+                          },
+                          icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                          label: const Text('Edit Inflow', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteTransaction(BuildContext context, Map<String, dynamic> tx, VoidCallback? onRefresh) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('Delete Inflow'),
+          content: const Text('Are you sure you want to delete this revenue inflow record? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx); // Close alert dialog
+                final txId = tx['_id']?.toString() ?? tx['id']?.toString() ?? '';
+                final success = await ApiService.deleteTransaction(txId);
+                if (success) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // Close detail modal bottom sheet
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Revenue inflow record deleted successfully')),
+                    );
+                    context.read<ProjectProvider>().load();
+                    if (onRefresh != null) {
+                      onRefresh();
+                    }
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to delete revenue inflow record')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _receiptRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textGray,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: textDark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: GestureDetector(
+            onTap: () => Navigator.of(ctx).pop(),
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                InteractiveViewer(
+                  panEnabled: true,
+                  boundaryMargin: const EdgeInsets.all(20),
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          color: Colors.white,
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.broken_image_outlined, color: Colors.red, size: 40),
+                              SizedBox(height: 8),
+                              Text('Failed to load image', style: TextStyle(color: Colors.black)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1151,10 +1697,12 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
-  Widget _revenueTile(BuildContext context, Map<String, dynamic> tx) {
+  Widget _revenueTile(BuildContext context, Map<String, dynamic> tx, {VoidCallback? onRefresh}) {
     final title = tx['title']?.toString() ?? 'Revenue Inflow';
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
+    final List<dynamic> attachments = tx['attachments'] is List ? tx['attachments'] as List : [];
+    final hasImage = attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
     
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
@@ -1164,10 +1712,67 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     }
     
     final dateStr = '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)}';
-
+    final timeStr = _formatTime12Hour(date);
+ 
+    Widget thumbnail;
+    if (hasImage) {
+      final imageUrl = attachments.first.toString();
+      thumbnail = GestureDetector(
+        onTap: () {
+          _showFullScreenImageDialog(context, imageUrl);
+        },
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 20),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    } else {
+      thumbnail = Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey[300],
+          size: 20,
+        ),
+      );
+    }
+ 
     return GestureDetector(
       onTap: () {
-        _showRevenueDetailDialog(context, tx);
+        _showRevenueDetailDialog(context, tx, onRefresh: onRefresh);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -1197,6 +1802,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               ),
             ),
             const SizedBox(width: 12),
+            thumbnail,
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1213,7 +1820,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'via $paymentMode',
+                    'via $paymentMode • $timeStr',
                     style: const TextStyle(
                       fontSize: 12,
                       color: textGray,
@@ -1240,6 +1847,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     if (month < 1 || month > 12) return 'Jan';
     return months[month - 1];
+  }
+
+  String _formatTime12Hour(DateTime dateTime) {
+    final hour = dateTime.hour;
+    final minute = dateTime.minute;
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    final displayMinute = minute.toString().padLeft(2, '0');
+    return '$displayHour:$displayMinute $amPm';
   }
 
   @override
@@ -1403,23 +2019,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
         const SizedBox(height: 14),
         if (project != null) ...[
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: const BorderSide(color: AppColors.primary, width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              icon: const Icon(Icons.add, color: AppColors.primary, size: 18),
-              label: const Text(
-                'Record Revenue Inflow',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              onPressed: () => _showAddRevenueDialog(context, project.id),
-            ),
-          ),
-          const SizedBox(height: 14),
           _buildRevenueHistory(context),
           const SizedBox(height: 14),
         ],
