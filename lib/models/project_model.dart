@@ -66,6 +66,8 @@ class EntryModel {
     this.floor,
     this.phase,
     this.phaseId,
+    this.activity,
+    this.activityId,
     this.unit,
     this.createdBy, // ADD: ID of the user who created this entry
     this.approvalStatus = 'Pending',
@@ -85,6 +87,8 @@ class EntryModel {
   final String? floor;
   final ProjectStage? phase;
   final String? phaseId;
+  final String? activity;
+  final String? activityId;
   final String? unit;
   final String? createdBy; // ADD: nullable — older entries won't have this
   final String approvalStatus;
@@ -93,24 +97,26 @@ class EntryModel {
   final String? rejectionReason;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'projectId': projectId,
-    'type': type.name,
-    'amount': amount,
-    'date': date.toIso8601String(),
-    'description': description,
-    'brand': brand,
-    'ratePerUnit': ratePerUnit,
-    'floor': floor,
-    'phase': phase?.name,
-    'phaseId': phaseId,
-    'unit': unit,
-    'createdBy': createdBy, // ADD
-    'approvalStatus': approvalStatus,
-    'approvedBy': approvedBy,
-    'approvedAt': approvedAt?.toIso8601String(),
-    'rejectionReason': rejectionReason,
-  };
+        'id': id,
+        'projectId': projectId,
+        'type': type.name,
+        'amount': amount,
+        'date': date.toIso8601String(),
+        'description': description,
+        'brand': brand,
+        'ratePerUnit': ratePerUnit,
+        'floor': floor,
+        'phase': phase?.name,
+        'phaseId': phaseId,
+        'activity': activity,
+        'activityId': activityId,
+        'unit': unit,
+        'createdBy': createdBy, // ADD
+        'approvalStatus': approvalStatus,
+        'approvedBy': approvedBy,
+        'approvedAt': approvedAt?.toIso8601String(),
+        'rejectionReason': rejectionReason,
+      };
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
     // ADD: read createdBy from persisted cache (stored by project_provider)
@@ -142,6 +148,8 @@ class EntryModel {
             )
           : null,
       phaseId: j['phaseId']?.toString(),
+      activity: j['activity']?.toString(),
+      activityId: j['activityId']?.toString(),
       unit: j['unit']?.toString(),
       createdBy: createdBy, // ADD
       approvalStatus: j['approvalStatus']?.toString() ?? 'Pending',
