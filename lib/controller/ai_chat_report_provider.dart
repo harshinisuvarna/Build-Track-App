@@ -116,10 +116,12 @@ class AiChatReportProvider extends ChangeNotifier {
       _messages.add(reply);
     } catch (e) {
       _errorMessage = 'Failed to get a response. Please try again.';
-      _messages.add(ChatMessage(
-        role: MessageRole.assistant,
-        text: 'Something went wrong. Please try again.',
-      ));
+      _messages.add(
+        ChatMessage(
+          role: MessageRole.assistant,
+          text: 'Something went wrong. Please try again.',
+        ),
+      );
     }
 
     _isTyping = false;
@@ -131,7 +133,6 @@ class AiChatReportProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
-
 
   // ─── Backend call ─────────────────────────────────────────────────────────
 
@@ -157,24 +158,28 @@ class AiChatReportProvider extends ChangeNotifier {
         : priorMessages;
 
     final history = historyToSend
-        .map((m) => {
-              'role': m.role == MessageRole.user ? 'user' : 'assistant',
-              'text': m.text,
-            })
+        .map(
+          (m) => {
+            'role': m.role == MessageRole.user ? 'user' : 'assistant',
+            'text': m.text,
+          },
+        )
         .toList();
 
-    final response = await http.post(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $authToken',
-      },
-      body: jsonEncode({
-        'question': question,
-        'projectId': projectId,
-        'history': history,
-      }),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+          body: jsonEncode({
+            'question': question,
+            'projectId': projectId,
+            'history': history,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode != 200) {
       throw Exception('Server error ${response.statusCode}');

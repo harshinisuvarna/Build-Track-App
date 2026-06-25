@@ -3,14 +3,7 @@ import 'package:buildtrack_mobile/services/billing_service.dart';
 
 // ── SubscriptionPlan enum ─────────────────────────────────────────────────────
 // Must match every plan used in subscription_screen.dart and subscription_card.dart
-enum SubscriptionPlan {
-  free,
-  starter,
-  growth,
-  pro,
-  business,
-  enterprise,
-}
+enum SubscriptionPlan { free, starter, growth, pro, business, enterprise }
 
 extension SubscriptionPlanX on SubscriptionPlan {
   String get label {
@@ -161,7 +154,8 @@ class SubscriptionProvider extends ChangeNotifier {
         } else if (_expiryDate != null) {
           _status = SubscriptionStatus.expired;
         } else {
-          _status = SubscriptionStatus.active; // backend says active, no date given
+          _status =
+              SubscriptionStatus.active; // backend says active, no date given
         }
       } else {
         _currentPlan = SubscriptionPlan.free;

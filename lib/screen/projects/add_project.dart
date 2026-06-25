@@ -243,21 +243,29 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a project name')));
+        const SnackBar(content: Text('Please enter a project name')),
+      );
       return;
     }
 
-    final subProvider = Provider.of<SubscriptionProvider>(context, listen: false);
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final subProvider = Provider.of<SubscriptionProvider>(
+      context,
+      listen: false,
+    );
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
+    );
     final maxProjects = subProvider.currentPlan.maxProjects;
     final currentCount = projectProvider.projects.length;
-    
+
     if (maxProjects != -1 && currentCount >= maxProjects) {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+            borderRadius: BorderRadius.circular(20),
+          ),
           contentPadding: const EdgeInsets.all(24),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -271,8 +279,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -304,18 +315,19 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                     Navigator.pushNamed(context, '/subscription');
                   },
                   style: ElevatedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text(
                     'View Plans',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -325,8 +337,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 child: const Text(
                   'Maybe Later',
                   style: TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.w600),
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -680,9 +693,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                           icon: Icons.person_outline_rounded,
                                         ),
                                       ],
-                                             ),
-                                 ),
-                                 const SizedBox(width: 12),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -842,15 +855,19 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.error_outline,
-                                        size: 14, color: Colors.red.shade400),
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 14,
+                                      color: Colors.red.shade400,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       _buildingTypeError!,
                                       style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.red.shade400),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.red.shade400,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1389,7 +1406,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: (_saving || _mainBuildingType == null) ? null : _submit,
+              onPressed: (_saving || _mainBuildingType == null)
+                  ? null
+                  : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
                 disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
@@ -2432,14 +2451,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       focusNode.dispose();
     });
   }
+
   Widget _buildSubscriptionWarning(BuildContext context) {
     final subProvider = context.watch<SubscriptionProvider>();
     final projectProvider = context.watch<ProjectProvider>();
     final plan = subProvider.currentPlan;
     final maxProjects = plan.maxProjects;
     final currentCount = projectProvider.projects.length;
-    
-    if (maxProjects == -1 || currentCount < maxProjects) return const SizedBox.shrink();
+
+    if (maxProjects == -1 || currentCount < maxProjects) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -2452,34 +2474,44 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red.shade400, size: 20),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red.shade400,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Expanded(
-            child: Text(
-              '${plan.label} Plan Limit Reached: You have $currentCount/$maxProjects projects.',
-              style: TextStyle(fontSize: 13, color: Colors.red.shade700, fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/subscription'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.red.shade700,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Upgrade',
+              child: Text(
+                '${plan.label} Plan Limit Reached: You have $currentCount/$maxProjects projects.',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: Colors.red.shade700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/subscription'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade700,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Upgrade',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

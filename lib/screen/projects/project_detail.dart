@@ -54,7 +54,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               const Expanded(
                 child: AppEmptyState(
                   icon: Icons.folder_open_outlined,
-                  message: 'No project selected.\nGo back and select a project.',
+                  message:
+                      'No project selected.\nGo back and select a project.',
                 ),
               ),
             ],
@@ -118,7 +119,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                             project.landArea!.isNotEmpty) ||
                         (project.floors != null &&
                             project.floors!.isNotEmpty)) ...[
-                      const AppSectionHeader(title: 'Land & Floor Configuration'),
+                      const AppSectionHeader(
+                        title: 'Land & Floor Configuration',
+                      ),
                       _LandFloorsCard(project: project),
                       const SizedBox(height: 14),
                     ],
@@ -471,8 +474,18 @@ class _TrackerActivityRow extends StatelessWidget {
   final VoidCallback onToggle;
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String? _completedDateLabel() {
@@ -480,7 +493,9 @@ class _TrackerActivityRow extends StatelessWidget {
     final dt = activity.completedAt;
     if (dt == null) return 'Date not recorded';
     // Sentinel date means completed but date was unknown
-    if (dt.year == 2000 && dt.month == 1 && dt.day == 1) return 'Date not recorded';
+    if (dt.year == 2000 && dt.month == 1 && dt.day == 1) {
+      return 'Date not recorded';
+    }
     return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
   }
 
@@ -509,7 +524,11 @@ class _TrackerActivityRow extends StatelessWidget {
                 ),
               ),
               child: done
-                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                  ? const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    )
                   : null,
             ),
             const SizedBox(width: 12),
@@ -522,8 +541,12 @@ class _TrackerActivityRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: done ? FontWeight.w600 : FontWeight.w500,
-                      color: done ? const Color(0xFF9CA3AF) : AppColors.textDark,
-                      decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
+                      color: done
+                          ? const Color(0xFF9CA3AF)
+                          : AppColors.textDark,
+                      decoration: done
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
                       decorationColor: const Color(0xFF9CA3AF),
                     ),
                   ),
@@ -531,8 +554,11 @@ class _TrackerActivityRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.check_circle_outline,
-                            size: 10, color: AppColors.success),
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 10,
+                          color: AppColors.success,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           'Completed $dateLabel',
@@ -936,18 +962,33 @@ class _SummaryCard extends StatelessWidget {
   final int doneCount, totalCount;
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 
   static Color _statusColor(String? status) {
     switch (status) {
-      case 'Completed':   return AppColors.success;
-      case 'In Progress': return AppColors.primary;
-      case 'On Hold':     return AppColors.warning;
-      case 'Cancelled':   return AppColors.error;
-      default:            return const Color(0xFF6B7280);
+      case 'Completed':
+        return AppColors.success;
+      case 'In Progress':
+        return AppColors.primary;
+      case 'On Hold':
+        return AppColors.warning;
+      case 'Cancelled':
+        return AppColors.error;
+      default:
+        return const Color(0xFF6B7280);
     }
   }
 
@@ -958,10 +999,10 @@ class _SummaryCard extends StatelessWidget {
     final statusLabel = (rawStatus != null && rawStatus.isNotEmpty)
         ? rawStatus
         : (progress >= 1.0
-            ? 'Completed'
-            : progress >= 0.3
-            ? 'In Progress'
-            : 'Planning');
+              ? 'Completed'
+              : progress >= 0.3
+              ? 'In Progress'
+              : 'Planning');
     final statusColor = _statusColor(rawStatus);
 
     final allPhases = buildDefaultPhases();
@@ -991,8 +1032,10 @@ class _SummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(project.name,
-                        style: AppTheme.heading2.copyWith(letterSpacing: -0.3)),
+                    Text(
+                      project.name,
+                      style: AppTheme.heading2.copyWith(letterSpacing: -0.3),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
@@ -1000,19 +1043,27 @@ class _SummaryCard extends StatelessWidget {
                       children: [
                         _chip(statusLabel, statusColor),
                         if (activePhase != null)
-                          _chip(activePhase, AppColors.primary,
-                              icon: Icons.play_circle_outline, subtle: true),
+                          _chip(
+                            activePhase,
+                            AppColors.primary,
+                            icon: Icons.play_circle_outline,
+                            subtle: true,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     _infoRow(Icons.location_on_outlined, project.location),
                     const SizedBox(height: 4),
-                    _infoRow(Icons.calendar_today_outlined,
-                        'Started ${_fmt(project.startDate)}'),
+                    _infoRow(
+                      Icons.calendar_today_outlined,
+                      'Started ${_fmt(project.startDate)}',
+                    ),
                     if (project.expectedEndDate != null) ...[
                       const SizedBox(height: 4),
-                      _infoRow(Icons.event_available_outlined,
-                          'Due ${_fmt(project.expectedEndDate!)}'),
+                      _infoRow(
+                        Icons.event_available_outlined,
+                        'Due ${_fmt(project.expectedEndDate!)}',
+                      ),
                     ],
                     if (project.clientName != null &&
                         project.clientName!.isNotEmpty) ...[
@@ -1023,7 +1074,9 @@ class _SummaryCard extends StatelessWidget {
                         project.projectCode!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       _infoRow(
-                          Icons.qr_code_scanner_outlined, project.projectCode!),
+                        Icons.qr_code_scanner_outlined,
+                        project.projectCode!,
+                      ),
                     ],
                   ],
                 ),
@@ -1036,22 +1089,30 @@ class _SummaryCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: project.floors!
-                  .map((f) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              width: 1),
+                  .map(
+                    (f) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          width: 1,
                         ),
-                        child: Text(f,
-                            style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700)),
-                      ))
+                      ),
+                      child: Text(
+                        f,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -1061,14 +1122,21 @@ class _SummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Overall Completion',
-                  style: AppTheme.body.copyWith(
-                      fontWeight: FontWeight.w700, color: AppColors.textDark)),
-              Text('$pct%  ($doneCount/$totalCount activities)',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary)),
+              Text(
+                'Overall Completion',
+                style: AppTheme.body.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              Text(
+                '$pct%  ($doneCount/$totalCount activities)',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1103,27 +1171,32 @@ class _SummaryCard extends StatelessWidget {
               Icon(icon, size: 11, color: c),
               const SizedBox(width: 4),
             ],
-            Text(label,
-                style: TextStyle(
-                    color: c,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4)),
+            Text(
+              label,
+              style: TextStyle(
+                color: c,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
           ],
         ),
       );
 
   Widget _infoRow(IconData icon, String text) => Row(
-        children: [
-          Icon(icon, color: AppColors.textLight, size: 14),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(text,
-                style: AppTheme.caption.copyWith(fontSize: 12),
-                overflow: TextOverflow.ellipsis),
-          ),
-        ],
-      );
+    children: [
+      Icon(icon, color: AppColors.textLight, size: 14),
+      const SizedBox(width: 4),
+      Expanded(
+        child: Text(
+          text,
+          style: AppTheme.caption.copyWith(fontSize: 12),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Project Info Card ─────────────────────────────────────────────────────────
@@ -1134,13 +1207,25 @@ class _ProjectInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = <_InfoRow>[
       if (project.projectCode?.isNotEmpty == true)
-        _InfoRow(Icons.qr_code_scanner_outlined, 'Project Code', project.projectCode!),
+        _InfoRow(
+          Icons.qr_code_scanner_outlined,
+          'Project Code',
+          project.projectCode!,
+        ),
       if (project.clientName?.isNotEmpty == true)
         _InfoRow(Icons.person_outline, 'Client', project.clientName!),
       if (project.contractorName?.isNotEmpty == true)
-        _InfoRow(Icons.engineering_outlined, 'Contractor', project.contractorName!),
+        _InfoRow(
+          Icons.engineering_outlined,
+          'Contractor',
+          project.contractorName!,
+        ),
       if (project.siteEngineer?.isNotEmpty == true)
-        _InfoRow(Icons.construction_outlined, 'Engineer', project.siteEngineer!),
+        _InfoRow(
+          Icons.construction_outlined,
+          'Engineer',
+          project.siteEngineer!,
+        ),
       if (project.contactNumber?.isNotEmpty == true)
         _InfoRow(Icons.phone_outlined, 'Contact', project.contactNumber!),
       if (project.mapAddress?.isNotEmpty == true)
@@ -1160,38 +1245,46 @@ class _ProjectInfoCard extends StatelessWidget {
           ],
           ...rows
               .where((r) => r.label != 'Project Code')
-              .map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child:
-                              Icon(r.icon, color: AppColors.primary, size: 16),
+              .map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(r.label,
-                                  style: AppTheme.caption.copyWith(
-                                      fontSize: 10, letterSpacing: 0.5)),
-                              Text(r.value,
-                                  style: AppTheme.body.copyWith(
-                                      color: AppColors.textDark,
-                                      fontWeight: FontWeight.w700)),
-                            ],
-                          ),
+                        child: Icon(r.icon, color: AppColors.primary, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.label,
+                              style: AppTheme.caption.copyWith(
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              r.value,
+                              style: AppTheme.body.copyWith(
+                                color: AppColors.textDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
         ],
       ),
     );
@@ -1204,23 +1297,36 @@ class _ProjectInfoCard extends StatelessWidget {
         color: const Color(0xFFF3F4FF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.18), width: 1.5),
+          color: AppColors.primary.withValues(alpha: 0.18),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.qr_code_scanner_rounded,
-              color: AppColors.primary, size: 18),
+          const Icon(
+            Icons.qr_code_scanner_rounded,
+            color: AppColors.primary,
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Project Code',
-                    style:
-                        AppTheme.caption.copyWith(fontSize: 10, letterSpacing: 0.4)),
-                Text('Auto-generated',
-                    style: AppTheme.caption
-                        .copyWith(fontSize: 9, color: AppColors.textLight)),
+                Text(
+                  'Project Code',
+                  style: AppTheme.caption.copyWith(
+                    fontSize: 10,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                Text(
+                  'Auto-generated',
+                  style: AppTheme.caption.copyWith(
+                    fontSize: 9,
+                    color: AppColors.textLight,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1230,12 +1336,15 @@ class _ProjectInfoCard extends StatelessWidget {
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(code,
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 0.5)),
+            child: Text(
+              code,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -1283,31 +1392,44 @@ class _BuildingTypeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Main Type',
-                        style: AppTheme.caption
-                            .copyWith(fontSize: 10, letterSpacing: 0.5)),
-                    Text(mainType,
-                        style: AppTheme.body.copyWith(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w800)),
+                    Text(
+                      'Main Type',
+                      style: AppTheme.caption.copyWith(
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      mainType,
+                      style: AppTheme.body.copyWith(
+                        color: AppColors.textDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (subType != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2)),
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
                   ),
-                  child: Text(subType,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary)),
+                  child: Text(
+                    subType,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -1322,21 +1444,31 @@ class _BuildingTypeCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.category_outlined,
-                      color: AppColors.primary, size: 16),
+                  child: const Icon(
+                    Icons.category_outlined,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Sub Type',
-                          style: AppTheme.caption
-                              .copyWith(fontSize: 10, letterSpacing: 0.5)),
-                      Text(subType,
-                          style: AppTheme.body.copyWith(
-                              color: AppColors.textDark,
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        'Sub Type',
+                        style: AppTheme.caption.copyWith(
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        subType,
+                        style: AppTheme.body.copyWith(
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1350,12 +1482,18 @@ class _BuildingTypeCard extends StatelessWidget {
 
   IconData _iconForType(String type) {
     switch (type) {
-      case 'Residential':    return Icons.home_rounded;
-      case 'Educational':    return Icons.school_rounded;
-      case 'Institutional':  return Icons.account_balance_rounded;
-      case 'Business / Commercial': return Icons.store_rounded;
-      case 'Industrial':     return Icons.factory_rounded;
-      default:               return Icons.apartment_rounded;
+      case 'Residential':
+        return Icons.home_rounded;
+      case 'Educational':
+        return Icons.school_rounded;
+      case 'Institutional':
+        return Icons.account_balance_rounded;
+      case 'Business / Commercial':
+        return Icons.store_rounded;
+      case 'Industrial':
+        return Icons.factory_rounded;
+      default:
+        return Icons.apartment_rounded;
     }
   }
 }
@@ -1381,19 +1519,27 @@ class _LandFloorsCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.landscape_outlined,
-                      color: AppColors.primary, size: 16),
+                  child: const Icon(
+                    Icons.landscape_outlined,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total Land Area',
-                        style: AppTheme.caption.copyWith(fontSize: 10)),
-                    Text('${project.landArea} ${project.landUnit ?? ""}',
-                        style: AppTheme.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark)),
+                    Text(
+                      'Total Land Area',
+                      style: AppTheme.caption.copyWith(fontSize: 10),
+                    ),
+                    Text(
+                      '${project.landArea} ${project.landUnit ?? ""}',
+                      style: AppTheme.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1401,29 +1547,41 @@ class _LandFloorsCard extends StatelessWidget {
             const SizedBox(height: 14),
           ],
           if (project.floors != null && project.floors!.isNotEmpty) ...[
-            Text('Floors Included',
-                style: AppTheme.caption
-                    .copyWith(fontSize: 10, letterSpacing: 0.5)),
+            Text(
+              'Floors Included',
+              style: AppTheme.caption.copyWith(
+                fontSize: 10,
+                letterSpacing: 0.5,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: project.floors!
-                  .map((f) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.2)),
+                  .map(
+                    (f) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
                         ),
-                        child: Text(f,
-                            style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ))
+                      ),
+                      child: Text(
+                        f,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -1447,29 +1605,38 @@ class _RoomsBathsCard extends StatelessWidget {
     };
     final baths = <String, int?>{
       'Western': project.bathWestern,
-      'Indian':  project.bathIndian,
-      'Common':  project.bathCommon,
+      'Indian': project.bathIndian,
+      'Common': project.bathCommon,
       'Attached': project.bathAttached,
     };
     Widget tile(String label, int? count, Color c) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: c.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: c.withValues(alpha: 0.15)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: AppTheme.caption.copyWith(
+              fontSize: 12,
+              color: AppColors.textMedium,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$label ',
-                  style: AppTheme.caption
-                      .copyWith(fontSize: 12, color: AppColors.textMedium)),
-              Text('${count ?? 0}',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w900, color: c)),
-            ],
+          Text(
+            '${count ?? 0}',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: c,
+            ),
           ),
-        );
+        ],
+      ),
+    );
     final roomTiles = rooms.entries
         .where((e) => (e.value ?? 0) > 0)
         .map((e) => tile(e.key, e.value, AppColors.primary))
@@ -1484,21 +1651,27 @@ class _RoomsBathsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (roomTiles.isNotEmpty) ...[
-            Text('ROOMS',
-                style: AppTheme.caption.copyWith(
-                    fontSize: 10,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w800)),
+            Text(
+              'ROOMS',
+              style: AppTheme.caption.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: roomTiles),
             if (bathTiles.isNotEmpty) const SizedBox(height: 16),
           ],
           if (bathTiles.isNotEmpty) ...[
-            Text('BATHROOMS',
-                style: AppTheme.caption.copyWith(
-                    fontSize: 10,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w800)),
+            Text(
+              'BATHROOMS',
+              style: AppTheme.caption.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: bathTiles),
           ],
@@ -1509,28 +1682,66 @@ class _RoomsBathsCard extends StatelessWidget {
 }
 
 const _kAddlConfig = [
-  'Balcony', 'Car Parking', 'Lift', 'Terrace Access', 'Interior Work',
-  'Compound Wall', 'Parapet Wall', 'Waterproofing', 'Putty', 'False Ceiling',
-  'Modular Kitchen', 'Wardrobes', 'Sump', 'Septic Tank', 'Rainwater',
-  'Borewell', 'Solar', 'Generator', 'CCTV', 'Intercom', 'Landscaping',
-  'Paving', 'Water Tanks', 'Stairs', 'Security Room', 'Cladding', 'Elevation',
-  'Gates', 'Grills', 'Aluminium', 'Glass',
+  'Balcony',
+  'Car Parking',
+  'Lift',
+  'Terrace Access',
+  'Interior Work',
+  'Compound Wall',
+  'Parapet Wall',
+  'Waterproofing',
+  'Putty',
+  'False Ceiling',
+  'Modular Kitchen',
+  'Wardrobes',
+  'Sump',
+  'Septic Tank',
+  'Rainwater',
+  'Borewell',
+  'Solar',
+  'Generator',
+  'CCTV',
+  'Intercom',
+  'Landscaping',
+  'Paving',
+  'Water Tanks',
+  'Stairs',
+  'Security Room',
+  'Cladding',
+  'Elevation',
+  'Gates',
+  'Grills',
+  'Aluminium',
+  'Glass',
 ];
 const _kUtility = [
-  'Main Electricity', 'Temporary Connection', 'Generator Backup',
-  'Water Connection', 'Borewell Motor', 'Sump Motor',
+  'Main Electricity',
+  'Temporary Connection',
+  'Generator Backup',
+  'Water Connection',
+  'Borewell Motor',
+  'Sump Motor',
 ];
 const _kGas = ['Piped Gas', 'Cylinder Bank', 'Gas Pipeline Routing'];
 const _kKitchen = [
-  'Granite Counter', 'Quartz Counter', 'Stainless Steel Sink',
-  'Chimney Provision', 'Exhaust Fan Provision',
+  'Granite Counter',
+  'Quartz Counter',
+  'Stainless Steel Sink',
+  'Chimney Provision',
+  'Exhaust Fan Provision',
 ];
 const _kElectrical = [
-  'Concealed Wiring', 'Open Wiring', '3-Phase Connection', 'AC Points',
+  'Concealed Wiring',
+  'Open Wiring',
+  '3-Phase Connection',
+  'AC Points',
   'Geyser Points',
 ];
 const _kTerrace = [
-  'Weathering Course', 'Cool Roof Paint', 'Overhead Tank', 'Solar Panels',
+  'Weathering Course',
+  'Cool Roof Paint',
+  'Overhead Tank',
+  'Solar Panels',
 ];
 List<String> _grp(List<String> all, List<String> opts) =>
     all.where(opts.contains).toList();
@@ -1581,31 +1792,38 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child:
-                        Icon(widget.icon, color: AppColors.primary, size: 16),
+                    child: Icon(
+                      widget.icon,
+                      color: AppColors.primary,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title,
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textDark)),
-                        Text('${widget.features.length} selected',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textLight,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        Text(
+                          '${widget.features.length} selected',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Icon(
-                    _open
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
+                    _open ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                     color: AppColors.textLight,
                   ),
                 ],
@@ -1620,22 +1838,29 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
                 spacing: 6,
                 runSpacing: 6,
                 children: widget.features
-                    .map((f) => Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.18)),
+                    .map(
+                      (f) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.18),
                           ),
-                          child: Text(f,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary)),
-                        ))
+                        ),
+                        child: Text(
+                          f,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -1651,8 +1876,18 @@ class _ProjectTimelineCard extends StatelessWidget {
   const _ProjectTimelineCard({required this.project});
   final ProjectModel project;
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
   @override
@@ -1682,45 +1917,61 @@ class _ProjectTimelineCard extends StatelessWidget {
                     color: statusColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child:
-                      Icon(Icons.flag_rounded, color: statusColor, size: 17),
+                  child: Icon(Icons.flag_rounded, color: statusColor, size: 17),
                 ),
                 const SizedBox(width: 10),
-                Text('Project Status',
-                    style:
-                        AppTheme.body.copyWith(color: AppColors.textMedium)),
+                Text(
+                  'Project Status',
+                  style: AppTheme.body.copyWith(color: AppColors.textMedium),
+                ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(status,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: statusColor)),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: statusColor,
+                    ),
+                  ),
                 ),
               ],
             ),
             const AppDivider(verticalPadding: 12),
           ],
-          Text('PROJECT TIMELINE',
-              style: AppTheme.caption.copyWith(
-                  fontSize: 10,
-                  letterSpacing: 1.1,
-                  fontWeight: FontWeight.w800)),
+          Text(
+            'PROJECT TIMELINE',
+            style: AppTheme.caption.copyWith(
+              fontSize: 10,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _dateBox('Start Date', _fmt(project.startDate),
-                  Icons.play_circle_outline, AppColors.primary),
+              _dateBox(
+                'Start Date',
+                _fmt(project.startDate),
+                Icons.play_circle_outline,
+                AppColors.primary,
+              ),
               if (project.expectedEndDate != null) ...[
                 const SizedBox(width: 10),
-                _dateBox('Expected End', _fmt(project.expectedEndDate!),
-                    Icons.event_outlined, AppColors.warning),
+                _dateBox(
+                  'Expected End',
+                  _fmt(project.expectedEndDate!),
+                  Icons.event_outlined,
+                  AppColors.warning,
+                ),
               ],
             ],
           ),
@@ -1728,8 +1979,12 @@ class _ProjectTimelineCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                _dateBox('Actual End Date', _fmt(project.actualEndDate!),
-                    Icons.event_available_rounded, AppColors.success),
+                _dateBox(
+                  'Actual End Date',
+                  _fmt(project.actualEndDate!),
+                  Icons.event_available_rounded,
+                  AppColors.success,
+                ),
               ],
             ),
           ],
@@ -1738,37 +1993,43 @@ class _ProjectTimelineCard extends StatelessWidget {
     );
   }
 
-  Widget _dateBox(String label, String val, IconData icon, Color c) =>
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: c.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: c, size: 15),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: AppTheme.caption
-                            .copyWith(fontSize: 9, letterSpacing: 0.4)),
-                    Text(val,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: c)),
-                  ],
+  Widget _dateBox(String label, String val, IconData icon, Color c) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: c, size: 15),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTheme.caption.copyWith(
+                    fontSize: 9,
+                    letterSpacing: 0.4,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  val,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: c,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 // ── Financial Card ────────────────────────────────────────────────────────────
@@ -1794,7 +2055,8 @@ class _FinancialCard extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.15)),
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
             ),
             child: Row(
               children: [
@@ -1806,24 +2068,32 @@ class _FinancialCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: AppColors.primary,
-                      size: 18),
+                    Icons.account_balance_wallet_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TOTAL BUDGET',
-                          style: AppTheme.caption.copyWith(
-                              fontSize: 10,
-                              letterSpacing: 1.0,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textLight)),
-                      Text(project.formattedBudget,
-                          style: AppTheme.heading2
-                              .copyWith(color: AppColors.primary, letterSpacing: -0.3)),
+                      Text(
+                        'TOTAL BUDGET',
+                        style: AppTheme.caption.copyWith(
+                          fontSize: 10,
+                          letterSpacing: 1.0,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                      Text(
+                        project.formattedBudget,
+                        style: AppTheme.heading2.copyWith(
+                          color: AppColors.primary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1831,57 +2101,90 @@ class _FinancialCard extends StatelessWidget {
             ),
           ),
           const AppDivider(verticalPadding: 12),
-          _frow('Spent Amount', project.formattedSpent,
-              over ? AppColors.error : AppColors.primary, Icons.payments_outlined),
+          _frow(
+            'Spent Amount',
+            project.formattedSpent,
+            over ? AppColors.error : AppColors.primary,
+            Icons.payments_outlined,
+          ),
           const AppDivider(verticalPadding: 8),
           _frow(
-              'Remaining',
-              project.formattedRemaining,
-              project.remainingBudget >= 0 ? AppColors.success : AppColors.error,
-              Icons.savings_outlined),
+            'Remaining',
+            project.formattedRemaining,
+            project.remainingBudget >= 0 ? AppColors.success : AppColors.error,
+            Icons.savings_outlined,
+          ),
           if (hasBrk) ...[
             const SizedBox(height: 14),
             const Divider(color: Color(0xFFEEF0F8), height: 1),
             const SizedBox(height: 10),
-            Text('BUDGET BREAKDOWN',
-                style: AppTheme.caption.copyWith(
-                    fontSize: 10,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w800)),
+            Text(
+              'BUDGET BREAKDOWN',
+              style: AppTheme.caption.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.1,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 10),
             if (bMat > 0) ...[
-              _catRow('Material', bMat, AppColors.primary, Icons.category_outlined),
+              _catRow(
+                'Material',
+                bMat,
+                AppColors.primary,
+                Icons.category_outlined,
+              ),
               const AppDivider(verticalPadding: 6),
             ],
             if (bLab > 0) ...[
-              _catRow('Labour', bLab, AppColors.info, Icons.people_outline_rounded),
+              _catRow(
+                'Labour',
+                bLab,
+                AppColors.info,
+                Icons.people_outline_rounded,
+              ),
               const AppDivider(verticalPadding: 6),
             ],
             if (bEq > 0) ...[
-              _catRow('Equipment', bEq, const Color(0xFF7B3FE7),
-                  Icons.precision_manufacturing_outlined),
+              _catRow(
+                'Equipment',
+                bEq,
+                const Color(0xFF7B3FE7),
+                Icons.precision_manufacturing_outlined,
+              ),
               const AppDivider(verticalPadding: 6),
             ],
             if (bMisc > 0)
-              _catRow('Miscellaneous', bMisc, AppColors.warning,
-                  Icons.more_horiz_rounded),
+              _catRow(
+                'Miscellaneous',
+                bMisc,
+                AppColors.warning,
+                Icons.more_horiz_rounded,
+              ),
           ],
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Budget Used',
-                  style: AppTheme.label
-                      .copyWith(color: AppColors.textLight, letterSpacing: 0.3)),
-              Text('${(util * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: util >= 1.0
-                          ? AppColors.error
-                          : util >= 0.8
-                          ? AppColors.warning
-                          : AppColors.primary)),
+              Text(
+                'Budget Used',
+                style: AppTheme.label.copyWith(
+                  color: AppColors.textLight,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              Text(
+                '${(util * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: util >= 1.0
+                      ? AppColors.error
+                      : util >= 0.8
+                      ? AppColors.warning
+                      : AppColors.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -1906,49 +2209,60 @@ class _FinancialCard extends StatelessWidget {
   }
 
   Widget _frow(String label, String value, Color color, IconData icon) => Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(icon, color: color, size: 17),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(label,
-                style: AppTheme.body.copyWith(color: AppColors.textMedium)),
-          ),
-          Text(value,
-              style: AppTheme.bodyLarge
-                  .copyWith(fontWeight: FontWeight.w800, color: color)),
-        ],
-      );
+    children: [
+      Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon, color: color, size: 17),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          label,
+          style: AppTheme.body.copyWith(color: AppColors.textMedium),
+        ),
+      ),
+      Text(
+        value,
+        style: AppTheme.bodyLarge.copyWith(
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    ],
+  );
 
   Widget _catRow(String label, double amount, Color c, IconData icon) => Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: c.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: c, size: 15),
+    children: [
+      Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: c.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: c, size: 15),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          label,
+          style: AppTheme.body.copyWith(
+            color: AppColors.textMedium,
+            fontSize: 13,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(label,
-                style: AppTheme.body
-                    .copyWith(color: AppColors.textMedium, fontSize: 13)),
-          ),
-          Text(formatCurrency(amount),
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w800, color: c)),
-        ],
-      );
+        ),
+      ),
+      Text(
+        formatCurrency(amount),
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c),
+      ),
+    ],
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1976,10 +2290,8 @@ class _RecentEntriesSection extends StatelessWidget {
     final filtered = isAdmin
         ? allEntries
         : (currentUserId != null && currentUserId!.isNotEmpty)
-            ? allEntries
-                .where((e) => e.createdBy == currentUserId)
-                .toList()
-            : allEntries;
+        ? allEntries.where((e) => e.createdBy == currentUserId).toList()
+        : allEntries;
 
     // Sort newest first, take 3 for the preview
     filtered.sort((a, b) => b.date.compareTo(a.date));
@@ -2022,8 +2334,18 @@ class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry});
   final EntryModel entry;
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   (Color, IconData) _style(EntryType t) {
@@ -2094,10 +2416,12 @@ class _EntryTile extends StatelessWidget {
             if (decoded is List) {
               raw = decoded;
             } else if (decoded is Map) {
-              raw = (decoded['transactions'] ??
-                      decoded['data'] ??
-                      decoded['items'] ??
-                      []) as List<dynamic>;
+              raw =
+                  (decoded['transactions'] ??
+                          decoded['data'] ??
+                          decoded['items'] ??
+                          [])
+                      as List<dynamic>;
             }
 
             Map<String, dynamic>? matched;
@@ -2119,10 +2443,14 @@ class _EntryTile extends StatelessWidget {
                 if (lower == 'overdue') payStatus = PaymentStatus.overdue;
               }
 
-              final String rawCat =
-                  (matched['category'] ?? '').toString().trim().toLowerCase();
-              final String rawType =
-                  (matched['type'] ?? '').toString().trim().toLowerCase();
+              final String rawCat = (matched['category'] ?? '')
+                  .toString()
+                  .trim()
+                  .toLowerCase();
+              final String rawType = (matched['type'] ?? '')
+                  .toString()
+                  .trim()
+                  .toLowerCase();
 
               String category = 'material';
               if (rawCat == 'labour' ||
@@ -2141,7 +2469,8 @@ class _EntryTile extends StatelessWidget {
               }
 
               bool isPositive = true;
-              if (matched['subType']?.toString().toLowerCase() == 'consumption') {
+              if (matched['subType']?.toString().toLowerCase() ==
+                  'consumption') {
                 isPositive = false;
               }
 
@@ -2153,14 +2482,18 @@ class _EntryTile extends StatelessWidget {
               final Map<String, dynamic> mappedArgs = {
                 ...matched,
                 'id': tId,
-                'title': matched['title'] ?? matched['materialName'] ?? 'Unknown',
+                'title':
+                    matched['title'] ?? matched['materialName'] ?? 'Unknown',
                 'ref': ref,
-                'amount': '${isPositive ? "+" : "-"}${matched['quantity'] ?? 0}',
+                'amount':
+                    '${isPositive ? "+" : "-"}${matched['quantity'] ?? 0}',
                 'date': matched['date'] ?? '',
                 'isPositive': isPositive,
                 'type': category,
-                'name': matched['title'] ?? matched['materialName'] ?? 'Unknown',
-                'receipt': (matched['attachments'] is List &&
+                'name':
+                    matched['title'] ?? matched['materialName'] ?? 'Unknown',
+                'receipt':
+                    (matched['attachments'] is List &&
                         matched['attachments'].isNotEmpty)
                     ? matched['attachments'].first?.toString()
                     : null,
@@ -2232,7 +2565,9 @@ class _EntryTile extends StatelessWidget {
                         ? entry.type.label.toUpperCase()
                         : entry.description,
                     style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w700, color: AppColors.textDark),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
                   ),
                   Text(dateStr, style: AppTheme.caption),
                 ],
@@ -2240,8 +2575,10 @@ class _EntryTile extends StatelessWidget {
             ),
             Text(
               formatCurrency(entry.amount),
-              style: AppTheme.bodyLarge
-                  .copyWith(fontWeight: FontWeight.w800, color: color),
+              style: AppTheme.bodyLarge.copyWith(
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -2265,11 +2602,16 @@ class _ActionButtons extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded,
-                color: Colors.redAccent, size: 28),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.redAccent,
+              size: 28,
+            ),
             const SizedBox(width: 8),
-            Text('Delete Project',
-                style: AppTheme.heading2.copyWith(color: AppColors.textDark)),
+            Text(
+              'Delete Project',
+              style: AppTheme.heading2.copyWith(color: AppColors.textDark),
+            ),
           ],
         ),
         content: Text(
@@ -2280,15 +2622,20 @@ class _ActionButtons extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(
-                    color: AppColors.textLight, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -2296,8 +2643,7 @@ class _ActionButtons extends StatelessWidget {
                 context: context,
                 barrierDismissible: false,
                 builder: (lCtx) => const Center(
-                  child:
-                      CircularProgressIndicator(color: AppColors.primary),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               );
               final success = await ApiService.deleteProject(project.id);
@@ -2322,9 +2668,13 @@ class _ActionButtons extends StatelessWidget {
                 }
               }
             },
-            child: const Text('Delete',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -2334,18 +2684,23 @@ class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canAddEntry = RoleManager.canManageExpenses;
-    final canEdit     = RoleManager.canEditProject;
-    final canDelete   = RoleManager.canDeleteProject;
+    final canEdit = RoleManager.canEditProject;
+    final canDelete = RoleManager.canDeleteProject;
 
     if (!canAddEntry && !canEdit && !canDelete) {
       return AppCard(
         child: Row(
           children: [
-            const Icon(Icons.lock_outline,
-                color: AppColors.textLight, size: 18),
+            const Icon(
+              Icons.lock_outline,
+              color: AppColors.textLight,
+              size: 18,
+            ),
             const SizedBox(width: 10),
-            Text('No project actions permitted',
-                style: TextStyle(color: AppColors.textLight, fontSize: 13)),
+            Text(
+              'No project actions permitted',
+              style: TextStyle(color: AppColors.textLight, fontSize: 13),
+            ),
           ],
         ),
       );
@@ -2370,7 +2725,8 @@ class _ActionButtons extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => EditProjectScreen(project: project)),
+                  builder: (_) => EditProjectScreen(project: project),
+                ),
               ).then((_) => context.read<ProjectProvider>().load());
             },
           ),
@@ -2413,10 +2769,8 @@ class _AllProjectEntriesScreen extends StatelessWidget {
     final entries = isAdmin
         ? allEntries
         : (currentUserId != null && currentUserId!.isNotEmpty)
-            ? allEntries
-                .where((e) => e.createdBy == currentUserId)
-                .toList()
-            : allEntries;
+        ? allEntries.where((e) => e.createdBy == currentUserId).toList()
+        : allEntries;
 
     entries.sort((a, b) => b.date.compareTo(a.date));
 
@@ -2436,16 +2790,17 @@ class _AllProjectEntriesScreen extends StatelessWidget {
               // FIX: edit icon only shown when user has edit_project permission
               rightWidget: canEdit
                   ? IconButton(
-                      icon: const Icon(Icons.edit_outlined,
-                          color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.primary,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) =>
-                                  EditProjectScreen(project: project)),
-                        ).then(
-                            (_) => context.read<ProjectProvider>().load());
+                            builder: (_) => EditProjectScreen(project: project),
+                          ),
+                        ).then((_) => context.read<ProjectProvider>().load());
                       },
                     )
                   : null,

@@ -330,17 +330,29 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         children: [
                           _fieldLabel('EXECUTION CONTEXT'),
                           const SizedBox(height: 10),
-                          _contextRow(Icons.business_outlined, 'Project',
-                              _projectName ?? projectId),
+                          _contextRow(
+                            Icons.business_outlined,
+                            'Project',
+                            _projectName ?? projectId,
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.layers_outlined, 'Floor / Zone',
-                              _floor ?? '—'),
+                          _contextRow(
+                            Icons.layers_outlined,
+                            'Floor / Zone',
+                            _floor ?? '—',
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.flag_outlined, 'Phase',
-                              _phase ?? '—'),
+                          _contextRow(
+                            Icons.flag_outlined,
+                            'Phase',
+                            _phase ?? '—',
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.task_alt_outlined, 'Activity',
-                              _activity ?? '—'),
+                          _contextRow(
+                            Icons.task_alt_outlined,
+                            'Activity',
+                            _activity ?? '—',
+                          ),
                         ],
                       ),
                     ),
@@ -478,7 +490,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     // ── DELETE ENTRY — secondary destructive action ──────────
                     if (canDelete) ...[
                       const SizedBox(height: 16),
-                      _buildDeleteAction(context, id: args['id'] as String? ?? '', projectId: projectId),
+                      _buildDeleteAction(
+                        context,
+                        id: args['id'] as String? ?? '',
+                        projectId: projectId,
+                      ),
                     ],
 
                     const SizedBox(height: 8),
@@ -700,9 +716,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         final projectProvider = context.read<ProjectProvider>();
         String pName = 'Unknown Project';
         String pId = _args['projectId'] ?? _args['project'] ?? '';
-        final matchedProj = projectProvider.projects.where(
-          (p) => p.id == pId
-        );
+        final matchedProj = projectProvider.projects.where((p) => p.id == pId);
         if (matchedProj.isNotEmpty) {
           pName = matchedProj.first.name;
         }
@@ -718,7 +732,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           'rate': (_args['rate'] as num?)?.toDouble() ?? 0.0,
           'totalAmount': _billAmount,
           'paidAmount': _paidAmount,
-          'outstandingAmount': (_billAmount - _paidAmount).clamp(0.0, double.infinity),
+          'outstandingAmount': (_billAmount - _paidAmount).clamp(
+            0.0,
+            double.infinity,
+          ),
           'paymentStatus': _payStatus,
           'receipt': _paymentReceiptFile ?? _args['receipt'] ?? '',
           'transactionDetails': _args,
@@ -735,8 +752,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             if (latest != null && mounted) {
               setState(() {
                 _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-                
-                final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? 'pending';
+
+                final pStatus =
+                    latest['paymentStatus']?.toString().toLowerCase() ??
+                    'pending';
                 if (pStatus == 'paid') {
                   _payStatus = PaymentStatus.paid;
                 } else if (pStatus == 'partial') {
@@ -747,12 +766,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                   _payStatus = PaymentStatus.pending;
                 }
 
-                _paymentHistory = latest['paymentHistory'] is List 
-                    ? List.from(latest['paymentHistory']) 
+                _paymentHistory = latest['paymentHistory'] is List
+                    ? List.from(latest['paymentHistory'])
                     : [];
-                
+
                 // If there's an updated receipt in the transaction, load it
-                if (latest['attachments'] is List && latest['attachments'].isNotEmpty) {
+                if (latest['attachments'] is List &&
+                    latest['attachments'].isNotEmpty) {
                   _paymentReceiptFile = latest['attachments'].first?.toString();
                 }
               });
@@ -827,7 +847,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     if (_paymentHistory.isEmpty) return const SizedBox.shrink();
 
     final reversedHistory = List.from(_paymentHistory.reversed);
-    final displayedHistory = _viewAllPayments ? reversedHistory : [reversedHistory.first];
+    final displayedHistory = _viewAllPayments
+        ? reversedHistory
+        : [reversedHistory.first];
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -872,7 +894,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     });
                   },
                   child: Text(
-                    _viewAllPayments ? 'View Less' : 'View All (${_paymentHistory.length})',
+                    _viewAllPayments
+                        ? 'View Less'
+                        : 'View All (${_paymentHistory.length})',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -972,7 +996,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE ACTION — low-emphasis secondary ────────────────────────────────
-  Widget _buildDeleteAction(BuildContext context, {required String id, required String projectId}) {
+  Widget _buildDeleteAction(
+    BuildContext context, {
+    required String id,
+    required String projectId,
+  }) {
     return GestureDetector(
       onTap: () => _showDeleteDialog(context, id: id, projectId: projectId),
       behavior: HitTestBehavior.opaque,
@@ -1002,7 +1030,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE DIALOG ─────────────────────────────────────────────────────────
-  void _showDeleteDialog(BuildContext context, {required String id, required String projectId}) {
+  void _showDeleteDialog(
+    BuildContext context, {
+    required String id,
+    required String projectId,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1025,7 +1057,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              
+
               if (id.isNotEmpty) {
                 final success = await ApiService.deleteTransaction(id);
                 if (success && context.mounted) {

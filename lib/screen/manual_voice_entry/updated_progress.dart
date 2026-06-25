@@ -29,9 +29,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   String? _selectedActivityName;
 
   // ── Pre-fill from route args (activity row deep-link) ────────────────────
-  String? _prefillActivityId;   // used to toggle completion on submit
+  String? _prefillActivityId; // used to toggle completion on submit
   bool _argsLoaded = false;
-  bool _launchedFromTracker = false; // hides project / phase dropdowns when pre-filled
+  bool _launchedFromTracker =
+      false; // hides project / phase dropdowns when pre-filled
 
   // ── Form state ──────────────────────────────────────────────────────────
   final TextEditingController _notesCtrl = TextEditingController();
@@ -43,8 +44,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   late final List<ConstructionPhase> _catalogue;
 
   static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   @override
@@ -150,30 +161,30 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: primaryBlue,
-            letterSpacing: 0.4,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: primaryBlue,
+        letterSpacing: 0.4,
+      ),
+    ),
+  );
 
   Widget _sectionTitle(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: textDark,
-            letterSpacing: -0.2,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+        color: textDark,
+        letterSpacing: -0.2,
+      ),
+    ),
+  );
 
   Widget _dropdownCard<T>({
     required T? value,
@@ -216,7 +227,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             hint: Text(
               hint,
               style: const TextStyle(
-                  color: textGray, fontSize: 14, fontWeight: FontWeight.w500),
+                color: textGray,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             style: const TextStyle(
               fontSize: 15,
@@ -426,8 +440,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   color: primaryBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.tune_rounded,
-                    color: primaryBlue, size: 17),
+                child: const Icon(
+                  Icons.tune_rounded,
+                  color: primaryBlue,
+                  size: 17,
+                ),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -460,17 +477,22 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   value: _selectedProjectId,
                   hint: 'Select project',
                   items: projects
-                      .map((p) => DropdownMenuItem<String>(
-                          value: p.id, child: Text(p.name)))
+                      .map(
+                        (p) => DropdownMenuItem<String>(
+                          value: p.id,
+                          child: Text(p.name),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) => setState(() {
                     _selectedProjectId = val;
                     _selectedFloor = null;
                     _selectedPhaseName = null;
                     _selectedActivityName = null;
-                    final p = projects
-                        .cast<ProjectModel?>()
-                        .firstWhere((x) => x?.id == val, orElse: () => null);
+                    final p = projects.cast<ProjectModel?>().firstWhere(
+                      (x) => x?.id == val,
+                      orElse: () => null,
+                    );
                     _completionProgress = p?.progress ?? 0.0;
                   }),
                 ),
@@ -485,18 +507,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 : 'Select floor or zone',
             enabled: _selectedProjectId != null,
             items: floors
-                .map((f) =>
-                    DropdownMenuItem<String>(value: f, child: Text(f)))
+                .map((f) => DropdownMenuItem<String>(value: f, child: Text(f)))
                 .toList(),
             onChanged: _selectedProjectId == null
                 ? null
                 : (val) => setState(() {
-                      _selectedFloor = val;
-                      if (!_launchedFromTracker) {
-                        _selectedPhaseName = null;
-                        _selectedActivityName = null;
-                      }
-                    }),
+                    _selectedFloor = val;
+                    if (!_launchedFromTracker) {
+                      _selectedPhaseName = null;
+                      _selectedActivityName = null;
+                    }
+                  }),
           ),
           const SizedBox(height: 16),
 
@@ -511,15 +532,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       : 'Select phase',
                   enabled: _selectedFloor != null,
                   items: phaseNames
-                      .map((n) => DropdownMenuItem<String>(
-                          value: n, child: Text(n)))
+                      .map(
+                        (n) =>
+                            DropdownMenuItem<String>(value: n, child: Text(n)),
+                      )
                       .toList(),
                   onChanged: _selectedFloor == null
                       ? null
                       : (val) => setState(() {
-                            _selectedPhaseName = val;
-                            _selectedActivityName = null;
-                          }),
+                          _selectedPhaseName = val;
+                          _selectedActivityName = null;
+                        }),
                 ),
           const SizedBox(height: 16),
 
@@ -532,8 +555,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   hint: _selectedPhaseName == null
                       ? 'Select phase first'
                       : 'Select activity',
-                  enabled: _selectedPhaseName != null &&
-                      activityNames.isNotEmpty,
+                  enabled:
+                      _selectedPhaseName != null && activityNames.isNotEmpty,
                   items: activityNames.isEmpty && _selectedPhaseName != null
                       ? [
                           const DropdownMenuItem<String>(
@@ -542,14 +565,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           ),
                         ]
                       : activityNames
-                          .map((a) => DropdownMenuItem<String>(
-                              value: a, child: Text(a)))
-                          .toList(),
+                            .map(
+                              (a) => DropdownMenuItem<String>(
+                                value: a,
+                                child: Text(a),
+                              ),
+                            )
+                            .toList(),
                   onChanged:
                       (_selectedPhaseName == null || activityNames.isEmpty)
-                          ? null
-                          : (val) =>
-                              setState(() => _selectedActivityName = val),
+                      ? null
+                      : (val) => setState(() => _selectedActivityName = val),
                 ),
         ],
       ),
@@ -563,7 +589,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4FF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: primaryBlue.withValues(alpha: 0.25), width: 1.5),
+        border: Border.all(
+          color: primaryBlue.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
@@ -724,11 +753,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(14),
             ),
-            style: const TextStyle(
-              fontSize: 14,
-              color: textDark,
-              height: 1.5,
-            ),
+            style: const TextStyle(fontSize: 14, color: textDark, height: 1.5),
           ),
         ),
       ],
@@ -778,8 +803,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_outlined,
-                    color: primaryBlue, size: 19),
+                const Icon(
+                  Icons.calendar_month_outlined,
+                  color: primaryBlue,
+                  size: 19,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   dateStr,
@@ -967,14 +995,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
   // ── MATERIAL CONSUMPTION ─────────────────────────────────────────────────
   Widget _buildMaterialConsumption(
-      BuildContext context, ProjectProvider provider) {
+    BuildContext context,
+    ProjectProvider provider,
+  ) {
     List<EntryModel> materials = [];
     if (_selectedProjectId != null && _selectedFloor != null) {
       materials = provider.entries
-          .where((e) =>
-              e.type == EntryType.material &&
-              e.projectId == _selectedProjectId &&
-              e.floor == _selectedFloor)
+          .where(
+            (e) =>
+                e.type == EntryType.material &&
+                e.projectId == _selectedProjectId &&
+                e.floor == _selectedFloor,
+          )
           .toList();
     }
     return Container(
@@ -1030,17 +1062,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               child: Text(
                 'No materials logged for this location yet.',
                 style: TextStyle(
-                    color: textGray,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13),
+                  color: textGray,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
               ),
             )
           else
             ...materials.map(
               (m) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child:
-                    _materialTag(m.description, m.amount.toString()),
+                child: _materialTag(m.description, m.amount.toString()),
               ),
             ),
         ],
@@ -1055,7 +1087,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           width: 7,
           height: 7,
           decoration: const BoxDecoration(
-              color: primaryBlue, shape: BoxShape.circle),
+            color: primaryBlue,
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -1096,7 +1130,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
     return GestureDetector(
       onTap: () async {
-        final project = provider.selectedProject ??
+        final project =
+            provider.selectedProject ??
             provider.projects.cast<ProjectModel?>().firstWhere(
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,

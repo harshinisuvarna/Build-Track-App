@@ -98,14 +98,29 @@ class AppBottomNav extends StatelessWidget {
               _navItem(context, nav, '/home', Icons.home_rounded, 'HOME'),
               if (nav.isRouteEnabled('/projects'))
                 _navItem(
-                    context, nav, '/projects', Icons.architecture_outlined, 'PROJECTS'),
-              if (nav.isRouteEnabled('/add-entry'))
-                _entryButton(context, nav),
+                  context,
+                  nav,
+                  '/projects',
+                  Icons.architecture_outlined,
+                  'PROJECTS',
+                ),
+              if (nav.isRouteEnabled('/add-entry')) _entryButton(context, nav),
               if (nav.isRouteEnabled('/inventory'))
                 _navItem(
-                    context, nav, '/inventory', Icons.inventory_2_outlined, 'INVENTORY'),
+                  context,
+                  nav,
+                  '/inventory',
+                  Icons.inventory_2_outlined,
+                  'INVENTORY',
+                ),
               if (nav.isRouteEnabled('/reports'))
-                _navItem(context, nav, '/reports', Icons.bar_chart_outlined, 'REPORTS'),
+                _navItem(
+                  context,
+                  nav,
+                  '/reports',
+                  Icons.bar_chart_outlined,
+                  'REPORTS',
+                ),
             ],
           ),
         ),
@@ -204,11 +219,7 @@ class ProfileAvatar extends StatelessWidget {
       backgroundColor: Colors.grey.shade800,
       backgroundImage: imageProvider,
       child: imageProvider == null
-          ? Icon(
-              Icons.person,
-              color: Colors.white,
-              size: radius,
-            )
+          ? Icon(Icons.person, color: Colors.white, size: radius)
           : null,
     );
   }

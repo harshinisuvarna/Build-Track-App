@@ -165,8 +165,18 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   /// Parse already-formatted date strings like "May 15, 2026" back to DateTime.
   DateTime? _parseFormattedDate(String s) {
     const months = {
-      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+      'Jan': 1,
+      'Feb': 2,
+      'Mar': 3,
+      'Apr': 4,
+      'May': 5,
+      'Jun': 6,
+      'Jul': 7,
+      'Aug': 8,
+      'Sep': 9,
+      'Oct': 10,
+      'Nov': 11,
+      'Dec': 12,
     };
     final parts = s.trim().split(RegExp(r'[,\s]+'));
     if (parts.length >= 3) {
@@ -183,14 +193,14 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     if (dateStr.isEmpty) return 'Older';
     final dt = _parseFormattedDate(dateStr);
     if (dt == null) return 'Older';
-    final now   = DateTime.now();
-    final today     = DateTime(now.year, now.month, now.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final weekAgo   = today.subtract(const Duration(days: 7));
-    final day       = DateTime(dt.year, dt.month, dt.day);
-    if (day == today)                      return 'Today';
-    if (day == yesterday)                  return 'Yesterday';
-    if (day.isAfter(weekAgo))              return 'This Week';
+    final weekAgo = today.subtract(const Duration(days: 7));
+    final day = DateTime(dt.year, dt.month, dt.day);
+    if (day == today) return 'Today';
+    if (day == yesterday) return 'Yesterday';
+    if (day.isAfter(weekAgo)) return 'This Week';
     return 'Older';
   }
 
@@ -216,7 +226,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
   /// Returns an ordered map: Today → Yesterday → This Week → Older.
   Map<String, List<Map<String, dynamic>>> _groupByDate(
-      List<Map<String, dynamic>> logs) {
+    List<Map<String, dynamic>> logs,
+  ) {
     const order = ['Today', 'Yesterday', 'This Week', 'Older'];
     final Map<String, List<Map<String, dynamic>>> groups = {
       for (final o in order) o: [],
@@ -228,19 +239,26 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     groups.removeWhere((_, v) => v.isEmpty);
     return groups;
   }
+
   String get _addRoute {
     switch (_itemType) {
-      case 'labour':    return '/add-labour';
-      case 'equipment': return '/add-equipment';
-      default:          return '/add-material';
+      case 'labour':
+        return '/add-labour';
+      case 'equipment':
+        return '/add-equipment';
+      default:
+        return '/add-material';
     }
   }
 
   String get _primaryActionLabel {
     switch (_itemType) {
-      case 'labour':    return 'Add Attendance';
-      case 'equipment': return 'Add Usage';
-      default:          return 'Add More';
+      case 'labour':
+        return 'Add Attendance';
+      case 'equipment':
+        return 'Add Usage';
+      default:
+        return 'Add More';
     }
   }
 
@@ -284,6 +302,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               .trim()
               .toLowerCase();
 
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
           String category = 'material';
           if (rawCat == 'labour' ||
               rawCat == 'wages' ||
@@ -324,10 +346,11 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
           if (!_isGeneral) {
             if (category != _itemType) continue;
-            final String transactionItemName = (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
-                .toString()
-                .trim()
-                .toLowerCase();
+            final String transactionItemName =
+                (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
+                    .toString()
+                    .trim()
+                    .toLowerCase();
             if (transactionItemName != _itemName.trim().toLowerCase()) {
               continue;
             }
@@ -494,7 +517,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                         padding: EdgeInsets.symmetric(vertical: 60),
                         child: Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(primaryBlue),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              primaryBlue,
+                            ),
                           ),
                         ),
                       )
@@ -521,14 +546,14 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
     for (final entry in groups.entries) {
       final groupLabel = entry.key;
-      final logs       = entry.value;
-      final collapsed  = _collapsedGroups[groupLabel] ?? (groupLabel != 'Today');
+      final logs = entry.value;
+      final collapsed = _collapsedGroups[groupLabel] ?? (groupLabel != 'Today');
 
       widgets.add(
         // ── Date group header ──────────────────────────────────────────────
         InkWell(
-          onTap: () => setState(
-              () => _collapsedGroups[groupLabel] = !collapsed),
+          onTap: () =>
+              setState(() => _collapsedGroups[groupLabel] = !collapsed),
           borderRadius: BorderRadius.circular(10),
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
@@ -540,29 +565,41 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 6, height: 6,
+                  width: 6,
+                  height: 6,
                   decoration: const BoxDecoration(
-                    color: primaryBlue, shape: BoxShape.circle),
+                    color: primaryBlue,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   groupLabel,
                   style: const TextStyle(
-                    fontSize: 12.5, fontWeight: FontWeight.w800,
-                    color: primaryBlue, letterSpacing: 0.2),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: primaryBlue,
+                    letterSpacing: 0.2,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   '${logs.length} entry${logs.length != 1 ? "ies" : ""}',
                   style: const TextStyle(
-                    fontSize: 11, color: textGray, fontWeight: FontWeight.w500),
+                    fontSize: 11,
+                    color: textGray,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const Spacer(),
                 AnimatedRotation(
                   duration: const Duration(milliseconds: 200),
                   turns: collapsed ? 0 : 0.5,
-                  child: const Icon(Icons.keyboard_arrow_down,
-                    color: primaryBlue, size: 18),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: primaryBlue,
+                    size: 18,
+                  ),
                 ),
               ],
             ),
@@ -572,19 +609,22 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
       if (!collapsed) {
         for (final log in logs) {
-          widgets.add(Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _logItem(context, log),
-          ));
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _logItem(context, log),
+            ),
+          );
         }
         widgets.add(const SizedBox(height: 8));
       }
     }
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
   }
-
-
 
   Widget _buildSummaryCard() {
     final net = _totalAdded - _totalUsed;
@@ -876,19 +916,19 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     IconData icon;
     switch (_itemType) {
       case 'labour':
-        title    = 'No Labour Records Yet';
+        title = 'No Labour Records Yet';
         subtitle = 'Add attendance or wage entries to see them here.';
-        icon     = Icons.people_outline;
+        icon = Icons.people_outline;
         break;
       case 'equipment':
-        title    = 'No Equipment Entries Yet';
+        title = 'No Equipment Entries Yet';
         subtitle = 'Add usage or payment entries to see them here.';
-        icon     = Icons.construction_outlined;
+        icon = Icons.construction_outlined;
         break;
       default:
-        title    = 'No Material Transactions Yet';
+        title = 'No Material Transactions Yet';
         subtitle = 'Add material entries to start tracking transactions.';
-        icon     = Icons.inventory_2_outlined;
+        icon = Icons.inventory_2_outlined;
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -897,7 +937,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 76, height: 76,
+              width: 76,
+              height: 76,
               decoration: BoxDecoration(
                 color: primaryBlue.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(22),
@@ -905,39 +946,56 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               child: Icon(icon, color: primaryBlue, size: 34),
             ),
             const SizedBox(height: 18),
-            Text(title,
+            Text(
+              title,
               style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w800, color: textDark, fontSize: 16)),
+                fontWeight: FontWeight.w800,
+                color: textDark,
+                fontSize: 16,
+              ),
+            ),
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(subtitle,
+              child: Text(
+                subtitle,
                 style: AppTheme.caption.copyWith(color: textGray, height: 1.5),
-                textAlign: TextAlign.center),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () => Navigator.pushNamed(
-                context, _addRoute,
+                context,
+                _addRoute,
                 arguments: {'type': _itemType, 'prefill': _itemName},
               ).then((_) => _fetchRealLogs()),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: primaryBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: primaryBlue.withValues(alpha: 0.2), width: 1),
+                    color: primaryBlue.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.add, color: primaryBlue, size: 16),
                     const SizedBox(width: 6),
-                    Text(_primaryActionLabel,
+                    Text(
+                      _primaryActionLabel,
                       style: const TextStyle(
-                        color: primaryBlue, fontWeight: FontWeight.w700,
-                        fontSize: 13)),
+                        color: primaryBlue,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1127,23 +1185,30 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                           style: AppTheme.caption.copyWith(color: textGray),
                         ),
                         // ── Vendor / Supplier ────────────────────────────────
-                        if ((log['supplier'] as String? ?? '').isNotEmpty) ...[  
+                        if ((log['supplier'] as String? ?? '').isNotEmpty) ...[
                           const SizedBox(height: 4),
-                          Row(children: [
-                            const Icon(Icons.store_outlined,
-                              size: 11, color: textGray),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                log['supplier'] as String,
-                                style: const TextStyle(
-                                  fontSize: 10.5, color: textGray,
-                                  fontWeight: FontWeight.w600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.store_outlined,
+                                size: 11,
+                                color: textGray,
                               ),
-                            ),
-                          ]),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  log['supplier'] as String,
+                                  style: const TextStyle(
+                                    fontSize: 10.5,
+                                    color: textGray,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ],
                     ),
@@ -1204,11 +1269,12 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   GestureDetector(
                     onTap: canSettle
                         ? () {
-                            final projectProvider = context.read<ProjectProvider>();
+                            final projectProvider = context
+                                .read<ProjectProvider>();
                             String pName = 'Unknown Project';
                             String pId = log['projectId'] ?? '';
                             final matchedProj = projectProvider.projects.where(
-                              (p) => p.id == pId
+                              (p) => p.id == pId,
                             );
                             if (matchedProj.isNotEmpty) {
                               pName = matchedProj.first.name;
@@ -1225,7 +1291,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                               'rate': log['rate'] ?? 0.0,
                               'totalAmount': billAmt,
                               'paidAmount': paidAmt,
-                              'outstandingAmount': (billAmt - paidAmt).clamp(0.0, double.infinity),
+                              'outstandingAmount': (billAmt - paidAmt).clamp(
+                                0.0,
+                                double.infinity,
+                              ),
                               'paymentStatus': log['paymentStatus'],
                               'receipt': log['receipt'],
                               'transactionDetails': log,

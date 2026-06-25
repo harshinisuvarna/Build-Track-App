@@ -73,6 +73,7 @@ class ProjectProvider extends ChangeNotifier {
   String? _selectedPhase;
   String? _selectedPhaseId;
   String? _selectedActivity;
+  String? _selectedActivityId;
   bool _isLoading = false;
   String _error = '';
 
@@ -84,6 +85,7 @@ class ProjectProvider extends ChangeNotifier {
   String? get selectedPhase => _selectedPhase;
   String? get selectedPhaseId => _selectedPhaseId;
   String? get selectedActivity => _selectedActivity;
+  String? get selectedActivityId => _selectedActivityId;
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
@@ -93,7 +95,8 @@ class ProjectProvider extends ChangeNotifier {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
-      (e) => e.projectId == _selectedProject!.id && e.type == EntryType.material,
+      (e) =>
+          e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -159,18 +162,22 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> _saveCompletedAt(
-    String projectId, String activityId, DateTime date) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kCompletedAtKey);
-    final Map<String, dynamic> existing =
-        raw != null && raw.isNotEmpty ? json.decode(raw) : {};
-    existing['$projectId|$activityId'] = date.toIso8601String();
-    await prefs.setString(_kCompletedAtKey, json.encode(existing));
-  } catch (e) {
-    dev.log('_saveCompletedAt error: $e');
+    String projectId,
+    String activityId,
+    DateTime date,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      final Map<String, dynamic> existing = raw != null && raw.isNotEmpty
+          ? json.decode(raw)
+          : {};
+      existing['$projectId|$activityId'] = date.toIso8601String();
+      await prefs.setString(_kCompletedAtKey, json.encode(existing));
+    } catch (e) {
+      dev.log('_saveCompletedAt error: $e');
+    }
   }
-}
 
   Future<void> _saveActivityDetails(
     String projectId, String activityId, {String? notes, String? photo, List<String>? photos}) async {
@@ -208,41 +215,38 @@ class ProjectProvider extends ChangeNotifier {
       return {};
     }
   }
-
-// NEW: call this for activities that are completed but have no date stamp
-Future<void> _backfillCompletedActivities() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kCompletedAtKey);
-    final Map<String, dynamic> existing =
-        raw != null && raw.isNotEmpty ? json.decode(raw) : {};
-    bool changed = false;
-    for (final p in _projects) {
-      for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
-        for (final act in phase.activities) {
-          final key = '${p.id}|${act.id}';
-          if (act.completed && !existing.containsKey(key)) {
-            // Use a sentinel date so we know it was completed but date unknown
-            existing[key] = DateTime(2000).toIso8601String();
-            changed = true;
+  // NEW: call this for activities that are completed but have no date stamp
+  Future<void> _backfillCompletedActivities() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      final Map<String, dynamic> existing =
+          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      bool changed = false;
+      for (final p in _projects) {
+        for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
+          for (final act in phase.activities) {
+            final key = '${p.id}|${act.id}';
+            if (act.completed && !existing.containsKey(key)) {
+              // Use a sentinel date so we know it was completed but date unknown
+              existing[key] = DateTime(2000).toIso8601String();
+              changed = true;
+            }
           }
         }
       }
+      if (changed) {
+        await prefs.setString(_kCompletedAtKey, json.encode(existing));
+      }
+    } catch (e) {
+      dev.log('_backfillCompletedActivities error: $e');
     }
-    if (changed) {
-      await prefs.setString(_kCompletedAtKey, json.encode(existing));
-    }
-  } catch (e) {
-    dev.log('_backfillCompletedActivities error: $e');
   }
-}
 
   List<ProjectModel> _filterForCurrentUser(List<ProjectModel> all) {
     if (UserSession.isAdmin) return all;
 
-    final assignedIds = UserSession.projectIds
-        .map((id) => id.trim())
-        .toSet();
+    final assignedIds = UserSession.projectIds.map((id) => id.trim()).toSet();
     if (assignedIds.isEmpty) return [];
 
     return all.where((p) => assignedIds.contains(p.id.trim())).toList();
@@ -262,27 +266,30 @@ Future<void> _backfillCompletedActivities() async {
         }
       }
       if (_phases.isEmpty || _phases.length < 11) {
-        _phases = [
-          'Pre-Construction',
-          'Site Preparation',
-          'Foundation',
-          'Plinth',
-          'Superstructure',
-          'Masonry',
-          'MEP',
-          'Plastering',
-          'Finishing',
-          'Fixtures',
-          'Handover',
-        ]
-            .asMap()
-            .entries
-            .map((e) => PhaseModel(
-                  id: e.value.toLowerCase().replaceAll(' ', '_'),
-                  name: e.value,
-                  order: e.key,
-                ))
-            .toList();
+        _phases =
+            [
+                  'Pre-Construction',
+                  'Site Preparation',
+                  'Foundation',
+                  'Plinth',
+                  'Superstructure',
+                  'Masonry',
+                  'MEP',
+                  'Plastering',
+                  'Finishing',
+                  'Fixtures',
+                  'Handover',
+                ]
+                .asMap()
+                .entries
+                .map(
+                  (e) => PhaseModel(
+                    id: e.value.toLowerCase().replaceAll(' ', '_'),
+                    name: e.value,
+                    order: e.key,
+                  ),
+                )
+                .toList();
         _savePhases();
       }
 
@@ -306,8 +313,8 @@ Future<void> _backfillCompletedActivities() async {
           for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
             for (final act in phase.activities) {
               if (act.completed && act.completedAt != null) {
-                prevCompletedAt
-                    .putIfAbsent(p.id, () => {})[act.id] = act.completedAt!;
+                prevCompletedAt.putIfAbsent(p.id, () => {})[act.id] =
+                    act.completedAt!;
               } else if (act.completed && act.completedAt == null) {
                 // Activity was completed but date was never stamped — use epoch as
                 // a sentinel so we at least preserve the completed state.
@@ -363,12 +370,14 @@ Future<void> _backfillCompletedActivities() async {
               : p.floors!;
 
           final effectivePhases = mergedPhases ?? p.selectedPhases;
-          final totalActs = effectivePhases?.fold<int>(
-              0, (s, ph) => s + ph.totalCount) ?? 0;
-          final doneActs = effectivePhases?.fold<int>(
-              0, (s, ph) => s + ph.completedCount) ?? 0;
-          final computedProgress =
-              totalActs > 0 ? doneActs / totalActs : p.progress;
+          final totalActs =
+              effectivePhases?.fold<int>(0, (s, ph) => s + ph.totalCount) ?? 0;
+          final doneActs =
+              effectivePhases?.fold<int>(0, (s, ph) => s + ph.completedCount) ??
+              0;
+          final computedProgress = totalActs > 0
+              ? doneActs / totalActs
+              : p.progress;
 
           return p.copyWith(
             selectedPhases: effectivePhases,
@@ -392,7 +401,12 @@ Future<void> _backfillCompletedActivities() async {
         final apiMaterials = await ApiService.fetchMaterials();
         debugPrint('fetchMaterials: ${apiMaterials.length} items');
 
-        _entries = apiMaterials.map<EntryModel>((json) {
+        final filteredMaterials = apiMaterials.where((json) {
+          final rawType = (json['type'] ?? '').toString().toLowerCase();
+          return rawType != 'income' && rawType != 'revenue';
+        }).toList();
+
+        _entries = filteredMaterials.map<EntryModel>((json) {
           EntryType parsedType = EntryType.material;
           final rawType = (json['type'] ?? '').toString().toLowerCase();
           if (rawType == 'labour' || rawType == 'wages') {
@@ -418,8 +432,10 @@ Future<void> _backfillCompletedActivities() async {
           if (projectId.isEmpty) projectId = 'p1';
 
           double amount = 0;
-          final paymentStatus =
-              (json['paymentStatus'] ?? '').toString().toLowerCase().trim();
+          final paymentStatus = (json['paymentStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
           final paidAmount = json['paidAmount'];
 
           if (paymentStatus == 'paid') {
@@ -458,20 +474,23 @@ Future<void> _backfillCompletedActivities() async {
           // Backend may send it as createdBy, addedBy, submittedBy, or
           // as a nested user object with _id. We try all common variants.
           String? createdBy;
-          final createdByRaw = json['createdBy'] ??
+          final createdByRaw =
+              json['createdBy'] ??
               json['addedBy'] ??
               json['submittedBy'] ??
               json['userId'] ??
               json['user'];
           if (createdByRaw is Map) {
-            createdBy = createdByRaw['_id']?.toString() ??
+            createdBy =
+                createdByRaw['_id']?.toString() ??
                 createdByRaw['id']?.toString();
           } else if (createdByRaw != null) {
             createdBy = createdByRaw.toString();
           }
 
           return EntryModel(
-            id: json['_id']?.toString() ??
+            id:
+                json['_id']?.toString() ??
                 DateTime.now().millisecondsSinceEpoch.toString(),
             projectId: projectId,
             type: parsedType,
@@ -479,7 +498,8 @@ Future<void> _backfillCompletedActivities() async {
             date: json['date'] != null
                 ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
                 : DateTime.now(),
-            description: json['materialName'] ??
+            description:
+                json['materialName'] ??
                 json['title'] ??
                 json['description'] ??
                 json['name'] ??
@@ -529,8 +549,9 @@ Future<void> _backfillCompletedActivities() async {
       final double? prevProgress = _selectedProject?.progress;
 
       if (_selectedProject != null) {
-        final existingIdx =
-            _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
+        final existingIdx = _projects.indexWhere(
+          (p) => p.id.trim() == _selectedProject!.id.trim(),
+        );
         if (existingIdx != -1) {
           _selectedProject = _projects[existingIdx];
         } else if (_projects.isNotEmpty) {
@@ -559,11 +580,15 @@ Future<void> _backfillCompletedActivities() async {
         _selectedPhase = prefs.getString('buildtrack_selected_phase');
         _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
         _selectedActivity = prefs.getString('buildtrack_selected_activity');
+        _selectedActivityId = prefs.getString(
+          'buildtrack_selected_activity_id',
+        );
       } else {
         _selectedFloor = null;
         _selectedPhase = null;
         _selectedPhaseId = null;
         _selectedActivity = null;
+        _selectedActivityId = null;
       }
 
       // Backfill any completed activities that never got a saved date
@@ -617,8 +642,8 @@ Future<void> _backfillCompletedActivities() async {
   }) async {
     final finalFloors = (floors == null || floors.isEmpty)
         ? (project.floors == null || project.floors!.isEmpty
-            ? ['Ground']
-            : project.floors!)
+              ? ['Ground']
+              : project.floors!)
         : floors;
     final updatedProject = project.copyWith(
       clientName: clientName,
@@ -640,8 +665,10 @@ Future<void> _backfillCompletedActivities() async {
   Future<void> updateProject(ProjectModel updated) async {
     _setLoading(true);
     try {
-      final response =
-          await ApiService.put('/projects/${updated.id}', updated.toJson());
+      final response = await ApiService.put(
+        '/projects/${updated.id}',
+        updated.toJson(),
+      );
       if (response.statusCode == 200) {
         final idx = _projects.indexWhere((p) => p.id == updated.id);
         if (idx != -1) _projects[idx] = updated;
@@ -665,7 +692,10 @@ Future<void> _backfillCompletedActivities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (_selectedProject != null) {
-        await prefs.setString('buildtrack_selected_project_id', _selectedProject!.id);
+        await prefs.setString(
+          'buildtrack_selected_project_id',
+          _selectedProject!.id,
+        );
       } else {
         await prefs.remove('buildtrack_selected_project_id');
       }
@@ -680,14 +710,28 @@ Future<void> _backfillCompletedActivities() async {
         await prefs.remove('buildtrack_selected_phase');
       }
       if (_selectedPhaseId != null) {
-        await prefs.setString('buildtrack_selected_phase_id', _selectedPhaseId!);
+        await prefs.setString(
+          'buildtrack_selected_phase_id',
+          _selectedPhaseId!,
+        );
       } else {
         await prefs.remove('buildtrack_selected_phase_id');
       }
       if (_selectedActivity != null) {
-        await prefs.setString('buildtrack_selected_activity', _selectedActivity!);
+        await prefs.setString(
+          'buildtrack_selected_activity',
+          _selectedActivity!,
+        );
       } else {
         await prefs.remove('buildtrack_selected_activity');
+      }
+      if (_selectedActivityId != null) {
+        await prefs.setString(
+          'buildtrack_selected_activity_id',
+          _selectedActivityId!,
+        );
+      } else {
+        await prefs.remove('buildtrack_selected_activity_id');
       }
     } catch (e) {
       dev.log('_saveContextPrefs error: $e');
@@ -701,6 +745,7 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -710,6 +755,7 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -718,12 +764,14 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = phase;
     _selectedPhaseId = phaseId;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
 
-  void selectActivity(String? activity) {
+  void selectActivity(String? activity, [String? activityId]) {
     _selectedActivity = activity;
+    _selectedActivityId = activityId;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -752,98 +800,97 @@ Future<void> _backfillCompletedActivities() async {
     }
   }
 
-  // AFTER
-Future<bool> toggleActivityCompletion(
-  String projectId,
-  String activityId, {
-  DateTime? completedAt,
-  String? notes,
-  String? photo,
-  List<String>? photos,
-  double? manualProgress,
-}) async {
-  print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
-  final projectIndex = _projects.indexWhere((p) => p.id == projectId);
-  if (projectIndex == -1) {
-    print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
-    return false;
-  }
-
-  final project = _projects[projectIndex];
-  final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
-  bool found = false;
-  DateTime? stampedDate;
-
-  for (var p = 0; p < phases.length; p++) {
-    final phase = phases[p];
-    final activities = List<ProjectActivity>.from(phase.activities);
-    final aIndex = activities.indexWhere((a) => a.id == activityId);
-    if (aIndex != -1) {
-      final current = activities[aIndex];
-      stampedDate = completedAt ?? current.completedAt ?? DateTime.now();
-      final shouldClear = (photos != null && photos.isEmpty);
-      activities[aIndex] = current.copyWith(
-        completed: true,
-        completedAt: stampedDate,
-        notes: notes ?? current.notes,
-        photo: shouldClear ? null : ((photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo)),
-        photos: shouldClear ? [] : (photos ?? current.photos),
-        clearPhoto: shouldClear,
-        clearPhotos: shouldClear,
-      );
-      phases[p] = phase.copyWith(activities: activities);
-      found = true;
-      break;
+  Future<bool> toggleActivityCompletion(
+    String projectId,
+    String activityId, {
+    DateTime? completedAt,
+    String? notes,
+    String? photo,
+    List<String>? photos,
+    double? manualProgress,
+  }) async {
+    print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
+    final projectIndex = _projects.indexWhere((p) => p.id == projectId);
+    if (projectIndex == -1) {
+      print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
+      return false;
     }
-  }
 
-  if (!found) {
-    print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
-    return false;
-  }
+    final project = _projects[projectIndex];
+    final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
+    bool found = false;
+    DateTime? stampedDate;
 
-  final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
-  final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
-  final updated = project.copyWith(
-    selectedPhases: phases,
-    progress: manualProgress ?? (total == 0 ? project.progress : done / total),
-  );
+    for (var p = 0; p < phases.length; p++) {
+      final phase = phases[p];
+      final activities = List<ProjectActivity>.from(phase.activities);
+      final aIndex = activities.indexWhere((a) => a.id == activityId);
+      if (aIndex != -1) {
+        final current = activities[aIndex];
+        stampedDate = completedAt ?? current.completedAt ?? DateTime.now();
+        final shouldClear = (photos != null && photos.isEmpty);
+        activities[aIndex] = current.copyWith(
+          completed: true,
+          completedAt: stampedDate,
+          notes: notes ?? current.notes,
+          photo: shouldClear ? null : ((photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo)),
+          photos: shouldClear ? [] : (photos ?? current.photos),
+          clearPhoto: shouldClear,
+          clearPhotos: shouldClear,
+        );
+        phases[p] = phase.copyWith(activities: activities);
+        found = true;
+        break;
+      }
+    }
 
-  // Optimistic update — paint the tick immediately
-  _projects[projectIndex] = updated;
-  if (_selectedProject?.id == projectId) _selectedProject = updated;
-  notifyListeners();
+    if (!found) {
+      print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
+      return false;
+    }
 
-  if (stampedDate != null) {
-    await _saveCompletedAt(projectId, activityId, stampedDate);
-  }
-  if (notes != null || photo != null || photos != null) {
-    final firstPhoto = (photos != null && photos.isNotEmpty) ? photos.first : photo;
-    await _saveActivityDetails(projectId, activityId, notes: notes, photo: firstPhoto, photos: photos);
-  }
+    final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
+    final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
+    final updated = project.copyWith(
+      selectedPhases: phases,
+      progress: manualProgress ?? (total == 0 ? project.progress : done / total),
+    );
 
-  try {
-    print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
-    final response = await ApiService.put('/projects/$projectId', updated.toJson());
-    print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      return true;
-    } else {
-      // Rollback on non-200/204 status code
+    // Optimistic update — paint the tick immediately
+    _projects[projectIndex] = updated;
+    if (_selectedProject?.id == projectId) _selectedProject = updated;
+    notifyListeners();
+
+    if (stampedDate != null) {
+      await _saveCompletedAt(projectId, activityId, stampedDate);
+    }
+    if (notes != null || photo != null || photos != null) {
+      final firstPhoto = (photos != null && photos.isNotEmpty) ? photos.first : photo;
+      await _saveActivityDetails(projectId, activityId, notes: notes, photo: firstPhoto, photos: photos);
+    }
+
+    try {
+      print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
+      final response = await ApiService.put('/projects/$projectId', updated.toJson());
+      print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        // Rollback on non-200/204 status code
+        _projects[projectIndex] = project;
+        if (_selectedProject?.id == projectId) _selectedProject = project;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
+      // Rollback on API failure so UI stays consistent with server
       _projects[projectIndex] = project;
       if (_selectedProject?.id == projectId) _selectedProject = project;
       notifyListeners();
       return false;
     }
-  } catch (e) {
-    print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
-    // Rollback on API failure so UI stays consistent with server
-    _projects[projectIndex] = project;
-    if (_selectedProject?.id == projectId) _selectedProject = project;
-    notifyListeners();
-    return false;
   }
-}
 
   Future<bool> markActivityComplete(
     String projectId,
@@ -918,11 +965,13 @@ Future<bool> toggleActivityCompletion(
   }
 
   void addPhase(String name) {
-    _phases.add(PhaseModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      order: _phases.length,
-    ));
+    _phases.add(
+      PhaseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        order: _phases.length,
+      ),
+    );
     _savePhases();
     notifyListeners();
   }

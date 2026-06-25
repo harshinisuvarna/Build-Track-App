@@ -1,14 +1,14 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 
 class ReceiptViewerScreen extends StatelessWidget {
   const ReceiptViewerScreen({super.key});
   static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const purple = AppColors.primary;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
   @override
   Widget build(BuildContext context) {
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
@@ -37,14 +37,19 @@ class ReceiptViewerScreen extends StatelessWidget {
             onTap: () => Navigator.pop(context),
             child: const Icon(Icons.arrow_back, color: textDark, size: 22),
           ),
-          const Text('Receipt',
-              style: TextStyle(
-                  color: textDark, fontSize: 17, fontWeight: FontWeight.w700)),
+          const Text(
+            'Receipt',
+            style: TextStyle(
+              color: textDark,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Download started')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Download started')));
             },
             child: Container(
               padding: const EdgeInsets.all(8),
@@ -52,8 +57,11 @@ class ReceiptViewerScreen extends StatelessWidget {
                 color: const Color(0xFFEEF0FF),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(Icons.download_outlined,
-                  color: primaryBlue, size: 20),
+              child: const Icon(
+                Icons.download_outlined,
+                color: primaryBlue,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -77,8 +85,9 @@ class ReceiptViewerScreen extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE0E5FF)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
               ],
             ),
             child: Row(
@@ -105,30 +114,39 @@ class ReceiptViewerScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(receipt,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: textDark)),
+                      Text(
+                        receipt,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: textDark,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(isPdf ? 'PDF Document' : 'Image File',
-                          style: const TextStyle(
-                              color: textGray, fontSize: 12)),
+                      Text(
+                        isPdf ? 'PDF Document' : 'Image File',
+                        style: const TextStyle(color: textGray, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text('Verified',
-                      style: TextStyle(
-                          color: Color(0xFF2E7D32),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Verified',
+                    style: TextStyle(
+                      color: Color(0xFF2E7D32),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -144,8 +162,9 @@ class ReceiptViewerScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 12)
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                  ),
                 ],
               ),
               child: Column(
@@ -167,17 +186,23 @@ class ReceiptViewerScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(receipt,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: textDark)),
+                  Text(
+                    receipt,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: textDark,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   const Text(
                     'Receipt preview would appear here\nwhen connected to storage',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: textGray, fontSize: 13, height: 1.5),
+                      color: textGray,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   GestureDetector(
@@ -188,28 +213,37 @@ class ReceiptViewerScreen extends StatelessWidget {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 14),
+                        horizontal: 28,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         gradient: AppGradients.primaryButton,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                              color: primaryBlue.withValues(alpha: 0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4))
+                            color: primaryBlue.withValues(alpha: 0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.open_in_new,
-                              color: Colors.white, size: 18),
+                          Icon(
+                            Icons.open_in_new,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
-                          Text('Open Full View',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15)),
+                          Text(
+                            'Open Full View',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -13,204 +13,46 @@ class AddEntryScreen extends StatelessWidget {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
   List<Map<String, dynamic>> get _entries {
-  final items = <Map<String, dynamic>>[];
+    final items = <Map<String, dynamic>>[];
 
-  if (RoleManager.canManageExpenses) {
-    items.add({
-      'icon': Icons.category,
-      'title': 'Material',
-      'subtitle':
-          'Log concrete, steel, lumber, or site-specific procurement items.',
-      'type': 'material',
-    });
+    if (RoleManager.canManageExpenses) {
+      items.add({
+        'icon': Icons.category,
+        'title': 'Material',
+        'subtitle':
+            'Log concrete, steel, lumber, or site-specific procurement items.',
+        'type': 'material',
+      });
+    }
+
+    if (RoleManager.canAddEntries) {
+      items.add({
+        'icon': Icons.people,
+        'title': 'Labour',
+        'subtitle':
+            'Track crew hours, specialized trade performance, and site presence.',
+        'type': 'labour',
+      });
+    }
+
+    if (RoleManager.canManageEquipmentMaster) {
+      items.add({
+        'icon': Icons.precision_manufacturing,
+        'title': 'Equipment',
+        'subtitle':
+            'Record heavy machinery runtime, fuel logs, and maintenance events.',
+        'type': 'equipment',
+      });
+    }
+
+    return items;
   }
 
-  if (RoleManager.canAddEntries) {
-    items.add({
-      'icon': Icons.people,
-      'title': 'Labour',
-      'subtitle':
-          'Track crew hours, specialized trade performance, and site presence.',
-      'type': 'labour',
-    });
-  }
-
-  if (RoleManager.canManageEquipmentMaster) {
-    items.add({
-      'icon': Icons.precision_manufacturing,
-      'title': 'Equipment',
-      'subtitle':
-          'Record heavy machinery runtime, fuel logs, and maintenance events.',
-      'type': 'equipment',
-    });
-  }
-
-  return items;
-}
-
-  void _showEntryOptions(BuildContext context, String type) {
-    const Map<String, String> voiceRoutes = {
-      'material': '/review-material',
-      'labour': '/review-labour',
-      'equipment': '/review-equipment',
-    };
-    const Map<String, String> manualRoutes = {
-      'material': '/add-material',
-      'labour': '/add-labour',
-      'equipment': '/add-equipment',
-    };
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDDE0F0),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'How do you want to add?',
-                  style: AppTheme.heading2.copyWith(color: textDark),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-                  style: AppTheme.body.copyWith(color: textGray),
-                ),
-                const SizedBox(height: 20),
-                _bottomSheetOption(
-                  icon: Icons.mic,
-                  iconColor: primaryBlue,
-                  iconBg: const Color(0xFFEEF0FF),
-                  title: 'Use Voice',
-                  subtitle: 'Speak and let AI capture the details',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final route = voiceRoutes[type];
-                    if (route != null) {
-                      Navigator.pushNamed(
-                        context,
-                        route,
-                        arguments: {'type': type},
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                _bottomSheetOption(
-                  icon: Icons.edit_outlined,
-                  iconColor: purple,
-                  iconBg: const Color(0xFFF0EEFF),
-                  title: 'Enter Manually',
-                  subtitle: 'Fill the form manually',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final route = manualRoutes[type];
-                    if (route != null) {
-                      Navigator.pushNamed(
-                        context,
-                        route,
-                        arguments: {'type': type},
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () => Navigator.pop(ctx),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: textGray,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _bottomSheetOption({
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E5FF)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppTheme.caption.copyWith(
-                        color: textGray,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: textGray, size: 20),
-            ],
-          ),
-        ),
-      ),
+  void _navigateToContext(BuildContext context, String type) {
+    Navigator.pushNamed(
+      context,
+      '/execution-context',
+      arguments: {'type': type},
     );
   }
 
@@ -225,8 +67,9 @@ class AddEntryScreen extends StatelessWidget {
             AppTopBar(
               title: 'Add Entry',
               leftIcon: Navigator.canPop(context) ? Icons.arrow_back : null,
-              onLeftTap:
-                  Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              onLeftTap: Navigator.canPop(context)
+                  ? () => Navigator.pop(context)
+                  : null,
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: const ProfileAvatar(radius: 18),
@@ -293,7 +136,7 @@ class AddEntryScreen extends StatelessWidget {
     final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);
 
     return AppCard(
-      onTap: () => _showEntryOptions(context, type),
+      onTap: () => _navigateToContext(context, type),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

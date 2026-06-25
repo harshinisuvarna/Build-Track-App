@@ -15,18 +15,19 @@ class UserSession extends ChangeNotifier {
   static const String _kSessionKey = 'buildtrack_user_session';
 
   // ── In-memory state ────────────────────────────────────
-  static String        _userId      = '';
-  static UserRole      _role        = UserRole.mason;
-  static String?       _profilePhoto;
+  static String _userId = '';
+  static UserRole _role = UserRole.mason;
+  static String? _profilePhoto;
 
   // FIX 1: Store the raw display name from backend (e.g. "Contractor", "Site Manager")
-  static String        _rawRoleName = '';
+  static String _rawRoleName = '';
 
   // ✅ PRIMARY: list of assigned project IDs
-  static List<String>  _projectIds  = [];
+  static List<String> _projectIds = [];
 
   // ✅ LEGACY COMPAT: first of projectIds, used by old code that reads projectId
-  static String get projectId => _projectIds.isNotEmpty ? _projectIds.first : '';
+  static String get projectId =>
+      _projectIds.isNotEmpty ? _projectIds.first : '';
 
   // Allow direct set for backward compat (sets _projectIds to [value])
   static set projectId(String value) {
@@ -38,20 +39,20 @@ class UserSession extends ChangeNotifier {
     _instance.notifyListeners();
   }
 
-  static List<String>  _permissions = [];
-  static bool          _initialized = false;
+  static List<String> _permissions = [];
+  static bool _initialized = false;
 
   // ── Getters ────────────────────────────────────────────
-  static String       get userId        => _userId;
-  static UserRole     get role          => _role;
-  static List<String> get projectIds    => List.unmodifiable(_projectIds);
-  static List<String> get permissions   => List.unmodifiable(_permissions);
-  static bool         get isInitialized => _initialized;
-  static String?      get profilePhoto  => _profilePhoto;
+  static String get userId => _userId;
+  static UserRole get role => _role;
+  static List<String> get projectIds => List.unmodifiable(_projectIds);
+  static List<String> get permissions => List.unmodifiable(_permissions);
+  static bool get isInitialized => _initialized;
+  static String? get profilePhoto => _profilePhoto;
 
-  static bool get isAdmin      => _role == UserRole.admin;
+  static bool get isAdmin => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
-  static bool get isMason      => _role == UserRole.mason;
+  static bool get isMason => _role == UserRole.mason;
 
   /// Whether the user is assigned to a specific project
   static bool hasProjectAccess(String pid) {
@@ -65,9 +66,12 @@ class UserSession extends ChangeNotifier {
   static String get roleLabel {
     if (_rawRoleName.isNotEmpty) return _rawRoleName;
     switch (_role) {
-      case UserRole.admin:      return 'Admin';
-      case UserRole.supervisor: return 'Supervisor';
-      case UserRole.mason:      return 'Mason';
+      case UserRole.admin:
+        return 'Admin';
+      case UserRole.supervisor:
+        return 'Supervisor';
+      case UserRole.mason:
+        return 'Mason';
     }
   }
 
@@ -99,9 +103,7 @@ class UserSession extends ChangeNotifier {
     }
 
     final raw = user['permissions'];
-    _permissions = raw is List
-        ? raw.map((e) => e.toString()).toList()
-        : [];
+    _permissions = raw is List ? raw.map((e) => e.toString()).toList() : [];
 
     _profilePhoto = user['profilePhoto']?.toString();
 
@@ -109,15 +111,17 @@ class UserSession extends ChangeNotifier {
     await _persist();
     _instance.notifyListeners();
 
-    debugPrint('[UserSession] fromLoginResponse → '
-        'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds permissions=$_permissions');
+    debugPrint(
+      '[UserSession] fromLoginResponse → '
+      'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds permissions=$_permissions',
+    );
   }
 
   // ── Called on app start ────────────────────────────────
   static Future<void> loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw   = prefs.getString(_kSessionKey);
+      final raw = prefs.getString(_kSessionKey);
 
       if (raw == null || raw.isEmpty) {
         _initialized = true;
@@ -132,7 +136,8 @@ class UserSession extends ChangeNotifier {
 
       // FIX 1: Restore raw role name from persisted prefs
       final rawRoleStr = data['role']?.toString() ?? '';
-      _rawRoleName = data['rawRoleName']?.toString() ?? _toDisplayName(rawRoleStr);
+      _rawRoleName =
+          data['rawRoleName']?.toString() ?? _toDisplayName(rawRoleStr);
       _role = _parseRole(rawRoleStr);
 
       final savedIds = data['projectIds'];
@@ -154,8 +159,10 @@ class UserSession extends ChangeNotifier {
       _initialized = true;
       _instance.notifyListeners();
 
-      debugPrint('[UserSession] loadFromPrefs → '
-          'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds');
+      debugPrint(
+        '[UserSession] loadFromPrefs → '
+        'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds',
+      );
     } catch (e) {
       debugPrint('[UserSession] loadFromPrefs error: $e');
       _initialized = true;
@@ -165,10 +172,10 @@ class UserSession extends ChangeNotifier {
 
   // ── Called on logout ───────────────────────────────────
   static Future<void> clear() async {
-    _userId      = '';
-    _role        = UserRole.mason;
+    _userId = '';
+    _role = UserRole.mason;
     _rawRoleName = '';
-    _projectIds  = [];
+    _projectIds = [];
     _permissions = [];
     _profilePhoto = null;
     _initialized = false;
@@ -182,16 +189,16 @@ class UserSession extends ChangeNotifier {
 
   // ── Manual set (debug / simulation) ───────────────────
   static void set({
-    required String   userId,
+    required String userId,
     required UserRole role,
-    List<String>      projectIds   = const [],
-    String            projectId    = '',
-    List<String>      permissions  = const [],
-    String            rawRoleName  = '',
-    String?           profilePhoto,
+    List<String> projectIds = const [],
+    String projectId = '',
+    List<String> permissions = const [],
+    String rawRoleName = '',
+    String? profilePhoto,
   }) {
-    _userId      = userId;
-    _role        = role;
+    _userId = userId;
+    _role = role;
     // FIX 1: allow explicit rawRoleName for simulations
     _rawRoleName = rawRoleName.isNotEmpty ? rawRoleName : _enumToDisplay(role);
     _profilePhoto = profilePhoto;
@@ -199,7 +206,7 @@ class UserSession extends ChangeNotifier {
     if (projectId.isNotEmpty && !merged.contains(projectId)) {
       merged.insert(0, projectId);
     }
-    _projectIds  = merged;
+    _projectIds = merged;
     _permissions = List<String>.from(permissions);
     _initialized = true;
     _instance.notifyListeners();
@@ -215,10 +222,14 @@ class UserSession extends ChangeNotifier {
     final trimmed = roleStr.trim();
     // For known enum roles, return the canonical display name
     switch (trimmed.toLowerCase()) {
-      case 'admin':      return 'Admin';
-      case 'supervisor': return 'Supervisor';
-      case 'mason':      return 'Mason';
-      case 'worker':     return 'Worker';
+      case 'admin':
+        return 'Admin';
+      case 'supervisor':
+        return 'Supervisor';
+      case 'mason':
+        return 'Mason';
+      case 'worker':
+        return 'Worker';
       default:
         // For custom roles (Contractor, Site Manager, Viewer, etc.)
         // return the raw string with first letter capitalised
@@ -228,9 +239,12 @@ class UserSession extends ChangeNotifier {
 
   static String _enumToDisplay(UserRole role) {
     switch (role) {
-      case UserRole.admin:      return 'Admin';
-      case UserRole.supervisor: return 'Supervisor';
-      case UserRole.mason:      return 'Mason';
+      case UserRole.admin:
+        return 'Admin';
+      case UserRole.supervisor:
+        return 'Supervisor';
+      case UserRole.mason:
+        return 'Mason';
     }
   }
 
@@ -246,8 +260,10 @@ class UserSession extends ChangeNotifier {
       case 'worker':
         return UserRole.mason;
       default:
-        debugPrint('[UserSession] _parseRole: unknown role "$roleStr" '
-            '→ defaulting to UserRole.mason');
+        debugPrint(
+          '[UserSession] _parseRole: unknown role "$roleStr" '
+          '→ defaulting to UserRole.mason',
+        );
         return UserRole.mason;
     }
   }
@@ -255,15 +271,18 @@ class UserSession extends ChangeNotifier {
   static Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kSessionKey, json.encode({
-        'id':          _userId,
-        'role':        roleLabel,       // still stored for _parseRole compat
-        'rawRoleName': _rawRoleName,    // FIX 1: persist raw name separately
-        'projectIds':  _projectIds,
-        'projectId':   projectId,
-        'permissions': _permissions,
-        'profilePhoto': _profilePhoto,
-      }));
+      await prefs.setString(
+        _kSessionKey,
+        json.encode({
+          'id': _userId,
+          'role': roleLabel, // still stored for _parseRole compat
+          'rawRoleName': _rawRoleName, // FIX 1: persist raw name separately
+          'projectIds': _projectIds,
+          'projectId': projectId,
+          'permissions': _permissions,
+          'profilePhoto': _profilePhoto,
+        }),
+      );
     } catch (e) {
       debugPrint('[UserSession] _persist error: $e');
     }
@@ -271,42 +290,62 @@ class UserSession extends ChangeNotifier {
 
   // ── Debug helpers ──────────────────────────────────────
   static void simulateAdmin() => set(
-    userId: 'sim_admin', role: UserRole.admin,
+    userId: 'sim_admin',
+    role: UserRole.admin,
     projectIds: ['proj_001'],
     rawRoleName: 'Admin',
   );
 
   static void simulateSupervisor() => set(
-    userId: 'sim_sup', role: UserRole.supervisor,
+    userId: 'sim_sup',
+    role: UserRole.supervisor,
     projectIds: ['proj_001', 'proj_002'],
     rawRoleName: 'Supervisor',
     permissions: const [
-      'view_assigned_project', 'submit_daily_update',
-      'upload_photos', 'upload_videos', 'submit_checklist',
-      'report_issue', 'report_delay', 'approve_updates',
-      'reject_updates', 'add_supervisor_remarks',
-      'view_progress_dashboard', 'view_issue_tracker',
-      'view_delay_tracker', 'view_media_gallery', 'view_reports',
-      'view_projects', 'add_entries', 'approve_payments',
+      'view_assigned_project',
+      'submit_daily_update',
+      'upload_photos',
+      'upload_videos',
+      'submit_checklist',
+      'report_issue',
+      'report_delay',
+      'approve_updates',
+      'reject_updates',
+      'add_supervisor_remarks',
+      'view_progress_dashboard',
+      'view_issue_tracker',
+      'view_delay_tracker',
+      'view_media_gallery',
+      'view_reports',
+      'view_projects',
+      'add_entries',
+      'approve_payments',
       'mark_paid',
     ],
   );
 
   static void simulateMason() => set(
-    userId: 'sim_mason', role: UserRole.mason,
+    userId: 'sim_mason',
+    role: UserRole.mason,
     projectIds: ['proj_001'],
     rawRoleName: 'Mason',
     permissions: const [
-      'view_assigned_project', 'submit_daily_update',
-      'upload_photos', 'upload_videos', 'submit_checklist',
-      'report_issue', 'report_delay',
-      'view_projects', 'add_entries',
+      'view_assigned_project',
+      'submit_daily_update',
+      'upload_photos',
+      'upload_videos',
+      'submit_checklist',
+      'report_issue',
+      'report_delay',
+      'view_projects',
+      'add_entries',
     ],
   );
 
   /// Simulate a custom role (e.g. "Contractor") — resolves to mason for permissions
   static void simulateContractor() => set(
-    userId: 'sim_contractor', role: UserRole.mason,
+    userId: 'sim_contractor',
+    role: UserRole.mason,
     projectIds: ['proj_001'],
     rawRoleName: 'Contractor', // FIX 1: shows "Contractor" in UI, not "Mason"
     permissions: const [

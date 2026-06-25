@@ -7,9 +7,9 @@ class RoleManager {
   RoleManager._();
 
   // ── Role shortcuts ─────────────────────────────────────
-  static bool get isAdmin      => UserSession.isAdmin;
+  static bool get isAdmin => UserSession.isAdmin;
   static bool get isSupervisor => UserSession.isSupervisor;
-  static bool get isMason      => UserSession.isMason;
+  static bool get isMason => UserSession.isMason;
 
   // ═══════════════════════════════════════════════════════
   // PROJECT MANAGEMENT
@@ -38,9 +38,7 @@ class RoleManager {
 
   /// Generic "can view projects" — true for any project visibility
   static bool get canViewProjects =>
-      isAdmin ||
-      canViewAllProjects ||
-      canViewAssignedProject;
+      isAdmin || canViewAllProjects || canViewAssignedProject;
 
   // ═══════════════════════════════════════════════════════
   // BUILDING STRUCTURE MANAGEMENT (admin-level config)
@@ -99,8 +97,7 @@ class RoleManager {
       UserSession.hasPermission('add_entries'); // legacy key
 
   /// Can upload videos
-  static bool get canUploadVideos =>
-      UserSession.hasPermission('upload_videos');
+  static bool get canUploadVideos => UserSession.hasPermission('upload_videos');
 
   /// Can tick off checklist items in a submission
   static bool get canSubmitChecklist =>
@@ -154,7 +151,8 @@ class RoleManager {
   // ═══════════════════════════════════════════════════════
 
   static bool get canViewProgressDashboard =>
-      isAdmin || UserSession.hasPermission('view_progress_dashboard') ||
+      isAdmin ||
+      UserSession.hasPermission('view_progress_dashboard') ||
       UserSession.hasPermission('view_projects'); // legacy key
 
   static bool get canViewIssueTracker =>
@@ -180,7 +178,8 @@ class RoleManager {
       isAdmin || UserSession.hasPermission('mark_paid');
 
   static bool get canViewPaymentReports =>
-      isAdmin || UserSession.hasPermission('view_payment_reports') ||
+      isAdmin ||
+      UserSession.hasPermission('view_payment_reports') ||
       UserSession.hasPermission('view_reports');
 
   // ═══════════════════════════════════════════════════════
@@ -225,32 +224,32 @@ class RoleManager {
   // ═══════════════════════════════════════════════════════
 
   static bool get canViewNotifications => true;
-  static bool get canEditProfile       => true;
+  static bool get canEditProfile => true;
 
   // ═══════════════════════════════════════════════════════
   // COMPOUND CONVENIENCE GETTERS (used in home_screen etc.)
   // ═══════════════════════════════════════════════════════
 
-  static bool get canDeleteEntries    => isAdmin || canApprovePayments;
-  static bool get canApproveEntries   => isAdmin || canApprovePayments;
-  static bool get canUpdateProgress   => canAddEntries;
-  static bool get canViewTeamAccess   => isAdmin;
+  static bool get canDeleteEntries => isAdmin || canApprovePayments;
+  static bool get canApproveEntries => isAdmin || canApprovePayments;
+  static bool get canUpdateProgress => canAddEntries;
+  static bool get canViewTeamAccess => isAdmin;
 
   // ═══════════════════════════════════════════════════════
   // ROUTE GUARD
   // ═══════════════════════════════════════════════════════
 
   static const _restrictedRoutes = <String, bool Function()>{
-    '/assign-role':       _checkAssignRole,
-    '/reports':           _checkReports,
-    '/create-workspace':  _checkAdmin,
-    '/logs':              _checkLogs,
+    '/assign-role': _checkAssignRole,
+    '/reports': _checkReports,
+    '/create-workspace': _checkAdmin,
+    '/logs': _checkLogs,
   };
 
   static bool _checkAssignRole() => canAssignRoles;
-  static bool _checkReports()    => canViewReports;
-  static bool _checkAdmin()      => isAdmin;
-  static bool _checkLogs()       => isAdmin || canViewReports;
+  static bool _checkReports() => canViewReports;
+  static bool _checkAdmin() => isAdmin;
+  static bool _checkLogs() => isAdmin || canViewReports;
 
   static bool canNavigate(String route) {
     final check = _restrictedRoutes[route];

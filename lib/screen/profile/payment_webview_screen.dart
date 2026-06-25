@@ -7,10 +7,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 class PaymentWebViewScreen extends StatefulWidget {
   final Map<String, dynamic> paymentParams;
 
-  const PaymentWebViewScreen({
-    super.key,
-    required this.paymentParams,
-  });
+  const PaymentWebViewScreen({super.key, required this.paymentParams});
 
   @override
   State<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();

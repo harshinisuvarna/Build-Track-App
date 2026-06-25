@@ -43,10 +43,10 @@ class ProfileUserData {
 
   /// Fallback when API fails — still uses session for role label
   static ProfileUserData get sessionFallback => ProfileUserData(
-        name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
-        email: '${UserSession.userId}@buildtrack.app',
-        role: UserSession.roleLabel,
-      );
+    name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
+    email: '${UserSession.userId}@buildtrack.app',
+    role: UserSession.roleLabel,
+  );
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -60,7 +60,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   Uint8List? _avatarBytes;
-
 
   ProfileUserData? _user;
   bool _isLoadingProfile = true;
@@ -110,7 +109,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _showImageOptions() async {
-    final hasPhoto = _avatarBytes != null ||
+    final hasPhoto =
+        _avatarBytes != null ||
         (_user?.profilePhoto != null && _user!.profilePhoto!.isNotEmpty);
 
     showModalBottomSheet(
@@ -134,8 +134,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (hasPhoto)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove Profile Photo',
-                    style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Remove Profile Photo',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _removeProfilePhoto();
@@ -155,12 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _removeProfilePhoto() async {
     try {
-      final response = await ApiService.put(
-        '/users/profile/photo',
-        {
-          'profilePhoto': 'delete',
-        },
-      );
+      final response = await ApiService.put('/users/profile/photo', {
+        'profilePhoto': 'delete',
+      });
 
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -173,7 +172,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final decoded = json.decode(response.body);
         final userJson = decoded['user'] ?? decoded;
 
-        await UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
+        await UserSession.fromLoginResponse(
+          Map<String, dynamic>.from(userJson),
+        );
 
         setState(() {
           _avatarBytes = null;
@@ -215,12 +216,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final ext = path.split('.').last.toLowerCase();
       final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
 
-      final response = await ApiService.put(
-        '/users/profile/photo',
-        {
-          'profilePhoto': 'data:$mimeType;base64,$base64Image',
-        },
-      );
+      final response = await ApiService.put('/users/profile/photo', {
+        'profilePhoto': 'data:$mimeType;base64,$base64Image',
+      });
 
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -299,8 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Text(
                   'BuildTrack Version 2.4.0 (2024)',
-                  style:
-                      AppTheme.caption.copyWith(color: Colors.grey.shade600),
+                  style: AppTheme.caption.copyWith(color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -390,8 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              child:
-                  const Icon(Icons.edit, color: AppColors.primary, size: 14),
+              child: const Icon(Icons.edit, color: AppColors.primary, size: 14),
             ),
           ),
         ),
@@ -462,8 +458,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               activeTrackColor: AppColors.primary.withValues(alpha: 0.25),
               onChanged: (val) => setState(() => _notificationsEnabled = val),
             ),
-            onTap: () => setState(
-                () => _notificationsEnabled = !_notificationsEnabled),
+            onTap: () =>
+                setState(() => _notificationsEnabled = !_notificationsEnabled),
             showDivider: false,
             showChevron: false,
           ),
@@ -513,19 +509,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                if (trailing != null) ...[
-                  trailing,
-                  const SizedBox(width: 8),
-                ],
+                if (trailing != null) ...[trailing, const SizedBox(width: 8)],
                 if (showChevron)
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.textLight, size: 20),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textLight,
+                    size: 20,
+                  ),
               ],
             ),
           ),
         ),
-        if (showDivider)
-          const Divider(height: 1, indent: 18, endIndent: 18),
+        if (showDivider) const Divider(height: 1, indent: 18, endIndent: 18),
       ],
     );
   }
@@ -589,19 +584,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   'Team & Access',
-                  style: AppTheme.heading3
-                      .copyWith(color: AppColors.textDark, fontSize: 16),
+                  style: AppTheme.heading3.copyWith(
+                    color: AppColors.textDark,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Assign roles and manage team access for your project.',
-                  style: AppTheme.body
-                      .copyWith(color: AppColors.textLight, height: 1.45),
+                  style: AppTheme.body.copyWith(
+                    color: AppColors.textLight,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/assign-role'),
+                  onTap: () => Navigator.pushNamed(context, '/assign-role'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
@@ -609,8 +607,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primaryPurple
-                              .withValues(alpha: 0.35),
+                          color: AppColors.primaryPurple.withValues(
+                            alpha: 0.35,
+                          ),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -619,8 +618,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.person_add_outlined,
-                            color: Colors.white, size: 18),
+                        Icon(
+                          Icons.person_add_outlined,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'Assign Role',
@@ -666,7 +668,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 28,
             height: 28,
             decoration: const BoxDecoration(
-                color: purple, shape: BoxShape.circle),
+              color: purple,
+              shape: BoxShape.circle,
+            ),
             child: const Icon(Icons.person, color: Colors.white, size: 16),
           ),
           Positioned(
@@ -676,10 +680,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                  color: purpleLight.withValues(alpha: 0.6),
-                  shape: BoxShape.circle),
-              child:
-                  const Icon(Icons.person, color: Colors.white, size: 11),
+                color: purpleLight.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
           Positioned(
@@ -689,10 +693,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                  color: purpleLight.withValues(alpha: 0.6),
-                  shape: BoxShape.circle),
-              child:
-                  const Icon(Icons.person, color: Colors.white, size: 11),
+                color: purpleLight.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 11),
             ),
           ),
           Positioned(
@@ -702,8 +706,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                  color: purpleLight.withValues(alpha: 0.4),
-                  shape: BoxShape.circle),
+                color: purpleLight.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
               child: const Icon(Icons.person, color: Colors.white, size: 9),
             ),
           ),
@@ -714,8 +719,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                  color: purpleLight.withValues(alpha: 0.4),
-                  shape: BoxShape.circle),
+                color: purpleLight.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
               child: const Icon(Icons.person, color: Colors.white, size: 9),
             ),
           ),
@@ -730,13 +736,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
-          Icon(Icons.shield_outlined,
-              color: AppColors.primary.withValues(alpha: 0.7), size: 18),
+          Icon(
+            Icons.shield_outlined,
+            color: AppColors.primary.withValues(alpha: 0.7),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -753,8 +761,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'Manage user roles, permissions, and project access.',
-                  style: AppTheme.caption
-                      .copyWith(color: AppColors.textLight),
+                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
                 ),
               ],
             ),
@@ -777,13 +784,11 @@ class _ErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded,
-              color: AppColors.warning, size: 18),
+          Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

@@ -94,10 +94,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         const SizedBox(height: 18),
         Text(
           'Create Account',
-          style: AppTheme.heading2.copyWith(
-            fontSize: 26,
-            letterSpacing: -0.5,
-          ),
+          style: AppTheme.heading2.copyWith(fontSize: 26, letterSpacing: -0.5),
         ),
         const SizedBox(height: 6),
         Text(
@@ -190,8 +187,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
               color: AppColors.textLight,
               size: 20,
             ),
-            onPressed: () =>
-                setState(() => _obscureConfirm = !_obscureConfirm),
+            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
           ),
         ),
       ],
@@ -261,9 +257,9 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     }
 
     if (pass != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -305,10 +301,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           }
         } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.error),
         );
       }
     } catch (e, st) {
@@ -319,7 +312,9 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Connection failed. Server might be offline. Error: $e'),
+          content: Text(
+            'Connection failed. Server might be offline. Error: $e',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
