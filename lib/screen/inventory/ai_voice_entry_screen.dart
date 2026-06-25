@@ -118,32 +118,32 @@ class _ExtractedData {
   set brand(String? v) => _map['Brand'] = v;
   
   String? get projectId => _projectProvider != null
-      ? _projectProvider!.selectedProject?.id
+      ? _projectProvider.selectedProject?.id
       : _map['Project ID'] as String?;
   set projectId(String? v) => _map['Project ID'] = v;
   
   String? get projectName => _projectProvider != null
-      ? _projectProvider!.selectedProject?.name
+      ? _projectProvider.selectedProject?.name
       : _map['Project Name'] as String?;
   set projectName(String? v) => _map['Project Name'] = v;
   
   String? get floor => _projectProvider != null
-      ? _projectProvider!.selectedFloor
+      ? _projectProvider.selectedFloor
       : _map['Floor'] as String?;
   set floor(String? v) => _map['Floor'] = v;
   
   String? get phase => _projectProvider != null
-      ? _projectProvider!.selectedPhase
+      ? _projectProvider.selectedPhase
       : _map['Phase'] as String?;
   set phase(String? v) => _map['Phase'] = v;
   
   String? get phaseId => _projectProvider != null
-      ? _projectProvider!.selectedPhaseId
+      ? _projectProvider.selectedPhaseId
       : _map['Phase ID'] as String?;
   set phaseId(String? v) => _map['Phase ID'] = v;
   
   String? get activity => _projectProvider != null
-      ? _projectProvider!.selectedActivity
+      ? _projectProvider.selectedActivity
       : _map['Activity'] as String?;
   set activity(String? v) => _map['Activity'] = v;
   int? get workerCount => _map['Worker Count'] as int?;
@@ -301,7 +301,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ── Voice engine ──────────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
   bool _isListeningForAnswer = false;
-  bool _showAnalyzingLabel = false;
   String _partialAnswer = '';
 
   // ── Text input toggle & controllers ───────────────────────────────────────────
@@ -423,7 +422,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     setState(() {
       _status = VoiceStatus.listening;
       _partialAnswer = '';
-      _showAnalyzingLabel = false;
       _rebuildResponse();
     });
   }
@@ -445,7 +443,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     debugPrint(
-      '[VOICE] State: $state, isListeningForAnswer=$_isListeningForAnswer, status=$_status',
+      '[UI LISTENING STATE CHANGES] onVoiceChanged: EngineState=$state, STT.isListening=${_voiceCtrl.isListening}, UIStatus=$_status, isListeningForAnswer=$_isListeningForAnswer',
     );
 
     // ─── PARSED: Engine has finalized speech ─────────────────────────────────────
@@ -553,8 +551,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Recording control helpers ────────────────────────────────────────────────
   Future<void> _startInitialRecording() async {
+    if (_isProcessing || _voiceCtrl.engineState == VoiceEngineState.listening) {
+      debugPrint('[VOICE ACTION GUARD] _startInitialRecording ignored: isProcessing=$_isProcessing, engineState=${_voiceCtrl.engineState}');
+      return;
+    }
     print("Listening: true");
     print("Recording: true");
+    _resetCurrentEntryData();
     setState(() {
       _status = VoiceStatus.listening;
       _saveError = null;
@@ -565,6 +568,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   Future<void> _stopInitialRecording() async {
+    if (_voiceCtrl.engineState != VoiceEngineState.listening) {
+      debugPrint('[VOICE ACTION GUARD] _stopInitialRecording ignored: engineState=${_voiceCtrl.engineState}');
+      return;
+    }
     print("Listening: false");
     print("Recording: false");
     print("Timer cancelled");
@@ -576,7 +583,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // Single-button flow: stops recording, immediately captures the transcript,
   // then triggers AI processing. No busy-wait, no second click.
   Future<void> _stopAndAnalyze() async {
-    setState(() => _showAnalyzingLabel = true);
+    if (_isProcessing) {
+      debugPrint('[VOICE ACTION GUARD] _stopAndAnalyze ignored: already processing.');
+      return;
+    }
 
     // Step 1 — stop the microphone
     debugPrint('[VOICE] Stop & Analyze pressed');
@@ -595,8 +605,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (transcript.isNotEmpty) {
       _rawTranscript = transcript;
     }
-
-    setState(() => _showAnalyzingLabel = false);
 
     // Step 3 — fire the AI chain immediately if we have speech
     if (mounted && _rawTranscript.isNotEmpty) {
@@ -627,6 +635,26 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.vendorName = null;
       _rawTranscript = '';
       _partialAnswer = '';
+      _detectedFields.clear();
+      _rebuildResponse();
+    });
+  }
+
+  Future<void> _cancelRecording() async {
+    debugPrint('[VOICE] Cancel recording pressed');
+    if (_isProcessing) {
+      debugPrint('[VOICE ACTION GUARD] _cancelRecording ignored: already processing.');
+      return;
+    }
+    // Stop recording and discard recognition sessions/timers
+    await _voiceCtrl.cancelListening();
+    
+    // Clear transcripts, parsed values, progress, and AI checklist
+    _resetCurrentEntryData();
+    
+    // Return screen to fresh recording mode (idle status)
+    setState(() {
+      _status = VoiceStatus.idle;
       _rebuildResponse();
     });
   }
@@ -1210,6 +1238,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _backendSuggestions = suggestions;
 
     debugPrint('[AI DEBUG] ===== _rebuildResponse =====');
+    debugPrint('[UI LISTENING STATE CHANGES] rebuildResponse: status=$_status, progress=${completed}/${total}');
     debugPrint('[AI DEBUG] Status: $_status');
     debugPrint('[AI DEBUG] Transcript: $_rawTranscript');
     debugPrint('[AI DEBUG] Detected fields map: $_detectedFields');
@@ -2209,7 +2238,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return list;
   }
 
-  int _getTotalFieldsCount() => _getAllFieldsFor().length;
 
   Map<String, dynamic> _getVoiceFields(String entryType, _ExtractedData d) {
     if (entryType == 'material') {
@@ -2860,6 +2888,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     if (!isListening) return const SizedBox.shrink();
 
+    final hasContent = _partialAnswer.isNotEmpty || _rawTranscript.isNotEmpty;
+    final displayText = hasContent
+        ? (_partialAnswer.isNotEmpty ? _partialAnswer : _rawTranscript)
+        : 'Listening for voice input...';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -2878,152 +2911,40 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.mic_none,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Voice Listening',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ],
-              ),
-              _buildLiveTranscriptIndicator(),
-            ],
+          const Text(
+            'LIVE TRANSCRIPT',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+              letterSpacing: 0.8,
+            ),
           ),
           const SizedBox(height: 12),
           _buildLiveWaveform(),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              AnimatedBuilder(
-                animation: _waveCtrl,
-                builder: (_, __) {
-                  final timer = _voiceCtrl.elapsedDisplay;
-                  return Text(
-                    timer,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Listening... Speak now',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ],
-          ),
-          if (_partialAnswer.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Text(
-                _partialAnswer,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textDark,
-                  fontStyle: FontStyle.italic,
-                ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.12),
               ),
             ),
-          ] else ...[
-            if (_rawTranscript.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                  ),
-                ),
-                child: Text(
-                  _rawTranscript,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textDark,
-                  ),
-                ),
+            child: Text(
+              displayText,
+              style: TextStyle(
+                fontSize: 13.5,
+                color: hasContent ? AppColors.textDark : AppColors.textLight.withValues(alpha: 0.7),
+                fontStyle: _partialAnswer.isNotEmpty ? FontStyle.italic : FontStyle.normal,
+                height: 1.45,
               ),
-            ],
-          ],
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLiveTranscriptIndicator() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: _micPulseCtrl,
-          builder: (_, __) {
-            return Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF22C55E).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF22C55E).withValues(alpha: 0.3),
-                    blurRadius: 5 * _micPulseCtrl.value,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        const SizedBox(width: 6),
-        const Text(
-          'LIVE TRANSCRIPT',
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF22C55E),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
     );
   }
 
@@ -3870,7 +3791,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'value': amount > 0 ? '₹ ${amount.toStringAsFixed(0)}' : '—',
         'highlight': 'true',
       },
-      {'label': 'Confidence', 'value': '98%'},
     ];
 
     return Container(
@@ -3926,39 +3846,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         letterSpacing: 1.0,
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF22C55E).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFF22C55E).withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            color: Color(0xFF86EFAC),
-                            size: 12,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '98% Confidence',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF86EFAC),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
                   ],
                 ),
                 if (amount > 0) ...[
@@ -4019,8 +3907,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                           fontWeight: FontWeight.w700,
                           color: isHighlight
                               ? AppColors.primary
-                              : item['label'] == 'Confidence'
-                              ? const Color(0xFF16A34A)
                               : AppColors.textDark,
                         ),
                       ),
@@ -4224,26 +4110,42 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isInitialVoice) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left: Recording Status
-                    Expanded(
-                      flex: 3,
-                      child: _buildRecordingStatusLeft(isListening),
-                    ),
-                    // Center: Large microphone button
-                    Expanded(
-                      flex: 2,
-                      child: _buildLargeMicButtonRedesigned(isListening),
-                    ),
-                    // Right: Stop & Analyze
-                    Expanded(
-                      flex: 3,
-                      child: _buildStopAnalyzeButtonRight(isListening),
-                    ),
-                  ],
-                ),
+                if (isListening) ...[
+                  _buildSmallMicListening(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCancelRecordingButton(),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildRedStopAnalyzeButton(),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left: Recording Status
+                      Expanded(
+                        flex: 3,
+                        child: _buildRecordingStatusLeft(isListening),
+                      ),
+                      // Center: Large microphone button
+                      Expanded(
+                        flex: 2,
+                        child: _buildLargeMicButtonRedesigned(isListening),
+                      ),
+                      // Right: Stop & Analyze
+                      Expanded(
+                        flex: 3,
+                        child: _buildStopAnalyzeButtonRight(isListening),
+                      ),
+                    ],
+                  ),
+                ],
               ] else if (isAskingStep) ...[
                 if (isListening) ...[
                   _buildSmallMicListening(),
@@ -4551,6 +4453,55 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
+  Widget _buildRedStopAnalyzeButton() {
+    return OutlinedButton(
+      onPressed: _stopAndAnalyze,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFEF4444),
+        side: const BorderSide(
+          color: Color(0xFFEF4444),
+          width: 1.5,
+        ),
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Text(
+        'Stop & Analyze',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCancelRecordingButton() {
+    return OutlinedButton(
+      onPressed: _cancelRecording,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF6B7280), // Neutral gray color
+        side: const BorderSide(
+          color: Color(0xFFD1D5DB), // Neutral gray outline
+          width: 1.5,
+        ),
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Text(
+        'Cancel',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _buildMicWithWaves() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     return Row(
@@ -4624,47 +4575,32 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   Widget _buildSmallMicListening() {
     return AnimatedBuilder(
-      animation: _waveCtrl,
+      animation: _voiceCtrl,
       builder: (_, __) {
         final timer = _voiceCtrl.elapsedDisplay;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.mic, color: AppColors.primary, size: 18),
-            const SizedBox(width: 8),
-            ...List.generate(5, (i) {
-              final height =
-                  8.0 +
-                  math
-                          .sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3)
-                          .abs() *
-                      12.0;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                width: 3.5,
-                height: height,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              );
-            }),
-            const SizedBox(width: 8),
+            const Text(
+              '🎤',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(width: 6),
             Text(
               timer,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary.withValues(alpha: 0.6),
-                fontFeatures: const [FontFeature.tabularFigures()],
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             const Text(
               'Listening',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
             ),

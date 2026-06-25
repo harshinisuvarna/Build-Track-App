@@ -253,8 +253,86 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     final currentCount = projectProvider.projects.length;
     
     if (maxProjects != -1 && currentCount >= maxProjects) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Project limit reached for ${subProvider.currentPlan.label} plan. Please upgrade to add more projects.'), backgroundColor: Colors.red));
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: Colors.white, size: 28),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Project Limit Reached',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your ${subProvider.currentPlan.label} plan allows up to $maxProjects projects. '
+                'Upgrade to create more.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  color: AppColors.textLight,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pushNamed(context, '/subscription');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'View Plans',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Maybe Later',
+                  style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
       return;
     }
 
@@ -2377,11 +2455,31 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             Icon(Icons.warning_amber_rounded, color: Colors.red.shade400, size: 20),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                '${plan.label} Plan Limit Reached: You have $currentCount/$maxProjects projects. Upgrade to create more.',
-                style: TextStyle(fontSize: 13, color: Colors.red.shade700, fontWeight: FontWeight.w600),
+            child: Text(
+              '${plan.label} Plan Limit Reached: You have $currentCount/$maxProjects projects.',
+              style: TextStyle(fontSize: 13, color: Colors.red.shade700, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/subscription'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.shade700,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Upgrade',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+          ),
           ],
         ),
       ),

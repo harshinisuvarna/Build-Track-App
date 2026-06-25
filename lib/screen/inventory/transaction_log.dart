@@ -1204,104 +1204,40 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   GestureDetector(
                     onTap: canSettle
                         ? () {
-                            showPaymentSheet(
+                            final projectProvider = context.read<ProjectProvider>();
+                            String pName = 'Unknown Project';
+                            String pId = log['projectId'] ?? '';
+                            final matchedProj = projectProvider.projects.where(
+                              (p) => p.id == pId
+                            );
+                            if (matchedProj.isNotEmpty) {
+                              pName = matchedProj.first.name;
+                            }
+
+                            final payArgs = {
+                              'id': log['id'] ?? '',
+                              'projectId': pId,
+                              'projectName': pName,
+                              'itemId': log['itemId'] ?? '',
+                              'itemName': log['title'] ?? _itemName,
+                              'itemType': logCategory,
+                              'quantity': log['quantity'] ?? 0.0,
+                              'rate': log['rate'] ?? 0.0,
+                              'totalAmount': billAmt,
+                              'paidAmount': paidAmt,
+                              'outstandingAmount': (billAmt - paidAmt).clamp(0.0, double.infinity),
+                              'paymentStatus': log['paymentStatus'],
+                              'receipt': log['receipt'],
+                              'transactionDetails': log,
+                            };
+
+                            Navigator.pushNamed(
                               context,
-                              entryTitle: log['title'] as String? ?? '',
-                              entryRef: log['ref'] as String? ?? '',
-                              totalAmount: billAmt,
-                              alreadyPaid: paidAmt,
-                              vendorName: log['supplier'] as String? ?? '',
-                              category: logCategory,
-                            ).then((result) async {
-                              if (result != null && mounted) {
-                                final paid = result['amount'] as double;
-                                final outstanding = (billAmt - paidAmt).clamp(0.0, double.infinity);
-                                if (paid > outstanding) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Payment amount cannot exceed the outstanding amount.')),
-                                    );
-                                  }
-                                  return;
-                                }
-                                final newStatus =
-                                    result['status'] as PaymentStatus?;
-                                final totalPaid = (paidAmt + paid).clamp(
-                                  0.0,
-                                  double.infinity,
-                                );
-                                final customPaymentDate = result['paymentDate'] as DateTime? ?? DateTime.now();
-
-                                // Convert enum to Mongoose capitalized string
-                                final newStatusStr =
-                                    newStatus == PaymentStatus.paid
-                                    ? 'Paid'
-                                    : newStatus == PaymentStatus.partial
-                                    ? 'Partial'
-                                    : 'Pending';
-
-                                String apiPaymentMode = result['method'] ?? '';
-                                if (apiPaymentMode == 'Bank Transfer' ||
-                                    apiPaymentMode == 'Card') {
-                                  apiPaymentMode = 'Bank';
-                                }
-
-                                final success =
-                                    await ApiService.updateTransactionPayment(
-                                      log['id'] as String? ?? '',
-                                      {
-                                        'paymentStatus': newStatusStr,
-                                        'paidAmount': totalPaid,
-                                        'paymentMode': apiPaymentMode,
-                                        'notes': result['note'] ?? '',
-                                        'paymentDate': customPaymentDate.toIso8601String(),
-                                      },
-                                    );
-
-                                if (success && mounted) {
-                                  setState(() {
-                                    log['paidAmount'] = totalPaid;
-                                    log['paymentStatus'] =
-                                        newStatus ??
-                                        (totalPaid >= billAmt
-                                            ? PaymentStatus.paid
-                                            : PaymentStatus.partial);
-                                  });
-
-                                  context.read<ProjectProvider>().load();
-
-                                  if (paid > 0) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          '${formatCurrency(paid)} recorded via ${result['method']}',
-                                        ),
-                                        backgroundColor: const Color(
-                                          0xFF173EEA,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } else if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Failed to update payment on server',
-                                      ),
-                                      backgroundColor: Colors.red.shade600,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                }
+                              '/fulfillment-payment',
+                              arguments: payArgs,
+                            ).then((updated) {
+                              if (updated == true && mounted) {
+                                _fetchRealLogs();
                               }
                             });
                           }

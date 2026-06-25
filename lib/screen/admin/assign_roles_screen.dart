@@ -347,6 +347,31 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
       .map((e) => e.key)
       .toList();
 
+  // ── Subscription limit check (create mode only) ──────────────────
+  if (!_isEditMode) {
+    final subProvider =
+        context.read<SubscriptionProvider>();
+    final response = await ApiService.get('/auth/users');
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      final List raw = decoded is List
+          ? decoded
+          : (decoded['users'] ?? decoded['data'] ?? []) as List;
+      final currentUserCount = raw.length;
+      final maxUsers = subProvider.currentPlan.maxUsers;
+      if (maxUsers != -1 && currentUserCount >= maxUsers) {
+        if (!mounted) return;
+        _showUpgradeDialog(
+          context,
+          'Team Member Limit Reached',
+          'Your ${subProvider.currentPlan.label} plan allows up to $maxUsers users. '
+              'Upgrade to add more team members.',
+        );
+        return;
+      }
+    }
+  }
+
   setState(() => _isLoading = true);
 
   try {
@@ -507,6 +532,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
     );
   }
 
+  // REPLACE with:
   Widget _subscriptionWarning(SubscriptionPlan plan) {
     final limitStr = plan == SubscriptionPlan.enterprise ? 'Unlimited' : '${plan.maxUsers} Users';
     return Container(
@@ -522,8 +548,27 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${plan.label} Plan: $limitStr limit. Upgrade to add more.',
+              '${plan.label} Plan: $limitStr limit.',
               style: AppTheme.body.copyWith(fontSize: 12, color: AppColors.textDark),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/subscription'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Upgrade',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
@@ -1142,6 +1187,88 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
       ),
     );
   }
+
+  void _showUpgradeDialog(
+    BuildContext context, String title, String message) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      contentPadding: const EdgeInsets.all(24),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.auto_awesome_rounded,
+                color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13.5,
+              color: AppColors.textLight,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pushNamed(context, '/subscription');
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text(
+                'View Plans',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Maybe Later',
+              style: TextStyle(
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildOverseesRolesSelector() {
     // Fixed roles + any custom roles the admin has already added, de-duplicated.

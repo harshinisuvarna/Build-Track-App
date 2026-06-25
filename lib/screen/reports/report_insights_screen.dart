@@ -1,5 +1,6 @@
 import 'dart:typed_data';
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -8,6 +9,8 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_model.dart';
+// ADD near the top, with the other imports:
+import 'package:buildtrack_mobile/screen/reports/report_widgets.dart'; // ⚠️ adjust path if needed
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +20,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 // =============================================================================
 // MAIN SCREEN
@@ -28,10 +32,28 @@ class ReportInsightsScreen extends StatefulWidget {
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
 
+// REPLACE:
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
-  int _unitIndex = 0;
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
+
+  List<dynamic> _inventoryItems = [];
+  bool _inventoryLoading = true;
+  String? _lastInventoryProjectId;
+
+  Future<void> _loadInventory(String projectId) async {
+    if (_lastInventoryProjectId == projectId) return;
+    _lastInventoryProjectId = projectId;
+    setState(() => _inventoryLoading = true);
+    final items = await ApiService.fetchInventory(
+      projectId == 'all' ? '' : projectId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _inventoryItems = items;
+      _inventoryLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +129,14 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     // ── Pull live report from the same source as report_widgets.dart ──
     final report = _buildReportForProject(provider, project.id, isAll);
 
+    // Kick off inventory fetch once we know which project is selected.
+    // Guarded by _lastInventoryProjectId so it doesn't re-fire every build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInventory(project!.id);
+    });
+
+    final phases = project.selectedPhases ?? [];
+
     final allEntries =
         isAll ? provider.entries : provider.entriesForProject(project.id);
 
@@ -138,6 +168,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
           categoryCosts,
           categoryBudgets,
           filteredEntries,
+          phases,
+          _inventoryItems,
         ),
       ),
       body: SafeArea(
@@ -166,22 +198,30 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                             _toDate = to;
                           }),
                     ),
+                    // REPLACE:
                     const SizedBox(height: 10),
                     _ProjectSummaryCard(project: project, report: report),
                     const SizedBox(height: 14),
-                    const AppSectionHeader(title: 'Cost Trend'),
-                    _CostTrendChartCard(
-                      project: project,
-                      entries: filteredEntries,
-                      unitIndex: _unitIndex,
-                      onUnitChanged: (i) => setState(() => _unitIndex = i),
-                    ),
+                    ChartSection(report: report),
                     const SizedBox(height: 14),
                     const AppSectionHeader(title: 'Category Breakdown'),
                     _CategoryBreakdownCard(
                       project: project,
                       categoryCosts: categoryCosts,
                       categoryBudgets: categoryBudgets,
+                    ),
+                    const SizedBox(height: 18),
+                    _ExportDetailsHintCard(
+                      onTap: () => _showExportSheet(
+                        context,
+                        project!,
+                        report,
+                        categoryCosts,
+                        categoryBudgets,
+                        filteredEntries,
+                        phases,
+                        _inventoryItems,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     AppButton(
@@ -277,6 +317,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     Map<String, double> categoryCosts,
     Map<String, double> categoryBudgets,
     List<EntryModel> entries,
+    List<ProjectPhase> phases,
+    List<dynamic> inventoryItems,
   ) {
     showModalBottomSheet<void>(
       context: context,
@@ -291,6 +333,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         categoryCosts: categoryCosts,
         categoryBudgets: categoryBudgets,
         entries: entries,
+        phases: phases,
+        inventoryItems: inventoryItems,
         fromDate: _fromDate,
         toDate: _toDate,
       ),
@@ -435,6 +479,8 @@ class _ExportSheet extends StatefulWidget {
     required this.categoryCosts,
     required this.categoryBudgets,
     required this.entries,
+    required this.phases,
+    required this.inventoryItems,
     required this.fromDate,
     required this.toDate,
   });
@@ -444,6 +490,8 @@ class _ExportSheet extends StatefulWidget {
   final Map<String, double> categoryCosts;
   final Map<String, double> categoryBudgets;
   final List<EntryModel> entries;
+  final List<ProjectPhase> phases;
+  final List<dynamic> inventoryItems;
   final DateTime fromDate;
   final DateTime toDate;
 
@@ -455,6 +503,8 @@ class _ExportSheetState extends State<_ExportSheet> {
   bool _includeCostBreakdown = true;
   bool _includeCategoryChart = true;
   bool _includeEntryLog = false;
+  bool _includeActivityProgress = true;
+  bool _includeInventory = true;
   bool _isGenerating = false;
 
   String _fmt(DateTime d) =>
@@ -574,9 +624,10 @@ class _ExportSheetState extends State<_ExportSheet> {
                 _includeCostBreakdown,
                 (v) => setState(() => _includeCostBreakdown = v),
               ),
+              // REPLACE:
               _toggle(
-                'Category Analysis',
-                'Budget vs actual per category',
+                'Category Chart',
+                'Visual chart + table of budget vs actual',
                 Icons.bar_chart_outlined,
                 _includeCategoryChart,
                 (v) => setState(() => _includeCategoryChart = v),
@@ -587,6 +638,20 @@ class _ExportSheetState extends State<_ExportSheet> {
                 Icons.receipt_long_outlined,
                 _includeEntryLog,
                 (v) => setState(() => _includeEntryLog = v),
+              ),
+              _toggle(
+                'Activity Progress',
+                'Phase-wise completed activities',
+                Icons.checklist_outlined,
+                _includeActivityProgress,
+                (v) => setState(() => _includeActivityProgress = v),
+              ),
+              _toggle(
+                'Inventory Status',
+                'Stock levels and reorder alerts',
+                Icons.inventory_2_outlined,
+                _includeInventory,
+                (v) => setState(() => _includeInventory = v),
               ),
               const SizedBox(height: 20),
 
@@ -751,11 +816,15 @@ class _ExportSheetState extends State<_ExportSheet> {
       categoryCosts: widget.categoryCosts,
       categoryBudgets: widget.categoryBudgets,
       entries: widget.entries,
+      phases: widget.phases,
+      inventoryItems: widget.inventoryItems,
       fromDate: widget.fromDate,
       toDate: widget.toDate,
       includeCostBreakdown: _includeCostBreakdown,
       includeCategoryChart: _includeCategoryChart,
       includeEntryLog: _includeEntryLog,
+      includeActivityProgress: _includeActivityProgress,
+      includeInventory: _includeInventory,
     );
   }
 
@@ -770,19 +839,40 @@ class _ExportSheetState extends State<_ExportSheet> {
     setState(() => _isGenerating = true);
     try {
       final bytes = await _buildPdfBytes();
-      final dir = await getTemporaryDirectory();
       final fileName =
           'buildtrack_${widget.project.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsBytes(bytes);
-      if (!mounted) return;
-      Navigator.pop(context);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'application/pdf')],
-          subject: 'BuildTrack Report – ${widget.project.name}',
-        ),
-      );
+
+      if (kIsWeb) {
+        // Web has no filesystem/path_provider — share via in-memory bytes
+        // directly. XFile.fromData works on web without touching disk.
+        if (!mounted) return;
+        Navigator.pop(context);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [
+              XFile.fromData(
+                bytes,
+                name: fileName,
+                mimeType: 'application/pdf',
+              ),
+            ],
+            subject: 'BuildTrack Report – ${widget.project.name}',
+          ),
+        );
+      } else {
+        // Native platforms: write to temp dir, then share the file path.
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+        if (!mounted) return;
+        Navigator.pop(context);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'application/pdf')],
+            subject: 'BuildTrack Report – ${widget.project.name}',
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -823,11 +913,15 @@ class _ReportPdfBuilder {
     required Map<String, double> categoryCosts,
     required Map<String, double> categoryBudgets,
     required List<EntryModel> entries,
+    required List<ProjectPhase> phases,
+    required List<dynamic> inventoryItems,
     required DateTime fromDate,
     required DateTime toDate,
     required bool includeCostBreakdown,
     required bool includeCategoryChart,
     required bool includeEntryLog,
+    required bool includeActivityProgress,
+    required bool includeInventory,
   }) async {
     final doc = pw.Document();
 
@@ -835,8 +929,10 @@ class _ReportPdfBuilder {
     final lightBg = PdfColor.fromHex('#F5F6FA');
     final textDark = PdfColor.fromHex('#1A1D3A');
     final textGray = PdfColor.fromHex('#8A92A6');
+    // REPLACE:
     final successColor = PdfColor.fromHex('#2E7D32');
     final errorColor = PdfColor.fromHex('#C62828');
+    final targetBarColor = PdfColor.fromHex('#EF9A9A');
 
     final totalSpent =
         categoryCosts.values.fold(0.0, (s, v) => s + v);
@@ -969,9 +1065,27 @@ class _ReportPdfBuilder {
           ],
 
           // ── Category analysis table ──
+          // REPLACE:
+          // ── Category chart + table ──
           if (includeCategoryChart) ...[
-            _sectionTitle('Category Breakdown', primaryColor),
+            _sectionTitle('Spend vs Budget by Category', primaryColor),
             pw.SizedBox(height: 10),
+            _categoryChart(
+                categoryCosts, categoryBudgets, primaryColor, targetBarColor, textGray, textDark),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                _legendDot(primaryColor),
+                pw.SizedBox(width: 4),
+                pw.Text('Actual', style: pw.TextStyle(fontSize: 8, color: textGray)),
+                pw.SizedBox(width: 14),
+                _legendDot(targetBarColor),
+                pw.SizedBox(width: 4),
+                pw.Text('Budget', style: pw.TextStyle(fontSize: 8, color: textGray)),
+              ],
+            ),
+            pw.SizedBox(height: 16),
             pw.Table(
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
@@ -1097,6 +1211,127 @@ class _ReportPdfBuilder {
             pw.Text('No entries found for the selected date range.',
                 style: pw.TextStyle(fontSize: 10, color: textGray)),
           ],
+
+          // ── Activity progress ──
+          if (includeActivityProgress) ...[
+            pw.SizedBox(height: 20),
+            _sectionTitle('Activity Progress', primaryColor),
+            pw.SizedBox(height: 10),
+            if (phases.isEmpty)
+              pw.Text('No phases/activities tracked for this project.',
+                  style: pw.TextStyle(fontSize: 10, color: textGray))
+            else
+              ...phases.map((phase) {
+                final total = phase.totalCount;
+                final done = phase.completedCount;
+                final pct = total > 0
+                    ? '${((done / total) * 100).toStringAsFixed(0)}%'
+                    : '—';
+                return pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 10),
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    color: lightBg,
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(6)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(phase.phaseName,
+                              style: pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: textDark)),
+                          pw.Text('$done / $total ($pct)',
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: primaryColor)),
+                        ],
+                      ),
+                      if (phase.activities.isNotEmpty) ...[
+                        pw.SizedBox(height: 6),
+                        ...phase.activities.map((a) => pw.Padding(
+                              padding:
+                                  const pw.EdgeInsets.only(bottom: 2),
+                              child: pw.Text(
+                                '${a.completed ? "[x]" : "[ ]"} ${a.name}',
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  color: a.completed ? textDark : textGray,
+                                ),
+                              ),
+                            )),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+          ],
+
+          // ── Inventory status ──
+          if (includeInventory) ...[
+            pw.SizedBox(height: 20),
+            _sectionTitle('Inventory Status', primaryColor),
+            pw.SizedBox(height: 10),
+            if (inventoryItems.isEmpty)
+              pw.Text('No inventory data available for this project.',
+                  style: pw.TextStyle(fontSize: 10, color: textGray))
+            else
+              pw.Table(
+                border: pw.TableBorder(
+                  horizontalInside: pw.BorderSide(
+                      color: PdfColor.fromHex('#E8EAF5'), width: 0.5),
+                ),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: lightBg),
+                    children: [
+                      _tCell('Material', bold: true, color: textGray),
+                      _tCell('Stock', bold: true, color: textGray),
+                      _tCell('Status', bold: true, color: textGray),
+                    ],
+                  ),
+                  ...inventoryItems.map((raw) {
+                    final item = raw as Map<String, dynamic>;
+                    final name = item['materialName']?.toString() ?? 'Unknown';
+                    final unit = item['unit']?.toString() ?? '';
+                    final closing =
+                        (item['closingStock'] as num?)?.toDouble() ?? 0.0;
+                    final threshold =
+                        (item['threshold'] as num?)?.toDouble() ?? 10.0;
+                    final pct = threshold > 0 ? closing / threshold : 1.0;
+                    final isCritical = closing <= 0 || pct < 0.30;
+                    final isLow = !isCritical && pct < 0.60;
+                    final statusColor = isCritical
+                        ? errorColor
+                        : isLow
+                            ? PdfColor.fromHex('#E65100')
+                            : successColor;
+                    final statusLabel =
+                        isCritical ? 'Critical' : isLow ? 'Low' : 'OK';
+                    return pw.TableRow(
+                      children: [
+                        _tCell(name, color: textDark),
+                        _tCell('${closing.toStringAsFixed(0)} $unit',
+                            color: textGray),
+                        _tCell(statusLabel,
+                            color: statusColor, bold: true),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+          ],
         ],
       ),
     );
@@ -1176,8 +1411,159 @@ class _ReportPdfBuilder {
           ),
         ),
       );
+
+  static pw.Widget _categoryChart(
+    Map<String, double> categoryCosts,
+    Map<String, double> categoryBudgets,
+    PdfColor actualColor,
+    PdfColor targetColor,
+    PdfColor textGray,
+    PdfColor textDark,
+  ) {
+    const maxBarHeight = 90.0;
+    final allValues = [...categoryCosts.values, ...categoryBudgets.values];
+    final maxVal = allValues.isEmpty
+        ? 1.0
+        : allValues.reduce((a, b) => a > b ? a : b);
+    final safeMax = maxVal <= 0 ? 1.0 : maxVal;
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        color: PdfColor.fromHex('#FAFBFF'),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: categoryCosts.entries.map((e) {
+          final actual = e.value;
+          final budget = categoryBudgets[e.key] ?? 0;
+          final actualH = (actual / safeMax) * maxBarHeight;
+          final budgetH = (budget / safeMax) * maxBarHeight;
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Container(
+                    width: 16,
+                    height: actualH < 2 ? 2 : actualH,
+                    decoration: pw.BoxDecoration(
+                      color: actualColor,
+                      borderRadius:
+                          const pw.BorderRadius.vertical(top: pw.Radius.circular(3)),
+                    ),
+                  ),
+                  pw.SizedBox(width: 4),
+                  pw.Container(
+                    width: 16,
+                    height: budgetH < 2 ? 2 : budgetH,
+                    decoration: pw.BoxDecoration(
+                      color: targetColor,
+                      borderRadius:
+                          const pw.BorderRadius.vertical(top: pw.Radius.circular(3)),
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(e.key,
+                  style: pw.TextStyle(
+                      fontSize: 9, color: textDark, fontWeight: pw.FontWeight.bold)),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  static pw.Widget _legendDot(PdfColor color) => pw.Container(
+        width: 8,
+        height: 8,
+        decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
+      );
 }
 
+
+class _ExportDetailsHintCard extends StatelessWidget {
+  const _ExportDetailsHintCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E5FF)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+              ),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(Icons.fact_check_outlined,
+                color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Want the full breakdown?',
+                  style: AppTheme.bodyLarge.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Activity log, inventory status & every entry — pick what to include and export as PDF.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppColors.textLight,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Export',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 // =============================================================================
 // PROJECT SUMMARY CARD  (uses live ReportModel — fixed)
 // =============================================================================
@@ -1295,301 +1681,7 @@ class _ProjectSummaryCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// COST TREND CHART CARD  (unchanged from original)
-// =============================================================================
 
-class _CostTrendChartCard extends StatelessWidget {
-  final ProjectModel project;
-  final List<EntryModel> entries;
-  final int unitIndex;
-  final ValueChanged<int> onUnitChanged;
-
-  const _CostTrendChartCard({
-    required this.project,
-    required this.entries,
-    required this.unitIndex,
-    required this.onUnitChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSqft = unitIndex == 0;
-    final unitLabel = isSqft ? 'SQFT' : 'CUYD';
-    final multiplier = isSqft ? 1.0 : 1.5;
-    final baseCost =
-        (project.spentAmount > 0 ? project.spentAmount / 1000 : 50.0) *
-            multiplier;
-    final data = [
-      baseCost * 0.60,
-      baseCost * 0.70,
-      baseCost * 0.75,
-      baseCost * 0.85,
-      baseCost * 0.92,
-      baseCost,
-    ];
-    final target = data.map((v) => v * 0.93).toList();
-    final spots = [
-      for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])
-    ];
-    final targetSpots = [
-      for (int i = 0; i < target.length; i++)
-        FlSpot(i.toDouble(), target[i])
-    ];
-    final minY = data.reduce((a, b) => a < b ? a : b) * 0.92;
-    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.05;
-    final currentVal = data.last;
-    final targetVal = target.last;
-
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Cost per $unitLabel',
-                      style: AppTheme.heading3
-                          .copyWith(color: AppColors.textDark)),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Spending trend vs target',
-                    style: AppTheme.caption.copyWith(
-                        color: AppColors.textLight, height: 1.4),
-                  ),
-                ],
-              ),
-              _InsightUnitToggle(
-                  unitIndex: unitIndex, onChanged: onUnitChanged),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 140,
-            child: LineChart(
-              key: ValueKey('ins-$unitIndex-${project.id}'),
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              LineChartData(
-                minY: minY,
-                maxY: maxY,
-                clipData: const FlClipData.all(),
-                lineTouchData: LineTouchData(
-                  handleBuiltInTouches: true,
-                  getTouchedSpotIndicator: (barData, spotIndexes) =>
-                      spotIndexes
-                          .map((i) => TouchedSpotIndicatorData(
-                                const FlLine(strokeWidth: 0),
-                                FlDotData(
-                                  getDotPainter:
-                                      (spot, pct, bar, idx) =>
-                                          FlDotCirclePainter(
-                                    radius: 6,
-                                    color: AppColors.primary,
-                                    strokeWidth: 2.5,
-                                    strokeColor: Colors.white,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => const Color(0xFF1A1D3A),
-                    tooltipRoundedRadius: 12,
-                    tooltipPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    getTooltipItems: (spots) => spots.map((s) {
-                      if (s.barIndex != 0) return null;
-                      final v = '${formatCurrency(s.y)}/$unitLabel';
-                      return LineTooltipItem(
-                        v,
-                        const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: (maxY - minY) / 3,
-                  getDrawingHorizontalLine: (_) => const FlLine(
-                      color: Color(0xFFEEF0F8), strokeWidth: 1),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: (maxY - minY) / 3,
-                      getTitlesWidget: (v, meta) {
-                        final s = v >= 1000
-                            ? '${(v / 1000).toStringAsFixed(1)}k'
-                            : v.toStringAsFixed(0);
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 4,
-                          child: Text(
-                            s,
-                            style: AppTheme.caption.copyWith(
-                                fontSize: 9,
-                                color: AppColors.textLight),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    gradient: LinearGradient(colors: [
-                      AppColors.primary,
-                      AppColors.primary.withValues(alpha: 0.70),
-                    ]),
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.22),
-                          AppColors.primary.withValues(alpha: 0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: targetSpots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: const Color(0xFFBBC0D0),
-                    barWidth: 1.8,
-                    dashArray: [6, 4],
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              'WK 12',
-              'WK 13',
-              'WK 14',
-              'WK 15',
-              'WK 16',
-              'WK 17'
-            ]
-                .map((w) => Text(w,
-                    style: AppTheme.caption
-                        .copyWith(color: AppColors.textLight)))
-                .toList(),
-          ),
-          const SizedBox(height: 14),
-          Row(children: [
-            _dot(AppColors.primary),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Actual: ${formatCurrency(currentVal)}/$unitLabel',
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.caption.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 14),
-            _dot(const Color(0xFFBBC0D0)),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Target: ${formatCurrency(targetVal)}/$unitLabel',
-                overflow: TextOverflow.ellipsis,
-                style:
-                    AppTheme.caption.copyWith(color: AppColors.textLight),
-              ),
-            ),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _dot(Color c) => Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-}
-
-// =============================================================================
-// UNIT TOGGLE  (unchanged)
-// =============================================================================
-
-class _InsightUnitToggle extends StatelessWidget {
-  const _InsightUnitToggle(
-      {required this.unitIndex, required this.onChanged});
-  final int unitIndex;
-  final void Function(int) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDE0F0)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: ['SQFT', 'CUYD'].asMap().entries.map((e) {
-          final sel = e.key == unitIndex;
-          return InkWell(
-            onTap: () => onChanged(e.key),
-            borderRadius: BorderRadius.circular(6),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: sel ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                e.value,
-                style: TextStyle(
-                    color: sel ? Colors.white : AppColors.textLight,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // CATEGORY BREAKDOWN CARD  (uses live categoryCosts/categoryBudgets — fixed)
@@ -1712,6 +1804,293 @@ class _CategoryBreakdownCard extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// ACTIVITY PROGRESS CARD (phases/activities from daily progress tracking)
+// =============================================================================
+
+class _ActivityProgressCard extends StatelessWidget {
+  const _ActivityProgressCard({required this.phases});
+  final List<ProjectPhase> phases;
+
+  @override
+  Widget build(BuildContext context) {
+    if (phases.isEmpty) {
+      return AppCard(
+        margin: EdgeInsets.zero,
+        child: Text(
+          'No phases/activities tracked for this project yet.',
+          style: AppTheme.caption.copyWith(color: AppColors.textLight),
+        ),
+      );
+    }
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: phases.map((phase) {
+          final total = phase.totalCount;
+          final done = phase.completedCount;
+          final pct = total > 0 ? done / total : 0.0;
+          final color = pct >= 1.0
+              ? AppColors.success
+              : pct >= 0.5
+                  ? AppColors.primary
+                  : AppColors.warning;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        phase.phaseName,
+                        style: AppTheme.bodyLarge.copyWith(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    Text(
+                      '$done / $total',
+                      style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFFEEF0F8),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+                if (phase.activities.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...phase.activities.map((a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              a.completed
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              size: 14,
+                              color: a.completed
+                                  ? AppColors.success
+                                  : AppColors.textLight,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                a.name,
+                                style: AppTheme.caption.copyWith(
+                                  color: a.completed
+                                      ? AppColors.textDark
+                                      : AppColors.textLight,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            if (a.completed && a.completedAt != null)
+                              Text(
+                                '${a.completedAt!.day}/${a.completedAt!.month}',
+                                style: AppTheme.caption.copyWith(
+                                    color: AppColors.textLight, fontSize: 11),
+                              ),
+                          ],
+                        ),
+                      )),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// INVENTORY STATUS CARD
+// =============================================================================
+
+class _InventoryStatusCard extends StatelessWidget {
+  const _InventoryStatusCard({
+    required this.items,
+    required this.isLoading,
+  });
+  final List<dynamic> items;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const AppCard(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary)),
+        ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return AppCard(
+        margin: EdgeInsets.zero,
+        child: Text(
+          'No inventory data available for this project.',
+          style: AppTheme.caption.copyWith(color: AppColors.textLight),
+        ),
+      );
+    }
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        children: items.map((raw) {
+          final item = raw as Map<String, dynamic>;
+          final name = item['materialName']?.toString() ?? 'Unknown';
+          final unit = item['unit']?.toString() ?? '';
+          final closing = (item['closingStock'] as num?)?.toDouble() ?? 0.0;
+          final threshold = (item['threshold'] as num?)?.toDouble() ?? 10.0;
+          final pct = threshold > 0 ? closing / threshold : 1.0;
+          final color = closing <= 0 || pct < 0.30
+              ? AppColors.error
+              : pct < 0.60
+                  ? AppColors.warning
+                  : AppColors.success;
+          final label = closing <= 0 || pct < 0.30
+              ? 'Critical'
+              : pct < 0.60
+                  ? 'Low'
+                  : 'OK';
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: AppTheme.bodyLarge.copyWith(
+                        color: AppColors.textDark, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text(
+                  '${closing.toStringAsFixed(0)} $unit',
+                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                        color: color, fontSize: 10, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// FULL ENTRY LOG CARD (on-screen, date-range scoped)
+// =============================================================================
+
+class _FullEntryLogCard extends StatelessWidget {
+  const _FullEntryLogCard({required this.entries});
+  final List<EntryModel> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return AppCard(
+        margin: EdgeInsets.zero,
+        child: Text(
+          'No entries found in the selected date range.',
+          style: AppTheme.caption.copyWith(color: AppColors.textLight),
+        ),
+      );
+    }
+
+    final sorted = [...entries]..sort((a, b) => b.date.compareTo(a.date));
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${sorted.length} entries',
+            style: AppTheme.caption.copyWith(
+                color: AppColors.textLight, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          ...sorted.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.description.isNotEmpty
+                                ? e.description
+                                : e.type.label,
+                            style: AppTheme.bodyLarge.copyWith(
+                                color: AppColors.textDark,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '${e.type.label} • ${e.date.day}/${e.date.month}/${e.date.year}',
+                            style: AppTheme.caption
+                                .copyWith(color: AppColors.textLight, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      formatCurrency(e.amount),
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13),
+                    ),
+                  ],
+                ),
+              )),
+        ],
       ),
     );
   }

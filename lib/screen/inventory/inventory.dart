@@ -1289,12 +1289,58 @@ class _PurchaseCard extends StatelessWidget {
                         icon:  Icons.credit_card_outlined,
                         style: _ActionStyle.secondary,
                         onTap: () {
-                          final payArgs =
-                              Map<String, dynamic>.from(record.rawTx);
-                          payArgs['isEditing']   = true;
-                          payArgs['openPayment'] = true;
-                          payArgs['id']          = record.txId;
-                          onNavigate(_addRoute, payArgs);
+                          final projectProvider = context.read<ProjectProvider>();
+                          String pName = 'Unknown Project';
+                          String pId = '';
+                          final matchedProj = projectProvider.projects.where(
+                            (p) => p.id == record.rawTx['project']?.toString() || 
+                                   p.id == record.rawTx['projectId']?.toString() || 
+                                   p.id == selectedProjectId
+                          );
+                          if (matchedProj.isNotEmpty) {
+                            pName = matchedProj.first.name;
+                            pId = matchedProj.first.id;
+                          } else {
+                            final rawProj = record.rawTx['project'];
+                            if (rawProj is Map) {
+                              pName = (rawProj['projectName'] ?? rawProj['name'] ?? 'Unknown Project').toString();
+                              pId = (rawProj['_id'] ?? '').toString();
+                            }
+                          }
+                          if (pId.isEmpty) {
+                            pId = record.rawTx['project']?.toString() ?? 
+                                  record.rawTx['projectId']?.toString() ?? 
+                                  selectedProjectId ?? '';
+                          }
+
+                          final payArgs = {
+                            'id': record.txId,
+                            'projectId': pId,
+                            'projectName': pName,
+                            'itemId': record.itemId,
+                            'itemName': record.itemName,
+                            'itemType': record.type,
+                            'quantity': record.quantity,
+                            'rate': record.rate,
+                            'totalAmount': record.billAmount,
+                            'paidAmount': record.paidAmount,
+                            'outstandingAmount': (record.billAmount - record.paidAmount).clamp(0.0, double.infinity),
+                            'paymentStatus': record.payStatus,
+                            'receipt': (record.rawTx['attachments'] is List && record.rawTx['attachments'].isNotEmpty)
+                                ? record.rawTx['attachments'].first?.toString()
+                                : null,
+                            'transactionDetails': record.rawTx,
+                          };
+
+                          Navigator.pushNamed(
+                            context,
+                            '/fulfillment-payment',
+                            arguments: payArgs,
+                          ).then((updated) {
+                            if (updated == true && context.mounted) {
+                              context.read<InventoryProvider>().loadInventory(selectedProjectId ?? '');
+                            }
+                          });
                         },
                       ),
                     ),
