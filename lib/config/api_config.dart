@@ -7,5 +7,4 @@ class ApiConfig {
 
   /// Production backend deployed on Render.
   static const String baseUrl = 'https://build-track.onrender.com/api';
-  
 }

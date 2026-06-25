@@ -72,9 +72,10 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       return null;
     }
     final provider = context.read<ProjectProvider>();
-    final project = provider.projects
-        .cast<ProjectModel?>()
-        .firstWhere((p) => p?.id == _selectedProjectId, orElse: () => null);
+    final project = provider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
     if (project?.selectedPhases == null) return null;
     for (final p in project!.selectedPhases!) {
       if (p.phaseName == phaseName) return p.id;
@@ -85,11 +86,14 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
-        _selectedProjectId == null) return null;
+        _selectedProjectId == null) {
+      return null;
+    }
     final provider = context.read<ProjectProvider>();
-    final project = provider.projects
-        .cast<ProjectModel?>()
-        .firstWhere((p) => p?.id == _selectedProjectId, orElse: () => null);
+    final project = provider.projects.cast<ProjectModel?>().firstWhere(
+      (p) => p?.id == _selectedProjectId,
+      orElse: () => null,
+    );
     if (project?.selectedPhases == null) return null;
     for (final phase in project!.selectedPhases!) {
       for (final act in phase.activities) {
@@ -130,12 +134,15 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
 
     // Derive IDs if not already set
     final phaseId = _selectedPhaseId ?? _derivePhaseId(_selectedPhase);
-    final activityId = _selectedActivityId ?? _deriveActivityId(_selectedActivity);
+    final activityId =
+        _selectedActivityId ?? _deriveActivityId(_selectedActivity);
 
     // Save context to ProjectProvider
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     if (_selectedProjectId != provider.selectedProject?.id) {
-      final project = provider.projects.firstWhere((p) => p.id == _selectedProjectId);
+      final project = provider.projects.firstWhere(
+        (p) => p.id == _selectedProjectId,
+      );
       provider.selectProject(project);
     }
     provider.selectFloor(_selectedFloor);
@@ -211,8 +218,8 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                             _entryType == 'material'
                                 ? Icons.category_outlined
                                 : _entryType == 'labour'
-                                    ? Icons.people_outline
-                                    : Icons.precision_manufacturing_outlined,
+                                ? Icons.people_outline
+                                : Icons.precision_manufacturing_outlined,
                             size: 14,
                             color: AppColors.primary,
                           ),
@@ -277,9 +284,14 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                           _selectedActivityId = null;
                           _projectError = null;
                         });
-                        final provider = Provider.of<ProjectProvider>(context, listen: false);
+                        final provider = Provider.of<ProjectProvider>(
+                          context,
+                          listen: false,
+                        );
                         if (v != null) {
-                          final project = provider.projects.firstWhere((p) => p.id == v);
+                          final project = provider.projects.firstWhere(
+                            (p) => p.id == v,
+                          );
                           provider.selectProject(project);
                         }
                       },
@@ -293,11 +305,16 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                           _selectedActivityId = null;
                           _floorError = null;
                         });
-                        Provider.of<ProjectProvider>(context, listen: false).selectFloor(v);
+                        Provider.of<ProjectProvider>(
+                          context,
+                          listen: false,
+                        ).selectFloor(v);
                       },
                       onPhaseChanged: (v) {
                         final phaseName = v?.toString();
-                        final phaseId = phaseName != null ? _derivePhaseId(phaseName) : null;
+                        final phaseId = phaseName != null
+                            ? _derivePhaseId(phaseName)
+                            : null;
                         setState(() {
                           _selectedPhase = phaseName;
                           _selectedPhaseId = phaseId;
@@ -305,17 +322,25 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                           _selectedActivityId = null;
                           _phaseError = null;
                         });
-                        Provider.of<ProjectProvider>(context, listen: false).selectPhase(phaseName, phaseId);
+                        Provider.of<ProjectProvider>(
+                          context,
+                          listen: false,
+                        ).selectPhase(phaseName, phaseId);
                       },
                       onActivityChanged: (v) {
                         final activityName = v?.toString();
-                        final activityId = activityName != null ? _deriveActivityId(activityName) : null;
+                        final activityId = activityName != null
+                            ? _deriveActivityId(activityName)
+                            : null;
                         setState(() {
                           _selectedActivity = activityName;
                           _selectedActivityId = activityId;
                           _activityError = null;
                         });
-                        Provider.of<ProjectProvider>(context, listen: false).selectActivity(activityName, activityId);
+                        Provider.of<ProjectProvider>(
+                          context,
+                          listen: false,
+                        ).selectActivity(activityName, activityId);
                       },
                     ),
                   ],
@@ -345,14 +370,20 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     );
   }
 
-  Widget _stepDot(int step, String label,
-      {bool done = false, bool active = false}) {
+  Widget _stepDot(
+    int step,
+    String label, {
+    bool done = false,
+    bool active = false,
+  }) {
     final Color bg = done
         ? const Color(0xFF22C55E)
         : active
-            ? AppColors.primary
-            : const Color(0xFFE5E7EB);
-    final Color textColor = (done || active) ? Colors.white : AppColors.textLight;
+        ? AppColors.primary
+        : const Color(0xFFE5E7EB);
+    final Color textColor = (done || active)
+        ? Colors.white
+        : AppColors.textLight;
 
     return Column(
       children: [
@@ -360,10 +391,7 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
           duration: const Duration(milliseconds: 200),
           width: 26,
           height: 26,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
           child: Center(
             child: done
                 ? const Icon(Icons.check, size: 13, color: Colors.white)
@@ -386,8 +414,8 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
             color: active
                 ? AppColors.primary
                 : done
-                    ? const Color(0xFF22C55E)
-                    : AppColors.textLight,
+                ? const Color(0xFF22C55E)
+                : AppColors.textLight,
           ),
         ),
       ],

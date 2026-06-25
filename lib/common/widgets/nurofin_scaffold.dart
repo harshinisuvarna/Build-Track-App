@@ -1,5 +1,6 @@
 import 'package:buildtrack_mobile/common/widgets/nurofin_background.dart';
 import 'package:flutter/material.dart';
+
 class NurofinScaffold extends StatelessWidget {
   const NurofinScaffold({
     super.key,

@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class _EntryType {
@@ -55,7 +55,7 @@ const _entryTypes = [
 void showAddEntryPopup(BuildContext context) {
   showModalBottomSheet(
     context: context,
-    isScrollControlled: true,          // lets us size to 75 % of screen
+    isScrollControlled: true, // lets us size to 75 % of screen
     backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -124,25 +124,24 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
                 ),
               ),
               const SizedBox(height: 24),
-              ..._entryTypes.map((type) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _EntryCard(
-                      type: type,
-                      isSelected: _selectedId == type.id,
-                      onTap: () {
-                        // Brief visual selection feedback, then navigate
-                        setState(() => _selectedId = type.id);
-                        Future.delayed(const Duration(milliseconds: 150), () {
-                          if (!mounted) return;
-                          Navigator.pop(context);                
-                          Navigator.pushNamed(                    
-                            widget.parentContext,
-                            type.route,
-                          );
-                        });
-                      },
-                    ),
-                  )),
+              ..._entryTypes.map(
+                (type) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _EntryCard(
+                    type: type,
+                    isSelected: _selectedId == type.id,
+                    onTap: () {
+                      // Brief visual selection feedback, then navigate
+                      setState(() => _selectedId = type.id);
+                      Future.delayed(const Duration(milliseconds: 150), () {
+                        if (!mounted) return;
+                        Navigator.pop(context);
+                        Navigator.pushNamed(widget.parentContext, type.route);
+                      });
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -163,17 +162,15 @@ class _EntryCard extends StatelessWidget {
   });
 
   static const primaryBlue = AppColors.primary;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xFFF0F2FF)      
-            : const Color(0xFFF8F9FF),
+        color: isSelected ? const Color(0xFFF0F2FF) : const Color(0xFFF8F9FF),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isSelected ? primaryBlue : const Color(0xFFE0E5FF),

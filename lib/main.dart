@@ -44,57 +44,62 @@ import 'package:buildtrack_mobile/screen/inventory/fulfillment_payment_screen.da
 import 'package:buildtrack_mobile/screen/admin/admin_overview_screen.dart';
 
 void main() {
-  runZonedGuarded(() async {
-    debugPrint('App Started');
+  runZonedGuarded(
+    () async {
+      debugPrint('App Started');
 
-    WidgetsFlutterBinding.ensureInitialized();
-    debugPrint('Flutter Initialized');
+      WidgetsFlutterBinding.ensureInitialized();
+      debugPrint('Flutter Initialized');
 
-    // Load session first so UserSession singleton is populated
-    await UserSession.loadFromPrefs();
+      // Load session first so UserSession singleton is populated
+      await UserSession.loadFromPrefs();
 
-    // Check if already logged in
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    final isLoggedIn = token != null && token.isNotEmpty;
+      // Check if already logged in
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final isLoggedIn = token != null && token.isNotEmpty;
 
-    final projectProvider = ProjectProvider();
+      final projectProvider = ProjectProvider();
 
-    // Only load projects if already logged in (token exists)
-    if (isLoggedIn) {
-      debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
-      await projectProvider.load().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          debugPrint('[main] projectProvider.load timed out after 30s');
-        },
+      // Only load projects if already logged in (token exists)
+      if (isLoggedIn) {
+        debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
+        await projectProvider.load().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            debugPrint('[main] projectProvider.load timed out after 30s');
+          },
+        );
+      } else {
+        debugPrint(
+          'API Initialized: Endpoint is ${ApiService.baseUrl} (not logged in)',
+        );
+      }
+
+      debugPrint('Providers Initialized');
+
+      runApp(
+        MultiProvider(
+          providers: [
+            // ✅ KEY FIX: Register UserSession as a ChangeNotifierProvider
+            // so context.watch<UserSession>() works throughout the app.
+            // Using .value because UserSession is a singleton — we pass the
+            // same instance that loadFromPrefs() already called notifyListeners() on.
+            ChangeNotifierProvider<UserSession>.value(value: UserSession()),
+
+            ChangeNotifierProvider(create: (_) => NavController()),
+            ChangeNotifierProvider.value(value: projectProvider),
+            ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+            ChangeNotifierProvider(create: (_) => InventoryProvider()),
+          ],
+          child: MyApp(isLoggedIn: isLoggedIn),
+        ),
       );
-    } else {
-      debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl} (not logged in)');
-    }
-
-    debugPrint('Providers Initialized');
-
-    runApp(
-      MultiProvider(
-        providers: [
-          // ✅ KEY FIX: Register UserSession as a ChangeNotifierProvider
-          // so context.watch<UserSession>() works throughout the app.
-          // Using .value because UserSession is a singleton — we pass the
-          // same instance that loadFromPrefs() already called notifyListeners() on.
-          ChangeNotifierProvider<UserSession>.value(value: UserSession()),
-
-          ChangeNotifierProvider(create: (_) => NavController()),
-          ChangeNotifierProvider.value(value: projectProvider),
-          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
-          ChangeNotifierProvider(create: (_) => InventoryProvider()),
-        ],
-        child: MyApp(isLoggedIn: isLoggedIn),
-      ),
-    );
-  }, (error, stack) {
-    debugPrint('[Uncaught Exception] Error: $error\n$stack');
-  });
+    },
+    (error, stack) {
+      debugPrint('[Uncaught Exception] Error: $error\n$stack');
+    },
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -125,43 +130,44 @@ class MyApp extends StatelessWidget {
         ];
       },
       routes: {
-        '/':                 (_) => const LoginScreen(),
-        '/login':            (_) => const LoginScreen(),
-        '/forgot-password':  (_) => const ForgotPasswordScreen(),
+        '/': (_) => const LoginScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/forgot-password': (_) => const ForgotPasswordScreen(),
         '/create-workspace': (_) => const CreateWorkspaceScreen(),
-        '/profile':          (_) => const ProfileScreen(),
-        '/edit-profile':     (_) => const EditProfileScreen(),
-        '/subscription':     (_) => const SubscriptionScreen(),
-        '/payment-webview': (context) => PaymentWebViewScreen(paymentParams: const {}),
-        '/home':        (_) => const HomeScreen(),
-        '/projects':    (_) => const ProjectsScreen(),
-        '/add-entry':   (_) => const AddEntryScreen(),
+        '/profile': (_) => const ProfileScreen(),
+        '/edit-profile': (_) => const EditProfileScreen(),
+        '/subscription': (_) => const SubscriptionScreen(),
+        '/payment-webview': (context) =>
+            PaymentWebViewScreen(paymentParams: const {}),
+        '/home': (_) => const HomeScreen(),
+        '/projects': (_) => const ProjectsScreen(),
+        '/add-entry': (_) => const AddEntryScreen(),
         '/execution-context': (_) => const ExecutionContextScreen(),
         '/choose-entry-mode': (_) => const ChooseEntryModeScreen(),
-        '/inventory':   (_) => const InventoryScreen(),
-        '/reports':     (_) => const ReportsScreen(),
+        '/inventory': (_) => const InventoryScreen(),
+        '/reports': (_) => const ReportsScreen(),
         '/assign-role': (_) => const AssignRolesScreen(),
 
         '/project-detail': (_) => const ProjectDetailScreen(),
 
-        '/notifications':   (_) => const NotificationsScreen(),
-        '/approvals':       (_) => const ApprovalsScreen(),
-        '/admin-overview':  (_) => const AdminOverviewScreen(),
-        '/logs':            (_) => const TransactionLogsScreen(),
-        '/entry-detail':    (_) => const EntryDetailScreen(),
+        '/notifications': (_) => const NotificationsScreen(),
+        '/approvals': (_) => const ApprovalsScreen(),
+        '/admin-overview': (_) => const AdminOverviewScreen(),
+        '/logs': (_) => const TransactionLogsScreen(),
+        '/entry-detail': (_) => const EntryDetailScreen(),
         '/update-progress': (_) => const UpdateProgressScreen(),
         '/report-insights': (_) => const ReportInsightsScreen(),
-        '/ai-chat':         (_) => const AiChatReportScreen(),
-        '/project-report':  (_) => const ProjectReportScreen(),
-        '/cement-history':  (_) => const CementHistoryScreen(),
-        '/receipt-viewer':  (_) => const ReceiptViewerScreen(),
+        '/ai-chat': (_) => const AiChatReportScreen(),
+        '/project-report': (_) => const ProjectReportScreen(),
+        '/cement-history': (_) => const CementHistoryScreen(),
+        '/receipt-viewer': (_) => const ReceiptViewerScreen(),
 
-        '/review-material':  (_) => const AiVoiceEntryScreen(),
-        '/review-labour':    (_) => const AiVoiceEntryScreen(),
+        '/review-material': (_) => const AiVoiceEntryScreen(),
+        '/review-labour': (_) => const AiVoiceEntryScreen(),
         '/review-equipment': (_) => const AiVoiceEntryScreen(),
 
-        '/add-material':  (_) => const AddMaterialScreen(),
-        '/add-labour':    (_) => const AddLabourScreen(),
+        '/add-material': (_) => const AddMaterialScreen(),
+        '/add-labour': (_) => const AddLabourScreen(),
         '/add-equipment': (_) => const AddEquipmentScreen(),
         '/fulfillment-payment': (_) => const FulfillmentPaymentScreen(),
       },
@@ -181,7 +187,8 @@ class MyApp extends StatelessWidget {
                     backgroundColor: Colors.red.shade600,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.all(16),
                     duration: const Duration(seconds: 2),
                   ),

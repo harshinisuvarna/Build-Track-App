@@ -61,8 +61,7 @@ class PickedAttachment {
       name.toLowerCase().endsWith('.webp');
 
   // ImageProvider for showing image previews in UploadBox
-  ImageProvider? get imageProvider =>
-      isImage ? MemoryImage(bytes) : null;
+  ImageProvider? get imageProvider => isImage ? MemoryImage(bytes) : null;
 
   // Icon and colour helpers used by UploadBox file preview
   IconData get icon {
@@ -145,9 +144,7 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
       if (choice == 'gallery' || choice == 'camera') {
         final picker = ImagePicker();
         final picked = await picker.pickImage(
-          source: choice == 'camera'
-              ? ImageSource.camera
-              : ImageSource.gallery,
+          source: choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
           maxWidth: 1200,
           maxHeight: 1200,
           imageQuality: 80,
@@ -167,7 +164,17 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
     // Web or 'file' choice — use file_picker
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+      ],
       withData: true, // required on web to get bytes
     );
     if (result == null || result.files.isEmpty) return null;
@@ -183,9 +190,11 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
       'webp': 'image/webp',
       'pdf': 'application/pdf',
       'doc': 'application/msword',
-      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'docx':
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'xls': 'application/vnd.ms-excel',
-      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'xlsx':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };
 
     return PickedAttachment(

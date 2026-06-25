@@ -13,40 +13,40 @@ class AddEntryScreen extends StatelessWidget {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
   List<Map<String, dynamic>> get _entries {
-  final items = <Map<String, dynamic>>[];
+    final items = <Map<String, dynamic>>[];
 
-  if (RoleManager.canManageExpenses) {
-    items.add({
-      'icon': Icons.category,
-      'title': 'Material',
-      'subtitle':
-          'Log concrete, steel, lumber, or site-specific procurement items.',
-      'type': 'material',
-    });
+    if (RoleManager.canManageExpenses) {
+      items.add({
+        'icon': Icons.category,
+        'title': 'Material',
+        'subtitle':
+            'Log concrete, steel, lumber, or site-specific procurement items.',
+        'type': 'material',
+      });
+    }
+
+    if (RoleManager.canAddEntries) {
+      items.add({
+        'icon': Icons.people,
+        'title': 'Labour',
+        'subtitle':
+            'Track crew hours, specialized trade performance, and site presence.',
+        'type': 'labour',
+      });
+    }
+
+    if (RoleManager.canManageEquipmentMaster) {
+      items.add({
+        'icon': Icons.precision_manufacturing,
+        'title': 'Equipment',
+        'subtitle':
+            'Record heavy machinery runtime, fuel logs, and maintenance events.',
+        'type': 'equipment',
+      });
+    }
+
+    return items;
   }
-
-  if (RoleManager.canAddEntries) {
-    items.add({
-      'icon': Icons.people,
-      'title': 'Labour',
-      'subtitle':
-          'Track crew hours, specialized trade performance, and site presence.',
-      'type': 'labour',
-    });
-  }
-
-  if (RoleManager.canManageEquipmentMaster) {
-    items.add({
-      'icon': Icons.precision_manufacturing,
-      'title': 'Equipment',
-      'subtitle':
-          'Record heavy machinery runtime, fuel logs, and maintenance events.',
-      'type': 'equipment',
-    });
-  }
-
-  return items;
-}
 
   void _navigateToContext(BuildContext context, String type) {
     Navigator.pushNamed(
@@ -67,8 +67,9 @@ class AddEntryScreen extends StatelessWidget {
             AppTopBar(
               title: 'Add Entry',
               leftIcon: Navigator.canPop(context) ? Icons.arrow_back : null,
-              onLeftTap:
-                  Navigator.canPop(context) ? () => Navigator.pop(context) : null,
+              onLeftTap: Navigator.canPop(context)
+                  ? () => Navigator.pop(context)
+                  : null,
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
                 child: const ProfileAvatar(radius: 18),

@@ -18,9 +18,9 @@ class AssignRolesScreen extends StatefulWidget {
 }
 
 class _AssignRolesScreenState extends State<AssignRolesScreen> {
-  final _nameCtrl       = TextEditingController();
-  final _emailCtrl      = TextEditingController();
-  final _passCtrl       = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _customRoleCtrl = TextEditingController();
 
   // ── Permission model: each feature has up to 3 axes ───────────────────
@@ -33,194 +33,184 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   // type: 'toggle' → renders a single on/off switch
   static const List<Map<String, dynamic>> _featureRows = [
     // ── Project ────────────────────────────────────────────────────────
+    {'section': 'Project'},
     {
-      'section': 'Project',
+      'type': 'table',
+      'label': 'Project Status',
+      'desc': 'View progress, budget, and project details',
+      'view': 'view_assigned_project',
+      'edit': 'edit_project',
+      'delete': null, // delete project is admin-only, not shown
     },
     {
-      'type':    'table',
-      'label':   'Project Status',
-      'desc':    'View progress, budget, and project details',
-      'view':    'view_assigned_project',
-      'edit':    'edit_project',
-      'delete':  null,               // delete project is admin-only, not shown
-    },
-    {
-      'type':    'table',
-      'label':   'Activities & Entries',
-      'desc':    'View, edit or delete material/labour/equipment entries',
-      'view':    'view_assigned_project', // reuses same view flag
-      'edit':    'manage_expenses',
-      'delete':  'delete_entry',
+      'type': 'table',
+      'label': 'Activities & Entries',
+      'desc': 'View, edit or delete material/labour/equipment entries',
+      'view': 'view_assigned_project', // reuses same view flag
+      'edit': 'manage_expenses',
+      'delete': 'delete_entry',
     },
 
     // ── Daily Work ──────────────────────────────────────────────────────
+    {'section': 'Daily Work'},
     {
-      'section': 'Daily Work',
+      'type': 'toggle',
+      'label': 'Add Entries',
+      'desc': 'Can add material, labour, and equipment entries',
+      'key': 'manage_expenses',
     },
     {
-      'type':    'toggle',
-      'label':   'Add Entries',
-      'desc':    'Can add material, labour, and equipment entries',
-      'key':     'manage_expenses',
+      'type': 'toggle',
+      'label': 'Add Equipment Entries',
+      'desc': 'Can specifically add and manage equipment entries',
+      'key': 'manage_equipment_master',
     },
     {
-      'type':    'toggle',
-      'label':   'Add Equipment Entries',
-      'desc':    'Can specifically add and manage equipment entries',
-      'key':     'manage_equipment_master',
-    },
-    {
-      'type':    'toggle',
-      'label':   'Submit Daily Progress Update',
-      'desc':    'Can file a daily update with photos and checklist',
-      'key':     'submit_daily_update',
+      'type': 'toggle',
+      'label': 'Submit Daily Progress Update',
+      'desc': 'Can file a daily update with photos and checklist',
+      'key': 'submit_daily_update',
     },
 
     // ── Approvals & Payments ────────────────────────────────────────────
+    {'section': 'Approvals & Payments'},
     {
-      'section': 'Approvals & Payments',
+      'type': 'toggle',
+      'label': 'Approve Payments',
+      'desc': 'Can mark entries as paid and record payment details',
+      'key': 'approve_payments',
     },
     {
-      'type':    'toggle',
-      'label':   'Approve Payments',
-      'desc':    'Can mark entries as paid and record payment details',
-      'key':     'approve_payments',
-    },
-    {
-      'type':    'toggle',
-      'label':   'Approve Updates',
-      'desc':    'Can approve or reject daily progress submissions',
-      'key':     'approve_updates',
+      'type': 'toggle',
+      'label': 'Approve Updates',
+      'desc': 'Can approve or reject daily progress submissions',
+      'key': 'approve_updates',
     },
 
     // ── Visibility ──────────────────────────────────────────────────────
+    {'section': 'Visibility'},
     {
-      'section': 'Visibility',
+      'type': 'table',
+      'label': 'Reports & Analytics',
+      'desc': 'Access to charts, cost summaries and analytics',
+      'view': 'view_reports',
+      'edit': null,
+      'delete': null,
     },
     {
-      'type':    'table',
-      'label':   'Reports & Analytics',
-      'desc':    'Access to charts, cost summaries and analytics',
-      'view':    'view_reports',
-      'edit':    null,
-      'delete':  null,
-    },
-    {
-      'type':    'table',
-      'label':   'Transaction Logs',
-      'desc':    'Access to the full list of expense entries',
-      'view':    'view_payment_reports',
-      'edit':    null,
-      'delete':  null,
+      'type': 'table',
+      'label': 'Transaction Logs',
+      'desc': 'Access to the full list of expense entries',
+      'view': 'view_payment_reports',
+      'edit': null,
+      'delete': null,
     },
 
     // ── Administration ──────────────────────────────────────────────────
+    {'section': 'Administration'},
     {
-      'section': 'Administration',
-    },
-    {
-      'type':    'table',
-      'label':   'Assign Roles',
-      'desc':    'Can create accounts and assign roles to team members',
-      'view':    null,
-      'edit':    'assign_roles',
-      'delete':  null,
+      'type': 'table',
+      'label': 'Assign Roles',
+      'desc': 'Can create accounts and assign roles to team members',
+      'view': null,
+      'edit': 'assign_roles',
+      'delete': null,
     },
   ];
 
   // ── Flat permission map (sent to backend) ──────────────────────────────
   // Only the keys that actually appear in _featureRows
   final Map<String, bool> _permissions = {
-    'view_assigned_project':   false,
-    'edit_project':            false,
-    'delete_entry':            false,
-    'manage_expenses':         false,
+    'view_assigned_project': false,
+    'edit_project': false,
+    'delete_entry': false,
+    'manage_expenses': false,
     'manage_equipment_master': false,
-    'submit_daily_update':     false,
-    'approve_payments':        false,
-    'approve_updates':         false,
-    'view_reports':            false,
-    'view_payment_reports':    false,
-    'assign_roles':            false,
+    'submit_daily_update': false,
+    'approve_payments': false,
+    'approve_updates': false,
+    'view_reports': false,
+    'view_payment_reports': false,
+    'assign_roles': false,
   };
 
   bool _obscurePass = true;
-String? _selectedRole;
-bool _isLoading = false;
+  String? _selectedRole;
+  bool _isLoading = false;
 
-// ── Edit mode ────────────────────────────────────────────────────────────
-bool _isEditMode = false;
-String? _editingUserId;
+  // ── Edit mode ────────────────────────────────────────────────────────────
+  bool _isEditMode = false;
+  String? _editingUserId;
 
-final Set<String> _selectedProjectIds = {};
-List<Map<String, String>> _projects = [];
-bool _isLoadingProjects = true;
-String? _projectsError;
+  final Set<String> _selectedProjectIds = {};
+  List<Map<String, String>> _projects = [];
+  bool _isLoadingProjects = true;
+  String? _projectsError;
 
-final Set<String> _selectedOverseesRoles = {};
-static const _availableRolesToOversee = ['Mason', 'Contractor', 'Labourer'];
-final _customOverseesRoleCtrl = TextEditingController();
+  final Set<String> _selectedOverseesRoles = {};
+  static const _availableRolesToOversee = ['Mason', 'Contractor', 'Labourer'];
+  final _customOverseesRoleCtrl = TextEditingController();
 
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
 
- @override
-void initState() {
-  super.initState();
-  _fetchProjects();
-  // Edit mode is set up in didChangeDependencies after context is available
-}
-
-@override
-void didChangeDependencies() {
-  super.didChangeDependencies();
-  if (_editingUserId != null) return; // already initialised
-  final args = ModalRoute.of(context)?.settings.arguments;
-  if (args is Map && args.containsKey('editUser')) {
-    _prefillFromExistingUser(
-        Map<String, dynamic>.from(args['editUser'] as Map));
-  }
-}
-
-void _prefillFromExistingUser(Map<String, dynamic> userData) {
-  _isEditMode = true;
-  _editingUserId = (userData['_id'] ?? userData['id'])?.toString();
-
-  _nameCtrl.text  = userData['name']?.toString()  ?? '';
-  _emailCtrl.text = userData['email']?.toString() ?? '';
-  // Password not pre-filled in edit mode — leave blank to keep existing
-
-  final role = userData['role']?.toString() ?? '';
-  final isKnownRole = _roles.contains(role);
-  if (isKnownRole) {
-    _selectedRole = role;
-  } else if (role.isNotEmpty) {
-    _selectedRole = _customRoleValue;
-    _customRoleCtrl.text = role;
+  @override
+  void initState() {
+    super.initState();
+    _fetchProjects();
+    // Edit mode is set up in didChangeDependencies after context is available
   }
 
-  // Pre-fill permissions
-  final perms = (userData['permissions'] as List?)?.cast<String>() ?? [];
-  for (final key in _permissions.keys) {
-    _permissions[key] = perms.contains(key);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_editingUserId != null) return; // already initialised
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args.containsKey('editUser')) {
+      _prefillFromExistingUser(
+        Map<String, dynamic>.from(args['editUser'] as Map),
+      );
+    }
   }
 
-  // Pre-fill overseesRoles
-  final overseesRoles =
-      (userData['overseesRoles'] as List?)?.cast<String>() ?? [];
-  _selectedOverseesRoles
-    ..clear()
-    ..addAll(overseesRoles);
+  void _prefillFromExistingUser(Map<String, dynamic> userData) {
+    _isEditMode = true;
+    _editingUserId = (userData['_id'] ?? userData['id'])?.toString();
 
-  // Pre-fill projectIds
-  final projectIds =
-      (userData['projectIds'] as List?)?.cast<String>() ?? [];
-  _selectedProjectIds
-    ..clear()
-    ..addAll(projectIds);
+    _nameCtrl.text = userData['name']?.toString() ?? '';
+    _emailCtrl.text = userData['email']?.toString() ?? '';
+    // Password not pre-filled in edit mode — leave blank to keep existing
 
-  setState(() {});
-}
+    final role = userData['role']?.toString() ?? '';
+    final isKnownRole = _roles.contains(role);
+    if (isKnownRole) {
+      _selectedRole = role;
+    } else if (role.isNotEmpty) {
+      _selectedRole = _customRoleValue;
+      _customRoleCtrl.text = role;
+    }
+
+    // Pre-fill permissions
+    final perms = (userData['permissions'] as List?)?.cast<String>() ?? [];
+    for (final key in _permissions.keys) {
+      _permissions[key] = perms.contains(key);
+    }
+
+    // Pre-fill overseesRoles
+    final overseesRoles =
+        (userData['overseesRoles'] as List?)?.cast<String>() ?? [];
+    _selectedOverseesRoles
+      ..clear()
+      ..addAll(overseesRoles);
+
+    // Pre-fill projectIds
+    final projectIds = (userData['projectIds'] as List?)?.cast<String>() ?? [];
+    _selectedProjectIds
+      ..clear()
+      ..addAll(projectIds);
+
+    setState(() {});
+  }
 
   @override
   void dispose() {
@@ -248,33 +238,46 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         if (decoded is List) {
           raw = decoded;
         } else if (decoded is Map) {
-          raw = (decoded['projects'] ??
-              decoded['data'] ??
-              decoded['items'] ??
-              decoded['results'] ??
-              []) as List<dynamic>;
+          raw =
+              (decoded['projects'] ??
+                      decoded['data'] ??
+                      decoded['items'] ??
+                      decoded['results'] ??
+                      [])
+                  as List<dynamic>;
         }
-        final parsed = raw.map<Map<String, String>>((p) {
-          final map  = Map<String, dynamic>.from(p as Map);
-          final id   = (map['_id'] ?? map['id'] ?? '').toString();
-          final name = (map['projectName'] ?? map['name'] ?? map['title'] ??
-              'Unnamed Project').toString().trim();
-          return {'id': id, 'name': name.isEmpty ? 'Unnamed Project' : name};
-        }).where((p) => p['id']!.isNotEmpty).toList();
+        final parsed = raw
+            .map<Map<String, String>>((p) {
+              final map = Map<String, dynamic>.from(p as Map);
+              final id = (map['_id'] ?? map['id'] ?? '').toString();
+              final name =
+                  (map['projectName'] ??
+                          map['name'] ??
+                          map['title'] ??
+                          'Unnamed Project')
+                      .toString()
+                      .trim();
+              return {
+                'id': id,
+                'name': name.isEmpty ? 'Unnamed Project' : name,
+              };
+            })
+            .where((p) => p['id']!.isNotEmpty)
+            .toList();
         setState(() {
-          _projects          = parsed;
+          _projects = parsed;
           _isLoadingProjects = false;
         });
       } else {
         setState(() {
-          _projectsError     = 'Could not load projects (${response.statusCode})';
+          _projectsError = 'Could not load projects (${response.statusCode})';
           _isLoadingProjects = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _projectsError     = 'Network error loading projects';
+        _projectsError = 'Network error loading projects';
         _isLoadingProjects = false;
       });
     }
@@ -314,148 +317,152 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
   }
 
   Future<void> _onAssignPressed() async {
-  final name = _nameCtrl.text.trim();
-  final email = _emailCtrl.text.trim();
-  final pass  = _passCtrl.text;
-  final roleToSend = _isCustomRoleSelected
-      ? _customRoleCtrl.text.trim()
-      : (_selectedRole ?? '').trim();
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text;
+    final roleToSend = _isCustomRoleSelected
+        ? _customRoleCtrl.text.trim()
+        : (_selectedRole ?? '').trim();
 
-  if (name.isEmpty || email.isEmpty || roleToSend.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Please fill in all required fields and select a role.')),
-    );
-    return;
-  }
-  // In create mode password is required; in edit mode it's optional
-  if (!_isEditMode && pass.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter a temporary password.')),
-    );
-    return;
-  }
-  if (!email.contains('@')) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter a valid email address.')),
-    );
-    return;
-  }
+    if (name.isEmpty || email.isEmpty || roleToSend.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill in all required fields and select a role.',
+          ),
+        ),
+      );
+      return;
+    }
+    // In create mode password is required; in edit mode it's optional
+    if (!_isEditMode && pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a temporary password.')),
+      );
+      return;
+    }
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address.')),
+      );
+      return;
+    }
 
-  final selectedPermissions = _permissions.entries
-      .where((e) => e.value)
-      .map((e) => e.key)
-      .toList();
+    final selectedPermissions = _permissions.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
 
-  // ── Subscription limit check (create mode only) ──────────────────
-  if (!_isEditMode) {
-    final subProvider =
-        context.read<SubscriptionProvider>();
-    final response = await ApiService.get('/auth/users');
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      final List raw = decoded is List
-          ? decoded
-          : (decoded['users'] ?? decoded['data'] ?? []) as List;
-      final currentUserCount = raw.length;
-      final maxUsers = subProvider.currentPlan.maxUsers;
-      if (maxUsers != -1 && currentUserCount >= maxUsers) {
-        if (!mounted) return;
-        _showUpgradeDialog(
-          context,
-          'Team Member Limit Reached',
-          'Your ${subProvider.currentPlan.label} plan allows up to $maxUsers users. '
-              'Upgrade to add more team members.',
-        );
-        return;
+    // ── Subscription limit check (create mode only) ──────────────────
+    if (!_isEditMode) {
+      final subProvider = context.read<SubscriptionProvider>();
+      final response = await ApiService.get('/auth/users');
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final List raw = decoded is List
+            ? decoded
+            : (decoded['users'] ?? decoded['data'] ?? []) as List;
+        final currentUserCount = raw.length;
+        final maxUsers = subProvider.currentPlan.maxUsers;
+        if (maxUsers != -1 && currentUserCount >= maxUsers) {
+          if (!mounted) return;
+          _showUpgradeDialog(
+            context,
+            'Team Member Limit Reached',
+            'Your ${subProvider.currentPlan.label} plan allows up to $maxUsers users. '
+                'Upgrade to add more team members.',
+          );
+          return;
+        }
       }
     }
-  }
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    if (_isEditMode && _editingUserId != null) {
-      // ── UPDATE existing user ─────────────────────────────────────────
-      final payload = <String, dynamic>{
-        'name':        name,
-        'email':       email,
-        'role':        roleToSend,
-        'permissions': selectedPermissions,
-        if (_selectedProjectIds.isNotEmpty)
-          'projectIds': _selectedProjectIds.toList(),
-        // Always send overseesRoles in edit mode (even if empty, to clear it)
-        'overseesRoles': _selectedOverseesRoles.toList(),
-        if (pass.isNotEmpty) 'password': pass,
-      };
-
-      final response = await ApiService.put(
-          '/auth/users/$_editingUserId', payload);
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$name updated successfully.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        final body = json.decode(response.body);
-        final msg  = body['message']?.toString() ?? 'Failed to update user.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red),
-        );
-      }
-    } else {
-      // ── CREATE new user ──────────────────────────────────────────────
-      final payload = <String, dynamic>{
-        'name':              name,
-        'email':             email,
-        'temporaryPassword': pass,
-        'role':              roleToSend,
-        'permissions':       selectedPermissions,
-        if (_selectedProjectIds.isNotEmpty)
-          'projectIds': _selectedProjectIds.toList(),
-        if (_selectedOverseesRoles.isNotEmpty)
+    try {
+      if (_isEditMode && _editingUserId != null) {
+        // ── UPDATE existing user ─────────────────────────────────────────
+        final payload = <String, dynamic>{
+          'name': name,
+          'email': email,
+          'role': roleToSend,
+          'permissions': selectedPermissions,
+          if (_selectedProjectIds.isNotEmpty)
+            'projectIds': _selectedProjectIds.toList(),
+          // Always send overseesRoles in edit mode (even if empty, to clear it)
           'overseesRoles': _selectedOverseesRoles.toList(),
-      };
+          if (pass.isNotEmpty) 'password': pass,
+        };
 
-      final response = await ApiService.post('/auth/provision', payload);
+        final response = await ApiService.put(
+          '/auth/users/$_editingUserId',
+          payload,
+        );
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$name updated successfully.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          final body = json.decode(response.body);
+          final msg = body['message']?.toString() ?? 'Failed to update user.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+        }
+      } else {
+        // ── CREATE new user ──────────────────────────────────────────────
+        final payload = <String, dynamic>{
+          'name': name,
+          'email': email,
+          'temporaryPassword': pass,
+          'role': roleToSend,
+          'permissions': selectedPermissions,
+          if (_selectedProjectIds.isNotEmpty)
+            'projectIds': _selectedProjectIds.toList(),
+          if (_selectedOverseesRoles.isNotEmpty)
+            'overseesRoles': _selectedOverseesRoles.toList(),
+        };
+
+        final response = await ApiService.post('/auth/provision', payload);
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final projCount = _selectedProjectIds.length;
+          final projLabel = projCount == 0
+              ? 'all projects'
+              : '$projCount project${projCount > 1 ? 's' : ''}';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$name assigned as $roleToSend ($projLabel).'),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          final body = json.decode(response.body);
+          final msg = body['message']?.toString() ?? 'Failed to assign role.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final projCount = _selectedProjectIds.length;
-        final projLabel = projCount == 0
-            ? 'all projects'
-            : '$projCount project${projCount > 1 ? 's' : ''}';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$name assigned as $roleToSend ($projLabel).'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        final body = json.decode(response.body);
-        final msg  = body['message']?.toString() ?? 'Failed to assign role.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
     }
-  } catch (e) {
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -470,7 +477,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         child: Column(
           children: [
             AppTopBar(
-  title: _isEditMode ? 'Edit User' : 'Assign Role',
+              title: _isEditMode ? 'Edit User' : 'Assign Role',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -485,8 +492,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
                     const SizedBox(height: 6),
                     Text(
                       'Only Admins can assign roles and manage team access.',
-                      style:
-                          AppTheme.body.copyWith(color: AppColors.textLight),
+                      style: AppTheme.body.copyWith(color: AppColors.textLight),
                     ),
                     const SizedBox(height: 12),
                     _subscriptionWarning(plan),
@@ -511,8 +517,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -534,13 +539,15 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
 
   // REPLACE with:
   Widget _subscriptionWarning(SubscriptionPlan plan) {
-    final limitStr = plan == SubscriptionPlan.enterprise ? 'Unlimited' : '${plan.maxUsers} Users';
+    final limitStr = plan == SubscriptionPlan.enterprise
+        ? 'Unlimited'
+        : '${plan.maxUsers} Users';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -549,7 +556,10 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
           Expanded(
             child: Text(
               '${plan.label} Plan: $limitStr limit.',
-              style: AppTheme.body.copyWith(fontSize: 12, color: AppColors.textDark),
+              style: AppTheme.body.copyWith(
+                fontSize: 12,
+                color: AppColors.textDark,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -601,20 +611,23 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_isEditMode ? 'New Password (optional)' : 'Temporary Password',
-    style:
-        AppTheme.label.copyWith(color: AppTheme.textMedium)),
+              Text(
+                _isEditMode ? 'New Password (optional)' : 'Temporary Password',
+                style: AppTheme.label.copyWith(color: AppTheme.textMedium),
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passCtrl,
                 obscureText: _obscurePass,
                 enabled: true,
-                style: AppTheme.bodyLarge
-                    .copyWith(color: AppTheme.textDark),
+                style: AppTheme.bodyLarge.copyWith(color: AppTheme.textDark),
                 decoration: InputDecoration(
                   hintText: 'Enter temporary password',
-                  prefixIcon: const Icon(Icons.lock_outline,
-                      color: AppColors.textLight, size: 20),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textLight,
+                    size: 20,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePass
@@ -638,11 +651,12 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
             value: _selectedRole,
             hint: 'Select role',
             items: _roles
-                .map((r) => DropdownMenuItem<String>(
-                      value: r,
-                      child:
-                          Text(r == _customRoleValue ? 'Custom Role' : r),
-                    ))
+                .map(
+                  (r) => DropdownMenuItem<String>(
+                    value: r,
+                    child: Text(r == _customRoleValue ? 'Custom Role' : r),
+                  ),
+                )
                 .toList(),
             onChanged: isAdmin
                 ? (v) => _applyDefaultPermissionsForRole(v)
@@ -666,9 +680,13 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
           const SizedBox(height: AppTheme.spacingMd),
 
           // ── Permissions table ──────────────────────────────────────
-          Text('Permissions',
-              style: AppTheme.heading3
-                  .copyWith(color: AppColors.textDark, fontSize: 15)),
+          Text(
+            'Permissions',
+            style: AppTheme.heading3.copyWith(
+              color: AppColors.textDark,
+              fontSize: 15,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
             'Configure what this user can see and do.',
@@ -693,10 +711,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE0E5FF)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -707,8 +722,9 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.06),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
             ),
             child: Row(
               children: [
@@ -741,14 +757,14 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
               return _sectionDivider(row['section'] as String);
             }
 
-            final type    = row['type'] as String;
-            final label   = row['label'] as String;
-            final desc    = row['desc'] as String;
-            final isLast  = idx == _featureRows.length - 1;
+            final type = row['type'] as String;
+            final label = row['label'] as String;
+            final desc = row['desc'] as String;
+            final isLast = idx == _featureRows.length - 1;
 
             if (type == 'table') {
-              final viewKey   = row['view'] as String?;
-              final editKey   = row['edit'] as String?;
+              final viewKey = row['view'] as String?;
+              final editKey = row['edit'] as String?;
               final deleteKey = row['delete'] as String?;
               return _tableRow(
                 label: label,
@@ -860,8 +876,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
             ],
           ),
         ),
-        if (!isLast)
-          const Divider(height: 1, color: Color(0xFFF0EEF8)),
+        if (!isLast) const Divider(height: 1, color: Color(0xFFF0EEF8)),
       ],
     );
   }
@@ -916,8 +931,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
             ],
           ),
         ),
-        if (!isLast)
-          const Divider(height: 1, color: Color(0xFFF0EEF8)),
+        if (!isLast) const Divider(height: 1, color: Color(0xFFF0EEF8)),
       ],
     );
   }
@@ -958,15 +972,22 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Text('Project Access',
-              style: AppTheme.heading3
-                  .copyWith(color: AppColors.textDark, fontSize: 15)),
-          const SizedBox(width: 8),
-          Text('(Optional)',
-              style:
-                  AppTheme.caption.copyWith(color: AppColors.textLight)),
-        ]),
+        Row(
+          children: [
+            Text(
+              'Project Access',
+              style: AppTheme.heading3.copyWith(
+                color: AppColors.textDark,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '(Optional)',
+              style: AppTheme.caption.copyWith(color: AppColors.textLight),
+            ),
+          ],
+        ),
         const SizedBox(height: 4),
         Text(
           'Select one or more projects. Leave all unchecked for org-wide access.',
@@ -976,120 +997,146 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         if (_isLoadingProjects)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(children: [
-              const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.primary),
-              ),
-              const SizedBox(width: 10),
-              Text('Loading projects…',
-                  style: AppTheme.body
-                      .copyWith(color: AppColors.textLight)),
-            ]),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Loading projects…',
+                  style: AppTheme.body.copyWith(color: AppColors.textLight),
+                ),
+              ],
+            ),
           )
         else if (_projectsError != null && _projects.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: AppColors.warning, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(_projectsError!,
-                    style: AppTheme.caption
-                        .copyWith(color: AppColors.warning)),
-              ),
-              TextButton(
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _projectsError!,
+                    style: AppTheme.caption.copyWith(color: AppColors.warning),
+                  ),
+                ),
+                TextButton(
                   onPressed: _fetchProjects,
-                  child: const Text('Retry')),
-            ]),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           )
         else if (_projects.isEmpty)
-          Text('No projects found.',
-              style:
-                  AppTheme.caption.copyWith(color: AppColors.textLight))
+          Text(
+            'No projects found.',
+            style: AppTheme.caption.copyWith(color: AppColors.textLight),
+          )
         else
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.15)),
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
             ),
             child: Column(
               children: _projects.asMap().entries.map((entry) {
-                final idx     = entry.key;
+                final idx = entry.key;
                 final project = entry.value;
-                final pid     = project['id']!;
+                final pid = project['id']!;
                 final checked = _selectedProjectIds.contains(pid);
-                final isLast  = idx == _projects.length - 1;
-                return Column(children: [
-                  CheckboxListTile(
-                    value: checked,
-                    onChanged: isAdmin
-                        ? (value) => setState(() {
+                final isLast = idx == _projects.length - 1;
+                return Column(
+                  children: [
+                    CheckboxListTile(
+                      value: checked,
+                      onChanged: isAdmin
+                          ? (value) => setState(() {
                               if (value == true) {
                                 _selectedProjectIds.add(pid);
                               } else {
                                 _selectedProjectIds.remove(pid);
                               }
                             })
-                        : null,
-                    activeColor: AppColors.primary,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12),
-                    dense: true,
-                    title: Text(
-                      project['name']!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: checked
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: checked
-                            ? AppColors.primary
-                            : AppColors.textDark,
+                          : null,
+                      activeColor: AppColors.primary,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
+                      dense: true,
+                      title: Text(
+                        project['name']!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: checked
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: checked
+                              ? AppColors.primary
+                              : AppColors.textDark,
+                        ),
                       ),
                     ),
-                  ),
-                  if (!isLast)
-                    Divider(
+                    if (!isLast)
+                      Divider(
                         height: 1,
-                        color: AppColors.primary.withValues(alpha: 0.1)),
-                ]);
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                      ),
+                  ],
+                );
               }).toList(),
             ),
           ),
         if (_selectedProjectIds.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${_selectedProjectIds.length} project${_selectedProjectIds.length > 1 ? 's' : ''} selected',
-                style: const TextStyle(
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_selectedProjectIds.length} project${_selectedProjectIds.length > 1 ? 's' : ''} selected',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
-                    fontWeight: FontWeight.w700),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => setState(() => _selectedProjectIds.clear()),
-              child: Text('Clear',
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => setState(() => _selectedProjectIds.clear()),
+                child: Text(
+                  'Clear',
                   style: TextStyle(
-                      color: AppColors.textLight,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ]),
+                    color: AppColors.textLight,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
         const SizedBox(height: AppTheme.spacingMd),
       ],
@@ -1107,14 +1154,17 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _roleHintRow('Supervisor',
-              'Approve updates, view reports, manage expenses'),
+          _roleHintRow(
+            'Supervisor',
+            'Approve updates, view reports, manage expenses',
+          ),
+          const SizedBox(height: 4),
+          _roleHintRow('Mason', 'Submit updates, upload photos, report issues'),
           const SizedBox(height: 4),
           _roleHintRow(
-              'Mason', 'Submit updates, upload photos, report issues'),
-          const SizedBox(height: 4),
-          _roleHintRow('Custom Role',
-              'Pick a name and configure permissions manually'),
+            'Custom Role',
+            'Pick a name and configure permissions manually',
+          ),
         ],
       ),
     );
@@ -1126,19 +1176,23 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
         style: const TextStyle(fontSize: 12.5, height: 1.4),
         children: [
           TextSpan(
-              text: '• ',
-              style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800)),
+            text: '• ',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           TextSpan(
-              text: '$role: ',
-              style: const TextStyle(
-                  color: AppColors.textDark,
-                  fontWeight: FontWeight.w700)),
+            text: '$role: ',
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           TextSpan(
-              text: desc,
-              style:
-                  const TextStyle(color: AppColors.textLight)),
+            text: desc,
+            style: const TextStyle(color: AppColors.textLight),
+          ),
         ],
       ),
     );
@@ -1155,8 +1209,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color:
-                  AppColors.primaryPurple.withValues(alpha: 0.35),
+              color: AppColors.primaryPurple.withValues(alpha: 0.35),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -1168,19 +1221,28 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Colors.white))
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.person_add_outlined,
-                        color: Colors.white, size: 19),
+                    const Icon(
+                      Icons.person_add_outlined,
+                      color: Colors.white,
+                      size: 19,
+                    ),
                     const SizedBox(width: 9),
-                    Text(_isEditMode ? 'Update User' : 'Assign Role',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.5,
-                            letterSpacing: 0.3)),
+                    Text(
+                      _isEditMode ? 'Update User' : 'Assign Role',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15.5,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
                   ],
                 ),
         ),
@@ -1188,87 +1250,91 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
     );
   }
 
-  void _showUpgradeDialog(
-    BuildContext context, String title, String message) {
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      contentPadding: const EdgeInsets.all(24),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+  void _showUpgradeDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 28),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.textLight,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(context, '/subscription');
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 28,
               ),
-              child: const Text(
-                'View Plans',
-                style: TextStyle(
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: AppColors.textLight,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pushNamed(context, '/subscription');
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'View Plans',
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    fontSize: 15),
+                    fontSize: 15,
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Maybe Later',
-              style: TextStyle(
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Maybe Later',
+                style: TextStyle(
                   color: AppColors.textLight,
-                  fontWeight: FontWeight.w600),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildOverseesRolesSelector() {
     // Fixed roles + any custom roles the admin has already added, de-duplicated.
@@ -1280,9 +1346,13 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Roles to Oversee',
-            style: AppTheme.heading3
-                .copyWith(color: AppColors.textDark, fontSize: 15)),
+        Text(
+          'Roles to Oversee',
+          style: AppTheme.heading3.copyWith(
+            color: AppColors.textDark,
+            fontSize: 15,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(
           'Select the roles this user can approve entries for. You can also add a custom role below.',
@@ -1304,9 +1374,7 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
                 color: isSelected ? AppColors.primary : AppColors.textDark,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
-              deleteIcon: isCustom
-                  ? const Icon(Icons.close, size: 16)
-                  : null,
+              deleteIcon: isCustom ? const Icon(Icons.close, size: 16) : null,
               onDeleted: isCustom
                   ? () => setState(() => _selectedOverseesRoles.remove(role))
                   : null,
@@ -1332,7 +1400,9 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
                   hintText: 'Add a custom role to oversee',
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   filled: true,
                   fillColor: AppTheme.surface,
                   border: OutlineInputBorder(
@@ -1359,8 +1429,9 @@ void _prefillFromExistingUser(Map<String, dynamic> userData) {
     final value = _customOverseesRoleCtrl.text.trim();
     if (value.isEmpty) return;
     // Avoid case-duplicate entries (matches the backend's case-insensitive comparison)
-    final alreadyExists = _selectedOverseesRoles
-        .any((r) => r.toLowerCase() == value.toLowerCase());
+    final alreadyExists = _selectedOverseesRoles.any(
+      (r) => r.toLowerCase() == value.toLowerCase(),
+    );
     if (alreadyExists) {
       _customOverseesRoleCtrl.clear();
       return;

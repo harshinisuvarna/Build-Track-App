@@ -238,16 +238,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ListTile(
-  leading: const Icon(
-    Icons.supervisor_account_outlined,
-    color: AppColors.textDark,
-  ),
-  title: const Text(
-    'Team Overview',
-    style: TextStyle(color: AppColors.textDark),
-  ),
-  onTap: () => Navigator.pushNamed(context, '/admin-overview'),
-),
+            leading: const Icon(
+              Icons.supervisor_account_outlined,
+              color: AppColors.textDark,
+            ),
+            title: const Text(
+              'Team Overview',
+              style: TextStyle(color: AppColors.textDark),
+            ),
+            onTap: () => Navigator.pushNamed(context, '/admin-overview'),
+          ),
           ListTile(
             leading: const Icon(Icons.person, color: AppColors.textDark),
             title: const Text(
@@ -265,8 +265,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 14),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
             title: const Text(
               'Upgrade Plan',
@@ -279,7 +282,9 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, sub, _) => Text(
                 sub.currentPlan.label,
                 style: const TextStyle(
-                    fontSize: 11, color: AppColors.textLight),
+                  fontSize: 11,
+                  color: AppColors.textLight,
+                ),
               ),
             ),
             onTap: () => Navigator.pushNamed(context, '/subscription'),
@@ -457,11 +462,7 @@ Widget _voiceEntryOption({
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFFC0C3D6),
-              size: 22,
-            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFC0C3D6), size: 22),
           ],
         ),
       ),
@@ -703,7 +704,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ],
     );
   }
-
 
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
     final selectedName = provider.selectedProject?.name ?? 'Select Project';
@@ -1211,10 +1211,8 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     final historyData = results[1];
 
     setState(() {
-      _pendingTransactions =
-          (pendingData?['transactions'] as List?) ?? [];
-      _historyTransactions =
-          (historyData?['transactions'] as List?) ?? [];
+      _pendingTransactions = (pendingData?['transactions'] as List?) ?? [];
+      _historyTransactions = (historyData?['transactions'] as List?) ?? [];
       _isLoading = false;
       if (pendingData == null && historyData == null) {
         _error = 'Failed to load data';
@@ -1246,8 +1244,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   }
 
   Future<void> _handleReject(String id) async {
-    final ok =
-        await ApiService.rejectTransaction(id, 'Rejected by supervisor');
+    final ok = await ApiService.rejectTransaction(id, 'Rejected by supervisor');
     if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1262,113 +1259,115 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final pendingCount = _pendingTransactions.length;
-  final approvedCount = _historyTransactions
-      .where((t) => t['approvalStatus'] == 'Approved')
-      .length;
-  final rejectedCount = _historyTransactions
-      .where((t) => t['approvalStatus'] == 'Rejected')
-      .length;
+  Widget build(BuildContext context) {
+    final pendingCount = _pendingTransactions.length;
+    final approvedCount = _historyTransactions
+        .where((t) => t['approvalStatus'] == 'Approved')
+        .length;
+    final rejectedCount = _historyTransactions
+        .where((t) => t['approvalStatus'] == 'Rejected')
+        .length;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // ── Summary chips (tappable tabs) ──────────────────────────────
-      Row(
-        children: [
-          _summaryChip(
-            '$pendingCount',
-            'Pending',
-            AppTheme.warning,
-            isActive: _activeTab == 'pending',
-            onTap: () => setState(() => _activeTab = 'pending'),
-          ),
-          const SizedBox(width: 8),
-          _summaryChip(
-            '$approvedCount',
-            'Approved',
-            AppTheme.success,
-            isActive: _activeTab == 'approved',
-            onTap: () => setState(() => _activeTab = 'approved'),
-          ),
-          const SizedBox(width: 8),
-          _summaryChip(
-            '$rejectedCount',
-            'Rejected',
-            AppTheme.error,
-            isActive: _activeTab == 'rejected',
-            onTap: () => setState(() => _activeTab = 'rejected'),
-          ),
-        ],
-      ),
-      const SizedBox(height: 16),
-
-      // ── Refresh button row ─────────────────────────────────────────
-      Align(
-        alignment: Alignment.centerRight,
-        child: GestureDetector(
-          onTap: _loadAll,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Summary chips (tappable tabs) ──────────────────────────────
+        Row(
+          children: [
+            _summaryChip(
+              '$pendingCount',
+              'Pending',
+              AppTheme.warning,
+              isActive: _activeTab == 'pending',
+              onTap: () => setState(() => _activeTab = 'pending'),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.refresh,
-                    size: 14, color: AppColors.primary),
-                const SizedBox(width: 4),
-                const Text('Refresh',
+            const SizedBox(width: 8),
+            _summaryChip(
+              '$approvedCount',
+              'Approved',
+              AppTheme.success,
+              isActive: _activeTab == 'approved',
+              onTap: () => setState(() => _activeTab = 'approved'),
+            ),
+            const SizedBox(width: 8),
+            _summaryChip(
+              '$rejectedCount',
+              'Rejected',
+              AppTheme.error,
+              isActive: _activeTab == 'rejected',
+              onTap: () => setState(() => _activeTab = 'rejected'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // ── Refresh button row ─────────────────────────────────────────
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: _loadAll,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.refresh, size: 14, color: AppColors.primary),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Refresh',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600)),
-              ],
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-      const SizedBox(height: 12),
+        const SizedBox(height: 12),
 
-      // ── Content ────────────────────────────────────────────────────
-      if (_isLoading)
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ),
-        )
-      else if (_error != null)
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Column(
-              children: [
-                Text(_error!,
-                    style: const TextStyle(
-                        color: AppColors.textLight)),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _loadAll,
-                  child: const Text('Retry'),
-                ),
-              ],
+        // ── Content ────────────────────────────────────────────────────
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
+          )
+        else if (_error != null)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Column(
+                children: [
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: AppColors.textLight),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadAll,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          _buildActiveTabContent(
+            pendingCount: pendingCount,
+            approvedCount: approvedCount,
+            rejectedCount: rejectedCount,
           ),
-        )
-      else
-        _buildActiveTabContent(
-          pendingCount: pendingCount,
-          approvedCount: approvedCount,
-          rejectedCount: rejectedCount,
-        ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildActiveTabContent({
     required int pendingCount,
@@ -1419,9 +1418,11 @@ Widget build(BuildContext context) {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        size: 48,
-                        color: AppColors.textLight.withValues(alpha: 0.5)),
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 48,
+                      color: AppColors.textLight.withValues(alpha: 0.5),
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'No pending approvals',
@@ -1435,7 +1436,9 @@ Widget build(BuildContext context) {
                     const Text(
                       'Pull down to refresh',
                       style: TextStyle(
-                          color: AppColors.textLight, fontSize: 12),
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -1446,10 +1449,8 @@ Widget build(BuildContext context) {
               ..._pendingTransactions.map(
                 (tx) => _PendingTxCard(
                   tx: tx as Map<String, dynamic>,
-                  onApprove: () =>
-                      _handleApprove(tx['_id']?.toString() ?? ''),
-                  onReject: () =>
-                      _handleReject(tx['_id']?.toString() ?? ''),
+                  onApprove: () => _handleApprove(tx['_id']?.toString() ?? ''),
+                  onReject: () => _handleReject(tx['_id']?.toString() ?? ''),
                 ),
               ),
             ],
@@ -1462,22 +1463,26 @@ Widget build(BuildContext context) {
 
   Widget _buildRecentHistorySection() {
     // Combine Approved + Rejected, newest first, capped at 10.
-    final combined = _historyTransactions
-        .where((t) =>
-            t['approvalStatus'] == 'Approved' ||
-            t['approvalStatus'] == 'Rejected')
-        .toList()
-      ..sort((a, b) {
-        DateTime parse(dynamic tx) {
-          final raw = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
-          try {
-            return DateTime.parse(raw.toString());
-          } catch (_) {
-            return DateTime.fromMillisecondsSinceEpoch(0);
-          }
-        }
-        return parse(b).compareTo(parse(a));
-      });
+    final combined =
+        _historyTransactions
+            .where(
+              (t) =>
+                  t['approvalStatus'] == 'Approved' ||
+                  t['approvalStatus'] == 'Rejected',
+            )
+            .toList()
+          ..sort((a, b) {
+            DateTime parse(dynamic tx) {
+              final raw = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
+              try {
+                return DateTime.parse(raw.toString());
+              } catch (_) {
+                return DateTime.fromMillisecondsSinceEpoch(0);
+              }
+            }
+
+            return parse(b).compareTo(parse(a));
+          });
 
     final recent = combined.take(10).toList();
 
@@ -1502,9 +1507,11 @@ Widget build(BuildContext context) {
             ),
             child: Column(
               children: [
-                Icon(Icons.history,
-                    size: 40,
-                    color: AppColors.textLight.withValues(alpha: 0.4)),
+                Icon(
+                  Icons.history,
+                  size: 40,
+                  color: AppColors.textLight.withValues(alpha: 0.4),
+                ),
                 const SizedBox(height: 10),
                 const Text(
                   'No history yet',
@@ -1518,56 +1525,53 @@ Widget build(BuildContext context) {
             ),
           )
         else
-          ...recent.map((tx) =>
-              _HistoryTxCard(tx: tx as Map<String, dynamic>)),
+          ...recent.map((tx) => _HistoryTxCard(tx: tx as Map<String, dynamic>)),
       ],
     );
   }
 
   Widget _buildHistoryList({
-  required List<dynamic> items,
-  required String emptyMessage,
-  required IconData emptyIcon,
-  required Color emptyColor,
-}) {
-  if (items.isEmpty) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(emptyIcon,
-              size: 48, color: emptyColor.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text(
-            emptyMessage,
-            style: const TextStyle(
-              color: AppColors.textLight,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+    required List<dynamic> items,
+    required String emptyMessage,
+    required IconData emptyIcon,
+    required Color emptyColor,
+  }) {
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Total history loaded: ${_historyTransactions.length}',
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.textLight),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(emptyIcon, size: 48, color: emptyColor.withValues(alpha: 0.4)),
+            const SizedBox(height: 12),
+            Text(
+              emptyMessage,
+              style: const TextStyle(
+                color: AppColors.textLight,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Total history loaded: ${_historyTransactions.length}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1578,8 +1582,7 @@ Widget build(BuildContext context) {
               : 'Recently Rejected',
         ),
         const SizedBox(height: 8),
-        ...items.map((tx) =>
-            _HistoryTxCard(tx: tx as Map<String, dynamic>)),
+        ...items.map((tx) => _HistoryTxCard(tx: tx as Map<String, dynamic>)),
       ],
     );
   }
@@ -1603,9 +1606,7 @@ Widget build(BuildContext context) {
                 : color.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isActive
-                  ? color
-                  : color.withValues(alpha: 0.25),
+              color: isActive ? color : color.withValues(alpha: 0.25),
               width: isActive ? 2 : 1,
             ),
           ),
@@ -1655,17 +1656,15 @@ class _PendingTxCard extends StatelessWidget {
     final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
     final type = tx['type']?.toString() ?? '';
     final createdByName =
-        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)
-                ?.toString() ??
-            'Unknown';
+        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)?.toString() ??
+        'Unknown';
     final createdByRole =
-        (tx['createdBy'] is Map ? tx['createdBy']['role'] : null)
-                ?.toString() ??
-            '';
+        (tx['createdBy'] is Map ? tx['createdBy']['role'] : null)?.toString() ??
+        '';
     final projectName =
         (tx['project'] is Map ? tx['project']['projectName'] : null)
-                ?.toString() ??
-            'Unknown Project';
+            ?.toString() ??
+        'Unknown Project';
 
     String dateStr = '';
     final rawDate = tx['date'] ?? tx['createdAt'];
@@ -1673,8 +1672,18 @@ class _PendingTxCard extends StatelessWidget {
       try {
         final d = DateTime.parse(rawDate.toString());
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
       } catch (_) {}
@@ -1730,7 +1739,9 @@ class _PendingTxCard extends StatelessWidget {
                     Text(
                       '$createdByName${createdByRole.isNotEmpty ? ' · $createdByRole' : ''}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.textLight),
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ],
                 ),
@@ -1750,26 +1761,36 @@ class _PendingTxCard extends StatelessWidget {
           // ── Meta ──────────────────────────────────────────────────
           Row(
             children: [
-              const Icon(Icons.folder_outlined,
-                  size: 13, color: AppColors.textLight),
+              const Icon(
+                Icons.folder_outlined,
+                size: 13,
+                color: AppColors.textLight,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   projectName,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textLight),
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (dateStr.isNotEmpty) ...[
-                const Icon(Icons.calendar_today_outlined,
-                    size: 12, color: AppColors.textLight),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 12,
+                  color: AppColors.textLight,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   dateStr,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textLight),
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
                 ),
               ],
             ],
@@ -1816,16 +1837,14 @@ class _HistoryTxCard extends StatelessWidget {
     final type = tx['type']?.toString() ?? '';
     final approvalStatus = tx['approvalStatus']?.toString() ?? '';
     final createdByName =
-        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)
-                ?.toString() ??
-            'Unknown';
+        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)?.toString() ??
+        'Unknown';
     final projectName =
         (tx['project'] is Map ? tx['project']['projectName'] : null)
-                ?.toString() ??
-            'Unknown Project';
+            ?.toString() ??
+        'Unknown Project';
     final approvedByName =
-        (tx['approvedBy'] is Map ? tx['approvedBy']['name'] : null)
-                ?.toString();
+        (tx['approvedBy'] is Map ? tx['approvedBy']['name'] : null)?.toString();
     final rejectionReason = tx['rejectionReason']?.toString() ?? '';
 
     String dateStr = '';
@@ -1834,8 +1853,18 @@ class _HistoryTxCard extends StatelessWidget {
       try {
         final d = DateTime.parse(rawDate.toString());
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
       } catch (_) {}
@@ -1859,9 +1888,7 @@ class _HistoryTxCard extends StatelessWidget {
         typeColor = AppColors.primary;
     }
 
-    final statusColor = isApproved
-        ? const Color(0xFF059669)
-        : Colors.red;
+    final statusColor = isApproved ? const Color(0xFF059669) : Colors.red;
     final statusBg = isApproved
         ? const Color(0xFFD1FAE5)
         : const Color(0xFFFFEEEE);
@@ -1919,7 +1946,9 @@ class _HistoryTxCard extends StatelessWidget {
                       Text(
                         createdByName,
                         style: const TextStyle(
-                            fontSize: 11.5, color: AppColors.textLight),
+                          fontSize: 11.5,
+                          color: AppColors.textLight,
+                        ),
                       ),
                     ],
                   ),
@@ -1938,7 +1967,9 @@ class _HistoryTxCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(10),
@@ -1946,8 +1977,7 @@ class _HistoryTxCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(statusIcon,
-                              size: 11, color: statusColor),
+                          Icon(statusIcon, size: 11, color: statusColor),
                           const SizedBox(width: 3),
                           Text(
                             approvalStatus,
@@ -1967,25 +1997,37 @@ class _HistoryTxCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.folder_outlined,
-                    size: 12, color: AppColors.textLight),
+                const Icon(
+                  Icons.folder_outlined,
+                  size: 12,
+                  color: AppColors.textLight,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     projectName,
                     style: const TextStyle(
-                        fontSize: 11.5, color: AppColors.textLight),
+                      fontSize: 11.5,
+                      color: AppColors.textLight,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (dateStr.isNotEmpty) ...[
-                  const Icon(Icons.calendar_today_outlined,
-                      size: 11, color: AppColors.textLight),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 11,
+                    color: AppColors.textLight,
+                  ),
                   const SizedBox(width: 3),
-                  Text(dateStr,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textLight)),
+                  Text(
+                    dateStr,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textLight,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -2000,25 +2042,26 @@ class _HistoryTxCard extends StatelessWidget {
                         ? 'Approved by $approvedByName'
                         : 'Rejected by $approvedByName',
                     style: TextStyle(
-                        fontSize: 11,
-                        color: statusColor,
-                        fontWeight: FontWeight.w600),
+                      fontSize: 11,
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
             ],
-            if (!isApproved &&
-                rejectionReason.isNotEmpty) ...[
+            if (!isApproved && rejectionReason.isNotEmpty) ...[
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 7),
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.15)),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
                 ),
                 child: Text(
                   'Reason: $rejectionReason',
@@ -2036,7 +2079,6 @@ class _HistoryTxCard extends StatelessWidget {
     );
   }
 }
-
 
 // MASON DASHBOARD
 class _MasonDashboard extends StatefulWidget {
@@ -2058,9 +2100,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // Use role label from session (covers custom roles like "Contractor")
-    final userName = UserSession.roleLabel;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2081,8 +2120,10 @@ class _MasonDashboardState extends State<_MasonDashboard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Good Morning, ${UserSession.roleLabel}',
-                      style: AppTheme.heading3),
+                  Text(
+                    'Good Morning, ${UserSession.roleLabel}',
+                    style: AppTheme.heading3,
+                  ),
                   Text('Ready for today\'s work', style: AppTheme.caption),
                 ],
               ),
@@ -2096,8 +2137,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
         AppButton(
           label: 'Add Daily Update',
           icon: Icons.add_circle_outline,
-          onPressed: () =>
-              Navigator.pushNamed(context, '/update-progress'),
+          onPressed: () => Navigator.pushNamed(context, '/update-progress'),
         ),
         const SizedBox(height: 8),
         AppButton(
@@ -2123,8 +2163,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 30),
                 child: Center(
-                  child:
-                      CircularProgressIndicator(color: AppTheme.primary),
+                  child: CircularProgressIndicator(color: AppTheme.primary),
                 ),
               );
             }
@@ -2155,8 +2194,11 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.inbox_outlined,
-                        size: 36, color: AppColors.textLight),
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 36,
+                      color: AppColors.textLight,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'No entries yet',
@@ -2174,8 +2216,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
             return Column(
               children: entries
                   .take(5)
-                  .map((e) =>
-                      _recentEntryTile(e as Map<String, dynamic>))
+                  .map((e) => _recentEntryTile(e as Map<String, dynamic>))
                   .toList(),
             );
           },
@@ -2186,7 +2227,9 @@ class _MasonDashboardState extends State<_MasonDashboard> {
 
   Widget _recentEntryTile(Map<String, dynamic> entry) {
     final title =
-        entry['title']?.toString() ?? entry['description']?.toString() ?? 'Entry';
+        entry['title']?.toString() ??
+        entry['description']?.toString() ??
+        'Entry';
     final type = entry['type']?.toString() ?? '';
     final amount = (entry['amount'] as num?)?.toDouble() ?? 0.0;
     final approvalStatus = entry['approvalStatus']?.toString() ?? 'Pending';
@@ -2297,14 +2340,18 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                       Text(
                         '₹${amount.toStringAsFixed(0)}${timeLabel.isNotEmpty ? ' • $timeLabel' : ''}',
                         style: TextStyle(
-                            fontSize: 12.5, color: AppColors.textLight),
+                          fontSize: 12.5,
+                          color: AppColors.textLight,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusBg,
                     borderRadius: BorderRadius.circular(20),
@@ -2375,13 +2422,15 @@ class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
-              color: AppColors.primary.withOpacity(0.3), width: 1.5),
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
@@ -2392,14 +2441,17 @@ class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(Icons.warning_amber_rounded,
-                  color: AppColors.primary, size: 24),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -2436,8 +2488,11 @@ class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.chevron_right,
-                  color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.chevron_right,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ],
         ),

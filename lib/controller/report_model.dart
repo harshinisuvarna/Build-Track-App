@@ -39,16 +39,16 @@ class ReportModel {
   }
 
   factory ReportModel.empty() => const ReportModel(
-        totalCost: 0,
-        materialCost: 0,
-        labourCost: 0,
-        equipmentCost: 0,
-        miscCost: 0,
-        categoryBudget: {},
-        efficiencyNote: 'No data available',
-        targetMaterial: 0,
-        targetLabour: 0,
-        targetEquipment: 0,
-        targetMisc: 0,
-      );
+    totalCost: 0,
+    materialCost: 0,
+    labourCost: 0,
+    equipmentCost: 0,
+    miscCost: 0,
+    categoryBudget: {},
+    efficiencyNote: 'No data available',
+    targetMaterial: 0,
+    targetLabour: 0,
+    targetEquipment: 0,
+    targetMisc: 0,
+  );
 }

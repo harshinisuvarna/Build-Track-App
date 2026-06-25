@@ -570,19 +570,21 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   String _mapUnitToBackend(String? rawUnit) {
     if (rawUnit == null || rawUnit.isEmpty) return 'unit';
     final lower = rawUnit.toLowerCase();
-    
+
     if (lower.contains('bag')) return 'bag';
     if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
     if (lower.contains('ton')) return 'ton';
     if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
-    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) return 'sqm';
+    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) {
+      return 'sqm';
+    }
     if (lower.contains('day')) return 'day';
     if (lower.contains('hour') || lower.contains('hr')) return 'hour';
     if (lower.contains('ltr') || lower.contains('liter')) return 'ltr';
     if (lower.contains('rft') || lower.contains('running')) return 'rft';
     if (lower.contains('trip') || lower.contains('truck')) return 'truck';
     if (lower.contains('nos') || lower.contains('piece')) return 'unit';
-    
+
     return 'unit';
   }
 

@@ -60,8 +60,11 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline,
-                  color: AppColors.textLight, size: 48),
+              const Icon(
+                Icons.lock_outline,
+                color: AppColors.textLight,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(
                 'Session expired. Please log in again.',
@@ -166,8 +169,11 @@ class _AiChatViewState extends State<_AiChatView> {
                           color: const Color(0xFFF0F1F8),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.delete_outline,
-                            color: AppColors.textLight, size: 18),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: AppColors.textLight,
+                          size: 18,
+                        ),
                       ),
                     )
                   : null,
@@ -186,8 +192,9 @@ class _AiChatViewState extends State<_AiChatView> {
                     // selectedProject is null on the ProjectProvider
                     provider.clearHistory();
                   } else {
-                    final picked = projectProvider.projects
-                        .firstWhere((p) => p.id == projectId);
+                    final picked = projectProvider.projects.firstWhere(
+                      (p) => p.id == projectId,
+                    );
                     projectProvider.selectProject(picked);
                     provider.clearHistory();
                   }
@@ -198,15 +205,13 @@ class _AiChatViewState extends State<_AiChatView> {
             // ── Message list ──
             Expanded(
               child: provider.isEmpty
-                  ? _EmptyState(
-                      onChipTap: send,
-                      projectName: selectedName,
-                    )
+                  ? _EmptyState(onChipTap: send, projectName: selectedName)
                   : ListView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                       itemCount:
-                          provider.messages.length + (provider.isTyping ? 1 : 0),
+                          provider.messages.length +
+                          (provider.isTyping ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == provider.messages.length) {
                           return const _TypingBubble();
@@ -244,15 +249,18 @@ class _AiChatViewState extends State<_AiChatView> {
         content: const Text('All messages will be removed.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               provider.clearHistory();
               Navigator.pop(context);
             },
-            child: const Text('Clear',
-                style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Clear',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -286,42 +294,54 @@ class _ProjectSelectorPill extends StatelessWidget {
         child: DropdownButton<String?>(
           value: selectedId,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down,
-              size: 18, color: AppColors.textLight),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: AppColors.textLight,
+          ),
           style: AppTheme.body.copyWith(
-              color: AppColors.textDark,
-              fontSize: 13,
-              fontWeight: FontWeight.w600),
+            color: AppColors.textDark,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
           items: [
             // All Projects option
             const DropdownMenuItem<String?>(
               value: null,
               child: Row(
                 children: [
-                  Icon(Icons.layers_outlined,
-                      size: 15, color: AppColors.primary),
+                  Icon(
+                    Icons.layers_outlined,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
                   SizedBox(width: 8),
                   Text('All Projects'),
                 ],
               ),
             ),
             // One entry per project
-            ...projects.map((p) => DropdownMenuItem<String?>(
-                  value: p.id,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.folder_outlined,
-                          size: 15, color: AppColors.textLight),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          p.name ?? 'Unnamed',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+            ...projects.map(
+              (p) => DropdownMenuItem<String?>(
+                value: p.id,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.folder_outlined,
+                      size: 15,
+                      color: AppColors.textLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        p.name ?? 'Unnamed',
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
           onChanged: onChanged,
         ),
@@ -350,17 +370,21 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome,
-                color: AppColors.primary, size: 30),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.primary,
+              size: 30,
+            ),
           ),
           const SizedBox(height: 16),
-          Text('Ask about your project',
-              style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
+          Text(
+            'Ask about your project',
+            style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+          ),
           const SizedBox(height: 6),
           // Shows which project is currently scoped
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(20),
@@ -368,15 +392,19 @@ class _EmptyState extends StatelessWidget {
             child: Text(
               projectName,
               style: AppTheme.caption.copyWith(
-                  color: AppColors.primary, fontWeight: FontWeight.w600),
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(height: 10),
           Text(
             'Ask anything about costs, entries,\nor inventory across your projects.',
             textAlign: TextAlign.center,
-            style: AppTheme.caption
-                .copyWith(color: AppColors.textLight, height: 1.5),
+            style: AppTheme.caption.copyWith(
+              color: AppColors.textLight,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 32),
           Wrap(
@@ -408,9 +436,9 @@ class _UserBubble extends StatelessWidget {
         children: [
           Container(
             constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: const BorderRadius.only(
@@ -423,15 +451,20 @@ class _UserBubble extends StatelessWidget {
             child: Text(
               message.text,
               style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500),
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           const SizedBox(height: 4),
-          Text(message.timeString,
-              style: AppTheme.caption
-                  .copyWith(color: AppColors.textLight, fontSize: 10)),
+          Text(
+            message.timeString,
+            style: AppTheme.caption.copyWith(
+              color: AppColors.textLight,
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );
@@ -453,9 +486,9 @@ class _AssistantBubble extends StatelessWidget {
         children: [
           Container(
             constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.82),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              maxWidth: MediaQuery.of(context).size.width * 0.82,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(
@@ -466,8 +499,9 @@ class _AssistantBubble extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
               ],
             ),
             child: _HighlightedText(text: message.text),
@@ -489,9 +523,13 @@ class _AssistantBubble extends StatelessWidget {
               child: _InventoryTable(rows: message.inventoryRows),
             ),
           const SizedBox(height: 4),
-          Text(message.timeString,
-              style: AppTheme.caption
-                  .copyWith(color: AppColors.textLight, fontSize: 10)),
+          Text(
+            message.timeString,
+            style: AppTheme.caption.copyWith(
+              color: AppColors.textLight,
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );
@@ -511,28 +549,41 @@ class _HighlightedText extends StatelessWidget {
     int last = 0;
     for (final match in regex.allMatches(text)) {
       if (match.start > last) {
-        spans.add(TextSpan(
-          text: text.substring(last, match.start),
-          style: const TextStyle(
-              color: Color(0xFF2D3142), fontSize: 14, height: 1.5),
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(last, match.start),
+            style: const TextStyle(
+              color: Color(0xFF2D3142),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        );
       }
-      spans.add(TextSpan(
-        text: match.group(0),
-        style: const TextStyle(
+      spans.add(
+        TextSpan(
+          text: match.group(0),
+          style: const TextStyle(
             color: AppColors.primary,
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            height: 1.5),
-      ));
+            height: 1.5,
+          ),
+        ),
+      );
       last = match.end;
     }
     if (last < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(last),
-        style: const TextStyle(
-            color: Color(0xFF2D3142), fontSize: 14, height: 1.5),
-      ));
+      spans.add(
+        TextSpan(
+          text: text.substring(last),
+          style: const TextStyle(
+            color: Color(0xFF2D3142),
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+      );
     }
     return RichText(text: TextSpan(children: spans));
   }
@@ -558,16 +609,16 @@ class _EntryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasQty =
-        rows.any((r) => r.quantity != null && r.quantity!.isNotEmpty);
+    final hasQty = rows.any(
+      (r) => r.quantity != null && r.quantity!.isNotEmpty,
+    );
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -575,11 +626,14 @@ class _EntryTable extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Text(title,
-                style: AppTheme.label.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12)),
+            child: Text(
+              title,
+              style: AppTheme.label.copyWith(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -593,28 +647,31 @@ class _EntryTable extends StatelessWidget {
             ),
           ),
           const Divider(height: 10, thickness: 1, color: Color(0xFFF0F1F5)),
-          ...rows.map((row) => Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 7),
-                child: Row(
-                  children: [
-                    dCell(row.date, flex: 2),
-                    dCell(row.item, flex: 3),
-                    if (hasQty)
-                      dCell(
-                        row.quantity != null && row.unit != null
-                            ? '${row.quantity} ${row.unit}'
-                            : row.quantity ?? '-',
-                        flex: 2,
-                      ),
-                    dCell(fmt(row.amount),
-                        flex: 2,
-                        align: TextAlign.right,
-                        bold: true,
-                        color: AppColors.primary),
-                  ],
-                ),
-              )),
+          ...rows.map(
+            (row) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              child: Row(
+                children: [
+                  dCell(row.date, flex: 2),
+                  dCell(row.item, flex: 3),
+                  if (hasQty)
+                    dCell(
+                      row.quantity != null && row.unit != null
+                          ? '${row.quantity} ${row.unit}'
+                          : row.quantity ?? '-',
+                      flex: 2,
+                    ),
+                  dCell(
+                    fmt(row.amount),
+                    flex: 2,
+                    align: TextAlign.right,
+                    bold: true,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (totalAmount != null) ...[
             const Divider(height: 10, thickness: 1, color: Color(0xFFF0F1F5)),
             Padding(
@@ -622,16 +679,22 @@ class _EntryTable extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('Total',
-                        style: AppTheme.label.copyWith(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      'Total',
+                      style: AppTheme.label.copyWith(
+                        color: AppColors.textDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                  Text(fmt(totalAmount!),
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13)),
+                  Text(
+                    fmt(totalAmount!),
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -642,34 +705,40 @@ class _EntryTable extends StatelessWidget {
     );
   }
 
-  Widget hCell(String text,
-      {int flex = 1, TextAlign align = TextAlign.left}) {
+  Widget hCell(String text, {int flex = 1, TextAlign align = TextAlign.left}) {
     return Expanded(
       flex: flex,
-      child: Text(text,
-          textAlign: align,
-          style: AppTheme.caption.copyWith(
-              color: AppColors.textLight,
-              fontSize: 10,
-              fontWeight: FontWeight.w600)),
+      child: Text(
+        text,
+        textAlign: align,
+        style: AppTheme.caption.copyWith(
+          color: AppColors.textLight,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 
-  Widget dCell(String text,
-      {int flex = 1,
-      TextAlign align = TextAlign.left,
-      bool bold = false,
-      Color? color}) {
+  Widget dCell(
+    String text, {
+    int flex = 1,
+    TextAlign align = TextAlign.left,
+    bool bold = false,
+    Color? color,
+  }) {
     return Expanded(
       flex: flex,
-      child: Text(text,
-          textAlign: align,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: color ?? const Color(0xFF2D3142),
-            fontSize: 12,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-          )),
+      child: Text(
+        text,
+        textAlign: align,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color ?? const Color(0xFF2D3142),
+          fontSize: 12,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        ),
+      ),
     );
   }
 }
@@ -687,8 +756,7 @@ class _InventoryTable extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -696,11 +764,14 @@ class _InventoryTable extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Text('Low stock alerts',
-                style: AppTheme.label.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12)),
+            child: Text(
+              'Low stock alerts',
+              style: AppTheme.label.copyWith(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
           ),
           ...rows.map((row) {
             final Color dotColor;
@@ -733,33 +804,47 @@ class _InventoryTable extends StatelessWidget {
                   Container(
                     width: 10,
                     height: 10,
-                    decoration:
-                        BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(row.name,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF2D3142),
-                            fontWeight: FontWeight.w500)),
+                    child: Text(
+                      row.name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF2D3142),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                  Text('${row.quantity.toStringAsFixed(0)} ${row.unit}',
-                      style: AppTheme.caption
-                          .copyWith(color: AppColors.textLight, fontSize: 12)),
+                  Text(
+                    '${row.quantity.toStringAsFixed(0)} ${row.unit}',
+                    style: AppTheme.caption.copyWith(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: badgeBg,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(label,
-                        style: TextStyle(
-                            color: badgeColor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -789,8 +874,9 @@ class _TypingBubbleState extends State<_TypingBubble>
   void initState() {
     super.initState();
     ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
     anim = Tween(begin: 0.3, end: 1.0).animate(ctrl);
   }
 
@@ -807,15 +893,15 @@ class _TypingBubbleState extends State<_TypingBubble>
       child: Row(
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                ),
               ],
             ),
             child: FadeTransition(
@@ -886,14 +972,16 @@ class _Chip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome,
-                size: 12, color: AppColors.primary),
+            const Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
             const SizedBox(width: 5),
-            Text(label,
-                style: AppTheme.caption.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12)),
+            Text(
+              label,
+              style: AppTheme.caption.copyWith(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),
@@ -937,15 +1025,21 @@ class _InputBar extends StatelessWidget {
                 enabled: !isTyping,
                 textInputAction: TextInputAction.send,
                 onSubmitted: onSend,
-                style: AppTheme.body
-                    .copyWith(color: AppColors.textDark, fontSize: 14),
+                style: AppTheme.body.copyWith(
+                  color: AppColors.textDark,
+                  fontSize: 14,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Ask about material, inventory…',
-                  hintStyle: AppTheme.caption
-                      .copyWith(color: AppColors.textLight, fontSize: 13),
+                  hintStyle: AppTheme.caption.copyWith(
+                    color: AppColors.textLight,
+                    fontSize: 13,
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 12),
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),

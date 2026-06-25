@@ -7,12 +7,18 @@ class NavController extends ChangeNotifier {
 
   int get index {
     switch (_currentRoute) {
-      case '/home': return 0;
-      case '/projects': return 1;
-      case '/add-entry': return 2;
-      case '/inventory': return 3;
-      case '/reports': return 4;
-      default: return 0;
+      case '/home':
+        return 0;
+      case '/projects':
+        return 1;
+      case '/add-entry':
+        return 2;
+      case '/inventory':
+        return 3;
+      case '/reports':
+        return 4;
+      default:
+        return 0;
     }
   }
 
@@ -32,11 +38,7 @@ class NavController extends ChangeNotifier {
     _currentRoute = route;
     notifyListeners();
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      route,
-      (r) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, route, (r) => false);
   }
 
   // Keeping routes getter for backward compatibility

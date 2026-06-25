@@ -49,7 +49,10 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     }
 
     // Sync from provider for compatibility
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
+    );
     _contextArgs['projectId'] = projectProvider.selectedProject?.id;
     _contextArgs['projectName'] = projectProvider.selectedProject?.name;
     _contextArgs['floor'] = projectProvider.selectedFloor;
@@ -116,9 +119,18 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
         '—';
   }
 
-  String get _floor => Provider.of<ProjectProvider>(context).selectedFloor ?? _contextArgs['floor']?.toString() ?? '—';
-  String get _phase => Provider.of<ProjectProvider>(context).selectedPhase ?? _contextArgs['phase']?.toString() ?? '—';
-  String get _activity => Provider.of<ProjectProvider>(context).selectedActivity ?? _contextArgs['activity']?.toString() ?? '—';
+  String get _floor =>
+      Provider.of<ProjectProvider>(context).selectedFloor ??
+      _contextArgs['floor']?.toString() ??
+      '—';
+  String get _phase =>
+      Provider.of<ProjectProvider>(context).selectedPhase ??
+      _contextArgs['phase']?.toString() ??
+      '—';
+  String get _activity =>
+      Provider.of<ProjectProvider>(context).selectedActivity ??
+      _contextArgs['activity']?.toString() ??
+      '—';
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +192,8 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                           iconColor: AppColors.primary,
                           iconBg: AppColors.primary.withValues(alpha: 0.1),
                           title: 'Use Voice',
-                          subtitle: 'Speak naturally and let AI capture the details.',
+                          subtitle:
+                              'Speak naturally and let AI capture the details.',
                           onTap: _goVoice,
                         ),
                         const SizedBox(height: 16),
@@ -220,15 +233,20 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     );
   }
 
-  Widget _stepDot(int step, String label,
-      {bool done = false, bool active = false}) {
+  Widget _stepDot(
+    int step,
+    String label, {
+    bool done = false,
+    bool active = false,
+  }) {
     final Color bg = done
         ? const Color(0xFF22C55E)
         : active
-            ? AppColors.primary
-            : const Color(0xFFE5E7EB);
-    final Color textColor =
-        (done || active) ? Colors.white : AppColors.textLight;
+        ? AppColors.primary
+        : const Color(0xFFE5E7EB);
+    final Color textColor = (done || active)
+        ? Colors.white
+        : AppColors.textLight;
 
     return Column(
       children: [
@@ -259,8 +277,8 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
             color: active
                 ? AppColors.primary
                 : done
-                    ? const Color(0xFF22C55E)
-                    : AppColors.textLight,
+                ? const Color(0xFF22C55E)
+                : AppColors.textLight,
           ),
         ),
       ],
@@ -416,9 +434,11 @@ class _InteractiveModeCardState extends State<_InteractiveModeCard>
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = _isHovered ? AppColors.primary : const Color(0xFFE8EBF5);
+    final borderColor = _isHovered
+        ? AppColors.primary
+        : const Color(0xFFE8EBF5);
     final borderWidth = _isHovered ? 2.0 : 1.0;
-    final shadowColor = _isHovered 
+    final shadowColor = _isHovered
         ? AppColors.primary.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.04);
     final shadowBlur = _isHovered ? 14.0 : 10.0;
@@ -435,10 +455,7 @@ class _InteractiveModeCardState extends State<_InteractiveModeCard>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: borderColor,
-              width: borderWidth,
-            ),
+            border: Border.all(color: borderColor, width: borderWidth),
             boxShadow: [
               BoxShadow(
                 color: shadowColor,
@@ -468,7 +485,11 @@ class _InteractiveModeCardState extends State<_InteractiveModeCard>
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
-                        child: Icon(widget.icon, color: widget.iconColor, size: 24),
+                        child: Icon(
+                          widget.icon,
+                          color: widget.iconColor,
+                          size: 24,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
