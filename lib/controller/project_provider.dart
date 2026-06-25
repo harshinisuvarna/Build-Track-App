@@ -72,6 +72,7 @@ class ProjectProvider extends ChangeNotifier {
   String? _selectedPhase;
   String? _selectedPhaseId;
   String? _selectedActivity;
+  String? _selectedActivityId;
   bool _isLoading = false;
   String _error = '';
 
@@ -83,6 +84,7 @@ class ProjectProvider extends ChangeNotifier {
   String? get selectedPhase => _selectedPhase;
   String? get selectedPhaseId => _selectedPhaseId;
   String? get selectedActivity => _selectedActivity;
+  String? get selectedActivityId => _selectedActivityId;
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
@@ -497,11 +499,13 @@ Future<void> _backfillCompletedActivities() async {
         _selectedPhase = prefs.getString('buildtrack_selected_phase');
         _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
         _selectedActivity = prefs.getString('buildtrack_selected_activity');
+        _selectedActivityId = prefs.getString('buildtrack_selected_activity_id');
       } else {
         _selectedFloor = null;
         _selectedPhase = null;
         _selectedPhaseId = null;
         _selectedActivity = null;
+        _selectedActivityId = null;
       }
 
       // Backfill any completed activities that never got a saved date
@@ -627,6 +631,11 @@ Future<void> _backfillCompletedActivities() async {
       } else {
         await prefs.remove('buildtrack_selected_activity');
       }
+      if (_selectedActivityId != null) {
+        await prefs.setString('buildtrack_selected_activity_id', _selectedActivityId!);
+      } else {
+        await prefs.remove('buildtrack_selected_activity_id');
+      }
     } catch (e) {
       dev.log('_saveContextPrefs error: $e');
     }
@@ -639,6 +648,7 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -648,6 +658,7 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -656,12 +667,14 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = phase;
     _selectedPhaseId = phaseId;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
 
-  void selectActivity(String? activity) {
+  void selectActivity(String? activity, [String? activityId]) {
     _selectedActivity = activity;
+    _selectedActivityId = activityId;
     _saveContextPrefs();
     notifyListeners();
   }

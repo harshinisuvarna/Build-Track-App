@@ -172,8 +172,48 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           _fetchAndRestoreEdit(txId, argsData: routeData);
         });
       } else {
-        // ── New entry — default project from session ───────────────────
-        _selectedProjectId ??= UserSession.projectId;
+        // ── New entry — load from ProjectProvider ───────────────────
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+        final preProjectId = projectProvider.selectedProject?.id;
+        final preFloor = projectProvider.selectedFloor;
+        final prePhase = projectProvider.selectedPhase;
+        final preActivity = projectProvider.selectedActivity;
+
+        if (preProjectId != null && preProjectId.isNotEmpty &&
+            preFloor != null && preFloor.isNotEmpty &&
+            prePhase != null && prePhase.isNotEmpty &&
+            preActivity != null && preActivity.isNotEmpty) {
+          _selectedProjectId = preProjectId;
+          _selectedFloor = preFloor;
+          _selectedFloorId = preFloor;
+          _selectedPhase = prePhase;
+          _selectedPhaseId = projectProvider.selectedPhaseId;
+          _selectedActivity = preActivity;
+          _selectedActivityId = projectProvider.selectedActivityId;
+          debugPrint('[AddMaterial] Context injected from ProjectProvider: '
+              'project=$_selectedProjectId floor=$_selectedFloor '
+              'phase=$_selectedPhase activity=$_selectedActivity');
+        } else {
+          // Fallback to route arguments
+          final routeProjectId = args['projectId']?.toString() ?? UserSession.projectId;
+          final routeFloor = args['floor']?.toString();
+          final routePhase = args['phase']?.toString();
+          final routeActivity = args['activity']?.toString();
+          if (routeProjectId.isNotEmpty &&
+              routeFloor != null && routeFloor.isNotEmpty &&
+              routePhase != null && routePhase.isNotEmpty &&
+              routeActivity != null && routeActivity.isNotEmpty) {
+            _selectedProjectId = routeProjectId;
+            _selectedFloor = routeFloor;
+            _selectedFloorId = args['floorId']?.toString() ?? routeFloor;
+            _selectedPhase = routePhase;
+            _selectedPhaseId = args['phaseId']?.toString();
+            _selectedActivity = routeActivity;
+            _selectedActivityId = args['activityId']?.toString();
+          } else {
+            _selectedProjectId = routeProjectId;
+          }
+        }
 
         // ── Detect duplicate / Add More mode ──────────────────────────
         _isDuplicate = args['isDuplicate'] as bool? ?? false;
@@ -1702,6 +1742,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     context.watch<ProjectProvider>().projects;
@@ -1734,52 +1776,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
 
 
-                    // ── SECTION 1: EXECUTION CONTEXT ──────────────────────
-                    ExecutionContextCard(
-                      selectedProjectId: _selectedProjectId,
-                      selectedFloor: _selectedFloor,
-                      selectedPhase: _selectedPhase,
-                      selectedActivity: _selectedActivity,
-                      projectError: _projectError,
-                      floorError: _floorError,
-                      phaseError: _phaseError,
-                      activityError: _activityError,
-                      onProjectChanged: (v) => setState(() {
-                        _selectedProjectId = v;
-                        _selectedFloor = null;
-                        _selectedFloorId = null;
-                        _selectedPhase = null;
-                        _selectedPhaseId = null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _projectError = null;
-                        _loadRecentEntries();
-                      }),
-                      onFloorChanged: (v) => setState(() {
-                        _selectedFloor = v;
-                        _selectedFloorId = v;
-                        _selectedPhase = null;
-                        _selectedPhaseId = null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _floorError = null;
-                        _floorWarning = null;
-                      }),
-                      onPhaseChanged: (v) => setState(() {
-                        _selectedPhase = v;
-                        _selectedPhaseId = v != null ? _derivePhaseId(v) : null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _phaseError = null;
-                        _phaseWarning = null;
-                      }),
-                      onActivityChanged: (v) => setState(() {
-                        _selectedActivity = v;
-                        _selectedActivityId = v != null ? _deriveActivityId(v) : null;
-                        _activityError = null;
-                        _activityWarning = null;
-                      }),
-                    ),
+                    // Execution Context UI section removed - managed globally
 
                     // ── Legacy entry banner ────────────────────────────────
                     if (_isEditing && _isLegacyEntry)
