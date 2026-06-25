@@ -71,6 +71,8 @@ class EntryModel {
     this.floor,
     this.phase,
     this.phaseId,
+    this.activity,
+    this.activityId,
     this.unit,
     this.createdBy, // ADD: ID of the user who created this entry
     this.approvalStatus = 'Pending',
@@ -91,6 +93,8 @@ class EntryModel {
   final String? floor;
   final ProjectStage? phase;
   final String? phaseId;
+  final String? activity;
+  final String? activityId;
   final String? unit;
   final String? createdBy; // ADD: nullable — older entries won't have this
   final String approvalStatus;
@@ -111,6 +115,8 @@ class EntryModel {
         'floor': floor,
         'phase': phase?.name,
         'phaseId': phaseId,
+        'activity': activity,
+        'activityId': activityId,
         'unit': unit,
         'createdBy': createdBy, // ADD
         'approvalStatus': approvalStatus,
@@ -150,6 +156,8 @@ class EntryModel {
             )
           : null,
       phaseId: j['phaseId']?.toString(),
+      activity: j['activity']?.toString(),
+      activityId: j['activityId']?.toString(),
       unit: j['unit']?.toString(),
       createdBy: createdBy, // ADD
       approvalStatus: j['approvalStatus']?.toString() ?? 'Pending',
