@@ -181,8 +181,8 @@ class ProjectProvider extends ChangeNotifier {
           raw != null && raw.isNotEmpty ? json.decode(raw) : {};
       existing['$projectId|$activityId'] = {
         if (notes != null) 'notes': notes,
-        if (photo != null) 'photo': photo,
-        if (photos != null) 'photos': photos,
+        'photo': photo,
+        'photos': photos,
       };
       await prefs.setString(_kActivityDetailsKey, json.encode(existing));
     } catch (e) {
@@ -771,12 +771,15 @@ Future<bool> toggleActivityCompletion(
     if (aIndex != -1) {
       final current = activities[aIndex];
       stampedDate = completedAt ?? current.completedAt ?? DateTime.now();
+      final shouldClear = (photos != null && photos.isEmpty);
       activities[aIndex] = current.copyWith(
         completed: true,
         completedAt: stampedDate,
         notes: notes ?? current.notes,
-        photo: (photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo),
-        photos: photos ?? current.photos,
+        photo: shouldClear ? null : ((photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo)),
+        photos: shouldClear ? [] : (photos ?? current.photos),
+        clearPhoto: shouldClear,
+        clearPhotos: shouldClear,
       );
       phases[p] = phase.copyWith(activities: activities);
       found = true;

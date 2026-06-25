@@ -198,6 +198,8 @@ class ProjectActivity {
     bool? completed,
     DateTime? completedAt,
     bool clearCompletedAt = false,
+    bool clearPhoto = false,
+    bool clearPhotos = false,
     String? notes,
     String? photo,
     List<String>? photos,
@@ -211,8 +213,8 @@ class ProjectActivity {
           ? null
           : (completedAt ?? this.completedAt),
       notes: notes ?? this.notes,
-      photo: photo ?? this.photo,
-      photos: photos ?? this.photos,
+      photo: clearPhoto ? null : (photo ?? this.photo),
+      photos: clearPhotos ? null : (photos ?? this.photos),
     );
   }
 
@@ -223,8 +225,8 @@ class ProjectActivity {
         'completed': completed,
         if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
         if (notes != null) 'notes': notes,
-        if (photo != null) 'photo': photo,
-        if (photos != null) 'photos': photos,
+        'photo': photo,
+        'photos': photos,
       };
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
