@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
@@ -257,6 +258,34 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(color: AppColors.textDark),
             ),
             onTap: () => Navigator.pushNamed(context, '/profile'),
+          ),
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  color: Colors.white, size: 14),
+            ),
+            title: const Text(
+              'Upgrade Plan',
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Consumer<SubscriptionProvider>(
+              builder: (context, sub, _) => Text(
+                sub.currentPlan.label,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textLight),
+              ),
+            ),
+            onTap: () => Navigator.pushNamed(context, '/subscription'),
           ),
           if (UserSession.isAdmin) ...[
             const Divider(),

@@ -8,6 +8,8 @@ import 'package:buildtrack_mobile/screen/manual_voice_entry/add_entry.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_equipment.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_labour.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/add_material.dart';
+import 'package:buildtrack_mobile/screen/manual_voice_entry/execution_context_screen.dart';
+import 'package:buildtrack_mobile/screen/manual_voice_entry/choose_entry_mode_screen.dart';
 import 'package:buildtrack_mobile/screen/admin/assign_roles_screen.dart';
 import 'package:buildtrack_mobile/pages/create_workspace.dart';
 import 'package:buildtrack_mobile/screen/profile/edit_profile.dart';
@@ -134,6 +136,8 @@ class MyApp extends StatelessWidget {
         '/home':        (_) => const HomeScreen(),
         '/projects':    (_) => const ProjectsScreen(),
         '/add-entry':   (_) => const AddEntryScreen(),
+        '/execution-context': (_) => const ExecutionContextScreen(),
+        '/choose-entry-mode': (_) => const ChooseEntryModeScreen(),
         '/inventory':   (_) => const InventoryScreen(),
         '/reports':     (_) => const ReportsScreen(),
         '/assign-role': (_) => const AssignRolesScreen(),

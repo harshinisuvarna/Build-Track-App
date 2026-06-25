@@ -321,7 +321,7 @@ class ChartSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Budget Analytics',
+              'Spend vs Budget by Category',
               style: AppTheme.heading3.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
