@@ -71,8 +71,10 @@ class EntryModel {
     this.unit,
     this.createdBy, // ADD: ID of the user who created this entry
     this.approvalStatus = 'Pending',
+    this.paymentStatus = 'Pending',
     this.approvedBy,
     this.approvedAt,
+    this.paymentDate,
     this.rejectionReason,
   });
 
@@ -92,8 +94,10 @@ class EntryModel {
   final String? unit;
   final String? createdBy; // ADD: nullable — older entries won't have this
   final String approvalStatus;
+  final String paymentStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
+  final DateTime? paymentDate;
   final String? rejectionReason;
 
   Map<String, dynamic> toJson() => {
@@ -113,8 +117,10 @@ class EntryModel {
         'unit': unit,
         'createdBy': createdBy, // ADD
         'approvalStatus': approvalStatus,
+        'paymentStatus': paymentStatus,
         'approvedBy': approvedBy,
         'approvedAt': approvedAt?.toIso8601String(),
+        'paymentDate': paymentDate?.toIso8601String(),
         'rejectionReason': rejectionReason,
       };
 
@@ -153,6 +159,7 @@ class EntryModel {
       unit: j['unit']?.toString(),
       createdBy: createdBy, // ADD
       approvalStatus: j['approvalStatus']?.toString() ?? 'Pending',
+      paymentStatus: j['paymentStatus']?.toString() ?? 'Pending',
       approvedBy: j['approvedBy'] != null
           ? (j['approvedBy'] is Map
                 ? j['approvedBy']['name']?.toString() ??
@@ -161,6 +168,9 @@ class EntryModel {
           : null,
       approvedAt: j['approvedAt'] != null
           ? DateTime.tryParse(j['approvedAt'].toString())
+          : null,
+      paymentDate: j['paymentDate'] != null
+          ? DateTime.tryParse(j['paymentDate'].toString())
           : null,
       rejectionReason: j['rejectionReason']?.toString(),
     );

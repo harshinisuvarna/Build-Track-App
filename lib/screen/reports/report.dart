@@ -60,6 +60,12 @@ class _ReportsViewState extends State<_ReportsView> {
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
+  // Columns customization lists for each tab
+  List<String> _activeColumnsAll = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Payment Date'];
+  List<String> _activeColumnsMaterials = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount', 'Payment Date'];
+  List<String> _activeColumnsLabour = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount', 'Payment Date'];
+  List<String> _activeColumnsEquipment = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount', 'Payment Date'];
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -74,6 +80,200 @@ class _ReportsViewState extends State<_ReportsView> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  List<String> _getAllColumnsForTab(String tabName) {
+    if (tabName == 'Materials') {
+      return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+    } else if (tabName == 'Labour') {
+      return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+    } else if (tabName == 'Equipment') {
+      return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+    } else {
+      return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Payment Date'];
+    }
+  }
+
+  List<String> _getActiveColumnsForTab(String tabName) {
+    if (tabName == 'Materials') {
+      return _activeColumnsMaterials;
+    } else if (tabName == 'Labour') {
+      return _activeColumnsLabour;
+    } else if (tabName == 'Equipment') {
+      return _activeColumnsEquipment;
+    } else {
+      return _activeColumnsAll;
+    }
+  }
+
+  void _setActiveColumnsForTab(String tabName, List<String> cols) {
+    setState(() {
+      if (tabName == 'Materials') {
+        _activeColumnsMaterials = cols;
+      } else if (tabName == 'Labour') {
+        _activeColumnsLabour = cols;
+      } else if (tabName == 'Equipment') {
+        _activeColumnsEquipment = cols;
+      } else {
+        _activeColumnsAll = cols;
+      }
+    });
+  }
+
+  void _showCustomizeColumnsDialog(BuildContext context, String tabName) {
+    final List<String> allCols = _getAllColumnsForTab(tabName);
+    List<String> tempActive = List.from(_getActiveColumnsForTab(tabName));
+    final inactive = allCols.where((c) => !tempActive.contains(c)).toList();
+    List<String> tempAll = [...tempActive, ...inactive];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: Colors.white,
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Customize Columns',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Drag items to reorder. Toggle checkbox to show/hide columns.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 300,
+                      child: ReorderableListView.builder(
+                        shrinkWrap: true,
+                        itemCount: tempAll.length,
+                        onReorder: (oldIndex, newIndex) {
+                          setDialogState(() {
+                            if (newIndex > oldIndex) {
+                              newIndex -= 1;
+                            }
+                            final item = tempAll.removeAt(oldIndex);
+                            tempAll.insert(newIndex, item);
+
+                            // Re-align tempActive's order with tempAll
+                            final newTempActive = <String>[];
+                            for (final col in tempAll) {
+                              if (tempActive.contains(col)) {
+                                newTempActive.add(col);
+                              }
+                            }
+                            tempActive = newTempActive;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final col = tempAll[index];
+                          final isChecked = tempActive.contains(col);
+
+                          return ListTile(
+                            key: ValueKey(col),
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(
+                              col,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            leading: Checkbox(
+                              activeColor: AppColors.primary,
+                              value: isChecked,
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  if (val == true) {
+                                    tempActive.add(col);
+                                    // Keep order of tempActive aligned with tempAll
+                                    final newTempActive = <String>[];
+                                    for (final c in tempAll) {
+                                      if (tempActive.contains(c)) {
+                                        newTempActive.add(c);
+                                      }
+                                    }
+                                    tempActive = newTempActive;
+                                  } else {
+                                    if (tempActive.length > 1) {
+                                      tempActive.remove(col);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('At least one column must be visible.'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                });
+                              },
+                            ),
+                            trailing: const Icon(Icons.drag_handle, size: 20, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              tempActive = List.from(allCols);
+                              tempAll = List.from(allCols);
+                            });
+                          },
+                          child: const Text('Reset', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            _setActiveColumnsForTab(tabName, tempActive);
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // --- Formatting Helpers (avoids package:intl dependency) ---
@@ -200,8 +400,9 @@ class _ReportsViewState extends State<_ReportsView> {
   Future<void> _handleCsvExport(
     List<EntryModel> filtered,
     String Function(String) getProjectName,
-    String quickCategoryTab,
-  ) async {
+    String quickCategoryTab, {
+    List<String>? activeColumns,
+  }) async {
     if (filtered.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No report entries to export.')),
@@ -213,6 +414,7 @@ class _ReportsViewState extends State<_ReportsView> {
         entries: filtered,
         getProjectName: getProjectName,
         quickCategoryTab: quickCategoryTab,
+        activeColumns: activeColumns,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -225,8 +427,9 @@ class _ReportsViewState extends State<_ReportsView> {
   Future<void> _handlePdfExport(
     List<EntryModel> filtered,
     String Function(String) getProjectName,
-    String quickCategoryTab,
-  ) async {
+    String quickCategoryTab, {
+    List<String>? activeColumns,
+  }) async {
     if (filtered.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No report entries to export.')),
@@ -264,6 +467,7 @@ class _ReportsViewState extends State<_ReportsView> {
             : '${getProjectName(_selectedProjectId)} Report',
         filterSummary: parts.join(' | '),
         quickCategoryTab: quickCategoryTab,
+        activeColumns: activeColumns,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -354,6 +558,37 @@ class _ReportsViewState extends State<_ReportsView> {
         }
       }
 
+      // Search filter for All tab (real-time filtering without requiring report generation)
+      if (quickCategoryTab == 'All' && _searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final projectName = getProjectName(entry.projectId).toLowerCase();
+        final descMatch = entry.description.toLowerCase().contains(query);
+        final brandMatch = (entry.brand ?? '').toLowerCase().contains(query);
+        final projectMatch = projectName.contains(query);
+        final floorMatch = (entry.floor ?? '').toLowerCase().contains(query);
+        final phaseMatch = (entry.phase?.name ?? '').toLowerCase().contains(query);
+        final activityMatch = (entry.activity ?? '').toLowerCase().contains(query);
+        final amountMatch = entry.amount.toString().contains(query);
+        final typeMatch = entry.type.name.toLowerCase().contains(query);
+        final statusMatch = _getPaymentStatusLabel(entry.paymentStatus).toLowerCase().contains(query);
+        final dateMatch = _formatDateShort(entry.date).toLowerCase().contains(query);
+        final payDateMatch = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!).toLowerCase().contains(query) : false;
+ 
+        if (!descMatch &&
+            !brandMatch &&
+            !projectMatch &&
+            !floorMatch &&
+            !phaseMatch &&
+            !activityMatch &&
+            !amountMatch &&
+            !typeMatch &&
+            !statusMatch &&
+            !dateMatch &&
+            !payDateMatch) {
+          return false;
+        }
+      }
+
       if (_selectedStatus != 'All' &&
           entry.approvalStatus.toLowerCase() != _selectedStatus.toLowerCase()) {
         return false;
@@ -419,42 +654,10 @@ class _ReportsViewState extends State<_ReportsView> {
 
     final List<EntryModel> paginatedEntries = (totalCount > 0) ? filtered.sublist(startIndex, endIndex) : [];
 
-    final List<DataColumn> columns;
-    if (quickCategoryTab == 'Materials') {
-      columns = [
-        DataColumn(label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Material', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Brand', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-      ];
-    } else if (quickCategoryTab == 'Labour') {
-      columns = [
-        DataColumn(label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Worker Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Rate/Day', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Days', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-      ];
-    } else if (quickCategoryTab == 'Equipment') {
-      columns = [
-        DataColumn(label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Equipment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Rent Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-        DataColumn(label: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), numeric: true),
-      ];
-    } else {
-      columns = [
-        DataColumn(
+    final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
+    final List<DataColumn> columns = activeCols.map((colName) {
+      if (colName == 'Date') {
+        return DataColumn(
           label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           onSort: (colIndex, ascending) {
             setState(() {
@@ -462,8 +665,9 @@ class _ReportsViewState extends State<_ReportsView> {
               _sortAscending = ascending;
             });
           },
-        ),
-        DataColumn(
+        );
+      } else if (colName == 'Project') {
+        return DataColumn(
           label: const Text('Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           onSort: (colIndex, ascending) {
             setState(() {
@@ -471,16 +675,9 @@ class _ReportsViewState extends State<_ReportsView> {
               _sortAscending = ascending;
             });
           },
-        ),
-        DataColumn(label: const Text('Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Brand', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Floor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Phase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(label: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        DataColumn(
+        );
+      } else if (colName == 'Amount') {
+        return DataColumn(
           label: const Text('Amount (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           numeric: true,
           onSort: (colIndex, ascending) {
@@ -489,9 +686,16 @@ class _ReportsViewState extends State<_ReportsView> {
               _sortAscending = ascending;
             });
           },
-        ),
-      ];
-    }
+        );
+      } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate' || colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+        return DataColumn(
+          label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          numeric: true,
+        );
+      } else {
+        return DataColumn(label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+      }
+    }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -606,6 +810,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       if (quickCategoryTab != 'All') ...[
                         const SizedBox(height: 14),
                         _buildCategorySubFilters(context, quickCategoryTab, allEntries),
+                      ] else ...[
+                        const SizedBox(height: 14),
+                        _buildAllTabSearchBar(context),
                       ],
                       const SizedBox(height: 18),
 
@@ -692,6 +899,43 @@ class _ReportsViewState extends State<_ReportsView> {
                                     ),
                                     Row(
                                       children: [
+                                        if (quickCategoryTab == 'All') ...[
+                                          InkWell(
+                                            onTap: () => _showCustomizeColumnsDialog(context, quickCategoryTab),
+                                            borderRadius: BorderRadius.circular(20),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary.withValues(alpha: 0.08),
+                                                borderRadius: BorderRadius.circular(20),
+                                                border: Border.all(
+                                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: const [
+                                                  Icon(
+                                                    Icons.edit_note,
+                                                    size: 14,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Edit Columns',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.primary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
                                         IconButton(
                                           tooltip: 'View Full Screen',
                                           icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
@@ -704,8 +948,9 @@ class _ReportsViewState extends State<_ReportsView> {
                                                   getProjectName: getProjectName,
                                                   quickCategoryTab: quickCategoryTab,
                                                   title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
-                                                  onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab),
-                                                  onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab),
+                                                  onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                  onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                  activeColumns: activeCols,
                                                 ),
                                               ),
                                             );
@@ -722,9 +967,9 @@ class _ReportsViewState extends State<_ReportsView> {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                             onSelected: (val) {
                                               if (val == 'csv') {
-                                                _handleCsvExport(filtered, getProjectName, quickCategoryTab);
+                                                _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols);
                                               } else if (val == 'pdf') {
-                                                _handlePdfExport(filtered, getProjectName, quickCategoryTab);
+                                                _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols);
                                               }
                                             },
                                             itemBuilder: (context) => [
@@ -809,14 +1054,20 @@ class _ReportsViewState extends State<_ReportsView> {
                                       ),
                                       horizontalMargin: 16,
                                       columnSpacing: 24,
-                                      sortColumnIndex: quickCategoryTab == 'All'
-                                          ? (_sortColumn == 'date'
-                                              ? 0
-                                              : (_sortColumn == 'project'
-                                                  ? 1
-                                                  : (_sortColumn == 'amount' ? 5 : null)))
-                                          : null,
-                                      sortAscending: quickCategoryTab == 'All' ? _sortAscending : false,
+                                      sortColumnIndex: (() {
+                                        if (_sortColumn == 'date') {
+                                          final idx = activeCols.indexOf('Date');
+                                          return idx != -1 ? idx : null;
+                                        } else if (_sortColumn == 'project') {
+                                          final idx = activeCols.indexOf('Project');
+                                          return idx != -1 ? idx : null;
+                                        } else if (_sortColumn == 'amount') {
+                                          final idx = activeCols.indexOf('Amount');
+                                          return idx != -1 ? idx : null;
+                                        }
+                                        return null;
+                                      })(),
+                                      sortAscending: _sortAscending,
                                       columns: columns,
                                       rows: paginatedEntries.map((entry) {
                                         final projectName = getProjectName(entry.projectId);
@@ -1308,6 +1559,44 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
+  Widget _buildEditColumnsButton(String tabName) {
+    return InkWell(
+      onTap: () => _showCustomizeColumnsDialog(context, tabName),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(
+              Icons.edit_note,
+              size: 16,
+              color: AppColors.primary,
+            ),
+            SizedBox(width: 4),
+            Text(
+              'Edit Columns',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Date selection input box helper matching project context dropdown aesthetics
   Widget _buildDatePickerBox({
     required String label,
@@ -1363,6 +1652,68 @@ class _ReportsViewState extends State<_ReportsView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Search bar helper panel for All tab
+  Widget _buildAllTabSearchBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val.trim();
+              });
+            },
+            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Search by description, brand, project, phase, activity...',
+              hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: AppColors.textSecondary, size: 18),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E4FA)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E4FA)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1518,22 +1869,30 @@ class _ReportsViewState extends State<_ReportsView> {
             ],
             const SizedBox(height: 12),
 
-            _buildProjectContextDropdown(
-              label: dropdownLabel,
-              selectedLabel: _selectedItemName ?? 'All',
-              items: [
-                const PopupMenuItem(value: 'All', child: Text('All')),
-                ...uniqueNames.map((name) => PopupMenuItem(value: name, child: Text(name))),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildProjectContextDropdown(
+                    label: dropdownLabel,
+                    selectedLabel: _selectedItemName ?? 'All',
+                    items: [
+                      const PopupMenuItem(value: 'All', child: Text('All')),
+                      ...uniqueNames.map((name) => PopupMenuItem(value: name, child: Text(name))),
+                    ],
+                    onSelected: (val) {
+                      setState(() {
+                        _selectedItemName = (val == 'All' || val == null) ? null : val;
+                        final selectedVal = val == 'All' ? '' : (val ?? '');
+                        _searchController.text = selectedVal;
+                        _searchQuery = selectedVal;
+                        _showSuggestions = false;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildEditColumnsButton(tabName),
               ],
-              onSelected: (val) {
-                setState(() {
-                  _selectedItemName = (val == 'All' || val == null) ? null : val;
-                  final selectedVal = val == 'All' ? '' : (val ?? '');
-                  _searchController.text = selectedVal;
-                  _searchQuery = selectedVal;
-                  _showSuggestions = false;
-                });
-              },
             ),
             const SizedBox(height: 14),
 
@@ -1608,19 +1967,20 @@ class _ReportsViewState extends State<_ReportsView> {
   Widget _buildStatusBadge(String status) {
     Color bg;
     Color text;
-    switch (status.toLowerCase()) {
-      case 'approved':
-        bg = AppColors.badgeSuccessBg;
-        text = AppColors.badgeSuccessText;
+    final label = _getPaymentStatusLabel(status);
+    switch (label) {
+      case 'Fully Paid':
+        bg = const Color(0xFFDCFCE7);
+        text = const Color(0xFF15803D);
         break;
-      case 'rejected':
-        bg = AppColors.error.withValues(alpha: 0.08);
-        text = AppColors.error;
+      case 'Partial':
+        bg = const Color(0xFFFFFBEB);
+        text = const Color(0xFFB45309);
         break;
-      case 'pending':
+      case 'Not Paid':
       default:
-        bg = AppColors.badgePendingBg;
-        text = AppColors.badgePendingText;
+        bg = const Color(0xFFFEE2E2);
+        text = const Color(0xFFDC2626);
         break;
     }
     return Container(
@@ -1630,7 +1990,7 @@ class _ReportsViewState extends State<_ReportsView> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        status,
+        label,
         style: TextStyle(color: text, fontSize: 9, fontWeight: FontWeight.bold),
       ),
     );
@@ -1674,7 +2034,7 @@ class _ReportsViewState extends State<_ReportsView> {
                   _buildDetailRow('Type', entry.type.name.toUpperCase()),
                   _buildDetailRow('Date', _formatDateLong(entry.date)),
                   _buildDetailRow('Amount', _formatIndianCurrency(entry.amount)),
-                  _buildDetailRow('Status', entry.approvalStatus),
+                  _buildDetailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
                   if (entry.description.isNotEmpty) _buildDetailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) _buildDetailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) _buildDetailRow('Floor', entry.floor!),
@@ -1726,88 +2086,56 @@ class _ReportsViewState extends State<_ReportsView> {
     required String projectName,
     required String quickCategoryTab,
   }) {
-    if (quickCategoryTab == 'Materials') {
-      final rate = entry.ratePerUnit ?? 0.0;
-      final qty = (rate == 0) ? 0.0 : entry.amount / rate;
-      return DataRow(
-        onSelectChanged: (selected) {
-          if (selected ?? false) {
-            _showEntryDetailsDialog(context, entry, projectName);
-          }
-        },
-        cells: [
-          DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(qty.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.unit ?? 'unit', style: const TextStyle(fontSize: 12))),
-          DataCell(_buildStatusBadge(entry.approvalStatus)),
-          DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        ],
-      );
-    } else if (quickCategoryTab == 'Labour') {
-      final rate = entry.ratePerUnit ?? 0.0;
-      final days = (rate == 0) ? 0.0 : entry.amount / rate;
-      return DataRow(
-        onSelectChanged: (selected) {
-          if (selected ?? false) {
-            _showEntryDetailsDialog(context, entry, projectName);
-          }
-        },
-        cells: [
-          DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(days.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-          DataCell(_buildStatusBadge(entry.approvalStatus)),
-          DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        ],
-      );
-    } else if (quickCategoryTab == 'Equipment') {
-      final rate = entry.ratePerUnit ?? 0.0;
-      final duration = (rate == 0) ? 0.0 : entry.amount / rate;
-      return DataRow(
-        onSelectChanged: (selected) {
-          if (selected ?? false) {
-            _showEntryDetailsDialog(context, entry, projectName);
-          }
-        },
-        cells: [
-          DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(duration.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-          DataCell(_buildStatusBadge(entry.approvalStatus)),
-          DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        ],
-      );
-    } else {
-      // All
-      return DataRow(
-        onSelectChanged: (selected) {
-          if (selected ?? false) {
-            _showEntryDetailsDialog(context, entry, projectName);
-          }
-        },
-        cells: [
-          DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-          DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-          DataCell(_buildTypeChip(entry.type)),
-          DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12))),
-          DataCell(_buildStatusBadge(entry.approvalStatus)),
-          DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-        ],
-      );
-    }
+    final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
+
+    final List<DataCell> cells = activeCols.map((colName) {
+      if (colName == 'Purchased Date') {
+        return DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Payment Date') {
+        final payDateStr = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!) : '—';
+        return DataCell(Text(payDateStr, style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Project') {
+        return DataCell(Text(projectName, style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Type') {
+        return DataCell(_buildTypeChip(entry.type));
+      } else if (colName == 'Description') {
+        return DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Material' || colName == 'Worker Type' || colName == 'Equipment') {
+        return DataCell(Text(entry.description, style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Brand') {
+        return DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Floor') {
+        return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Phase') {
+        return DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Activity') {
+        return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Unit') {
+        return DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Status') {
+        return DataCell(_buildStatusBadge(entry.paymentStatus));
+      } else if (colName == 'Amount') {
+        return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+      } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
+        final rate = entry.ratePerUnit ?? 0.0;
+        return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+        final rate = entry.ratePerUnit ?? 0.0;
+        final val = (rate == 0) ? 0.0 : entry.amount / rate;
+        return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+      } else {
+        return const DataCell(SizedBox.shrink());
+      }
+    }).toList();
+
+    return DataRow(
+      onSelectChanged: (selected) {
+        if (selected ?? false) {
+          _showEntryDetailsDialog(context, entry, projectName);
+        }
+      },
+      cells: cells,
+    );
   }
 }
 
@@ -1955,6 +2283,7 @@ class _FullScreenLogsViewer extends StatefulWidget {
     required this.title,
     required this.onExportCsv,
     required this.onExportPdf,
+    required this.activeColumns,
   });
 
   final List<DataColumn> columns;
@@ -1964,6 +2293,7 @@ class _FullScreenLogsViewer extends StatefulWidget {
   final String title;
   final VoidCallback onExportCsv;
   final VoidCallback onExportPdf;
+  final List<String> activeColumns;
 
   @override
   State<_FullScreenLogsViewer> createState() => _FullScreenLogsViewerState();
@@ -2051,19 +2381,20 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
   Widget _buildStatusBadge(String status) {
     Color bg;
     Color text;
-    switch (status.toLowerCase()) {
-      case 'approved':
-        bg = AppColors.badgeSuccessBg;
-        text = AppColors.badgeSuccessText;
+    final label = _getPaymentStatusLabel(status);
+    switch (label) {
+      case 'Fully Paid':
+        bg = const Color(0xFFDCFCE7);
+        text = const Color(0xFF15803D);
         break;
-      case 'rejected':
-        bg = AppColors.error.withValues(alpha: 0.08);
-        text = AppColors.error;
+      case 'Partial':
+        bg = const Color(0xFFFFFBEB);
+        text = const Color(0xFFB45309);
         break;
-      case 'pending':
+      case 'Not Paid':
       default:
-        bg = AppColors.badgePendingBg;
-        text = AppColors.badgePendingText;
+        bg = const Color(0xFFFEE2E2);
+        text = const Color(0xFFDC2626);
         break;
     }
     return Container(
@@ -2073,7 +2404,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        status,
+        label,
         style: TextStyle(color: text, fontSize: 9, fontWeight: FontWeight.bold),
       ),
     );
@@ -2158,7 +2489,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   detailRow('Type', entry.type.name.toUpperCase()),
                   detailRow('Date', formatDateLong(entry.date)),
                   detailRow('Amount', _formatIndianCurrency(entry.amount)),
-                  detailRow('Status', entry.approvalStatus),
+                  detailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
                   if (entry.description.isNotEmpty) detailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) detailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) detailRow('Floor', entry.floor!),
@@ -2243,87 +2574,54 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
           builder: (context, constraints) {
             final rows = widget.filteredEntries.map((entry) {
               final projectName = widget.getProjectName(entry.projectId);
-              if (widget.quickCategoryTab == 'Materials') {
-                final rate = entry.ratePerUnit ?? 0.0;
-                final qty = (rate == 0) ? 0.0 : entry.amount / rate;
-                return DataRow(
-                  onSelectChanged: (selected) {
-                    if (selected ?? false) {
-                      _showEntryDetailsDialog(context, entry, projectName);
-                    }
-                  },
-                  cells: [
-                    DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(qty.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.unit ?? 'unit', style: const TextStyle(fontSize: 12))),
-                    DataCell(_buildStatusBadge(entry.approvalStatus)),
-                    DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  ],
-                );
-              } else if (widget.quickCategoryTab == 'Labour') {
-                final rate = entry.ratePerUnit ?? 0.0;
-                final days = (rate == 0) ? 0.0 : entry.amount / rate;
-                return DataRow(
-                  onSelectChanged: (selected) {
-                    if (selected ?? false) {
-                      _showEntryDetailsDialog(context, entry, projectName);
-                    }
-                  },
-                  cells: [
-                    DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(days.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-                    DataCell(_buildStatusBadge(entry.approvalStatus)),
-                    DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  ],
-                );
-              } else if (widget.quickCategoryTab == 'Equipment') {
-                final rate = entry.ratePerUnit ?? 0.0;
-                final duration = (rate == 0) ? 0.0 : entry.amount / rate;
-                return DataRow(
-                  onSelectChanged: (selected) {
-                    if (selected ?? false) {
-                      _showEntryDetailsDialog(context, entry, projectName);
-                    }
-                  },
-                  cells: [
-                    DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.description, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(duration.toStringAsFixed(1), style: const TextStyle(fontSize: 12))),
-                    DataCell(_buildStatusBadge(entry.approvalStatus)),
-                    DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  ],
-                );
-              } else {
-                return DataRow(
-                  onSelectChanged: (selected) {
-                    if (selected ?? false) {
-                      _showEntryDetailsDialog(context, entry, projectName);
-                    }
-                  },
-                  cells: [
-                    DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(projectName, style: const TextStyle(fontSize: 12))),
-                    DataCell(_buildTypeChip(entry.type)),
-                    DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12))),
-                    DataCell(_buildStatusBadge(entry.approvalStatus)),
-                    DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  ],
-                );
-              }
+              final List<DataCell> cells = widget.activeColumns.map((colName) {
+                if (colName == 'Purchased Date') {
+                  return DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Payment Date') {
+                  final payDateStr = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!) : '—';
+                  return DataCell(Text(payDateStr, style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Project') {
+                  return DataCell(Text(projectName, style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Type') {
+                  return DataCell(_buildTypeChip(entry.type));
+                } else if (colName == 'Description') {
+                  return DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Material' || colName == 'Worker Type' || colName == 'Equipment') {
+                  return DataCell(Text(entry.description, style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Brand') {
+                  return DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Floor') {
+                  return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Phase') {
+                  return DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Activity') {
+                  return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Unit') {
+                  return DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Status') {
+                  return DataCell(_buildStatusBadge(entry.paymentStatus));
+                } else if (colName == 'Amount') {
+                  return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+                } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
+                  final rate = entry.ratePerUnit ?? 0.0;
+                  return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+                  final rate = entry.ratePerUnit ?? 0.0;
+                  final val = (rate == 0) ? 0.0 : entry.amount / rate;
+                  return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+                } else {
+                  return const DataCell(SizedBox.shrink());
+                }
+              }).toList();
+
+              return DataRow(
+                onSelectChanged: (selected) {
+                  if (selected ?? false) {
+                    _showEntryDetailsDialog(context, entry, projectName);
+                  }
+                },
+                cells: cells,
+              );
             }).toList();
 
             Widget tableWidget = SingleChildScrollView(
@@ -2376,5 +2674,22 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
         ),
       ),
     );
+  }
+}
+
+String _getPaymentStatusLabel(String status) {
+  switch (status.toLowerCase().trim()) {
+    case 'paid':
+    case 'fully paid':
+    case 'fullypaid':
+      return 'Fully Paid';
+    case 'partial':
+      return 'Partial';
+    case 'pending':
+    case 'not paid':
+    case 'notpaid':
+    case 'unpaid':
+    default:
+      return 'Not Paid';
   }
 }

@@ -7,6 +7,23 @@ import 'save_helper_stub.dart'
     if (dart.library.io) 'save_helper_mobile.dart';
 
 class ReportExportHelper {
+  static String _getPaymentStatusLabel(String status) {
+    switch (status.toLowerCase().trim()) {
+      case 'paid':
+      case 'fully paid':
+      case 'fullypaid':
+        return 'Fully Paid';
+      case 'partial':
+        return 'Partial';
+      case 'pending':
+      case 'not paid':
+      case 'notpaid':
+      case 'unpaid':
+      default:
+        return 'Not Paid';
+    }
+  }
+
   static String _formatYmd(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
@@ -45,19 +62,24 @@ class ReportExportHelper {
     required List<EntryModel> entries,
     required String Function(String) getProjectName,
     required String quickCategoryTab,
+    List<String>? activeColumns,
   }) async {
     if (entries.isEmpty) return;
 
     final csvBuffer = StringBuffer();
     final List<String> headers;
-    if (quickCategoryTab == 'Materials') {
-      headers = ['Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)'];
-    } else if (quickCategoryTab == 'Labour') {
-      headers = ['Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)'];
-    } else if (quickCategoryTab == 'Equipment') {
-      headers = ['Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)'];
+    if (activeColumns != null) {
+      headers = activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
     } else {
-      headers = ['Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)'];
+      if (quickCategoryTab == 'Materials') {
+        headers = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+      } else if (quickCategoryTab == 'Labour') {
+        headers = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
+      } else if (quickCategoryTab == 'Equipment') {
+        headers = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
+      } else {
+        headers = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+      }
     }
 
     // Write header line with quotes
@@ -67,10 +89,47 @@ class ReportExportHelper {
       final dateStr = _formatYmd(entry.date);
       final projectName = getProjectName(entry.projectId);
       final amount = entry.amount;
-      final status = entry.approvalStatus;
+      final status = _getPaymentStatusLabel(entry.paymentStatus);
+      final payDateStr = entry.paymentDate != null ? _formatYmd(entry.paymentDate!) : '—';
 
       final List<String> rowValues;
-      if (quickCategoryTab == 'Materials') {
+      if (activeColumns != null) {
+        rowValues = [];
+        for (final col in activeColumns) {
+          if (col == 'Purchased Date') {
+            rowValues.add(dateStr);
+          } else if (col == 'Payment Date') {
+            rowValues.add(payDateStr);
+          } else if (col == 'Project') {
+            rowValues.add(projectName);
+          } else if (col == 'Type') {
+            rowValues.add(entry.type.name.toUpperCase());
+          } else if (col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment') {
+            rowValues.add(entry.description.isEmpty ? '—' : entry.description);
+          } else if (col == 'Brand') {
+            rowValues.add(entry.brand ?? '—');
+          } else if (col == 'Floor') {
+            rowValues.add(entry.floor ?? '—');
+          } else if (col == 'Phase') {
+            rowValues.add(entry.phase?.name ?? '—');
+          } else if (col == 'Activity') {
+            rowValues.add(entry.activity ?? '—');
+          } else if (col == 'Unit') {
+            rowValues.add(entry.unit ?? '—');
+          } else if (col == 'Status') {
+            rowValues.add(status);
+          } else if (col == 'Amount') {
+            rowValues.add(amount.toStringAsFixed(2));
+          } else if (col == 'Rate' || col == 'Rate/Day' || col == 'Rent Rate') {
+            final rate = entry.ratePerUnit ?? 0.0;
+            rowValues.add(rate.toStringAsFixed(2));
+          } else if (col == 'Qty' || col == 'Days' || col == 'Duration') {
+            final rate = entry.ratePerUnit ?? 0.0;
+            final val = (rate == 0) ? 0.0 : entry.amount / rate;
+            rowValues.add(val.toStringAsFixed(1));
+          }
+        }
+      } else if (quickCategoryTab == 'Materials') {
         final rate = entry.ratePerUnit ?? 0.0;
         final qty = (rate == 0) ? 0.0 : entry.amount / rate;
         rowValues = [
@@ -83,6 +142,7 @@ class ReportExportHelper {
           entry.unit ?? 'unit',
           status,
           amount.toStringAsFixed(2),
+          payDateStr,
         ];
       } else if (quickCategoryTab == 'Labour') {
         final rate = entry.ratePerUnit ?? 0.0;
@@ -95,6 +155,7 @@ class ReportExportHelper {
           days.toStringAsFixed(1),
           status,
           amount.toStringAsFixed(2),
+          payDateStr,
         ];
       } else if (quickCategoryTab == 'Equipment') {
         final rate = entry.ratePerUnit ?? 0.0;
@@ -107,6 +168,7 @@ class ReportExportHelper {
           duration.toStringAsFixed(1),
           status,
           amount.toStringAsFixed(2),
+          payDateStr,
         ];
       } else {
         rowValues = [
@@ -121,6 +183,7 @@ class ReportExportHelper {
           entry.unit ?? '—',
           status,
           amount.toStringAsFixed(2),
+          payDateStr,
         ];
       }
 
@@ -145,6 +208,7 @@ class ReportExportHelper {
     required String title,
     required String filterSummary,
     required String quickCategoryTab,
+    List<String>? activeColumns,
   }) async {
     final pdf = pw.Document();
 
@@ -175,8 +239,61 @@ class ReportExportHelper {
     final double headerFontSize;
     final double cellFontSize;
 
-    if (quickCategoryTab == 'Materials') {
-      pdfHeaders = ['Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)'];
+    if (activeColumns != null) {
+      pdfHeaders = activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
+      headerFontSize = 7;
+      cellFontSize = 6;
+      cellAlignmentsMap = {};
+      for (int i = 0; i < activeColumns.length; i++) {
+        final col = activeColumns[i];
+        if (col == 'Purchased Date' || col == 'Payment Date' || col == 'Project' || col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment' || col == 'Brand' || col == 'Floor' || col == 'Phase' || col == 'Activity') {
+          cellAlignmentsMap[i] = pw.Alignment.centerLeft;
+        } else if (col == 'Type' || col == 'Unit' || col == 'Status') {
+          cellAlignmentsMap[i] = pw.Alignment.center;
+        } else if (col == 'Amount' || col == 'Rate' || col == 'Rate/Day' || col == 'Rent Rate' || col == 'Qty' || col == 'Days' || col == 'Duration') {
+          cellAlignmentsMap[i] = pw.Alignment.centerRight;
+        }
+      }
+      pdfData = entries.map((e) {
+        final List<String> rowValues = [];
+        for (final col in activeColumns) {
+          if (col == 'Purchased Date') {
+            rowValues.add(_formatYmd(e.date));
+          } else if (col == 'Payment Date') {
+            rowValues.add(e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—');
+          } else if (col == 'Project') {
+            rowValues.add(getProjectName(e.projectId));
+          } else if (col == 'Type') {
+            rowValues.add(e.type.name.toUpperCase());
+          } else if (col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment') {
+            rowValues.add(e.description.isEmpty ? '—' : e.description);
+          } else if (col == 'Brand') {
+            rowValues.add(e.brand ?? '—');
+          } else if (col == 'Floor') {
+            rowValues.add(e.floor ?? '—');
+          } else if (col == 'Phase') {
+            rowValues.add(e.phase?.name ?? '—');
+          } else if (col == 'Activity') {
+            rowValues.add(e.activity ?? '—');
+          } else if (col == 'Unit') {
+            rowValues.add(e.unit ?? '—');
+          } else if (col == 'Status') {
+            rowValues.add(_getPaymentStatusLabel(e.paymentStatus));
+          } else if (col == 'Amount') {
+            rowValues.add(_formatIndianCurrency(e.amount));
+          } else if (col == 'Rate' || col == 'Rate/Day' || col == 'Rent Rate') {
+            final rate = e.ratePerUnit ?? 0.0;
+            rowValues.add(_formatIndianCurrency(rate));
+          } else if (col == 'Qty' || col == 'Days' || col == 'Duration') {
+            final rate = e.ratePerUnit ?? 0.0;
+            final val = (rate == 0) ? 0.0 : e.amount / rate;
+            rowValues.add(val.toStringAsFixed(1));
+          }
+        }
+        return rowValues;
+      }).toList();
+    } else if (quickCategoryTab == 'Materials') {
+      pdfHeaders = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -189,6 +306,7 @@ class ReportExportHelper {
         6: pw.Alignment.center,
         7: pw.Alignment.center,
         8: pw.Alignment.centerRight,
+        9: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
         final rate = e.ratePerUnit ?? 0.0;
@@ -201,12 +319,13 @@ class ReportExportHelper {
           _formatIndianCurrency(rate),
           qty.toStringAsFixed(1),
           e.unit ?? 'unit',
-          e.approvalStatus,
+          _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
+          e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
       }).toList();
     } else if (quickCategoryTab == 'Labour') {
-      pdfHeaders = ['Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)'];
+      pdfHeaders = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -217,6 +336,7 @@ class ReportExportHelper {
         4: pw.Alignment.centerRight,
         5: pw.Alignment.center,
         6: pw.Alignment.centerRight,
+        7: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
         final rate = e.ratePerUnit ?? 0.0;
@@ -227,12 +347,13 @@ class ReportExportHelper {
           e.description.isEmpty ? '—' : e.description,
           _formatIndianCurrency(rate),
           days.toStringAsFixed(1),
-          e.approvalStatus,
+          _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
+          e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
       }).toList();
     } else if (quickCategoryTab == 'Equipment') {
-      pdfHeaders = ['Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)'];
+      pdfHeaders = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -243,6 +364,7 @@ class ReportExportHelper {
         4: pw.Alignment.centerRight,
         5: pw.Alignment.center,
         6: pw.Alignment.centerRight,
+        7: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
         final rate = e.ratePerUnit ?? 0.0;
@@ -253,13 +375,14 @@ class ReportExportHelper {
           e.description.isEmpty ? '—' : e.description,
           _formatIndianCurrency(rate),
           duration.toStringAsFixed(1),
-          e.approvalStatus,
+          _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
+          e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
       }).toList();
     } else {
       // All
-      pdfHeaders = ['Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)'];
+      pdfHeaders = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
       headerFontSize = 7;
       cellFontSize = 6;
       cellAlignmentsMap = {
@@ -274,6 +397,7 @@ class ReportExportHelper {
         8: pw.Alignment.center,
         9: pw.Alignment.center,
         10: pw.Alignment.centerRight,
+        11: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
         return [
@@ -286,8 +410,9 @@ class ReportExportHelper {
           e.phase?.name ?? '—',
           e.activity ?? '—',
           e.unit ?? '—',
-          e.approvalStatus,
+          _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
+          e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
       }).toList();
     }
