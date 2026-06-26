@@ -648,7 +648,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
 
   void _showAddRevenueDialog(BuildContext context, String projectId, {Map<String, dynamic>? editingTx, VoidCallback? onSave}) {
     final titleCtrl = TextEditingController(text: editingTx?['title']?.toString() ?? '');
-    final amountCtrl = TextEditingController(text: editingTx?['amount']?.toString() ?? '');
+    final double initialAmt = double.tryParse(editingTx?['amount']?.toString() ?? '') ?? 0.0;
+    final amountCtrl = TextEditingController(text: initialAmt != 0.0 ? initialAmt.abs().toString() : '');
     final notesCtrl = TextEditingController(text: editingTx?['notes']?.toString() ?? '');
     String selectedMode = editingTx?['paymentMode']?.toString() ?? 'Bank Transfer';
     DateTime selectedDate = DateTime.now();
@@ -660,6 +661,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     PickedImage? pickedImage;
     List<dynamic> attachments = editingTx?['attachments'] is List ? editingTx!['attachments'] as List : [];
     String? existingImageUrl = attachments.isNotEmpty ? attachments.first.toString() : null;
+    bool isInflow = editingTx != null ? initialAmt >= 0 : true;
 
     showModalBottomSheet(
       context: context,
@@ -690,12 +692,85 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  editingTx != null ? 'Edit Revenue Inflow' : 'Record Revenue Inflow',
+                  editingTx != null
+                      ? (isInflow ? 'Edit Revenue Inflow' : 'Edit Revenue Outflow')
+                      : (isInflow ? 'Record Revenue Inflow' : 'Record Revenue Outflow'),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: textDark,
                   ),
+                ),
+                const SizedBox(height: 16),
+                // Inflow/Outflow Selector
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            isInflow = true;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isInflow ? const Color(0xFFE8F5E9) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isInflow ? const Color(0xFF2E7D32) : Colors.grey[300]!),
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.arrow_downward, color: isInflow ? const Color(0xFF2E7D32) : Colors.grey, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Money In',
+                                style: TextStyle(
+                                  color: isInflow ? const Color(0xFF2E7D32) : Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            isInflow = false;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !isInflow ? const Color(0xFFFFEBEE) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: !isInflow ? Colors.red : Colors.grey[300]!),
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.arrow_upward, color: !isInflow ? Colors.red : Colors.grey, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Money Out',
+                                style: TextStyle(
+                                  color: !isInflow ? Colors.red : Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -710,15 +785,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount Received (₹)',
+                  decoration: InputDecoration(
+                    labelText: isInflow ? 'Amount Received (₹)' : 'Amount Sent (₹)',
                     hintText: 'e.g. 500000',
-                    border: UnderlineInputBorder(),
+                    border: const UnderlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: selectedMode,
+                  value: selectedMode,
                   decoration: const InputDecoration(
                     labelText: 'Payment Mode',
                     border: UnderlineInputBorder(),
@@ -780,10 +855,12 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: notesCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Notes / Remarks (Optional)',
-                    hintText: 'e.g. Initial payment received for start of work',
-                    border: UnderlineInputBorder(),
+                    hintText: isInflow
+                        ? 'e.g. Initial payment received for start of work'
+                        : 'e.g. Refund sent for milestone delay',
+                    border: const UnderlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -927,7 +1004,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     ),
                     onPressed: isSaving ? null : () async {
                       final title = titleCtrl.text.trim();
-                      final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                      var amount = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                      amount = amount.abs();
                       if (title.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please enter a payment title')),
@@ -944,6 +1022,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       setModalState(() {
                         isSaving = true;
                       });
+
+                      if (!isInflow) {
+                        amount = -amount;
+                      }
 
                       try {
                         String? base64Image;
@@ -985,8 +1067,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                               SnackBar(
                                 content: Text(
                                   isEdit
-                                      ? 'Revenue inflow updated successfully'
-                                      : 'Revenue inflow recorded successfully',
+                                      ? 'Revenue updated successfully'
+                                      : 'Revenue recorded successfully',
                                 ),
                               ),
                             );
@@ -1002,7 +1084,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  isEdit ? 'Failed to update revenue inflow' : 'Failed to record revenue inflow',
+                                  isEdit ? 'Failed to update revenue' : 'Failed to record revenue',
                                 ),
                               ),
                             );
@@ -1029,7 +1111,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
                         : Text(
-                            editingTx != null ? 'Save Changes' : 'Save Inflow',
+                            editingTx != null ? 'Save Changes' : 'Save',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                   ),
@@ -1259,6 +1341,66 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             },
                           ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          margin: const EdgeInsets.only(top: 8, bottom: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F9FA),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[200]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, -4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: primaryBlue.withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.account_balance_wallet,
+                                      color: primaryBlue,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Total Balance',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: textDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                _totalRevenueSum == 0
+                                    ? '₹0'
+                                    : (_totalRevenueSum < 0
+                                        ? '-${formatCurrency(_totalRevenueSum.abs())}'
+                                        : '+${formatCurrency(_totalRevenueSum)}'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: _totalRevenueSum > 0
+                                      ? const Color(0xFF2E7D32)
+                                      : (_totalRevenueSum < 0 ? Colors.red : textDark),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1274,6 +1416,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   void _showRevenueDetailDialog(BuildContext context, Map<String, dynamic> tx, {VoidCallback? onRefresh}) {
     final title = tx['title']?.toString() ?? 'Revenue Inflow';
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+    final bool isOutflow = amount < 0;
+    final absAmount = amount.abs();
+    final formattedAmt = formatCurrency(absAmount);
+    final textColor = isOutflow ? Colors.red : const Color(0xFF2E7D32);
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
     final paymentStatus = tx['paymentStatus']?.toString() ?? 'Paid';
     final rawId = tx['_id']?.toString() ?? tx['id']?.toString() ?? '';
@@ -1351,11 +1497,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '+${formatCurrency(amount)}',
-                    style: const TextStyle(
+                    isOutflow ? '-$formattedAmt' : '+$formattedAmt',
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 32,
-                      color: Color(0xFF2E7D32),
+                      color: textColor,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -1375,7 +1521,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   const SizedBox(height: 20),
                   _receiptRow('PROJECT', projectName),
                   _receiptRow('PAYMENT METHOD', paymentMode),
-                  _receiptRow('DATE RECEIVED', dateStr),
+                  _receiptRow(isOutflow ? 'DATE SENT' : 'DATE RECEIVED', dateStr),
                   _receiptRow('TIME RECEIVED', timeStr),
                   _receiptRow('REFERENCE ID', refId),
                   Padding(
@@ -1730,6 +1876,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   Widget _revenueTile(BuildContext context, Map<String, dynamic> tx, {VoidCallback? onRefresh}) {
     final title = tx['title']?.toString() ?? 'Revenue Inflow';
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+    final bool isOutflow = amount < 0;
+    final absAmount = amount.abs();
+    final formattedAmt = formatCurrency(absAmount);
+    final textColor = isOutflow ? Colors.red : const Color(0xFF2E7D32);
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
     final List<dynamic> attachments = tx['attachments'] is List ? tx['attachments'] as List : [];
     final hasImage = attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
@@ -1860,11 +2010,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               ),
             ),
             Text(
-              '+${formatCurrency(amount)}',
-              style: const TextStyle(
+              isOutflow ? '-$formattedAmt' : '+$formattedAmt',
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: Color(0xFF2E7D32),
+                color: textColor,
               ),
             ),
           ],
