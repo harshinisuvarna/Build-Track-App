@@ -519,6 +519,9 @@ class ProjectProvider extends ChangeNotifier {
             activityId: json['activityId']?.toString(),
             unit: json['unit']?.toString(),
             createdBy: createdBy, // FIX 3b
+            paymentStatus: json['paymentStatus']?.toString() ?? 'Pending',
+            approvalStatus: json['approvalStatus']?.toString() ?? 'Pending',
+            paymentDate: json['paymentDate'] != null ? DateTime.tryParse(json['paymentDate'].toString()) : null,
           );
         }).toList();
 
@@ -947,6 +950,9 @@ class ProjectProvider extends ChangeNotifier {
       activity: entry.activity,
       activityId: entry.activityId,
       createdBy: UserSession.userId, // FIX 3b: tag new entries with current user
+      paymentStatus: entry.paymentStatus,
+      approvalStatus: entry.approvalStatus,
+      paymentDate: entry.paymentDate,
     );
 
     _entries.add(updatedEntry);
