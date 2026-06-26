@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/reports/report_export_helper.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -655,7 +656,8 @@ class _ReportsViewState extends State<_ReportsView> {
     final List<EntryModel> paginatedEntries = (totalCount > 0) ? filtered.sublist(startIndex, endIndex) : [];
 
     final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
-    final List<DataColumn> columns = activeCols.map((colName) {
+    final List<String> uiActiveCols = [...activeCols, 'Add More', 'Record Payment', 'Edit Entry'];
+    final List<DataColumn> columns = uiActiveCols.map((colName) {
       if (colName == 'Date') {
         return DataColumn(
           label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
@@ -691,6 +693,10 @@ class _ReportsViewState extends State<_ReportsView> {
         return DataColumn(
           label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           numeric: true,
+        );
+      } else if (colName == 'Add More' || colName == 'Record Payment' || colName == 'Edit Entry') {
+        return DataColumn(
+          label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
         );
       } else {
         return DataColumn(label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
@@ -950,7 +956,7 @@ class _ReportsViewState extends State<_ReportsView> {
                                                   title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
                                                   onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
                                                   onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                  activeColumns: activeCols,
+                                                  activeColumns: uiActiveCols,
                                                 ),
                                               ),
                                             );
@@ -2000,7 +2006,7 @@ class _ReportsViewState extends State<_ReportsView> {
   void _showEntryDetailsDialog(BuildContext context, EntryModel entry, String projectName) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: Colors.white,
@@ -2024,7 +2030,7 @@ class _ReportsViewState extends State<_ReportsView> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
                       ),
                     ],
                   ),
@@ -2043,6 +2049,48 @@ class _ReportsViewState extends State<_ReportsView> {
                   if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
                     _buildDetailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
                   const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Add More',
+                          icon: Icons.add_circle_outline,
+                          style: _ReportActionStyle.primary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.addMore(context, entry);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Record Payment',
+                          icon: Icons.credit_card_outlined,
+                          style: _ReportActionStyle.secondary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.recordPayment(context, entry, projectName);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Edit Entry',
+                          icon: Icons.edit_outlined,
+                          style: _ReportActionStyle.tertiary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.editEntry(context, entry);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -2087,8 +2135,9 @@ class _ReportsViewState extends State<_ReportsView> {
     required String quickCategoryTab,
   }) {
     final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
+    final List<String> uiActiveCols = [...activeCols, 'Add More', 'Record Payment', 'Edit Entry'];
 
-    final List<DataCell> cells = activeCols.map((colName) {
+    final List<DataCell> cells = uiActiveCols.map((colName) {
       if (colName == 'Purchased Date') {
         return DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12)));
       } else if (colName == 'Payment Date') {
@@ -2123,6 +2172,33 @@ class _ReportsViewState extends State<_ReportsView> {
         final rate = entry.ratePerUnit ?? 0.0;
         final val = (rate == 0) ? 0.0 : entry.amount / rate;
         return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+      } else if (colName == 'Add More') {
+        return DataCell(
+          _ReportActionBtn(
+            label: 'Add More',
+            icon: Icons.add_circle_outline,
+            style: _ReportActionStyle.primary,
+            onTap: () => _ReportActions.addMore(context, entry),
+          ),
+        );
+      } else if (colName == 'Record Payment') {
+        return DataCell(
+          _ReportActionBtn(
+            label: 'Record Payment',
+            icon: Icons.credit_card_outlined,
+            style: _ReportActionStyle.secondary,
+            onTap: () => _ReportActions.recordPayment(context, entry, projectName),
+          ),
+        );
+      } else if (colName == 'Edit Entry') {
+        return DataCell(
+          _ReportActionBtn(
+            label: 'Edit Entry',
+            icon: Icons.edit_outlined,
+            style: _ReportActionStyle.tertiary,
+            onTap: () => _ReportActions.editEntry(context, entry),
+          ),
+        );
       } else {
         return const DataCell(SizedBox.shrink());
       }
@@ -2455,7 +2531,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: Colors.white,
@@ -2479,7 +2555,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
                       ),
                     ],
                   ),
@@ -2498,6 +2574,48 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
                     detailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
                   const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Add More',
+                          icon: Icons.add_circle_outline,
+                          style: _ReportActionStyle.primary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.addMore(context, entry);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Record Payment',
+                          icon: Icons.credit_card_outlined,
+                          style: _ReportActionStyle.secondary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.recordPayment(context, entry, projectName);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ReportActionBtn(
+                          label: 'Edit Entry',
+                          icon: Icons.edit_outlined,
+                          style: _ReportActionStyle.tertiary,
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            _ReportActions.editEntry(context, entry);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -2609,6 +2727,33 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   final rate = entry.ratePerUnit ?? 0.0;
                   final val = (rate == 0) ? 0.0 : entry.amount / rate;
                   return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+                } else if (colName == 'Add More') {
+                  return DataCell(
+                    _ReportActionBtn(
+                      label: 'Add More',
+                      icon: Icons.add_circle_outline,
+                      style: _ReportActionStyle.primary,
+                      onTap: () => _ReportActions.addMore(context, entry),
+                    ),
+                  );
+                } else if (colName == 'Record Payment') {
+                  return DataCell(
+                    _ReportActionBtn(
+                      label: 'Record Payment',
+                      icon: Icons.credit_card_outlined,
+                      style: _ReportActionStyle.secondary,
+                      onTap: () => _ReportActions.recordPayment(context, entry, projectName),
+                    ),
+                  );
+                } else if (colName == 'Edit Entry') {
+                  return DataCell(
+                    _ReportActionBtn(
+                      label: 'Edit Entry',
+                      icon: Icons.edit_outlined,
+                      style: _ReportActionStyle.tertiary,
+                      onTap: () => _ReportActions.editEntry(context, entry),
+                    ),
+                  );
                 } else {
                   return const DataCell(SizedBox.shrink());
                 }
@@ -2691,5 +2836,200 @@ String _getPaymentStatusLabel(String status) {
     case 'unpaid':
     default:
       return 'Not Paid';
+  }
+}
+
+// ─── REPORT LOG ACTION HELPERS & BUTTONS ────────────────────────────────────
+
+enum _ReportActionStyle { primary, secondary, tertiary }
+
+class _ReportActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final _ReportActionStyle style;
+  final VoidCallback onTap;
+
+  const _ReportActionBtn({
+    required this.label,
+    required this.icon,
+    required this.style,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    BoxDecoration deco;
+    Color color;
+
+    switch (style) {
+      case _ReportActionStyle.primary:
+        deco = BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+          ),
+          borderRadius: BorderRadius.circular(6),
+        );
+        color = Colors.white;
+        break;
+      case _ReportActionStyle.secondary:
+        deco = BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF3B82F6), width: 1.0),
+        );
+        color = const Color(0xFF3B82F6);
+        break;
+      case _ReportActionStyle.tertiary:
+        deco = BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+        );
+        color = const Color(0xFF4B5563);
+        break;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          decoration: deco,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportActions {
+  static void addMore(BuildContext context, EntryModel entry) {
+    final dupArgs = entry.toJson();
+    dupArgs['isDuplicate'] = true;
+    dupArgs['sourceTransactionId'] = entry.id;
+    dupArgs['projectId'] = entry.projectId;
+
+    String route;
+    switch (entry.type) {
+      case EntryType.labour:
+        route = '/add-labour';
+        break;
+      case EntryType.equipment:
+        route = '/add-equipment';
+        break;
+      case EntryType.material:
+        route = '/add-material';
+        break;
+    }
+    Navigator.pushNamed(context, route, arguments: dupArgs).then((val) {
+      if (context.mounted) {
+        context.read<ProjectProvider>().load();
+      }
+    });
+  }
+
+  static void editEntry(BuildContext context, EntryModel entry) {
+    final editArgs = entry.toJson();
+    editArgs['isEditing'] = true;
+    editArgs['id'] = entry.id;
+    editArgs['projectId'] = entry.projectId;
+
+    String route;
+    switch (entry.type) {
+      case EntryType.labour:
+        route = '/add-labour';
+        break;
+      case EntryType.equipment:
+        route = '/add-equipment';
+        break;
+      case EntryType.material:
+        route = '/add-material';
+        break;
+    }
+    Navigator.pushNamed(context, route, arguments: editArgs).then((val) {
+      if (context.mounted) {
+        context.read<ProjectProvider>().load();
+      }
+    });
+  }
+
+  static Future<void> recordPayment(BuildContext context, EntryModel entry, String projectName) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+    final tx = await ApiService.fetchTransactionById(entry.id);
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+    if (tx == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load transaction details.')),
+        );
+      }
+      return;
+    }
+
+    final pId = entry.projectId;
+    final pName = projectName;
+    final rawItemName = tx['materialName'] ?? tx['itemName'] ?? tx['title'] ?? tx['name'] ?? entry.description;
+    final itemType = tx['type'] ?? entry.type.name;
+    final qty = (tx['quantity'] as num?)?.toDouble() ?? ((entry.ratePerUnit ?? 0) == 0 ? 0.0 : entry.amount / entry.ratePerUnit!);
+    final rate = (tx['rate'] as num?)?.toDouble() ?? entry.ratePerUnit ?? 0.0;
+    final totalAmount = (tx['amount'] as num?)?.toDouble() ?? entry.amount;
+    final paidAmount = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+    final outstandingAmount = (totalAmount - paidAmount).clamp(0.0, double.infinity);
+    final payStatus = EntryModel.fromJson(tx).paymentStatus;
+
+    final payArgs = {
+      'id': entry.id,
+      'projectId': pId,
+      'projectName': pName,
+      'itemId': tx['materialId'] ?? tx['itemId'] ?? '',
+      'itemName': rawItemName,
+      'itemType': itemType,
+      'quantity': qty,
+      'rate': rate,
+      'totalAmount': totalAmount,
+      'paidAmount': paidAmount,
+      'outstandingAmount': outstandingAmount,
+      'paymentStatus': payStatus,
+      'receipt': (tx['attachments'] is List && tx['attachments'].isNotEmpty) ? tx['attachments'].first?.toString() : null,
+      'transactionDetails': tx,
+    };
+
+    if (context.mounted) {
+      Navigator.pushNamed(
+        context,
+        '/fulfillment-payment',
+        arguments: payArgs,
+      ).then((updated) {
+        if (updated == true && context.mounted) {
+          context.read<ProjectProvider>().load();
+        }
+      });
+    }
   }
 }
