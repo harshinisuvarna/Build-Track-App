@@ -905,14 +905,15 @@ class _ReportsViewState extends State<_ReportsView> {
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Wrap(
-                                        alignment: WrapAlignment.end,
-                                        crossAxisAlignment: WrapCrossAlignment.center,
-                                        spacing: 4,
-                                        runSpacing: 6,
-                                        children: [
-                                          if (quickCategoryTab == 'All')
-                                            InkWell(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerRight,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            if (quickCategoryTab == 'All') ...[
+                                              InkWell(
                                               onTap: () => _showCustomizeColumnsDialog(context, quickCategoryTab),
                                               borderRadius: BorderRadius.circular(20),
                                               child: Container(
@@ -945,28 +946,11 @@ class _ReportsViewState extends State<_ReportsView> {
                                                   ],
                                                 ),
                                               ),
-                                            ),
-                                          IconButton(
-                                            tooltip: 'View Full Screen',
-                                            icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
-                                            onPressed: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (context) => _FullScreenLogsViewer(
-                                                    columns: columns,
-                                                    filteredEntries: filtered,
-                                                    getProjectName: getProjectName,
-                                                    quickCategoryTab: quickCategoryTab,
-                                                    title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
-                                                    onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                    onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                    activeColumns: uiActiveCols,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        Theme(
+                                              ),
+                                              const SizedBox(width: 4),
+                                            ],
+
+                                          Theme(
                                           data: Theme.of(context).copyWith(
                                             cardColor: Colors.white,
                                           ),
@@ -1038,10 +1022,32 @@ class _ReportsViewState extends State<_ReportsView> {
                                                   ),
                                                 ],
                                               ),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            tooltip: 'View Full Screen',
+                                            icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
+                                            onPressed: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (context) => _FullScreenLogsViewer(
+                                                    columns: columns,
+                                                    filteredEntries: filtered,
+                                                    getProjectName: getProjectName,
+                                                    quickCategoryTab: quickCategoryTab,
+                                                    title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
+                                                    onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                    onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                    activeColumns: uiActiveCols,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                   ],
