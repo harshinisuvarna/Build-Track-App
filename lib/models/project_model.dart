@@ -258,7 +258,6 @@ class ProjectActivity {
             : null,
       );
 }
-
 class ProjectPhase {
   final String id;
   final String phaseName;

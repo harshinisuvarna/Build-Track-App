@@ -391,15 +391,18 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String itemName =
-              (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
-                  .toString()
-                  .trim();
-
           final String rawType = (t['type'] ?? '')
               .toString()
               .trim()
               .toLowerCase();
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
+          final String itemName =
+              (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
+                  .toString()
+                  .trim();
           String tabType = 'material';
           if (rawType == 'wages' || rawType == 'labour') {
             tabType = 'labour';
@@ -560,15 +563,18 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String itemName =
-              (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
-                  .toString()
-                  .trim();
-
           final String rawType = (t['type'] ?? '')
               .toString()
               .trim()
               .toLowerCase();
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
+          final String itemName =
+              (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
+                  .toString()
+                  .trim();
           String tabType = 'material';
           if (rawType == 'wages' || rawType == 'labour') {
             tabType = 'labour';
