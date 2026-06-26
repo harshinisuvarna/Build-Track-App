@@ -2019,7 +2019,77 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Execution Context UI section removed - managed globally
+                    // ── Execution Context (Edit mode only) ──────────────
+                    // In Create mode the user already chose Project/Floor/
+                    // Phase/Activity in ExecutionContextScreen before arriving
+                    // here, so we intentionally hide this section.
+                    // In Edit mode there is no preceding context screen, so
+                    // we restore the card so users can change the context.
+                    if (_isEditing) ...[
+                      ExecutionContextCard(
+                        selectedProjectId: _selectedProjectId,
+                        selectedFloor: _selectedFloor,
+                        selectedPhase: _selectedPhase,
+                        selectedActivity: _selectedActivity,
+                        projectError: _projectError,
+                        floorError: _floorError,
+                        phaseError: _phaseError,
+                        activityError: _activityError,
+                        onProjectChanged: (v) async {
+                          setState(() {
+                            _selectedProjectId = v;
+                            _selectedFloor = null;
+                            _selectedFloorId = null;
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _projectError = null;
+                          });
+                          await _loadFloors(v);
+                          setState(() {});
+                        },
+                        onFloorChanged: (v) async {
+                          setState(() {
+                            _selectedFloor = v?.toString();
+                            _selectedFloorId = v?.toString();
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _floorError = null;
+                          });
+                          await _loadPhases(v);
+                          setState(() {});
+                        },
+                        onPhaseChanged: (v) async {
+                          final phaseName = v?.toString();
+                          setState(() {
+                            _selectedPhase = phaseName;
+                            _selectedPhaseId = phaseName != null
+                                ? _derivePhaseId(phaseName)
+                                : null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _phaseError = null;
+                          });
+                          await _loadActivities(v);
+                          setState(() {});
+                        },
+                        onActivityChanged: (v) {
+                          final actName = v?.toString();
+                          setState(() {
+                            _selectedActivity = actName;
+                            _selectedActivityId = actName != null
+                                ? _deriveActivityId(actName)
+                                : null;
+                            _activityError = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
 
                     // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)

@@ -17,20 +17,7 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
-class _EntryOption {
-  const _EntryOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.route,
-    required this.type,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String route;
-  final String type;
-}
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,173 +26,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Launches the unified entry flow: Select Entry Type → Execution Context
+  // → Choose How to Add → Voice/Manual → Review → Submit.
+  // Both the Home screen and the Entry tab reach the same AddEntryScreen,
+  // ensuring one canonical workflow across the entire application.
   void _showEntryOptions(BuildContext context, String type) {
-    final Map<String, String> voiceRoutes = {
-      'material': '/review-material',
-      'labour': '/review-labour',
-      'equipment': '/review-equipment',
-    };
-    final Map<String, String> manualRoutes = {
-      'material': '/add-material',
-      'labour': '/add-labour',
-      'equipment': '/add-equipment',
-    };
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDDE0F0),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'How do you want to add?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Adding ${type[0].toUpperCase()}${type.substring(1)} entry',
-              style: TextStyle(color: AppColors.textLight, fontSize: 14),
-            ),
-            const SizedBox(height: 20),
-            _bottomSheetOption(
-              icon: Icons.mic,
-              iconColor: AppColors.primary,
-              iconBg: const Color(0xFFEEF0FF),
-              title: 'Use Voice',
-              subtitle: 'Speak and let AI capture the details',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(
-                  context,
-                  voiceRoutes[type]!,
-                  arguments: {'type': type},
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _bottomSheetOption(
-              icon: Icons.edit_outlined,
-              iconColor: AppColors.primary,
-              iconBg: const Color(0xFFF0EEFF),
-              title: 'Enter Manually',
-              subtitle: 'Fill the form manually',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(
-                  context,
-                  manualRoutes[type]!,
-                  arguments: {'type': type},
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: () => Navigator.pop(ctx),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 10,
-                ),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: AppColors.textLight,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    Navigator.pushNamed(context, '/add-entry');
   }
 
-  Widget _bottomSheetOption({
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E5FF)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.textLight,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
@@ -409,174 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Entry Type Selector (shared by all dashboard variants) ──────────────────
-Widget _voiceEntryOption({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required VoidCallback onTap,
-}) {
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E5FF)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEF0FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: const Color(0xFF4A6CF7), size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1D2E),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF8E92A9),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Color(0xFFC0C3D6), size: 22),
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
-void _showEntryTypeSelector(BuildContext context) {
-  const options = <_EntryOption>[
-    _EntryOption(
-      icon: Icons.inventory_2_outlined,
-      title: 'Material Entry',
-      subtitle: 'Add material purchases, usage and inventory updates',
-      route: '/review-material',
-      type: 'material',
-    ),
-    _EntryOption(
-      icon: Icons.engineering_outlined,
-      title: 'Labour Entry',
-      subtitle: 'Add worker attendance, labour work and labour costs',
-      route: '/review-labour',
-      type: 'labour',
-    ),
-    _EntryOption(
-      icon: Icons.precision_manufacturing_outlined,
-      title: 'Equipment Entry',
-      subtitle: 'Add equipment usage, machine hours and equipment expenses',
-      route: '/review-equipment',
-      type: 'equipment',
-    ),
-  ];
-
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.white,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE0F0),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Select Entry Type',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A1D2E),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Choose what you want to update',
-                style: TextStyle(color: Color(0xFF8E92A9), fontSize: 14),
-              ),
-              const SizedBox(height: 20),
-              for (final opt in options)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _voiceEntryOption(
-                    icon: opt.icon,
-                    title: opt.title,
-                    subtitle: opt.subtitle,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      Navigator.pushNamed(
-                        context,
-                        opt.route,
-                        arguments: {'type': opt.type},
-                      );
-                    },
-                  ),
-                ),
-              InkWell(
-                onTap: () => Navigator.pop(ctx),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: Color(0xFF8E92A9),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
 
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
@@ -2514,7 +2176,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _showEntryTypeSelector(context),
+            // Navigate to the unified entry flow (same as the Entry tab).
+            onTap: () => Navigator.pushNamed(context, '/add-entry'),
             splashColor: Colors.white.withValues(alpha: 0.2),
             highlightColor: Colors.white.withValues(alpha: 0.1),
             child: Padding(

@@ -83,8 +83,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   // ── Scroll ────────────────────────────────────────────────────────────────
   final _scrollCtrl = ScrollController();
 
-  // ── Legacy entry detection ──────────────────────────────────────────────
-  bool _isLegacyEntry = false;
 
   // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
@@ -613,10 +611,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     // ── Detect executionContext (NEW entries) vs legacy ─────────────────
     final rawCtx = latest['executionContext'];
     final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
-    _isLegacyEntry = !hasExecutionContext;
-    debugPrint(
-      'Has executionContext: $hasExecutionContext  → legacy=$_isLegacyEntry',
-    );
+    debugPrint('Has executionContext: $hasExecutionContext');
 
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     // If executionContext exists, extract from it; otherwise fall back to top-level fields
@@ -799,10 +794,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     // ── Detect executionContext (NEW entries) vs legacy ─────────────────
     final rawCtx = latest['executionContext'];
     final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
-    _isLegacyEntry = !hasExecutionContext;
-    debugPrint(
-      'Has executionContext: $hasExecutionContext  → legacy=$_isLegacyEntry',
-    );
+    debugPrint('Has executionContext: $hasExecutionContext');
 
     // Sequential restoration of context: Project -> Floor -> Phase -> Activity
     // If executionContext exists, extract from it; otherwise fall back to top-level fields
@@ -2113,43 +2105,78 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Execution Context UI section removed - managed globally
-
-                    // ── Legacy entry banner ────────────────────────────────
-                    if (_isEditing && _isLegacyEntry)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0F4FF),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFB3C5FF)),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                color: Color(0xFF3366FF),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'This entry was created before execution context tracking was introduced.',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF1A3A8A),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                    // ── Execution Context (Edit mode only) ──────────────
+                    // In Create mode the user already chose Project/Floor/
+                    // Phase/Activity in ExecutionContextScreen before arriving
+                    // here, so we intentionally hide this section.
+                    // In Edit mode there is no preceding context screen, so
+                    // we restore the card so users can change the context.
+                    if (_isEditing) ...[
+                      ExecutionContextCard(
+                        selectedProjectId: _selectedProjectId,
+                        selectedFloor: _selectedFloor,
+                        selectedPhase: _selectedPhase,
+                        selectedActivity: _selectedActivity,
+                        projectError: _projectError,
+                        floorError: _floorError,
+                        phaseError: _phaseError,
+                        activityError: _activityError,
+                        onProjectChanged: (v) async {
+                          setState(() {
+                            _selectedProjectId = v;
+                            _selectedFloor = null;
+                            _selectedFloorId = null;
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _projectError = null;
+                          });
+                          await _loadFloors(v);
+                          setState(() {});
+                        },
+                        onFloorChanged: (v) async {
+                          setState(() {
+                            _selectedFloor = v?.toString();
+                            _selectedFloorId = v?.toString();
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _floorError = null;
+                          });
+                          await _loadPhases(v);
+                          setState(() {});
+                        },
+                        onPhaseChanged: (v) async {
+                          final phaseName = v?.toString();
+                          setState(() {
+                            _selectedPhase = phaseName;
+                            _selectedPhaseId = phaseName != null
+                                ? _derivePhaseId(phaseName)
+                                : null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _phaseError = null;
+                          });
+                          await _loadActivities(v);
+                          setState(() {});
+                        },
+                        onActivityChanged: (v) {
+                          final actName = v?.toString();
+                          setState(() {
+                            _selectedActivity = actName;
+                            _selectedActivityId = actName != null
+                                ? _deriveActivityId(actName)
+                                : null;
+                            _activityError = null;
+                          });
+                        },
                       ),
+                      const SizedBox(height: 16),
+                    ],
+
+
 
                     // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)
