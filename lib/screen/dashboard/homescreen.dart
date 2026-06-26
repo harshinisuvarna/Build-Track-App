@@ -11,6 +11,7 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 // --- TASK 3: Imported API Service ---
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -1455,31 +1456,52 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 32),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F3F5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: textGray,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE8F5E9),
+                    decoration: BoxDecoration(
+                      color: isOutflow ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_circle_rounded,
-                      color: Color(0xFF2E7D32),
+                      color: isOutflow ? Colors.red : const Color(0xFF2E7D32),
                       size: 52,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Revenue Received',
-                    style: TextStyle(
+                  Text(
+                    isOutflow ? 'Payment Sent' : 'Revenue Received',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: textDark,
@@ -1691,6 +1713,33 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     ),
                   ],
                   const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      _shareTransactionReceipt(
+                        context,
+                        tx,
+                        projectName,
+                        title,
+                        formattedAmt,
+                        isOutflow,
+                        dateStr,
+                        timeStr,
+                        refId,
+                        attachments,
+                      );
+                    },
+                    icon: const Icon(Icons.share_outlined, color: primaryBlue),
+                    label: const Text(
+                      'Share Receipt Summary',
+                      style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: primaryBlue, width: 1.5),
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -1699,7 +1748,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             _confirmDeleteTransaction(context, tx, onRefresh);
                           },
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          label: const Text('Delete Inflow', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          label: Text(isOutflow ? 'Delete Outflow' : 'Delete Inflow', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.red),
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1715,7 +1764,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                             _showAddRevenueDialog(context, project?.id ?? tx['project']?.toString() ?? '', editingTx: tx, onSave: onRefresh);
                           },
                           icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                          label: const Text('Edit Inflow', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          label: Text(isOutflow ? 'Edit Outflow' : 'Edit Inflow', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryBlue,
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1735,13 +1784,75 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 
+  void _shareTransactionReceipt(
+    BuildContext context,
+    Map<String, dynamic> tx,
+    String projectName,
+    String title,
+    String formattedAmt,
+    bool isOutflow,
+    String dateStr,
+    String timeStr,
+    String refId,
+    List<dynamic> attachments,
+  ) async {
+    try {
+      final typeLabel = isOutflow ? 'Money Out (Expense)' : 'Revenue Received (Inflow)';
+      final amountPrefix = isOutflow ? '-₹' : '+₹';
+      
+      final StringBuffer buffer = StringBuffer();
+      buffer.writeln('📊 BuildTrack Transaction Receipt');
+      buffer.writeln('================================');
+      buffer.writeln('Type: $typeLabel');
+      buffer.writeln('Title: $title');
+      buffer.writeln('Amount: $amountPrefix$formattedAmt');
+      buffer.writeln('Project: $projectName');
+      buffer.writeln('Payment Method: ${tx['paymentMode']?.toString() ?? 'Cash'}');
+      buffer.writeln('Date: $dateStr');
+      buffer.writeln('Time: $timeStr');
+      buffer.writeln('Reference ID: $refId');
+      buffer.writeln('Status: ${tx['paymentStatus']?.toString().toUpperCase() ?? 'PAID'}');
+      
+      if (tx['notes'] != null && tx['notes'].toString().trim().isNotEmpty) {
+        buffer.writeln('Notes: ${tx['notes'].toString().trim()}');
+      }
+      
+      buffer.writeln('================================');
+      buffer.writeln('Generated via BuildTrack App');
+
+      if (attachments.isNotEmpty) {
+        final attachmentUrl = attachments.first.toString();
+        if (attachmentUrl.startsWith('http')) {
+          buffer.writeln('\nProof of Payment: $attachmentUrl');
+        }
+      }
+
+      await SharePlus.instance.share(
+        ShareParams(
+          text: buffer.toString(),
+          subject: 'Receipt Summary - $projectName',
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing receipt: $e')),
+        );
+      }
+    }
+  }
+
   void _confirmDeleteTransaction(BuildContext context, Map<String, dynamic> tx, VoidCallback? onRefresh) {
+    final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
+    final bool isOutflow = amount < 0;
+    final String label = isOutflow ? 'outflow' : 'revenue inflow';
+
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          title: const Text('Delete Inflow'),
-          content: const Text('Are you sure you want to delete this revenue inflow record? This action cannot be undone.'),
+          title: Text(isOutflow ? 'Delete Outflow' : 'Delete Inflow'),
+          content: Text('Are you sure you want to delete this $label record? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -1756,7 +1867,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                   if (context.mounted) {
                     Navigator.pop(context); // Close detail modal bottom sheet
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Revenue inflow record deleted successfully')),
+                      SnackBar(content: Text('${isOutflow ? 'Outflow' : 'Revenue inflow'} record deleted successfully')),
                     );
                     context.read<ProjectProvider>().load();
                     if (onRefresh != null) {
@@ -1766,7 +1877,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 } else {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to delete revenue inflow record')),
+                      SnackBar(content: Text('Failed to delete ${isOutflow ? 'outflow' : 'revenue inflow'} record')),
                     );
                   }
                 }
