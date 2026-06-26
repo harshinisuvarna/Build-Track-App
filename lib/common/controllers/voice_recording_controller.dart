@@ -441,7 +441,8 @@ class VoiceRecordingController extends ChangeNotifier {
 
     if (_engineState == VoiceEngineState.listening) {
       if (error.errorMsg == 'error_speech_timeout' ||
-          error.errorMsg == 'error_no_match') {
+          error.errorMsg == 'error_no_match' ||
+          error.errorMsg == 'error_client') {
         final silenceDuration = DateTime.now().difference(
           _lastResultTime ?? DateTime.now(),
         );
@@ -465,8 +466,9 @@ class VoiceRecordingController extends ChangeNotifier {
     _forceParsedTimer?.cancel();
 
     if (error.errorMsg == 'error_no_match' ||
-        error.errorMsg == 'error_speech_timeout') {
-      debugPrint('[VOICE TIMEOUT] Ending session due to silence timeout.');
+        error.errorMsg == 'error_speech_timeout' ||
+        error.errorMsg == 'error_client') {
+      debugPrint('[VOICE TIMEOUT] Ending session due to silence timeout / client stop.');
       if (_engineState == VoiceEngineState.listening ||
           _engineState == VoiceEngineState.processing) {
         _setEngineState(VoiceEngineState.processing);

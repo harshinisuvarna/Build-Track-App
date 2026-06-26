@@ -268,7 +268,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     });
 
     try {
-      final response = await ApiService.get('/transactions');
+      final response = await ApiService.get('/transactions?limit=10000');
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         List<dynamic> raw = [];

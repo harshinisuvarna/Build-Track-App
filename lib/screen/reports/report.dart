@@ -903,66 +903,69 @@ class _ReportsViewState extends State<_ReportsView> {
                                         ),
                                       ],
                                     ),
-                                    Row(
-                                      children: [
-                                        if (quickCategoryTab == 'All') ...[
-                                          InkWell(
-                                            onTap: () => _showCustomizeColumnsDialog(context, quickCategoryTab),
-                                            borderRadius: BorderRadius.circular(20),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary.withValues(alpha: 0.08),
-                                                borderRadius: BorderRadius.circular(20),
-                                                border: Border.all(
-                                                  color: AppColors.primary.withValues(alpha: 0.2),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: const [
-                                                  Icon(
-                                                    Icons.edit_note,
-                                                    size: 14,
-                                                    color: AppColors.primary,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Wrap(
+                                        alignment: WrapAlignment.end,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 4,
+                                        runSpacing: 6,
+                                        children: [
+                                          if (quickCategoryTab == 'All')
+                                            InkWell(
+                                              onTap: () => _showCustomizeColumnsDialog(context, quickCategoryTab),
+                                              borderRadius: BorderRadius.circular(20),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  border: Border.all(
+                                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                                    width: 1,
                                                   ),
-                                                  SizedBox(width: 4),
-                                                  Text(
-                                                    'Edit Columns',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: const [
+                                                    Icon(
+                                                      Icons.edit_note,
+                                                      size: 14,
                                                       color: AppColors.primary,
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
-                                        IconButton(
-                                          tooltip: 'View Full Screen',
-                                          icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (context) => _FullScreenLogsViewer(
-                                                  columns: columns,
-                                                  filteredEntries: filtered,
-                                                  getProjectName: getProjectName,
-                                                  quickCategoryTab: quickCategoryTab,
-                                                  title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
-                                                  onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                  onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                  activeColumns: uiActiveCols,
+                                                    SizedBox(width: 4),
+                                                    Text(
+                                                      'Edit Columns',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: AppColors.primary,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 4),
+                                            ),
+                                          IconButton(
+                                            tooltip: 'View Full Screen',
+                                            icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
+                                            onPressed: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (context) => _FullScreenLogsViewer(
+                                                    columns: columns,
+                                                    filteredEntries: filtered,
+                                                    getProjectName: getProjectName,
+                                                    quickCategoryTab: quickCategoryTab,
+                                                    title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
+                                                    onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                    onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
+                                                    activeColumns: uiActiveCols,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         Theme(
                                           data: Theme.of(context).copyWith(
                                             cardColor: Colors.white,
@@ -1040,6 +1043,7 @@ class _ReportsViewState extends State<_ReportsView> {
                                         ),
                                       ],
                                     ),
+                                  ),
                                   ],
                                 ),
                               ),
