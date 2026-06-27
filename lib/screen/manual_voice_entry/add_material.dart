@@ -448,9 +448,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map
-            ? (pId['_id']?.toString())
-            : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
       _nameCtrl.text = _safeString(
         argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
@@ -655,9 +658,12 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map
-            ? (pId['_id']?.toString())
-            : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
       _nameCtrl.text = _safeString(
         argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
@@ -1108,18 +1114,18 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final pos = _scrollCtrl.position;
-      final top = pos.maxScrollExtent;
-      // Scroll up a bit so the user can see the context
-      _scrollCtrl.animateTo(
-        top > 0 ? 0 : 0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
   bool _validate() {
+    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
@@ -1313,10 +1319,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
 
       _snack(
         _isEditing
-            ? 'Material entry UPDATED successfully!'
-            : 'NEW material entry created!',
+            ? 'Material entry updated successfully!'
+            : 'Material entry saved successfully!',
       );
-      Navigator.maybePop(context);
+      // Navigate to inventory, clearing the entry form from stack
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/inventory',
+        (route) => route.settings.name == '/' || route.isFirst,
+      );
     } else {
       _snack('Error saving to server. Please try again.');
     }

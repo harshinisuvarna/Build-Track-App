@@ -180,42 +180,46 @@ class ApiService {
   // TRANSACTION API METHODS
   // ==========================================
 
-  static Future<List<dynamic>> fetchMaterials() async {
-    try {
-      final response = await get('/transactions');
+  static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
+  try {
+    String endpoint = '/transactions';
+    if (projectId != null && projectId.isNotEmpty) {
+      endpoint += '?project=$projectId';
+    }
+    final response = await get(endpoint);
 
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded is List) {
-          return decoded;
-        } else if (decoded is Map) {
-          return decoded['transactions'] ?? decoded['data'] ?? [];
-        }
-        return [];
-      } else if (response.statusCode == 401) {
-        if (kDebugMode) {
-          debugPrint(
-            'AUTH Error: Token missing or expired (401). Body: ${response.body}',
-          );
-        }
-        throw Exception('Unauthorized – please log in again');
-      } else {
-        if (kDebugMode) {
-          debugPrint(
-            'GET /transactions failed with status ${response.statusCode}: ${response.body}',
-          );
-        }
-        throw Exception(
-          'Failed to load transactions (HTTP ${response.statusCode})',
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('GET Error: $e');
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is List) {
+        return decoded;
+      } else if (decoded is Map) {
+        return decoded['transactions'] ?? decoded['data'] ?? [];
       }
       return [];
+    } else if (response.statusCode == 401) {
+      if (kDebugMode) {
+        debugPrint(
+          'AUTH Error: Token missing or expired (401). Body: ${response.body}',
+        );
+      }
+      throw Exception('Unauthorized – please log in again');
+    } else {
+      if (kDebugMode) {
+        debugPrint(
+          'GET /transactions failed with status ${response.statusCode}: ${response.body}',
+        );
+      }
+      throw Exception(
+        'Failed to load transactions (HTTP ${response.statusCode})',
+      );
     }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('GET Error: $e');
+    }
+    return [];
   }
+}
 
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
@@ -391,11 +395,17 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String rawType = (t['type'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
           if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
+          // ── Only Approved entries count toward inventory/stock ──────────
+          final String approvalStatus = (t['approvalStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
+          if (approvalStatus != 'approved') {
             continue;
           }
 
@@ -563,15 +573,20 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String rawType = (t['type'] ?? '')
-              .toString()
-              .trim()
-              .toLowerCase();
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
 
-          final String itemName =
+          // ── Only Approved entries count toward inventory/stock ──────────
+          final String approvalStatus = (t['approvalStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
+          if (approvalStatus != 'approved') {
+            continue;
+          }
+          final String itemName =   
               (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
                   .toString()
                   .trim();
@@ -889,9 +904,17 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> fetchApprovalsHistory() async {
+  static Future<Map<String, dynamic>?> fetchApprovalsHistory({
+    String? projectId,
+  }) async {
     try {
-      final response = await get('/approvals/history');
+      String endpoint = '/approvals/history';
+
+      if (projectId != null && projectId.isNotEmpty) {
+        endpoint += '?project=$projectId';
+      }
+
+      final response = await get(endpoint);
       if (kDebugMode) {
         debugPrint('fetchApprovalsHistory status: ${response.statusCode}');
         debugPrint('fetchApprovalsHistory body: ${response.body}');
@@ -953,30 +976,67 @@ class ApiService {
     }
   }
 
-  /// Fetches recent transactions created by the currently logged-in user only.
-  static Future<List<dynamic>> fetchMyRecentEntries() async {
-    try {
-      final response = await get('/transactions/my?limit=10');
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded is List) return decoded;
-        return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
-      }
-      // Fallback: try with createdBy param if /my route doesn't exist yet
-      final prefs = await SharedPreferences.getInstance();
-      final userId =
-          prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
-      if (userId.isNotEmpty) {
-        final fallback = await get('/transactions?createdBy=$userId&limit=10');
-        if (fallback.statusCode == 200) {
-          final decoded = json.decode(fallback.body);
-          if (decoded is List) return decoded;
-          return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
-        }
-      }
-    } catch (e) {
-      debugPrint('fetchMyRecentEntries error: $e');
+  /// Fetches recent inventory-related entries for the home screen.
+/// - Admin: sees recent valid entries across inventory
+/// - Others: sees their own recent valid entries only
+/// - Rejected entries are excluded
+/// - If projectId is passed, only that project's entries are returned
+static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final userId =
+        prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
+    final role = (prefs.getString('role') ?? prefs.getString('userRole') ?? '')
+        .toLowerCase()
+        .trim();
+
+    String url = '/transactions?limit=10';
+
+    if (projectId != null && projectId.isNotEmpty) {
+      url += '&project=$projectId';
     }
-    return [];
+
+    if (role != 'admin' && userId.isNotEmpty) {
+      url += '&createdBy=$userId';
+    }
+
+    final response = await get(url);
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      final List<dynamic> rawEntries = decoded is List
+          ? decoded
+          : (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+
+      final filtered = rawEntries.where((entry) {
+        if (entry is! Map<String, dynamic>) return false;
+
+        final type = (entry['type'] ?? '').toString().toLowerCase().trim();
+        final approvalStatus = (entry['approvalStatus'] ?? '')
+            .toString()
+            .toLowerCase()
+            .trim();
+
+        if (type == 'income' || type == 'revenue') return false;
+        if (approvalStatus == 'rejected') return false;
+        if (approvalStatus.isNotEmpty && approvalStatus != 'approved') {
+          return false;
+        }
+
+        return true;
+      }).toList();
+
+      filtered.sort((a, b) {
+        final aDate = (a['date'] ?? a['createdAt'] ?? '').toString();
+        final bDate = (b['date'] ?? b['createdAt'] ?? '').toString();
+        return bDate.compareTo(aDate);
+      });
+
+      return filtered.take(10).toList();
+    }
+  } catch (e) {
+    debugPrint('fetchMyRecentEntries error: $e');
   }
+  return [];
+}
 }

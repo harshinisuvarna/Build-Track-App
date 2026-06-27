@@ -515,9 +515,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map
-            ? (pId['_id']?.toString())
-            : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
       _nameCtrl.text = _safeString(
         argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
@@ -714,9 +717,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map
-            ? (pId['_id']?.toString())
-            : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
       _nameCtrl.text = _safeString(
         argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
@@ -1158,11 +1164,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _scrollCtrl.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -1341,10 +1349,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       context.read<ProjectProvider>().load();
       _snack(
         _isEditing
-            ? 'Equipment log UPDATED successfully!'
-            : 'NEW Equipment log created!',
+            ? 'Equipment entry updated successfully!'
+            : 'Equipment entry saved successfully!',
       );
-      Navigator.maybePop(context);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/inventory',
+        (route) => route.settings.name == '/' || route.isFirst,
+      );
     } else {
       _snack('Error saving to server. Please try again.');
     }
