@@ -932,39 +932,42 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEEF0FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              method.toUpperCase(),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formattedDate,
                               style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: primaryBlue,
-                                letterSpacing: 0.5,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: textDark,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 3),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF0FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                method.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: primaryBlue,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         formatCurrency(amt),
                         style: const TextStyle(

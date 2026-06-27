@@ -165,8 +165,8 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePass
-                  ? Icons.remove_red_eye_outlined
-                  : Icons.visibility_off_outlined,
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: AppColors.textLight,
               size: 20,
             ),
@@ -182,8 +182,8 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           suffixIcon: IconButton(
             icon: Icon(
               _obscureConfirm
-                  ? Icons.remove_red_eye_outlined
-                  : Icons.visibility_off_outlined,
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: AppColors.textLight,
               size: 20,
             ),

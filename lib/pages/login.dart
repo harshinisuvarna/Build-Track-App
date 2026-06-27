@@ -106,8 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePass
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined,
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
             ),
             onPressed: () => setState(() => _obscurePass = !_obscurePass),
           ),

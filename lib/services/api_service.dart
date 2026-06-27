@@ -366,8 +366,8 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      String endpoint = '/transactions';
-      if (projectId.isNotEmpty) endpoint += '?project=$projectId';
+      String endpoint = '/transactions?limit=10000';
+      if (projectId.isNotEmpty) endpoint += '&project=$projectId';
 
       final response = await get(endpoint);
 
@@ -545,7 +545,7 @@ class ApiService {
     String? projectId,
   }) async {
     try {
-      String endpoint = '/transactions?';
+      String endpoint = '/transactions?limit=10000&';
       if (projectId != null && projectId.isNotEmpty) {
         endpoint += 'project=$projectId&';
       }
@@ -751,7 +751,7 @@ class ApiService {
     try {
       List<dynamic> projectTxs = [];
       try {
-        String projectUrl = '/transactions?project=$projectId&type=$type';
+        String projectUrl = '/transactions?limit=10000&project=$projectId&type=$type';
         if (userId != null && userId.isNotEmpty) {
           projectUrl += '&createdBy=$userId';
         }
@@ -769,7 +769,7 @@ class ApiService {
 
       List<dynamic> globalTxs = [];
       try {
-        String globalUrl = '/transactions?type=$type';
+        String globalUrl = '/transactions?limit=10000&type=$type';
         if (userId != null && userId.isNotEmpty) {
           globalUrl += '&createdBy=$userId';
         }
