@@ -695,7 +695,7 @@ class ApiService {
 
   static Future<bool> resetPassword(String email) async {
     try {
-      final response = await post('/auth/reset-password', {'email': email});
+      final response = await post('/auth/forgot-password', {'email': email});
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {

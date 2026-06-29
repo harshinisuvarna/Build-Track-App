@@ -1641,12 +1641,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
 
+      // ── Carry over the previously paid amount (for outstanding-balance
+      // ── calculations) but leave the "Pay Now" toggle OFF — the user must
+      // ── explicitly switch it on to log a new payment.
       final pStatus = tx['paymentStatus']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-        _isAddAndPay = true;
-        _paymentMethod = tx['paymentMode'] ?? 'Cash';
-        _existingPaidAmount = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _existingPaidAmount = _parseDouble(tx['paidAmount']);
       }
+      _recordPaymentNow = false;
+      _paymentResult = null;
     });
   }
 

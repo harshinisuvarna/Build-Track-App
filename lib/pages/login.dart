@@ -123,6 +123,20 @@ class _LoginScreenState extends State<LoginScreen> {
           label: _loading ? 'Signing in...' : 'Sign In',
           onPressed: _loading ? null : _login,
         ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/forgot-password'),
+            child: Text(
+              'Forgot password?',
+              style: AppTheme.body.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
         Wrap(
           alignment: WrapAlignment.center,
