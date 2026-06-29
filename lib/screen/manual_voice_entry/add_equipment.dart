@@ -1175,6 +1175,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   bool _validate() {
+    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
