@@ -27,7 +27,7 @@ class ApiService {
     debugPrint('API Request [GET]: $url');
     final response = await http
         .get(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -43,7 +43,7 @@ class ApiService {
     debugPrint('Payload: ${jsonEncode(body)}');
     final response = await http
         .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -59,7 +59,7 @@ class ApiService {
     debugPrint('Payload: ${jsonEncode(body)}');
     final response = await http
         .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -71,7 +71,7 @@ class ApiService {
     debugPrint('API Request [DELETE]: $url');
     final response = await http
         .delete(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -693,21 +693,39 @@ class ApiService {
     }
   }
 
-  static Future<bool> resetPassword(String email) async {
-    try {
-      final response = await post('/auth/forgot-password', {'email': email});
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else {
-        throw Exception('Server returned ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('resetPassword Error: $e');
-      }
-      rethrow;
+  static Future<String?> resetPassword(String email) async {
+  try {
+    final response = await post('/auth/forgot-password', {'email': email});
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final body = json.decode(response.body);
+      return body['resetToken'] as String?; // null in production
+    } else {
+      throw Exception('Server returned ${response.statusCode}');
     }
+  } catch (e) {
+    if (kDebugMode) debugPrint('resetPassword Error: $e');
+    rethrow;
   }
+}
+
+  static Future<void> confirmResetPassword({
+  required String token,
+  required String password,
+}) async {
+  try {
+    final response = await post('/auth/reset-password', {
+      'token': token,
+      'password': password,
+    });
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      final body = json.decode(response.body);
+      throw Exception(body['message'] ?? 'Failed to reset password');
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('confirmResetPassword Error: $e');
+    rethrow;
+  }
+}
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
