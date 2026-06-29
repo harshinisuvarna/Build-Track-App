@@ -60,8 +60,7 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline,
-                  color: AppColors.textLight, size: 48),
+              const Icon(Icons.lock_outline, color: AppColors.textLight, size: 48),
               const SizedBox(height: 12),
               Text(
                 'Session expired. Please log in again.',
@@ -84,65 +83,38 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
         authToken: token!,
         baseUrl: baseUrl,
       ),
-      child: const _AiChatView(),
+      child: const _AiDashboardView(),
     );
   }
 }
 
-// ─── Chat view ────────────────────────────────────────────────────────────────
+// ─── Dashboard view ────────────────────────────────────────────────────────────
 
-class _AiChatView extends StatefulWidget {
-  const _AiChatView();
+class _AiDashboardView extends StatefulWidget {
+  const _AiDashboardView();
+
   @override
-  State<_AiChatView> createState() => _AiChatViewState();
+  State<_AiDashboardView> createState() => _AiDashboardViewState();
 }
 
-class _AiChatViewState extends State<_AiChatView> {
-  final controller = TextEditingController();
-  final scrollController = ScrollController();
+class _AiDashboardViewState extends State<_AiDashboardView> {
+  final _searchController = TextEditingController();
 
   @override
   void dispose() {
-    controller.dispose();
-    scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void send(String text) {
-    if (text.trim().isEmpty) return;
-    controller.clear();
-    context.read<AiChatReportProvider>().send(text);
-    scrollToBottom();
-  }
-
-  void scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scrollController.hasClients) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  void _submitSearch(BuildContext context, String query) {
+    if (query.trim().isEmpty) return;
+    FocusScope.of(context).unfocus();
+    context.read<AiChatReportProvider>().sendQuery(query);
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AiChatReportProvider>();
-    final projectProvider = context.watch<ProjectProvider>();
-    final selectedName =
-        projectProvider.selectedProject?.name ?? 'All Projects';
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scrollController.hasClients && provider.messages.isNotEmpty) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
 
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
@@ -150,726 +122,155 @@ class _AiChatViewState extends State<_AiChatView> {
         bottom: false,
         child: Column(
           children: [
-            // ── Top bar ──
+            // Top Bar
             AppTopBar(
-              title: 'Ask AI',
+              title: 'Construction Intelligence',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              rightWidget: provider.messages.isNotEmpty
-                  ? GestureDetector(
-                      onTap: () => showClearDialog(context, provider),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F1F8),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.delete_outline,
-                            color: AppColors.textLight, size: 18),
-                      ),
+              rightWidget: provider.state == AiReportState.results
+                  ? IconButton(
+                      icon: const Icon(Icons.refresh, color: AppColors.textLight),
+                      onPressed: () {
+                        _searchController.clear();
+                        provider.resetToInitial();
+                      },
                     )
                   : null,
             ),
 
-            // ── Project selector ──
+            // Persistent Search Bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: _ProjectSelectorPill(
-                projects: projectProvider.projects,
-                selectedId: projectProvider.selectedProject?.id,
-                onChanged: (projectId) {
-                  if (projectId == null) {
-                    // All Projects — no selectProject call needed,
-                    // AiChatReportProvider already sends 'all' when
-                    // selectedProject is null on the ProjectProvider
-                    provider.clearHistory();
-                  } else {
-                    final picked = projectProvider.projects
-                        .firstWhere((p) => p.id == projectId);
-                    projectProvider.selectProject(picked);
-                    provider.clearHistory();
-                  }
-                },
-              ),
-            ),
-
-            // ── Message list ──
-            Expanded(
-              child: provider.isEmpty
-                  ? _EmptyState(
-                      onChipTap: send,
-                      projectName: selectedName,
-                    )
-                  : ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      itemCount:
-                          provider.messages.length + (provider.isTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == provider.messages.length) {
-                          return const _TypingBubble();
-                        }
-                        final msg = provider.messages[index];
-                        if (msg.role == MessageRole.user) {
-                          return _UserBubble(message: msg);
-                        }
-                        return _AssistantBubble(message: msg);
-                      },
-                    ),
-            ),
-
-            // ── Suggested chips ──
-            if (!provider.isEmpty && !provider.isTyping)
-              _SuggestedChips(onChipTap: send),
-
-            // ── Input bar ──
-            _InputBar(
-              controller: controller,
-              isTyping: provider.isTyping,
-              onSend: send,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void showClearDialog(BuildContext context, AiChatReportProvider provider) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Clear chat history?'),
-        content: const Text('All messages will be removed.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              provider.clearHistory();
-              Navigator.pop(context);
-            },
-            child: const Text('Clear',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Project selector pill ────────────────────────────────────────────────────
-
-class _ProjectSelectorPill extends StatelessWidget {
-  const _ProjectSelectorPill({
-    required this.projects,
-    required this.selectedId,
-    required this.onChanged,
-  });
-
-  final List projects;
-  final String? selectedId;
-  final ValueChanged<String?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFDDE0F0)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(
-          value: selectedId,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down,
-              size: 18, color: AppColors.textLight),
-          style: AppTheme.body.copyWith(
-              color: AppColors.textDark,
-              fontSize: 13,
-              fontWeight: FontWeight.w600),
-          items: [
-            // All Projects option
-            const DropdownMenuItem<String?>(
-              value: null,
-              child: Row(
-                children: [
-                  Icon(Icons.layers_outlined,
-                      size: 15, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Text('All Projects'),
-                ],
-              ),
-            ),
-            // One entry per project
-            ...projects.map((p) => DropdownMenuItem<String?>(
-                  value: p.id,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.folder_outlined,
-                          size: 15, color: AppColors.textLight),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          p.name ?? 'Unnamed',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onChipTap, required this.projectName});
-  final ValueChanged<String> onChipTap;
-  final String projectName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.auto_awesome,
-                color: AppColors.primary, size: 30),
-          ),
-          const SizedBox(height: 16),
-          Text('Ask about your project',
-              style: AppTheme.heading3.copyWith(color: AppColors.textDark)),
-          const SizedBox(height: 6),
-          // Shows which project is currently scoped
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              projectName,
-              style: AppTheme.caption.copyWith(
-                  color: AppColors.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Ask anything about costs, entries,\nor inventory across your projects.',
-            textAlign: TextAlign.center,
-            style: AppTheme.caption
-                .copyWith(color: AppColors.textLight, height: 1.5),
-          ),
-          const SizedBox(height: 32),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: kSuggestedQuestions
-                .map((q) => _Chip(label: q, onTap: () => onChipTap(q)))
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── User bubble ──────────────────────────────────────────────────────────────
-
-class _UserBubble extends StatelessWidget {
-  const _UserBubble({required this.message});
-  final ChatMessage message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Container(
-            constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(4),
-              ),
-            ),
-            child: Text(
-              message.text,
-              style: const TextStyle(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Container(
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(message.timeString,
-              style: AppTheme.caption
-                  .copyWith(color: AppColors.textLight, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Assistant bubble ─────────────────────────────────────────────────────────
-
-class _AssistantBubble extends StatelessWidget {
-  const _AssistantBubble({required this.message});
-  final ChatMessage message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.82),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
-              ],
-            ),
-            child: _HighlightedText(text: message.text),
-          ),
-          if (message.tableType == TableType.entries &&
-              message.entryRows.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _EntryTable(
-                title: message.tableTitle ?? 'Entries',
-                rows: message.entryRows,
-                totalAmount: message.totalAmount,
-              ),
-            ),
-          if (message.tableType == TableType.inventory &&
-              message.inventoryRows.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _InventoryTable(rows: message.inventoryRows),
-            ),
-          const SizedBox(height: 4),
-          Text(message.timeString,
-              style: AppTheme.caption
-                  .copyWith(color: AppColors.textLight, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Highlighted text ─────────────────────────────────────────────────────────
-
-class _HighlightedText extends StatelessWidget {
-  const _HighlightedText({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final spans = <TextSpan>[];
-    final regex = RegExp(r'₹[\d,]+');
-    int last = 0;
-    for (final match in regex.allMatches(text)) {
-      if (match.start > last) {
-        spans.add(TextSpan(
-          text: text.substring(last, match.start),
-          style: const TextStyle(
-              color: Color(0xFF2D3142), fontSize: 14, height: 1.5),
-        ));
-      }
-      spans.add(TextSpan(
-        text: match.group(0),
-        style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            height: 1.5),
-      ));
-      last = match.end;
-    }
-    if (last < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(last),
-        style: const TextStyle(
-            color: Color(0xFF2D3142), fontSize: 14, height: 1.5),
-      ));
-    }
-    return RichText(text: TextSpan(children: spans));
-  }
-}
-
-// ─── Entry table ──────────────────────────────────────────────────────────────
-
-class _EntryTable extends StatelessWidget {
-  const _EntryTable({
-    required this.title,
-    required this.rows,
-    this.totalAmount,
-  });
-  final String title;
-  final List<ChatTableRow> rows;
-  final double? totalAmount;
-
-  String fmt(double v) {
-    if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(0)}K';
-    return '₹${v.toStringAsFixed(0)}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasQty =
-        rows.any((r) => r.quantity != null && r.quantity!.isNotEmpty);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Text(title,
-                style: AppTheme.label.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                hCell('Date', flex: 2),
-                hCell('Item', flex: 3),
-                if (hasQty) hCell('Qty', flex: 2),
-                hCell('Amount', flex: 2, align: TextAlign.right),
-              ],
-            ),
-          ),
-          const Divider(height: 10, thickness: 1, color: Color(0xFFF0F1F5)),
-          ...rows.map((row) => Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 7),
-                child: Row(
-                  children: [
-                    dCell(row.date, flex: 2),
-                    dCell(row.item, flex: 3),
-                    if (hasQty)
-                      dCell(
-                        row.quantity != null && row.unit != null
-                            ? '${row.quantity} ${row.unit}'
-                            : row.quantity ?? '-',
-                        flex: 2,
-                      ),
-                    dCell(fmt(row.amount),
-                        flex: 2,
-                        align: TextAlign.right,
-                        bold: true,
-                        color: AppColors.primary),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
-              )),
-          if (totalAmount != null) ...[
-            const Divider(height: 10, thickness: 1, color: Color(0xFFF0F1F5)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('Total',
-                        style: AppTheme.label.copyWith(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w700)),
+                child: TextField(
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (val) => _submitSearch(context, val),
+                  decoration: InputDecoration(
+                    hintText: 'Ask about materials, costs, projects...',
+                    hintStyle: AppTheme.body.copyWith(color: AppColors.textLight),
+                    prefixIcon: const Icon(Icons.auto_awesome, color: AppColors.primary),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: AppColors.textLight),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {}); // Trigger rebuild to hide clear icon
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                  Text(fmt(totalAmount!),
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13)),
-                ],
-              ),
-            ),
-          ] else
-            const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget hCell(String text,
-      {int flex = 1, TextAlign align = TextAlign.left}) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          textAlign: align,
-          style: AppTheme.caption.copyWith(
-              color: AppColors.textLight,
-              fontSize: 10,
-              fontWeight: FontWeight.w600)),
-    );
-  }
-
-  Widget dCell(String text,
-      {int flex = 1,
-      TextAlign align = TextAlign.left,
-      bool bold = false,
-      Color? color}) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          textAlign: align,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: color ?? const Color(0xFF2D3142),
-            fontSize: 12,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-          )),
-    );
-  }
-}
-
-// ─── Inventory table ──────────────────────────────────────────────────────────
-
-class _InventoryTable extends StatelessWidget {
-  const _InventoryTable({required this.rows});
-  final List<InventoryRow> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Text('Low stock alerts',
-                style: AppTheme.label.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12)),
-          ),
-          ...rows.map((row) {
-            final Color dotColor;
-            final Color badgeColor;
-            final Color badgeBg;
-            final String label;
-            switch (row.severity) {
-              case 'critical':
-                dotColor = Colors.redAccent;
-                badgeColor = Colors.redAccent;
-                badgeBg = const Color(0xFFFFEEEE);
-                label = 'Critical';
-                break;
-              case 'low':
-                dotColor = Colors.orange;
-                badgeColor = Colors.orange;
-                badgeBg = const Color(0xFFFFF3E0);
-                label = 'Low';
-                break;
-              default:
-                dotColor = AppColors.success;
-                badgeColor = AppColors.success;
-                badgeBg = const Color(0xFFE8F5E9);
-                label = 'OK';
-            }
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration:
-                        BoxDecoration(color: dotColor, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(row.name,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF2D3142),
-                            fontWeight: FontWeight.w500)),
-                  ),
-                  Text('${row.quantity.toStringAsFixed(0)} ${row.unit}',
-                      style: AppTheme.caption
-                          .copyWith(color: AppColors.textLight, fontSize: 12)),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: badgeBg,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(label,
-                        style: TextStyle(
-                            color: badgeColor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Typing indicator ─────────────────────────────────────────────────────────
-
-class _TypingBubble extends StatefulWidget {
-  const _TypingBubble();
-  @override
-  State<_TypingBubble> createState() => _TypingBubbleState();
-}
-
-class _TypingBubbleState extends State<_TypingBubble>
-    with SingleTickerProviderStateMixin {
-  late AnimationController ctrl;
-  late Animation<double> anim;
-
-  @override
-  void initState() {
-    super.initState();
-    ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat(reverse: true);
-    anim = Tween(begin: 0.3, end: 1.0).animate(ctrl);
-  }
-
-  @override
-  void dispose() {
-    ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8)
-              ],
-            ),
-            child: FadeTransition(
-              opacity: anim,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(
-                  3,
-                  (i) => Container(
-                    width: 7,
-                    height: 7,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-// ─── Suggested chips ──────────────────────────────────────────────────────────
-
-class _SuggestedChips extends StatelessWidget {
-  const _SuggestedChips({required this.onChipTap});
-  final ValueChanged<String> onChipTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: kSuggestedQuestions.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => _Chip(
-          label: kSuggestedQuestions[i],
-          onTap: () => onChipTap(kSuggestedQuestions[i]),
+            // Main Content Area based on state
+            Expanded(
+              child: _buildContent(provider),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildContent(AiChatReportProvider provider) {
+    switch (provider.state) {
+      case AiReportState.initial:
+        return _InitialState(onPromptSelected: (prompt) {
+          _searchController.text = prompt;
+          _submitSearch(context, prompt);
+        });
+      case AiReportState.loading:
+        return const _LoadingState();
+      case AiReportState.error:
+        return _ErrorState(
+          error: provider.errorMessage ?? 'An unknown error occurred.',
+          onRetry: () => _submitSearch(context, _searchController.text),
+        );
+      case AiReportState.results:
+        return _ResultsState(
+          result: provider.result!,
+          onActionTap: (action) {
+            _searchController.text = action;
+            _submitSearch(context, action);
+          },
+        );
+    }
+  }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.onTap});
-  final String label;
+// ─── Initial State ─────────────────────────────────────────────────────────────
+
+class _InitialState extends StatelessWidget {
+  const _InitialState({required this.onPromptSelected});
+  final ValueChanged<String> onPromptSelected;
+
+  final List<String> quickPrompts = const [
+    'Show material usage',
+    'Compare project costs',
+    'Low stock materials',
+    'Labour summary',
+    'Equipment usage',
+    'Monthly spending',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AiChatReportProvider>();
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        const SizedBox(height: 24),
+        Text(
+          'Quick Insights',
+          style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: quickPrompts.map((p) => _PromptCard(prompt: p, onTap: () => onPromptSelected(p))).toList(),
+        ),
+        
+        if (provider.recentSearches.isNotEmpty) ...[
+          const SizedBox(height: 32),
+          Text(
+            'Recent Searches',
+            style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+          ),
+          const SizedBox(height: 12),
+          ...provider.recentSearches.map((s) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.history, color: AppColors.textLight),
+            title: Text(s, style: AppTheme.body.copyWith(color: AppColors.textDark)),
+            onTap: () => onPromptSelected(s),
+          )),
+        ]
+      ],
+    );
+  }
+}
+
+class _PromptCard extends StatelessWidget {
+  const _PromptCard({required this.prompt, required this.onTap});
+  final String prompt;
   final VoidCallback onTap;
 
   @override
@@ -877,23 +278,22 @@ class _Chip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        width: (MediaQuery.of(context).size.width / 2) - 24,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFDDE0F0)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.auto_awesome,
-                size: 12, color: AppColors.primary),
-            const SizedBox(width: 5),
-            Text(label,
-                style: AppTheme.caption.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12)),
+            const Icon(Icons.insights, color: AppColors.primary, size: 20),
+            const SizedBox(height: 12),
+            Text(
+              prompt,
+              style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),
@@ -901,71 +301,439 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ─── Input bar ────────────────────────────────────────────────────────────────
+// ─── Loading State ─────────────────────────────────────────────────────────────
 
-class _InputBar extends StatelessWidget {
-  const _InputBar({
-    required this.controller,
-    required this.isTyping,
-    required this.onSend,
-  });
-  final TextEditingController controller;
-  final bool isTyping;
-  final ValueChanged<String> onSend;
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSkeletonBox(height: 100, width: double.infinity),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildSkeletonBox(height: 80)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildSkeletonBox(height: 80)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSkeletonBox(height: 200, width: double.infinity),
+          const SizedBox(height: 32),
+          Center(
+            child: Column(
+              children: [
+                const CircularProgressIndicator(color: AppColors.primary),
+                const SizedBox(height: 16),
+                Text('Generating analytics...', style: AppTheme.body.copyWith(color: AppColors.textLight)),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonBox({required double height, double? width}) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+}
+
+// ─── Error State ─────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.error, required this.onRetry});
+  final String error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to generate report',
+              style: AppTheme.heading3.copyWith(color: AppColors.textDark),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: AppTheme.body.copyWith(color: AppColors.textLight),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Results State ─────────────────────────────────────────────────────────────
+
+class _ResultsState extends StatelessWidget {
+  const _ResultsState({required this.result, required this.onActionTap});
+  final AiReportResult result;
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AiChatReportProvider>();
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 40),
+      children: [
+        // Alerts Section
+        if (result.alerts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: result.alerts.map((alert) {
+                final isCritical = alert['type'] == 'critical';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isCritical ? Colors.red.shade50 : Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isCritical ? Colors.red.shade200 : Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(isCritical ? Icons.warning : Icons.info, 
+                           color: isCritical ? Colors.red : Colors.orange, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          alert['message'] ?? '',
+                          style: TextStyle(
+                            color: isCritical ? Colors.red.shade900 : Colors.orange.shade900,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+        // Executive Summary
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE8EAF6), Color(0xFFC5CAE9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, color: AppColors.primary, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Executive Summary', style: AppTheme.label.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  result.summary,
+                  style: AppTheme.body.copyWith(color: AppColors.textDark, height: 1.5, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+
+        // Action Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => provider.shareSummary(),
+                icon: const Icon(Icons.share, size: 18),
+                label: const Text('Share'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              ),
+              if (result.tableRows.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () => provider.exportCsv(),
+                  icon: const Icon(Icons.download, size: 18),
+                  label: const Text('Export CSV'),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                ),
+            ],
+          ),
+        ),
+
+        // Metrics Grid (Collapsible/Dynamic based on what's available)
+        if (result.totalAmount != null || result.rowCount != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                if (result.totalAmount != null)
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Total Amount',
+                      value: _formatCurrency(result.totalAmount!),
+                      icon: Icons.currency_rupee,
+                    ),
+                  ),
+                if (result.totalAmount != null && result.rowCount != null) const SizedBox(width: 16),
+                if (result.rowCount != null)
+                  Expanded(
+                    child: _MetricCard(
+                      title: result.tableType == 'inventory' ? 'Items Tracked' : 'Total Entries',
+                      value: result.rowCount.toString(),
+                      icon: Icons.format_list_numbered,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 24),
+
+        // Project Breakdown
+        if (result.projectBreakdown.length > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('By Project', style: AppTheme.heading3),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFDDE0F0)),
+                  ),
+                  child: Column(
+                    children: List.generate(result.projectBreakdown.length, (index) {
+                      final item = result.projectBreakdown[index];
+                      final isTop = index == 0;
+                      // Fallback to quantity if amount is 0 (for inventory queries)
+                      final val = (item['totalAmount'] as num?)?.toDouble() ?? 0;
+                      final valStr = val > 0 ? _formatCurrency(val) : '${item['totalQty'] ?? 0} units';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                if (isTop) const Text('🏆 ', style: TextStyle(fontSize: 12)),
+                                if (!isTop) const SizedBox(width: 16),
+                                Text(item['projectName']?.toString() ?? 'Unknown', style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
+                              ],
+                            ),
+                            Text(valStr, style: AppTheme.body.copyWith(fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+
+        // Data Table
+        if (result.tableRows.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFDDE0F0)),
+              ),
+              child: ExpansionTile(
+                initiallyExpanded: true,
+                title: Text(
+                  result.tableType == 'inventory' ? 'Inventory Details' : 'Transaction Details',
+                  style: AppTheme.heading3.copyWith(fontSize: 16),
+                ),
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: result.tableType == 'inventory' ? _buildInventoryTable() : _buildTransactionTable(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        const SizedBox(height: 32),
+
+        // Suggested Actions
+        if (result.actions.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Suggested Explorations', style: AppTheme.label.copyWith(color: AppColors.textLight)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: result.actions.length,
+              separatorBuilder: (ctx, i) => const SizedBox(width: 8),
+              itemBuilder: (ctx, i) {
+                return ActionChip(
+                  label: Text(result.actions[i]),
+                  onPressed: () => onActionTap(result.actions[i]),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  labelStyle: const TextStyle(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.transparent)),
+                );
+              },
+            ),
+          ),
+        ]
+      ],
+    );
+  }
+
+  String _formatCurrency(double v) {
+    if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(2)}Cr';
+    if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(2)}L';
+    if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(1)}K';
+    return '₹${v.toStringAsFixed(0)}';
+  }
+
+  Widget _buildTransactionTable() {
+    return DataTable(
+      headingTextStyle: AppTheme.label.copyWith(color: AppColors.textLight, fontWeight: FontWeight.bold),
+      dataTextStyle: AppTheme.body.copyWith(color: AppColors.textDark, fontSize: 13),
+      columnSpacing: 24,
+      columns: const [
+        DataColumn(label: Text('Date')),
+        DataColumn(label: Text('Project')),
+        DataColumn(label: Text('Item')),
+        DataColumn(label: Text('Qty')),
+        DataColumn(label: Text('Amount'), numeric: true),
+      ],
+      rows: result.tableRows.map((r) {
+        final qty = r['quantity'] != null && r['quantity'].toString().isNotEmpty ? '${r['quantity']} ${r['unit'] ?? ''}' : '-';
+        return DataRow(cells: [
+          DataCell(Text(r['date']?.toString() ?? '-')),
+          DataCell(Text(r['projectName']?.toString() ?? '-')),
+          DataCell(Text(r['item']?.toString() ?? '-')),
+          DataCell(Text(qty)),
+          DataCell(Text(_formatCurrency((r['amount'] as num?)?.toDouble() ?? 0))),
+        ]);
+      }).toList(),
+    );
+  }
+
+  Widget _buildInventoryTable() {
+    return DataTable(
+      headingTextStyle: AppTheme.label.copyWith(color: AppColors.textLight, fontWeight: FontWeight.bold),
+      dataTextStyle: AppTheme.body.copyWith(color: AppColors.textDark, fontSize: 13),
+      columns: const [
+        DataColumn(label: Text('Material')),
+        DataColumn(label: Text('Type')),
+        DataColumn(label: Text('Quantity')),
+        DataColumn(label: Text('Status')),
+      ],
+      rows: result.tableRows.map((r) {
+        final severity = r['severity']?.toString() ?? 'ok';
+        Color statusColor = AppColors.success;
+        if (severity == 'critical') statusColor = AppColors.error;
+        if (severity == 'low') statusColor = Colors.orange;
+
+        return DataRow(cells: [
+          DataCell(Text(r['name']?.toString() ?? '-')),
+          DataCell(Text(r['category']?.toString().toUpperCase() ?? '-')),
+          DataCell(Text('${r['quantity'] ?? 0} ${r['unit'] ?? ''}')),
+          DataCell(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(severity.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ]);
+      }).toList(),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.title, required this.value, required this.icon});
+  final String title;
+  final String value;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.gradientStart,
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 10,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDDE0F0)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFDDE0F0)),
-              ),
-              child: TextField(
-                controller: controller,
-                enabled: !isTyping,
-                textInputAction: TextInputAction.send,
-                onSubmitted: onSend,
-                style: AppTheme.body
-                    .copyWith(color: AppColors.textDark, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Ask about material, inventory…',
-                  hintStyle: AppTheme.caption
-                      .copyWith(color: AppColors.textLight, fontSize: 13),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: isTyping ? null : () => onSend(controller.text),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: isTyping
-                    ? AppColors.primary.withValues(alpha: 0.4)
-                    : AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.send, color: Colors.white, size: 20),
-            ),
-          ),
+          Icon(icon, color: AppColors.textLight, size: 20),
+          const SizedBox(height: 12),
+          Text(value, style: AppTheme.heading2.copyWith(color: AppColors.primary)),
+          const SizedBox(height: 4),
+          Text(title, style: AppTheme.caption.copyWith(color: AppColors.textLight)),
         ],
       ),
     );
