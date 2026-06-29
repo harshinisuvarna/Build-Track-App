@@ -304,7 +304,10 @@ class ChartSection extends StatelessWidget {
     // Size reservedSize off the widest label we'll actually show,
     // so labels never get clipped or visually collide with the chart area.
     final widestLabelLength = formatY(roundedMaxY).length;
-    final dynamicReservedSize = (widestLabelLength * 7.0 + 14).clamp(44.0, 72.0);
+    final dynamicReservedSize = (widestLabelLength * 7.0 + 14).clamp(
+      44.0,
+      72.0,
+    );
 
     final isExceeded = categories.any(
       (e) =>
@@ -605,7 +608,7 @@ class CategoryBudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Using context.watch registers this const widget to rebuild 
+    // FIX: Using context.watch registers this const widget to rebuild
     // whenever ReportProvider calls notifyListeners().
     final report = context.watch<ReportProvider>().report;
 

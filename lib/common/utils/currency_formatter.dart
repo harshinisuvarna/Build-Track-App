@@ -1,8 +1,5 @@
 double? parseAmount(String input) {
-  final cleaned = input
-      .replaceAll('₹', '')
-      .replaceAll(',', '')
-      .trim();
+  final cleaned = input.replaceAll('₹', '').replaceAll(',', '').trim();
   return double.tryParse(cleaned);
 }
 

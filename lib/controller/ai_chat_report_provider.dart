@@ -120,6 +120,7 @@ class AiChatReportProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+<<<<<<< HEAD
       final uri = Uri.parse('$baseUrl/api/reports/dashboard/query');
       final projectId = projectProvider.selectedProject?.id ?? 'all';
       
@@ -132,6 +133,76 @@ class AiChatReportProvider extends ChangeNotifier {
         'query': trimmed,
         'projectId': projectId,
       });
+=======
+      final reply = await _callBackend(trimmed);
+      _messages.add(reply);
+    } catch (e) {
+      _errorMessage = 'Failed to get a response. Please try again.';
+      _messages.add(
+        ChatMessage(
+          role: MessageRole.assistant,
+          text: 'Something went wrong. Please try again.',
+        ),
+      );
+    }
+
+    _isTyping = false;
+    notifyListeners();
+  }
+
+  void clearHistory() {
+    _messages.clear();
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // ─── Backend call ─────────────────────────────────────────────────────────
+
+  // ─── Backend call ─────────────────────────────────────────────────────────
+
+  Future<ChatMessage> _callBackend(String question) async {
+    final uri = Uri.parse('$baseUrl/api/reports/ai-chat');
+
+    // Extract projectId from context if available
+    // The backend handles all logic locally from MongoDB — no AI key needed
+    final projectId = projectProvider.selectedProject?.id ?? 'all';
+
+    // Send prior turns so the backend (and the model) has conversational
+    // context. We exclude the message we just added locally (it's passed
+    // separately as `question`), and cap history length to keep payload
+    // size sane on a long-running chat.
+    const maxHistoryMessages = 20;
+    final priorMessages = _messages
+        .where((m) => m.text != question || m.role != MessageRole.user)
+        .toList();
+    final historyToSend = priorMessages.length > maxHistoryMessages
+        ? priorMessages.sublist(priorMessages.length - maxHistoryMessages)
+        : priorMessages;
+
+    final history = historyToSend
+        .map(
+          (m) => {
+            'role': m.role == MessageRole.user ? 'user' : 'assistant',
+            'text': m.text,
+          },
+        )
+        .toList();
+
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+          body: jsonEncode({
+            'question': question,
+            'projectId': projectId,
+            'history': history,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+>>>>>>> b6ea0ac2883f79e6e2607b4764aeef4697d188ae
 
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] REQUEST SENDING');

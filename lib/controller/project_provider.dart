@@ -1,21 +1,35 @@
 // ════════════════════════════════════════════════════════════════════════════
-// CHANGES FROM ORIGINAL — search "FIX 3" to find every change:
+// MERGE RESOLUTION — two conflicting versions combined, both sides kept.
+// Search "MERGE FIX" to find every spot touched during this merge.
 //
-//  FIX 3a  EntryModel gets a new `createdBy` field (nullable String).
-//          Add this field to your existing EntryModel class (in project_model.dart
-//          or wherever EntryModel is defined). See the patch comment below.
+//  MERGE FIX 1  Entry fetching/scoping (from "current" / FIX 4):
+//                 - _fetchEntriesForProject() helper scopes /transactions to
+//                   a single project and strips Rejected entries at the source
+//                 - loadEntriesForProject() lets the Home screen re-fetch
+//                   entries whenever the selected project changes
+//                 - entriesLoading flag for a scoped spinner
+//                 - addProject() / selectProject() call loadEntriesForProject()
+//                   so entries always match whichever project is selected
 //
-//  FIX 3b  ProjectProvider.load() now reads `createdBy` / `addedBy` /
-//          `submittedBy` from the API JSON and stores it on each EntryModel.
+//  MERGE FIX 2  Extra EntryModel fields (from "incoming" / FIX 3):
+//                 - paymentStatus and paymentDate are now read from the API
+//                   JSON in _fetchEntriesForProject() and attached to every
+//                   EntryModel, in addition to approvalStatus (which FIX 4
+//                   already handled).
+//                 - addEntry() now also stamps paymentStatus/paymentDate on
+//                   freshly created entries (defaulted to 'Pending' / null,
+//                   matching the payload sent to the backend for a new,
+//                   unpaid entry — NOT copied from the input `entry`, since
+//                   that's just the local draft before the server assigns
+//                   real payment state).
 //
-//  FIX 3c  ApiService.fetchRecentTransactions() and fetchSuggestions() now
-//          accept an optional `userId` parameter that is forwarded as a query
-//          param so the backend can filter server-side when supported.
-//          The frontend also does client-side filtering as a fallback.
+//  REQUIRES: EntryModel (in project_model.dart) must already define
+//  `paymentStatus` (String) and `paymentDate` (DateTime?) fields, the same
+//  way `approvalStatus` was added previously. If those fields don't exist
+//  yet on EntryModel, add them first or this file will fail to compile.
 // ════════════════════════════════════════════════════════════════════════════
 //
-// ── EntryModel PATCH ────────────────────────────────────────────────────────
-// In your project_model.dart, add `createdBy` to EntryModel:
+// ── EntryModel PATCH (in project_model.dart) ──────────────────────────────
 //
 //   class EntryModel {
 //     final String id;
@@ -29,7 +43,10 @@
 //     final String? unit;
 //     final String? floor;
 //     final ProjectStage? phase;
-//     final String? createdBy;   // <-- ADD THIS FIELD
+//     final String? createdBy;
+//     final String? approvalStatus;
+//     final String? paymentStatus;     // <-- REQUIRED FOR THIS MERGE
+//     final DateTime? paymentDate;     // <-- REQUIRED FOR THIS MERGE
 //
 //     EntryModel({
 //       required this.id,
@@ -43,14 +60,19 @@
 //       this.unit,
 //       this.floor,
 //       this.phase,
-//       this.createdBy,            // <-- ADD TO CONSTRUCTOR
+//       this.createdBy,
+//       this.approvalStatus,
+//       this.paymentStatus,
+//       this.paymentDate,
 //     });
 //   }
 //
-// Also update EntryModel.decodeList / encodeList / copyWith if you have them
-// to include the createdBy field.
+// Also include paymentStatus / paymentDate in EntryModel.copyWith /
+// encodeList / decodeList if you have them, the same way approvalStatus
+// and createdBy were wired up.
 // ════════════════════════════════════════════════════════════════════════════
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:buildtrack_mobile/models/project_model.dart';
@@ -62,6 +84,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _kEntriesKey = 'buildtrack_entries_v1';
 const _kCompletedAtKey = 'buildtrack_completed_at_v1';
+const _kActivityDetailsKey = 'buildtrack_activity_details_v1';
 
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
@@ -72,8 +95,15 @@ class ProjectProvider extends ChangeNotifier {
   String? _selectedPhase;
   String? _selectedPhaseId;
   String? _selectedActivity;
+  String? _selectedActivityId;
   bool _isLoading = false;
   String _error = '';
+
+  // Track entries-loading separately from the big project load, so the
+  // Home screen can show a small spinner just for the entries list when
+  // switching projects, without re-triggering the whole page load.
+  bool _entriesLoading = false;
+  bool get entriesLoading => _entriesLoading;
 
   List<ProjectModel> get projects => List.unmodifiable(_projects);
   List<EntryModel> get entries => List.unmodifiable(_entries);
@@ -83,6 +113,7 @@ class ProjectProvider extends ChangeNotifier {
   String? get selectedPhase => _selectedPhase;
   String? get selectedPhaseId => _selectedPhaseId;
   String? get selectedActivity => _selectedActivity;
+  String? get selectedActivityId => _selectedActivityId;
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
@@ -92,7 +123,8 @@ class ProjectProvider extends ChangeNotifier {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
     final materialEntries = _entries.where(
-      (e) => e.projectId == _selectedProject!.id && e.type == EntryType.material,
+      (e) =>
+          e.projectId == _selectedProject!.id && e.type == EntryType.material,
     );
     for (final entry in materialEntries) {
       final brand = (entry.brand == null || entry.brand!.isEmpty)
@@ -103,15 +135,14 @@ class ProjectProvider extends ChangeNotifier {
     return stockMap;
   }
 
+  // Scoped correctly by projectId — kept as-is from both versions.
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
 
-  // FIX 3: New helper — entries for a project filtered to a specific user
   List<EntryModel> entriesForProjectByUser(String projectId, String userId) {
     final all = entriesForProject(projectId);
     if (userId.isEmpty) return all;
     final filtered = all.where((e) => e.createdBy == userId).toList();
-    // Fall back to all entries if no user-specific ones found (older data)
     return filtered.isNotEmpty ? filtered : all;
   }
 
@@ -158,56 +189,262 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> _saveCompletedAt(
-    String projectId, String activityId, DateTime date) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kCompletedAtKey);
-    final Map<String, dynamic> existing =
-        raw != null && raw.isNotEmpty ? json.decode(raw) : {};
-    existing['$projectId|$activityId'] = date.toIso8601String();
-    await prefs.setString(_kCompletedAtKey, json.encode(existing));
-  } catch (e) {
-    dev.log('_saveCompletedAt error: $e');
+    String projectId,
+    String activityId,
+    DateTime date,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      final Map<String, dynamic> existing = raw != null && raw.isNotEmpty
+          ? json.decode(raw)
+          : {};
+      existing['$projectId|$activityId'] = date.toIso8601String();
+      await prefs.setString(_kCompletedAtKey, json.encode(existing));
+    } catch (e) {
+      dev.log('_saveCompletedAt error: $e');
+    }
   }
-}
 
-// NEW: call this for activities that are completed but have no date stamp
-Future<void> _backfillCompletedActivities() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kCompletedAtKey);
-    final Map<String, dynamic> existing =
-        raw != null && raw.isNotEmpty ? json.decode(raw) : {};
-    bool changed = false;
-    for (final p in _projects) {
-      for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
-        for (final act in phase.activities) {
-          final key = '${p.id}|${act.id}';
-          if (act.completed && !existing.containsKey(key)) {
-            // Use a sentinel date so we know it was completed but date unknown
-            existing[key] = DateTime(2000).toIso8601String();
-            changed = true;
+  Future<void> _saveActivityDetails(
+    String projectId, String activityId, {String? notes, String? photo, List<String>? photos}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kActivityDetailsKey);
+      final Map<String, dynamic> existing =
+          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      existing['$projectId|$activityId'] = {
+        if (notes != null) 'notes': notes,
+        'photo': photo,
+        'photos': photos,
+      };
+      await prefs.setString(_kActivityDetailsKey, json.encode(existing));
+    } catch (e) {
+      dev.log('_saveActivityDetails error: $e');
+    }
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadPersistedActivityDetails() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kActivityDetailsKey);
+      if (raw == null || raw.isEmpty) return {};
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final result = <String, Map<String, dynamic>>{};
+      decoded.forEach((key, value) {
+        if (value is Map) {
+          result[key] = Map<String, dynamic>.from(value);
+        }
+      });
+      return result;
+    } catch (e) {
+      dev.log('_loadPersistedActivityDetails error: $e');
+      return {};
+    }
+  }
+
+  Future<void> _backfillCompletedActivities() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCompletedAtKey);
+      final Map<String, dynamic> existing =
+          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      bool changed = false;
+      for (final p in _projects) {
+        for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
+          for (final act in phase.activities) {
+            final key = '${p.id}|${act.id}';
+            if (act.completed && !existing.containsKey(key)) {
+              existing[key] = DateTime(2000).toIso8601String();
+              changed = true;
+            }
           }
         }
       }
+      if (changed) {
+        await prefs.setString(_kCompletedAtKey, json.encode(existing));
+      }
+    } catch (e) {
+      dev.log('_backfillCompletedActivities error: $e');
     }
-    if (changed) {
-      await prefs.setString(_kCompletedAtKey, json.encode(existing));
-    }
-  } catch (e) {
-    dev.log('_backfillCompletedActivities error: $e');
   }
-}
 
   List<ProjectModel> _filterForCurrentUser(List<ProjectModel> all) {
     if (UserSession.isAdmin) return all;
 
-    final assignedIds = UserSession.projectIds
-        .map((id) => id.trim())
-        .toSet();
+    final assignedIds = UserSession.projectIds.map((id) => id.trim()).toSet();
     if (assignedIds.isEmpty) return [];
 
     return all.where((p) => assignedIds.contains(p.id.trim())).toList();
+  }
+
+  // MERGE FIX 1 + MERGE FIX 2: "fetch + map raw JSON -> EntryModel" helper,
+  // reused by both load() and loadEntriesForProject(). Always scoped to a
+  // single project; always strips Rejected entries at the source; now also
+  // carries paymentStatus + paymentDate onto every EntryModel.
+  Future<List<EntryModel>> _fetchEntriesForProject(String? projectId) async {
+    final apiMaterials = await ApiService.fetchMaterials(projectId: projectId);
+    debugPrint(
+      'fetchMaterials(project=$projectId): ${apiMaterials.length} items',
+    );
+
+    final filtered = apiMaterials.where((json) {
+      final rawType = (json['type'] ?? '').toString().toLowerCase();
+      if (rawType == 'income' || rawType == 'revenue') return false;
+
+      // Drop rejected entries here, at the source, so no screen downstream
+      // can ever accidentally show one again.
+      final approvalStatus = (json['approvalStatus'] ?? '')
+          .toString()
+          .toLowerCase()
+          .trim();
+      if (approvalStatus == 'rejected') return false;
+
+      return true;
+    }).toList();
+
+    return filtered.map<EntryModel>((json) {
+      EntryType parsedType = EntryType.material;
+      final rawType = (json['type'] ?? '').toString().toLowerCase();
+      if (rawType == 'labour' || rawType == 'wages') {
+        parsedType = EntryType.labour;
+      } else if (rawType == 'equipment' || rawType == 'expense') {
+        parsedType = EntryType.equipment;
+      }
+
+      String entryProjectId = '';
+      if (json['project'] is Map) {
+        entryProjectId = json['project']['_id']?.toString() ?? '';
+      } else if (json['project'] != null) {
+        entryProjectId = json['project'].toString();
+      }
+      if (entryProjectId.isEmpty && json['projectId'] != null) {
+        if (json['projectId'] is Map) {
+          entryProjectId = json['projectId']['_id']?.toString() ?? '';
+        } else {
+          entryProjectId = json['projectId'].toString();
+        }
+      }
+      entryProjectId = entryProjectId.trim();
+      if (entryProjectId.isEmpty) entryProjectId = 'p1';
+
+      double amount = 0;
+      final paymentStatus = (json['paymentStatus'] ?? '')
+          .toString()
+          .toLowerCase()
+          .trim();
+      final paidAmount = json['paidAmount'];
+
+      if (paymentStatus == 'paid') {
+        if (paidAmount != null && paidAmount is num && paidAmount > 0) {
+          amount = paidAmount.toDouble();
+        } else {
+          final v = json['amount'];
+          if (v != null && v is num && v > 0) {
+            amount = v.toDouble();
+          } else {
+            final qty = json['quantity'];
+            final rate = json['rate'];
+            if (qty is num && rate is num && qty > 0 && rate > 0) {
+              amount = (qty * rate).toDouble();
+            }
+          }
+        }
+      } else if (paymentStatus == 'partial') {
+        if (paidAmount != null && paidAmount is num && paidAmount > 0) {
+          amount = paidAmount.toDouble();
+        }
+      } else if (paymentStatus != 'paid') {
+        final v = json['amount'];
+        if (v != null && v is num && v > 0) {
+          amount = v.toDouble();
+        } else {
+          final qty = json['quantity'];
+          final rate = json['rate'];
+          if (qty is num && rate is num && qty > 0 && rate > 0) {
+            amount = (qty * rate).toDouble();
+          }
+        }
+      }
+
+      String? createdBy;
+      final createdByRaw =
+          json['createdBy'] ??
+          json['addedBy'] ??
+          json['submittedBy'] ??
+          json['userId'] ??
+          json['user'];
+      if (createdByRaw is Map) {
+        createdBy =
+            createdByRaw['_id']?.toString() ?? createdByRaw['id']?.toString();
+      } else if (createdByRaw != null) {
+        createdBy = createdByRaw.toString();
+      }
+
+      // approvalStatus: preserve original casing (UI code compares against
+      // 'Rejected', 'Approved', etc. with capital letters in a few places).
+      final approvalStatusRaw = json['approvalStatus']?.toString() ?? 'Pending';
+
+      // MERGE FIX 2: paymentStatus / paymentDate, pulled straight from the
+      // raw API JSON, same as the "incoming" version did inline in load().
+      final paymentStatusRaw = json['paymentStatus']?.toString() ?? 'Pending';
+      final paymentDateRaw = json['paymentDate'] != null
+          ? DateTime.tryParse(json['paymentDate'].toString())
+          : null;
+
+      return EntryModel(
+        id:
+            json['_id']?.toString() ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        projectId: entryProjectId,
+        type: parsedType,
+        amount: amount,
+        date: json['date'] != null
+            ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
+            : DateTime.now(),
+        description:
+            json['materialName'] ??
+            json['title'] ??
+            json['description'] ??
+            json['name'] ??
+            'Entry',
+        brand: json['materialName'] ?? json['brand'] ?? json['name'],
+        ratePerUnit:
+            (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
+        floor: json['floor']?.toString(),
+        phase: json['phase'] != null
+            ? ProjectStage.values.firstWhere(
+                (e) => e.name == json['phase'],
+                orElse: () => ProjectStage.preConstruction,
+              )
+            : null,
+        phaseId: json['phaseId']?.toString(),
+        activity: json['activity']?.toString(),
+        activityId: json['activityId']?.toString(),
+        unit: json['unit']?.toString(),
+        createdBy: createdBy,
+        approvalStatus: approvalStatusRaw,
+        paymentStatus: paymentStatusRaw, // MERGE FIX 2
+        paymentDate: paymentDateRaw, // MERGE FIX 2
+      );
+    }).toList();
+  }
+
+  // Call this whenever the selected project changes — entries get the same
+  // re-fetch-on-switch treatment as revenue/inventory already get on Home.
+  Future<void> loadEntriesForProject(String projectId) async {
+    _entriesLoading = true;
+    notifyListeners();
+    try {
+      final freshEntries = await _fetchEntriesForProject(projectId);
+      _entries = freshEntries;
+      await _persistEntries();
+    } catch (e, st) {
+      dev.log('loadEntriesForProject error: $e', stackTrace: st);
+    } finally {
+      _entriesLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> load() async {
@@ -224,33 +461,38 @@ Future<void> _backfillCompletedActivities() async {
         }
       }
       if (_phases.isEmpty || _phases.length < 11) {
-        _phases = [
-          'Pre-Construction',
-          'Site Preparation',
-          'Foundation',
-          'Plinth',
-          'Superstructure',
-          'Masonry',
-          'MEP',
-          'Plastering',
-          'Finishing',
-          'Fixtures',
-          'Handover',
-        ]
-            .asMap()
-            .entries
-            .map((e) => PhaseModel(
-                  id: e.value.toLowerCase().replaceAll(' ', '_'),
-                  name: e.value,
-                  order: e.key,
-                ))
-            .toList();
+        _phases =
+            [
+                  'Pre-Construction',
+                  'Site Preparation',
+                  'Foundation',
+                  'Plinth',
+                  'Superstructure',
+                  'Masonry',
+                  'MEP',
+                  'Plastering',
+                  'Finishing',
+                  'Fixtures',
+                  'Handover',
+                ]
+                .asMap()
+                .entries
+                .map(
+                  (e) => PhaseModel(
+                    id: e.value.toLowerCase().replaceAll(' ', '_'),
+                    name: e.value,
+                    order: e.key,
+                  ),
+                )
+                .toList();
         _savePhases();
       }
 
       try {
         final Map<String, DateTime> persistedDates =
             await _loadPersistedCompletedAt();
+        final Map<String, Map<String, dynamic>> persistedDetails =
+            await _loadPersistedActivityDetails();
 
         final Map<String, Map<String, DateTime>> prevCompletedAt = {};
         persistedDates.forEach((key, date) {
@@ -260,17 +502,13 @@ Future<void> _backfillCompletedActivities() async {
           }
         });
 
-        // Snapshot ALL completed activities from current in-memory state BEFORE fetch,
-        // regardless of whether completedAt is set — use completed flag as fallback.
         for (final p in _projects) {
           for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
             for (final act in phase.activities) {
               if (act.completed && act.completedAt != null) {
-                prevCompletedAt
-                    .putIfAbsent(p.id, () => {})[act.id] = act.completedAt!;
+                prevCompletedAt.putIfAbsent(p.id, () => {})[act.id] =
+                    act.completedAt!;
               } else if (act.completed && act.completedAt == null) {
-                // Activity was completed but date was never stamped — use epoch as
-                // a sentinel so we at least preserve the completed state.
                 prevCompletedAt
                     .putIfAbsent(p.id, () => {})
                     .putIfAbsent(act.id, () => DateTime(2000));
@@ -285,38 +523,50 @@ Future<void> _backfillCompletedActivities() async {
 
         _projects = _projects.map((p) {
           final actDates = prevCompletedAt[p.id];
-          List<ProjectPhase>? mergedPhases;
-          if (actDates != null && actDates.isNotEmpty) {
-            mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
-              final mergedActivities = phase.activities.map((act) {
-              final savedDate = actDates[act.id];
-              if (savedDate != null) {
-                // Always restore the saved date — API may return null for old completions
-                // that were only persisted locally. Also ensure completed flag is true.
-                if (act.completedAt == null || !act.completed) {
-                  return act.copyWith(
-                    completed: true,
-                    completedAt: savedDate == DateTime(2000) ? null : savedDate,
-                  );
+          final List<ProjectPhase> mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
+            final mergedActivities = phase.activities.map((act) {
+              var updatedAct = act;
+
+              if (actDates != null) {
+                final savedDate = actDates[act.id];
+                if (savedDate != null) {
+                  if (updatedAct.completedAt == null || !updatedAct.completed) {
+                    updatedAct = updatedAct.copyWith(
+                      completed: true,
+                      completedAt: savedDate == DateTime(2000) ? null : savedDate,
+                    );
+                  }
                 }
               }
-              return act;
+
+              final detailsKey = '${p.id}|${act.id}';
+              final savedDetails = persistedDetails[detailsKey];
+              if (savedDetails != null) {
+                updatedAct = updatedAct.copyWith(
+                  notes: updatedAct.notes ?? savedDetails['notes']?.toString(),
+                  photo: updatedAct.photo ?? savedDetails['photo']?.toString(),
+                  photos: updatedAct.photos ?? (savedDetails['photos'] as List?)?.map((x) => x.toString()).toList(),
+                );
+              }
+
+              return updatedAct;
             }).toList();
-              return phase.copyWith(activities: mergedActivities);
-            }).toList();
-          }
+            return phase.copyWith(activities: mergedActivities);
+          }).toList();
 
           final floors = (p.floors == null || p.floors!.isEmpty)
               ? ['Ground']
               : p.floors!;
 
           final effectivePhases = mergedPhases ?? p.selectedPhases;
-          final totalActs = effectivePhases?.fold<int>(
-              0, (s, ph) => s + ph.totalCount) ?? 0;
-          final doneActs = effectivePhases?.fold<int>(
-              0, (s, ph) => s + ph.completedCount) ?? 0;
-          final computedProgress =
-              totalActs > 0 ? doneActs / totalActs : p.progress;
+          final totalActs =
+              effectivePhases?.fold<int>(0, (s, ph) => s + ph.totalCount) ?? 0;
+          final doneActs =
+              effectivePhases?.fold<int>(0, (s, ph) => s + ph.completedCount) ??
+              0;
+          final computedProgress = totalActs > 0
+              ? doneActs / totalActs
+              : p.progress;
 
           return p.copyWith(
             selectedPhases: effectivePhases,
@@ -336,113 +586,46 @@ Future<void> _backfillCompletedActivities() async {
         _projects = [];
       }
 
+      // Save in-memory progress before we overwrite _selectedProject below,
+      // so we don't lose optimistic updates from toggleActivityCompletion
+      // or updateProjectProgress when the API returns stale data.
+      final double? prevProgress = _selectedProject?.progress;
+
+      if (_selectedProject != null) {
+        final existingIdx = _projects.indexWhere(
+          (p) => p.id.trim() == _selectedProject!.id.trim(),
+        );
+        if (existingIdx != -1) {
+          _selectedProject = _projects[existingIdx];
+        } else if (_projects.isNotEmpty) {
+          _selectedProject = _projects.first;
+        } else {
+          _selectedProject = null;
+        }
+      } else if (_projects.isNotEmpty) {
+        _selectedProject = _projects.first;
+      }
+
+      if (prevProgress != null && _selectedProject != null) {
+        _selectedProject = _selectedProject!.copyWith(progress: prevProgress);
+      }
+
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
+      }
+
+      // MERGE FIX 1: fetch entries SCOPED to whichever project ended up
+      // selected, via the shared helper above (instead of fetching every
+      // transaction across every project on every load()).
       try {
-        final apiMaterials = await ApiService.fetchMaterials();
-        debugPrint('fetchMaterials: ${apiMaterials.length} items');
-
-        _entries = apiMaterials.map<EntryModel>((json) {
-          EntryType parsedType = EntryType.material;
-          final rawType = (json['type'] ?? '').toString().toLowerCase();
-          if (rawType == 'labour' || rawType == 'wages') {
-            parsedType = EntryType.labour;
-          } else if (rawType == 'equipment' || rawType == 'expense') {
-            parsedType = EntryType.equipment;
-          }
-
-          String projectId = '';
-          if (json['project'] is Map) {
-            projectId = json['project']['_id']?.toString() ?? '';
-          } else if (json['project'] != null) {
-            projectId = json['project'].toString();
-          }
-          if (projectId.isEmpty && json['projectId'] != null) {
-            if (json['projectId'] is Map) {
-              projectId = json['projectId']['_id']?.toString() ?? '';
-            } else {
-              projectId = json['projectId'].toString();
-            }
-          }
-          projectId = projectId.trim();
-          if (projectId.isEmpty) projectId = 'p1';
-
-          double amount = 0;
-          final paymentStatus =
-              (json['paymentStatus'] ?? '').toString().toLowerCase().trim();
-          final paidAmount = json['paidAmount'];
-
-          if (paymentStatus == 'paid') {
-            if (paidAmount != null && paidAmount is num && paidAmount > 0) {
-              amount = paidAmount.toDouble();
-            } else {
-              final v = json['amount'];
-              if (v != null && v is num && v > 0) {
-                amount = v.toDouble();
-              } else {
-                final qty = json['quantity'];
-                final rate = json['rate'];
-                if (qty is num && rate is num && qty > 0 && rate > 0) {
-                  amount = (qty * rate).toDouble();
-                }
-              }
-            }
-          } else if (paymentStatus == 'partial') {
-            if (paidAmount != null && paidAmount is num && paidAmount > 0) {
-              amount = paidAmount.toDouble();
-            }
-          } else if (paymentStatus != 'paid') {
-            final v = json['amount'];
-            if (v != null && v is num && v > 0) {
-              amount = v.toDouble();
-            } else {
-              final qty = json['quantity'];
-              final rate = json['rate'];
-              if (qty is num && rate is num && qty > 0 && rate > 0) {
-                amount = (qty * rate).toDouble();
-              }
-            }
-          }
-
-          // FIX 3b: Extract createdBy from API response.
-          // Backend may send it as createdBy, addedBy, submittedBy, or
-          // as a nested user object with _id. We try all common variants.
-          String? createdBy;
-          final createdByRaw = json['createdBy'] ??
-              json['addedBy'] ??
-              json['submittedBy'] ??
-              json['userId'] ??
-              json['user'];
-          if (createdByRaw is Map) {
-            createdBy = createdByRaw['_id']?.toString() ??
-                createdByRaw['id']?.toString();
-          } else if (createdByRaw != null) {
-            createdBy = createdByRaw.toString();
-          }
-
-          return EntryModel(
-            id: json['_id']?.toString() ??
-                DateTime.now().millisecondsSinceEpoch.toString(),
-            projectId: projectId,
-            type: parsedType,
-            amount: amount,
-            date: json['date'] != null
-                ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
-                : DateTime.now(),
-            description: json['materialName'] ??
-                json['title'] ??
-                json['description'] ??
-                json['name'] ??
-                'Entry',
-            brand: json['materialName'] ?? json['brand'] ?? json['name'],
-            ratePerUnit:
-                (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
-            unit: json['unit']?.toString(),
-            createdBy: createdBy, // FIX 3b
-          );
-        }).toList();
-
+        if (_selectedProject != null) {
+          _entries = await _fetchEntriesForProject(_selectedProject!.id);
+        } else {
+          _entries = [];
+        }
         await _persistEntries();
       } catch (e, st) {
-        debugPrint('fetchMaterials failed: $e\n$st');
+        debugPrint('Initial entries fetch failed: $e\n$st');
         final rawEntries = prefs.getString(_kEntriesKey);
         if (rawEntries != null && rawEntries.isNotEmpty) {
           _entries = EntryModel.decodeList(rawEntries);
@@ -461,50 +644,23 @@ Future<void> _backfillCompletedActivities() async {
         return p;
       }).toList();
 
-      // Save in-memory progress before load() overwrites _selectedProject,
-      // so we don't lose optimistic updates from toggleActivityCompletion
-      // or updateProjectProgress when the API returns stale data.
-      final double? prevProgress = _selectedProject?.progress;
-
-      if (_selectedProject != null) {
-        final existingIdx =
-            _projects.indexWhere((p) => p.id.trim() == _selectedProject!.id.trim());
-        if (existingIdx != -1) {
-          _selectedProject = _projects[existingIdx];
-        } else if (_projects.isNotEmpty) {
-          _selectedProject = _projects.first;
-        } else {
-          _selectedProject = null;
-        }
-      } else if (_projects.isNotEmpty) {
-        _selectedProject = _projects.first;
-      }
-
-      // Restore the in-memory progress — it is always more recent than
-      // the API value because mutations update _selectedProject directly
-      // and only persist asynchronously.
-      if (prevProgress != null && _selectedProject != null) {
-        _selectedProject = _selectedProject!.copyWith(progress: prevProgress);
-      }
-
-      if (_selectedProject != null) {
-        UserSession.projectId = _selectedProject!.id;
-      }
-
       final cachedProjId = prefs.getString('buildtrack_selected_project_id');
       if (cachedProjId == _selectedProject?.id) {
         _selectedFloor = prefs.getString('buildtrack_selected_floor');
         _selectedPhase = prefs.getString('buildtrack_selected_phase');
         _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
         _selectedActivity = prefs.getString('buildtrack_selected_activity');
+        _selectedActivityId = prefs.getString(
+          'buildtrack_selected_activity_id',
+        );
       } else {
         _selectedFloor = null;
         _selectedPhase = null;
         _selectedPhaseId = null;
         _selectedActivity = null;
+        _selectedActivityId = null;
       }
 
-      // Backfill any completed activities that never got a saved date
       await _backfillCompletedActivities();
 
       _error = '';
@@ -555,8 +711,8 @@ Future<void> _backfillCompletedActivities() async {
   }) async {
     final finalFloors = (floors == null || floors.isEmpty)
         ? (project.floors == null || project.floors!.isEmpty
-            ? ['Ground']
-            : project.floors!)
+              ? ['Ground']
+              : project.floors!)
         : floors;
     final updatedProject = project.copyWith(
       clientName: clientName,
@@ -573,13 +729,18 @@ Future<void> _backfillCompletedActivities() async {
     _selectedProject = saved;
     UserSession.projectId = saved.id;
     notifyListeners();
+    // New project has no entries yet, but keep this consistent — load its
+    // (empty) scoped entries so the old project's entries don't linger.
+    unawaited(loadEntriesForProject(saved.id));
   }
 
   Future<void> updateProject(ProjectModel updated) async {
     _setLoading(true);
     try {
-      final response =
-          await ApiService.put('/projects/${updated.id}', updated.toJson());
+      final response = await ApiService.put(
+        '/projects/${updated.id}',
+        updated.toJson(),
+      );
       if (response.statusCode == 200) {
         final idx = _projects.indexWhere((p) => p.id == updated.id);
         if (idx != -1) _projects[idx] = updated;
@@ -603,7 +764,10 @@ Future<void> _backfillCompletedActivities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (_selectedProject != null) {
-        await prefs.setString('buildtrack_selected_project_id', _selectedProject!.id);
+        await prefs.setString(
+          'buildtrack_selected_project_id',
+          _selectedProject!.id,
+        );
       } else {
         await prefs.remove('buildtrack_selected_project_id');
       }
@@ -618,20 +782,38 @@ Future<void> _backfillCompletedActivities() async {
         await prefs.remove('buildtrack_selected_phase');
       }
       if (_selectedPhaseId != null) {
-        await prefs.setString('buildtrack_selected_phase_id', _selectedPhaseId!);
+        await prefs.setString(
+          'buildtrack_selected_phase_id',
+          _selectedPhaseId!,
+        );
       } else {
         await prefs.remove('buildtrack_selected_phase_id');
       }
       if (_selectedActivity != null) {
-        await prefs.setString('buildtrack_selected_activity', _selectedActivity!);
+        await prefs.setString(
+          'buildtrack_selected_activity',
+          _selectedActivity!,
+        );
       } else {
         await prefs.remove('buildtrack_selected_activity');
+      }
+      if (_selectedActivityId != null) {
+        await prefs.setString(
+          'buildtrack_selected_activity_id',
+          _selectedActivityId!,
+        );
+      } else {
+        await prefs.remove('buildtrack_selected_activity_id');
       }
     } catch (e) {
       dev.log('_saveContextPrefs error: $e');
     }
   }
 
+  // Selecting a project also re-fetches entries scoped to it, exactly the
+  // way InventoryProvider.loadInventory is already called whenever the
+  // project changes — entries are refetched fresh, scoped to the new
+  // project, every time you switch.
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     UserSession.projectId = project.id;
@@ -639,8 +821,10 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
+    unawaited(loadEntriesForProject(project.id));
   }
 
   void selectFloor(String? floor) {
@@ -648,6 +832,7 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = null;
     _selectedPhaseId = null;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
@@ -656,96 +841,137 @@ Future<void> _backfillCompletedActivities() async {
     _selectedPhase = phase;
     _selectedPhaseId = phaseId;
     _selectedActivity = null;
+    _selectedActivityId = null;
     _saveContextPrefs();
     notifyListeners();
   }
 
-  void selectActivity(String? activity) {
+  void selectActivity(String? activity, [String? activityId]) {
     _selectedActivity = activity;
+    _selectedActivityId = activityId;
     _saveContextPrefs();
     notifyListeners();
   }
 
-  Future<void> updateProjectProgress(String id, double progress) async {
+  Future<bool> updateProjectProgress(String id, double progress) async {
+    print('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
     final idx = _projects.indexWhere((p) => p.id == id);
-    if (idx == -1) return;
+    if (idx == -1) {
+      print('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
+      return false;
+    }
     _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
-      await ApiService.put('/projects/$id', _projects[idx].toJson());
+      print('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
+      final response = await ApiService.put('/projects/$id', _projects[idx].toJson());
+      print('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        notifyListeners();
+        return true;
+      }
+      return false;
     } catch (e) {
-      dev.log('Failed to persist progress: $e');
+      print('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
+      return false;
     }
-    notifyListeners();
   }
 
-  // AFTER
-Future<void> toggleActivityCompletion(
-  String projectId,
-  String activityId, {
-  DateTime? completedAt,
-}) async {
-  final projectIndex = _projects.indexWhere((p) => p.id == projectId);
-  if (projectIndex == -1) return;
+  Future<bool> toggleActivityCompletion(
+    String projectId,
+    String activityId, {
+    DateTime? completedAt,
+    String? notes,
+    String? photo,
+    List<String>? photos,
+    double? manualProgress,
+  }) async {
+    print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
+    final projectIndex = _projects.indexWhere((p) => p.id == projectId);
+    if (projectIndex == -1) {
+      print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
+      return false;
+    }
 
-  final project = _projects[projectIndex];
-  final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
-  bool alreadyCompleted = false;
-  DateTime? stampedDate;
+    final project = _projects[projectIndex];
+    final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
+    bool found = false;
+    DateTime? stampedDate;
 
-  for (var p = 0; p < phases.length; p++) {
-    final phase = phases[p];
-    final activities = List<ProjectActivity>.from(phase.activities);
-    final aIndex = activities.indexWhere((a) => a.id == activityId);
-    if (aIndex != -1) {
-      final current = activities[aIndex];
-      if (current.completed) {
-        alreadyCompleted = true;
+    for (var p = 0; p < phases.length; p++) {
+      final phase = phases[p];
+      final activities = List<ProjectActivity>.from(phase.activities);
+      final aIndex = activities.indexWhere((a) => a.id == activityId);
+      if (aIndex != -1) {
+        final current = activities[aIndex];
+        stampedDate = completedAt ?? current.completedAt ?? DateTime.now();
+        final shouldClear = (photos != null && photos.isEmpty);
+        activities[aIndex] = current.copyWith(
+          completed: true,
+          completedAt: stampedDate,
+          notes: notes ?? current.notes,
+          photo: shouldClear ? null : ((photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo)),
+          photos: shouldClear ? [] : (photos ?? current.photos),
+          clearPhoto: shouldClear,
+          clearPhotos: shouldClear,
+        );
+        phases[p] = phase.copyWith(activities: activities);
+        found = true;
         break;
       }
-      stampedDate = completedAt ?? DateTime.now();
-      activities[aIndex] =
-          current.copyWith(completed: true, completedAt: stampedDate);
-      phases[p] = phase.copyWith(activities: activities);
-      break;
+    }
+
+    if (!found) {
+      print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
+      return false;
+    }
+
+    final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
+    final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
+    final updated = project.copyWith(
+      selectedPhases: phases,
+      progress: manualProgress ?? (total == 0 ? project.progress : done / total),
+    );
+
+    _projects[projectIndex] = updated;
+    if (_selectedProject?.id == projectId) _selectedProject = updated;
+    notifyListeners();
+
+    if (stampedDate != null) {
+      await _saveCompletedAt(projectId, activityId, stampedDate);
+    }
+    if (notes != null || photo != null || photos != null) {
+      final firstPhoto = (photos != null && photos.isNotEmpty) ? photos.first : photo;
+      await _saveActivityDetails(projectId, activityId, notes: notes, photo: firstPhoto, photos: photos);
+    }
+
+    try {
+      print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
+      final response = await ApiService.put('/projects/$projectId', updated.toJson());
+      print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        _projects[projectIndex] = project;
+        if (_selectedProject?.id == projectId) _selectedProject = project;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
+      _projects[projectIndex] = project;
+      if (_selectedProject?.id == projectId) _selectedProject = project;
+      notifyListeners();
+      return false;
     }
   }
 
-  if (alreadyCompleted) return;
-
-  final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
-  final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
-  final updated = project.copyWith(
-    selectedPhases: phases,
-    progress: total == 0 ? project.progress : done / total,
-  );
-
-  // Optimistic update — paint the tick immediately
-  _projects[projectIndex] = updated;
-  if (_selectedProject?.id == projectId) _selectedProject = updated;
-  notifyListeners();
-
-  if (stampedDate != null) {
-    await _saveCompletedAt(projectId, activityId, stampedDate);
-  }
-
-  try {
-    await ApiService.put('/projects/$projectId', updated.toJson());
-  } catch (e) {
-    dev.log('Failed to persist activity completion: $e');
-    // Rollback on API failure so UI stays consistent with server
-    _projects[projectIndex] = project;
-    if (_selectedProject?.id == projectId) _selectedProject = project;
-    notifyListeners();
-  }
-}
-
-  Future<void> markActivityComplete(
+  Future<bool> markActivityComplete(
     String projectId,
     String activityId,
     DateTime completionDate,
   ) async {
-    await toggleActivityCompletion(projectId, activityId,
+    return await toggleActivityCompletion(projectId, activityId,
         completedAt: completionDate);
   }
 
@@ -791,7 +1017,16 @@ Future<void> toggleActivityCompletion(
       ratePerUnit: ratePerUnit ?? entry.ratePerUnit,
       floor: floor ?? entry.floor,
       phase: phase ?? entry.phase,
-      createdBy: UserSession.userId, // FIX 3b: tag new entries with current user
+      phaseId: entry.phaseId,
+      activity: entry.activity,
+      activityId: entry.activityId,
+      createdBy: UserSession.userId,
+      // New entries start life pending approval and unpaid — mirrors the
+      // payload sent to the backend above, NOT copied from the local draft
+      // `entry`, since the server hasn't assigned real state yet.
+      approvalStatus: 'Pending',
+      paymentStatus: 'Pending', // MERGE FIX 2
+      paymentDate: null, // MERGE FIX 2
     );
 
     _entries.add(updatedEntry);
@@ -810,11 +1045,13 @@ Future<void> toggleActivityCompletion(
   }
 
   void addPhase(String name) {
-    _phases.add(PhaseModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      order: _phases.length,
-    ));
+    _phases.add(
+      PhaseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        order: _phases.length,
+      ),
+    );
     _savePhases();
     notifyListeners();
   }

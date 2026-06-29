@@ -156,6 +156,51 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     );
   }
 
+  String _formatDateTimeWithTime(dynamic dateVal) {
+    if (dateVal == null) return '';
+    final str = dateVal.toString().trim();
+    if (str.isEmpty) return '';
+    
+    DateTime? dt;
+    try {
+      dt = DateTime.parse(str).toLocal();
+    } catch (_) {
+      dt = DateTime.tryParse(str)?.toLocal();
+    }
+
+    if (dt == null) {
+      return str;
+    }
+
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+
+    final hour = dt.hour;
+    final minute = dt.minute;
+    final ampm = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final displayMinute = minute.toString().padLeft(2, '0');
+    final timeStr = '$displayHour:$displayMinute $ampm';
+
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    final String relativeStr;
+    if (diff.inMinutes < 60) {
+      relativeStr = '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      relativeStr = '${diff.inHours}h ago';
+    } else if (diff.inDays == 1) {
+      relativeStr = 'Yesterday';
+    } else {
+      relativeStr = '${diff.inDays}d ago';
+    }
+
+    return '$dateStr • $timeStr ($relativeStr)';
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -165,27 +210,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String ref = args['ref'] as String? ?? '#INV-0000';
     final String amount = args['amount'] as String? ?? '+0';
     final String date = _customDate ?? args['date'] as String? ?? 'Unknown date';
-    String displayDate = date;
-    if (displayDate.contains('T')) {
-      try {
-        final dt = DateTime.parse(displayDate);
-        final months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        displayDate = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-      } catch (_) {}
-    }
+    final String displayDate = _formatDateTimeWithTime(date);
     final String type = args['type'] as String? ?? 'material';
     final String name = args['name'] as String? ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
@@ -196,42 +221,17 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String projectId = args['projectId'] as String? ?? '';
     final String supplier = args['supplier'] as String? ?? '';
     final String initialMethod = args['paymentMethod'] as String? ?? '';
-    final String initialLastUpdated = args['lastUpdated'] as String? ?? date;
 
-    final String method = _paymentHistory.isNotEmpty
+    final String method = (_paymentHistory.isNotEmpty && _paidAmount > 0)
         ? (_paymentHistory.last['method'] ??
               _paymentHistory.last['paymentMode'] ??
               initialMethod)
-        : initialMethod;
+        : (_paidAmount > 0 ? initialMethod : '');
 
-    final String lastUpdated = _paymentHistory.isNotEmpty
-        ? (_paymentHistory.last['date'] != null
-              ? (() {
-                  try {
-                    final dt = DateTime.parse(
-                      _paymentHistory.last['date'].toString(),
-                    );
-                    final months = [
-                      'Jan',
-                      'Feb',
-                      'Mar',
-                      'Apr',
-                      'May',
-                      'Jun',
-                      'Jul',
-                      'Aug',
-                      'Sep',
-                      'Oct',
-                      'Nov',
-                      'Dec',
-                    ];
-                    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-                  } catch (_) {
-                    return _paymentHistory.last['date'].toString();
-                  }
-                })()
-              : initialLastUpdated)
-        : initialLastUpdated;
+    final String rawLastUpdated = _paymentHistory.isNotEmpty
+        ? (_paymentHistory.last['date']?.toString() ?? date)
+        : date;
+    final String lastUpdated = _formatDateTimeWithTime(rawLastUpdated);
 
     final bool canEdit = EntryPermissions.canEdit(
       status: _entryStatus.name,
@@ -330,17 +330,29 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         children: [
                           _fieldLabel('EXECUTION CONTEXT'),
                           const SizedBox(height: 10),
-                          _contextRow(Icons.business_outlined, 'Project',
-                              _projectName ?? projectId),
+                          _contextRow(
+                            Icons.business_outlined,
+                            'Project',
+                            _projectName ?? projectId,
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.layers_outlined, 'Floor / Zone',
-                              _floor ?? '—'),
+                          _contextRow(
+                            Icons.layers_outlined,
+                            'Floor / Zone',
+                            _floor ?? '—',
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.flag_outlined, 'Phase',
-                              _phase ?? '—'),
+                          _contextRow(
+                            Icons.flag_outlined,
+                            'Phase',
+                            _phase ?? '—',
+                          ),
                           const SizedBox(height: 8),
-                          _contextRow(Icons.task_alt_outlined, 'Activity',
-                              _activity ?? '—'),
+                          _contextRow(
+                            Icons.task_alt_outlined,
+                            'Activity',
+                            _activity ?? '—',
+                          ),
                         ],
                       ),
                     ),
@@ -478,7 +490,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     // ── DELETE ENTRY — secondary destructive action ──────────
                     if (canDelete) ...[
                       const SizedBox(height: 16),
-                      _buildDeleteAction(context, id: args['id'] as String? ?? '', projectId: projectId),
+                      _buildDeleteAction(
+                        context,
+                        id: args['id'] as String? ?? '',
+                        projectId: projectId,
+                      ),
                     ],
 
                     const SizedBox(height: 8),
@@ -700,9 +716,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         final projectProvider = context.read<ProjectProvider>();
         String pName = 'Unknown Project';
         String pId = _args['projectId'] ?? _args['project'] ?? '';
-        final matchedProj = projectProvider.projects.where(
-          (p) => p.id == pId
-        );
+        final matchedProj = projectProvider.projects.where((p) => p.id == pId);
         if (matchedProj.isNotEmpty) {
           pName = matchedProj.first.name;
         }
@@ -718,7 +732,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           'rate': (_args['rate'] as num?)?.toDouble() ?? 0.0,
           'totalAmount': _billAmount,
           'paidAmount': _paidAmount,
-          'outstandingAmount': (_billAmount - _paidAmount).clamp(0.0, double.infinity),
+          'outstandingAmount': (_billAmount - _paidAmount).clamp(
+            0.0,
+            double.infinity,
+          ),
           'paymentStatus': _payStatus,
           'receipt': _paymentReceiptFile ?? _args['receipt'] ?? '',
           'transactionDetails': _args,
@@ -735,8 +752,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             if (latest != null && mounted) {
               setState(() {
                 _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-                
-                final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? 'pending';
+
+                final pStatus =
+                    latest['paymentStatus']?.toString().toLowerCase() ??
+                    'pending';
                 if (pStatus == 'paid') {
                   _payStatus = PaymentStatus.paid;
                 } else if (pStatus == 'partial') {
@@ -747,12 +766,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                   _payStatus = PaymentStatus.pending;
                 }
 
-                _paymentHistory = latest['paymentHistory'] is List 
-                    ? List.from(latest['paymentHistory']) 
+                _paymentHistory = latest['paymentHistory'] is List
+                    ? List.from(latest['paymentHistory'])
                     : [];
-                
+
                 // If there's an updated receipt in the transaction, load it
-                if (latest['attachments'] is List && latest['attachments'].isNotEmpty) {
+                if (latest['attachments'] is List &&
+                    latest['attachments'].isNotEmpty) {
                   _paymentReceiptFile = latest['attachments'].first?.toString();
                 }
               });
@@ -827,7 +847,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     if (_paymentHistory.isEmpty) return const SizedBox.shrink();
 
     final reversedHistory = List.from(_paymentHistory.reversed);
-    final displayedHistory = _viewAllPayments ? reversedHistory : [reversedHistory.first];
+    final displayedHistory = _viewAllPayments
+        ? reversedHistory
+        : [reversedHistory.first];
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -872,7 +894,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     });
                   },
                   child: Text(
-                    _viewAllPayments ? 'View Less' : 'View All (${_paymentHistory.length})',
+                    _viewAllPayments
+                        ? 'View Less'
+                        : 'View All (${_paymentHistory.length})',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -895,32 +919,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
               final item = displayedHistory[index] ?? {};
 
               // Parse date
-              String formattedDate = 'Unknown Date';
               final rawDate = item['date'] ?? item['paymentDate'];
-              if (rawDate != null) {
-                try {
-                  final dt = DateTime.parse(rawDate.toString());
-                  // Simple human readable format: e.g. "19 May 2026"
-                  final months = [
-                    'Jan',
-                    'Feb',
-                    'Mar',
-                    'Apr',
-                    'May',
-                    'Jun',
-                    'Jul',
-                    'Aug',
-                    'Sep',
-                    'Oct',
-                    'Nov',
-                    'Dec',
-                  ];
-                  formattedDate =
-                      '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-                } catch (_) {
-                  formattedDate = rawDate.toString();
-                }
-              }
+              final String formattedDate = _formatDateTimeWithTime(rawDate);
 
               final double amt = (item['amount'] as num?)?.toDouble() ?? 0;
               final String method = item['method'] as String? ?? 'Cash';
@@ -932,39 +932,42 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEEF0FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              method.toUpperCase(),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formattedDate,
                               style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: primaryBlue,
-                                letterSpacing: 0.5,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: textDark,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 3),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF0FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                method.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: primaryBlue,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         formatCurrency(amt),
                         style: const TextStyle(
@@ -996,7 +999,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE ACTION — low-emphasis secondary ────────────────────────────────
-  Widget _buildDeleteAction(BuildContext context, {required String id, required String projectId}) {
+  Widget _buildDeleteAction(
+    BuildContext context, {
+    required String id,
+    required String projectId,
+  }) {
     return GestureDetector(
       onTap: () => _showDeleteDialog(context, id: id, projectId: projectId),
       behavior: HitTestBehavior.opaque,
@@ -1026,7 +1033,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }
 
   // ── DELETE DIALOG ─────────────────────────────────────────────────────────
-  void _showDeleteDialog(BuildContext context, {required String id, required String projectId}) {
+  void _showDeleteDialog(
+    BuildContext context, {
+    required String id,
+    required String projectId,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1049,7 +1060,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              
+
               if (id.isNotEmpty) {
                 final success = await ApiService.deleteTransaction(id);
                 if (success && context.mounted) {

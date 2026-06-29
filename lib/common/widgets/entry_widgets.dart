@@ -258,10 +258,7 @@ class EntryUnderlineField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: error != null ? _kRed : _kBlue,
-            width: 2,
-          ),
+          bottom: BorderSide(color: error != null ? _kRed : _kBlue, width: 2),
         ),
       ),
       child: Column(
@@ -385,8 +382,8 @@ class EntryDropdownField<T> extends StatelessWidget {
     final borderColor = error != null
         ? _kRed
         : enabled
-            ? _kBlue
-            : _kGray;
+        ? _kBlue
+        : _kGray;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -396,9 +393,7 @@ class EntryDropdownField<T> extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: borderColor, width: 2),
-              ),
+              border: Border(bottom: BorderSide(color: borderColor, width: 2)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<T>(
@@ -2027,12 +2022,17 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       if (val.length > 1 &&
                                           val.startsWith('0') &&
                                           !val.startsWith('0.')) {
-                                        final stripped = val.replaceFirst(RegExp(r'^0+'), '');
-                                        if (stripped.isNotEmpty && stripped != '.') {
+                                        final stripped = val.replaceFirst(
+                                          RegExp(r'^0+'),
+                                          '',
+                                        );
+                                        if (stripped.isNotEmpty &&
+                                            stripped != '.') {
                                           amountCtrl.text = stripped;
-                                          amountCtrl.selection = TextSelection.collapsed(
-                                            offset: stripped.length,
-                                          );
+                                          amountCtrl.selection =
+                                              TextSelection.collapsed(
+                                                offset: stripped.length,
+                                              );
                                           val = stripped;
                                         }
                                       }
@@ -2367,8 +2367,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       );
                                       return;
                                     }
-                                    if (outstanding > 0 &&
-                                        amt > outstanding) {
+                                    if (outstanding > 0 && amt > outstanding) {
                                       ss(
                                         () => amountError =
                                             'Payment amount cannot exceed the outstanding amount.',
@@ -2388,10 +2387,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? outstanding
                                       : selectedStatus == PaymentStatus.pending
                                       ? 0.0
-                                      : (parseAmount(
-                                               amountCtrl.text.trim(),
-                                             ) ??
-                                             0);
+                                      : (parseAmount(amountCtrl.text.trim()) ??
+                                            0);
                                   Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,

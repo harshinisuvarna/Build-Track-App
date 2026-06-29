@@ -70,10 +70,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: AppTheme.spacingLg),
         Text(
           'Reset Password',
-          style: AppTheme.heading2.copyWith(
-            fontSize: 26,
-            letterSpacing: -0.5,
-          ),
+          style: AppTheme.heading2.copyWith(fontSize: 26, letterSpacing: -0.5),
         ),
         const SizedBox(height: AppTheme.spacingSm),
         Text(
@@ -107,21 +104,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 padding: EdgeInsets.symmetric(vertical: 12.0),
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
-            : AppButton(
-                label: 'Reset Password',
-                onPressed: _onResetPressed,
-              ),
+            : AppButton(label: 'Reset Password', onPressed: _onResetPressed),
         const SizedBox(height: AppTheme.spacingLg),
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.arrow_back,
-                color: AppColors.textDark,
-                size: 16,
-              ),
+              const Icon(Icons.arrow_back, color: AppColors.textDark, size: 16),
               const SizedBox(width: 6),
               Text(
                 'Back to login',
@@ -154,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       final success = await ApiService.resetPassword(email);
-      
+
       if (!mounted) return;
 
       if (success) {

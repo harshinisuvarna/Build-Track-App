@@ -5,12 +5,10 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/config/api_config.dart';
 import 'package:flutter/foundation.dart';
 
-
 class ApiService {
   static List<ProjectModel>? mockProjects;
 
   static String get baseUrl => ApiConfig.baseUrl;
-
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,7 +25,8 @@ class ApiService {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [GET]: $url');
-    final response = await http.get(Uri.parse(url), headers: headers)
+    final response = await http
+        .get(Uri.parse(url), headers: headers)
         .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
@@ -42,11 +41,9 @@ class ApiService {
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [POST]: $url');
     debugPrint('Payload: ${jsonEncode(body)}');
-    final response = await http.post(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 45));
+    final response = await http
+        .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -60,11 +57,9 @@ class ApiService {
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [PUT]: $url');
     debugPrint('Payload: ${jsonEncode(body)}');
-    final response = await http.put(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 45));
+    final response = await http
+        .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -74,7 +69,8 @@ class ApiService {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [DELETE]: $url');
-    final response = await http.delete(Uri.parse(url), headers: headers)
+    final response = await http
+        .delete(Uri.parse(url), headers: headers)
         .timeout(const Duration(seconds: 45));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
@@ -108,7 +104,7 @@ class ApiService {
             );
           } catch (e) {
             if (kDebugMode) {
-              print('CRASH parsing project ${item['_id']}: $e');
+              debugPrint('CRASH parsing project ${item['_id']}: $e');
             }
           }
         }
@@ -116,18 +112,18 @@ class ApiService {
         return validProjects;
       } else if (response.statusCode == 401) {
         if (kDebugMode) {
-          print('AUTH Error: Token missing (401).');
+          debugPrint('AUTH Error: Token missing (401).');
         }
         throw Exception('Unauthorized');
       } else {
         if (kDebugMode) {
-          print('GET /projects failed: ${response.statusCode}');
+          debugPrint('GET /projects failed: ${response.statusCode}');
         }
         return [];
       }
     } catch (e) {
       if (kDebugMode) {
-        print('fetchProjects Master Error: $e');
+        debugPrint('fetchProjects Master Error: $e');
       }
       return [];
     }
@@ -141,12 +137,12 @@ class ApiService {
         final decoded = json.decode(response.body);
         final Map<String, dynamic> projectJson =
             (decoded is Map && decoded.containsKey('project'))
-                ? decoded['project'] as Map<String, dynamic>
-                : decoded as Map<String, dynamic>;
+            ? decoded['project'] as Map<String, dynamic>
+            : decoded as Map<String, dynamic>;
         return ProjectModel.fromJson(projectJson);
       } else {
         if (kDebugMode) {
-          print(
+          debugPrint(
             'POST /projects failed (${response.statusCode}): ${response.body}',
           );
         }
@@ -154,7 +150,7 @@ class ApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('addProject Error: $e');
+        debugPrint('addProject Error: $e');
       }
       return null;
     }
@@ -167,14 +163,14 @@ class ApiService {
         final decoded = json.decode(response.body);
         final Map<String, dynamic> projectJson =
             (decoded is Map && decoded.containsKey('project'))
-                ? decoded['project'] as Map<String, dynamic>
-                : decoded as Map<String, dynamic>;
+            ? decoded['project'] as Map<String, dynamic>
+            : decoded as Map<String, dynamic>;
         return ProjectModel.fromJson(projectJson);
       }
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('fetchProjectById error: $e');
+        debugPrint('fetchProjectById error: $e');
       }
       return null;
     }
@@ -184,58 +180,62 @@ class ApiService {
   // TRANSACTION API METHODS
   // ==========================================
 
-  static Future<List<dynamic>> fetchMaterials() async {
-    try {
-      final response = await get('/transactions');
+  static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
+  try {
+    String endpoint = '/transactions';
+    if (projectId != null && projectId.isNotEmpty) {
+      endpoint += '?project=$projectId';
+    }
+    final response = await get(endpoint);
 
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded is List) {
-          return decoded;
-        } else if (decoded is Map) {
-          return decoded['transactions'] ?? decoded['data'] ?? [];
-        }
-        return [];
-      } else if (response.statusCode == 401) {
-        if (kDebugMode) {
-          print(
-            'AUTH Error: Token missing or expired (401). Body: ${response.body}',
-          );
-        }
-        throw Exception('Unauthorized – please log in again');
-      } else {
-        if (kDebugMode) {
-          print(
-            'GET /transactions failed with status ${response.statusCode}: ${response.body}',
-          );
-        }
-        throw Exception(
-          'Failed to load transactions (HTTP ${response.statusCode})',
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('GET Error: $e');
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is List) {
+        return decoded;
+      } else if (decoded is Map) {
+        return decoded['transactions'] ?? decoded['data'] ?? [];
       }
       return [];
+    } else if (response.statusCode == 401) {
+      if (kDebugMode) {
+        debugPrint(
+          'AUTH Error: Token missing or expired (401). Body: ${response.body}',
+        );
+      }
+      throw Exception('Unauthorized – please log in again');
+    } else {
+      if (kDebugMode) {
+        debugPrint(
+          'GET /transactions failed with status ${response.statusCode}: ${response.body}',
+        );
+      }
+      throw Exception(
+        'Failed to load transactions (HTTP ${response.statusCode})',
+      );
     }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('GET Error: $e');
+    }
+    return [];
   }
+}
 
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
       final response = await post('/transactions', payload);
 
       if (kDebugMode) {
-        print('=== SERVER RESPONSE DEBUG ===');
-        print('Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
-        print('=============================');
+        debugPrint('=== SERVER RESPONSE DEBUG ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
+        debugPrint('=============================');
       }
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       if (kDebugMode) {
-        print('POST Error: $e');
+        debugPrint('POST Error: $e');
       }
       return false;
     }
@@ -247,10 +247,10 @@ class ApiService {
     try {
       final response = await post('/transactions', payload);
       if (kDebugMode) {
-        print('=== SERVER RESPONSE DEBUG ===');
-        print('Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
-        print('=============================');
+        debugPrint('=== SERVER RESPONSE DEBUG ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
+        debugPrint('=============================');
       }
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
@@ -258,7 +258,7 @@ class ApiService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('POST Error: $e');
+        debugPrint('POST Error: $e');
       }
       return null;
     }
@@ -271,15 +271,15 @@ class ApiService {
     try {
       final response = await put('/transactions/$id', payload);
       if (kDebugMode) {
-        print('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
-        print('Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
-        print('=============================');
+        debugPrint('=== UPDATE TRANSACTION RESPONSE DEBUG ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
+        debugPrint('=============================');
       }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       if (kDebugMode) {
-        print('PUT /transactions/$id Error: $e');
+        debugPrint('PUT /transactions/$id Error: $e');
       }
       return false;
     }
@@ -292,14 +292,14 @@ class ApiService {
     try {
       final response = await put('/transactions/$id', payload);
       if (kDebugMode) {
-        print('=== PUT UPDATE TRANSACTION RESPONSE ===');
-        print('Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
+        debugPrint('=== PUT UPDATE TRANSACTION RESPONSE ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
       }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       if (kDebugMode) {
-        print('PUT /transactions/$id Error: $e');
+        debugPrint('PUT /transactions/$id Error: $e');
       }
       return false;
     }
@@ -309,13 +309,13 @@ class ApiService {
     try {
       final response = await delete('/transactions/$id');
       if (kDebugMode) {
-        print('=== DELETE TRANSACTION RESPONSE ===');
-        print('Status Code: ${response.statusCode}');
+        debugPrint('=== DELETE TRANSACTION RESPONSE ===');
+        debugPrint('Status Code: ${response.statusCode}');
       }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       if (kDebugMode) {
-        print('DELETE /transactions/$id Error: $e');
+        debugPrint('DELETE /transactions/$id Error: $e');
       }
       return false;
     }
@@ -325,13 +325,13 @@ class ApiService {
     try {
       final response = await delete('/projects/$id');
       if (kDebugMode) {
-        print('=== DELETE PROJECT RESPONSE ===');
-        print('Status Code: ${response.statusCode}');
+        debugPrint('=== DELETE PROJECT RESPONSE ===');
+        debugPrint('Status Code: ${response.statusCode}');
       }
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       if (kDebugMode) {
-        print('DELETE /projects/$id Error: $e');
+        debugPrint('DELETE /projects/$id Error: $e');
       }
       return false;
     }
@@ -341,9 +341,9 @@ class ApiService {
     try {
       final response = await get('/transactions/$id');
       if (kDebugMode) {
-        print('=== FETCH TRANSACTION BY ID ===');
-        print('Status Code: ${response.statusCode}');
-        print('Body: ${response.body}');
+        debugPrint('=== FETCH TRANSACTION BY ID ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Body: ${response.body}');
       }
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -354,7 +354,7 @@ class ApiService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('fetchTransactionById error: $e');
+        debugPrint('fetchTransactionById error: $e');
       }
       return null;
     }
@@ -366,14 +366,14 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      String endpoint = '/transactions';
-      if (projectId.isNotEmpty) endpoint += '?project=$projectId';
+      String endpoint = '/transactions?limit=10000';
+      if (projectId.isNotEmpty) endpoint += '&project=$projectId';
 
       final response = await get(endpoint);
 
       if (kDebugMode) {
-        print('fetchInventory status: ${response.statusCode}');
-        print('fetchInventory body: ${response.body}');
+        debugPrint('fetchInventory status: ${response.statusCode}');
+        debugPrint('fetchInventory body: ${response.body}');
       }
 
       if (response.statusCode == 200) {
@@ -383,23 +383,36 @@ class ApiService {
         if (decoded is List) {
           raw = decoded;
         } else if (decoded is Map) {
-          raw = (decoded['transactions'] ??
-                  decoded['inventory'] ??
-                  decoded['data'] ??
-                  decoded['items'] ??
-                  []) as List<dynamic>;
+          raw =
+              (decoded['transactions'] ??
+                      decoded['inventory'] ??
+                      decoded['data'] ??
+                      decoded['items'] ??
+                      [])
+                  as List<dynamic>;
         }
 
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
+          // ── Only Approved entries count toward inventory/stock ──────────
+          final String approvalStatus = (t['approvalStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
+          if (approvalStatus != 'approved') {
+            continue;
+          }
+
           final String itemName =
               (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
                   .toString()
                   .trim();
-
-          final String rawType =
-              (t['type'] ?? '').toString().trim().toLowerCase();
           String tabType = 'material';
           if (rawType == 'wages' || rawType == 'labour') {
             tabType = 'labour';
@@ -430,12 +443,11 @@ class ApiService {
             unit = '';
           }
           final String key = '$itemName||$tabType||$unit';
-          final double qty =
-              (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+          final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
 
           final bool isPositive =
               t['subType']?.toString().toLowerCase() != 'consumption' &&
-                  t['materialType']?.toString().toLowerCase() != 'usage';
+              t['materialType']?.toString().toLowerCase() != 'usage';
 
           if (grouped.containsKey(key)) {
             if (isPositive) {
@@ -444,8 +456,7 @@ class ApiService {
               grouped[key]!['closingStock'] =
                   (grouped[key]!['closingStock'] as double) + qty;
             } else {
-              grouped[key]!['used'] =
-                  (grouped[key]!['used'] as double) + qty;
+              grouped[key]!['used'] = (grouped[key]!['used'] as double) + qty;
               grouped[key]!['closingStock'] =
                   (grouped[key]!['closingStock'] as double) - qty;
             }
@@ -475,20 +486,21 @@ class ApiService {
         }
 
         if (kDebugMode) {
-          print('fetchInventory grouped items: ${grouped.length}');
+          debugPrint('fetchInventory grouped items: ${grouped.length}');
         }
         return grouped.values.toList();
       } else {
         if (kDebugMode) {
-          print(
-              'fetchInventory failed: ${response.statusCode} ${response.body}');
+          debugPrint(
+            'fetchInventory failed: ${response.statusCode} ${response.body}',
+          );
         }
         return [];
       }
     } catch (e, stack) {
       if (kDebugMode) {
-        print('Inventory GET Error: $e');
-        print(stack.toString());
+        debugPrint('Inventory GET Error: $e');
+        debugPrint(stack.toString());
       }
       return [];
     }
@@ -513,7 +525,7 @@ class ApiService {
       });
       if (response.statusCode != 200 && response.statusCode != 201) {
         if (kDebugMode) {
-          print(
+          debugPrint(
             'addInventoryItem failed (${response.statusCode}): ${response.body}',
           );
         }
@@ -521,7 +533,7 @@ class ApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('addInventoryItem Error: $e');
+        debugPrint('addInventoryItem Error: $e');
       }
       rethrow;
     }
@@ -533,14 +545,12 @@ class ApiService {
     String? projectId,
   }) async {
     try {
-      String endpoint = '/transactions?';
+      String endpoint = '/transactions?limit=10000&';
       if (projectId != null && projectId.isNotEmpty) {
         endpoint += 'project=$projectId&';
       }
       if (query != null && query.isNotEmpty) endpoint += 'search=$query&';
-      if (category != null &&
-          category.isNotEmpty &&
-          category != 'All') {
+      if (category != null && category.isNotEmpty && category != 'All') {
         String backendType = 'Materials';
         if (category.toLowerCase() == 'labour') backendType = 'Wages';
         if (category.toLowerCase() == 'equipment') backendType = 'Expense';
@@ -555,20 +565,31 @@ class ApiService {
         if (decoded is List) {
           raw = decoded;
         } else if (decoded is Map) {
-          raw = (decoded['transactions'] ?? decoded['data'] ?? [])
-              as List<dynamic>;
+          raw =
+              (decoded['transactions'] ?? decoded['data'] ?? [])
+                  as List<dynamic>;
         }
 
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String itemName =
+          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          if (rawType == 'income' || rawType == 'revenue') {
+            continue;
+          }
+
+          // ── Only Approved entries count toward inventory/stock ──────────
+          final String approvalStatus = (t['approvalStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
+          if (approvalStatus != 'approved') {
+            continue;
+          }
+          final String itemName =   
               (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
                   .toString()
                   .trim();
-
-          final String rawType =
-              (t['type'] ?? '').toString().trim().toLowerCase();
           String tabType = 'material';
           if (rawType == 'wages' || rawType == 'labour') {
             tabType = 'labour';
@@ -599,12 +620,11 @@ class ApiService {
             unit = '';
           }
           final String key = '$itemName||$tabType||$unit';
-          final double qty =
-              (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
+          final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
 
           final bool isPositive =
               t['subType']?.toString().toLowerCase() != 'consumption' &&
-                  t['materialType']?.toString().toLowerCase() != 'usage';
+              t['materialType']?.toString().toLowerCase() != 'usage';
 
           if (grouped.containsKey(key)) {
             if (isPositive) {
@@ -613,8 +633,7 @@ class ApiService {
               grouped[key]!['closingStock'] =
                   (grouped[key]!['closingStock'] as double) + qty;
             } else {
-              grouped[key]!['used'] =
-                  (grouped[key]!['used'] as double) + qty;
+              grouped[key]!['used'] = (grouped[key]!['used'] as double) + qty;
               grouped[key]!['closingStock'] =
                   (grouped[key]!['closingStock'] as double) - qty;
             }
@@ -649,7 +668,7 @@ class ApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Search API Error: $e');
+        debugPrint('Search API Error: $e');
       }
       return [];
     }
@@ -668,7 +687,7 @@ class ApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Tasks API Error: $e');
+        debugPrint('Tasks API Error: $e');
       }
       return [];
     }
@@ -676,7 +695,7 @@ class ApiService {
 
   static Future<bool> resetPassword(String email) async {
     try {
-      final response = await post('/auth/reset-password', {'email': email});
+      final response = await post('/auth/forgot-password', {'email': email});
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
@@ -684,12 +703,11 @@ class ApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('resetPassword Error: $e');
+        debugPrint('resetPassword Error: $e');
       }
       rethrow;
     }
   }
-
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
@@ -697,8 +715,7 @@ class ApiService {
     String? userId,
   }) async {
     try {
-      String url =
-          '/transactions?project=$projectId&type=$type&limit=5';
+      String url = '/transactions?project=$projectId&type=$type&limit=5';
 
       if (userId != null && userId.isNotEmpty) {
         url += '&createdBy=$userId';
@@ -716,7 +733,7 @@ class ApiService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('fetchRecentTransactions Error: $e');
+        debugPrint('fetchRecentTransactions Error: $e');
       }
       return [];
     }
@@ -734,8 +751,7 @@ class ApiService {
     try {
       List<dynamic> projectTxs = [];
       try {
-        String projectUrl =
-            '/transactions?project=$projectId&type=$type';
+        String projectUrl = '/transactions?limit=10000&project=$projectId&type=$type';
         if (userId != null && userId.isNotEmpty) {
           projectUrl += '&createdBy=$userId';
         }
@@ -753,7 +769,7 @@ class ApiService {
 
       List<dynamic> globalTxs = [];
       try {
-        String globalUrl = '/transactions?type=$type';
+        String globalUrl = '/transactions?limit=10000&type=$type';
         if (userId != null && userId.isNotEmpty) {
           globalUrl += '&createdBy=$userId';
         }
@@ -763,8 +779,7 @@ class ApiService {
           if (d is List) {
             globalTxs = d;
           } else if (d is Map) {
-            globalTxs =
-                (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+            globalTxs = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
           }
         }
       } catch (_) {}
@@ -775,8 +790,7 @@ class ApiService {
 
       for (final rawTx in projectTxs) {
         final tx = rawTx as Map<String, dynamic>;
-        final title =
-            (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
         if (title.isEmpty) continue;
         final key = title.toLowerCase();
         frequency[key] = (frequency[key] ?? 0) + 1;
@@ -795,8 +809,7 @@ class ApiService {
 
       for (final rawTx in globalTxs) {
         final tx = rawTx as Map<String, dynamic>;
-        final title =
-            (tx['title'] ?? tx['name'] ?? '').toString().trim();
+        final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
         if (title.isEmpty) continue;
         final key = title.toLowerCase();
         if (!byTitle.containsKey(key)) {
@@ -841,14 +854,15 @@ class ApiService {
       }
 
       if (kDebugMode) {
-        print(
-            'fetchSuggestions [$type]: ${result.length} unique suggestions');
+        debugPrint(
+          'fetchSuggestions [$type]: ${result.length} unique suggestions',
+        );
       }
       return result;
     } catch (e, stack) {
       if (kDebugMode) {
-        print('fetchSuggestions Error: $e');
-        print(stack);
+        debugPrint('fetchSuggestions Error: $e');
+        debugPrint(stack.toString());
       }
       return [];
     }
@@ -859,57 +873,68 @@ class ApiService {
   // ==========================================
 
   static Future<Map<String, dynamic>?> fetchPendingApprovals() async {
-  try {
-    final response = await get('/approvals/pending');
-    if (kDebugMode) {
-      print('fetchPendingApprovals status: ${response.statusCode}');
-      print('fetchPendingApprovals body: ${response.body}');
+    try {
+      final response = await get('/approvals/pending');
+      if (kDebugMode) {
+        debugPrint('fetchPendingApprovals status: ${response.statusCode}');
+        debugPrint('fetchPendingApprovals body: ${response.body}');
+      }
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) debugPrint('fetchPendingApprovals error: $e');
+      return null;
     }
-    if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
-    }
-    return null;
-  } catch (e) {
-    if (kDebugMode) print('fetchPendingApprovals error: $e');
-    return null;
   }
-}
 
-  static Future<bool> assignSupervisorOversight(String supervisorId, List<String> roles) async {
+  static Future<bool> assignSupervisorOversight(
+    String supervisorId,
+    List<String> roles,
+  ) async {
     try {
       final response = await put('/users/$supervisorId/oversight', {
         'overseesRoles': roles,
       });
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      if (kDebugMode) print('assignSupervisorOversight error: $e');
+      if (kDebugMode) debugPrint('assignSupervisorOversight error: $e');
       return false;
     }
   }
 
-  static Future<Map<String, dynamic>?> fetchApprovalsHistory() async {
-  try {
-    final response = await get('/approvals/history');
-    if (kDebugMode) {
-      print('fetchApprovalsHistory status: ${response.statusCode}');
-      print('fetchApprovalsHistory body: ${response.body}');
+  static Future<Map<String, dynamic>?> fetchApprovalsHistory({
+    String? projectId,
+  }) async {
+    try {
+      String endpoint = '/approvals/history';
+
+      if (projectId != null && projectId.isNotEmpty) {
+        endpoint += '?project=$projectId';
+      }
+
+      final response = await get(endpoint);
+      if (kDebugMode) {
+        debugPrint('fetchApprovalsHistory status: ${response.statusCode}');
+        debugPrint('fetchApprovalsHistory body: ${response.body}');
+      }
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) debugPrint('fetchApprovalsHistory error: $e');
+      return null;
     }
-    if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
-    }
-    return null;
-  } catch (e) {
-    if (kDebugMode) print('fetchApprovalsHistory error: $e');
-    return null;
   }
-}
 
   static Future<bool> approveTransaction(String txId) async {
     try {
       final response = await put('/transactions/$txId/approve', {});
       return response.statusCode == 200;
     } catch (e) {
-      if (kDebugMode) print('approveTransaction error: $e');
+      if (kDebugMode) debugPrint('approveTransaction error: $e');
       return false;
     }
   }
@@ -921,7 +946,7 @@ class ApiService {
       });
       return response.statusCode == 200;
     } catch (e) {
-      if (kDebugMode) print('rejectTransaction error: $e');
+      if (kDebugMode) debugPrint('rejectTransaction error: $e');
       return false;
     }
   }
@@ -931,42 +956,83 @@ class ApiService {
       final response = await put('/project-updates/$updateId/approve', {});
       return response.statusCode == 200;
     } catch (e) {
-      if (kDebugMode) print('approveProjectUpdate error: $e');
+      if (kDebugMode) debugPrint('approveProjectUpdate error: $e');
       return false;
     }
   }
 
-  static Future<bool> rejectProjectUpdate(String updateId, String reason) async {
+  static Future<bool> rejectProjectUpdate(
+    String updateId,
+    String reason,
+  ) async {
     try {
       final response = await put('/project-updates/$updateId/reject', {
         'rejectionReason': reason,
       });
       return response.statusCode == 200;
     } catch (e) {
-      if (kDebugMode) print('rejectProjectUpdate error: $e');
+      if (kDebugMode) debugPrint('rejectProjectUpdate error: $e');
       return false;
     }
   }
 
-  /// Fetches recent transactions created by the currently logged-in user only.
-static Future<List<dynamic>> fetchMyRecentEntries() async {
+  /// Fetches recent inventory-related entries for the home screen.
+/// - Admin: sees recent valid entries across inventory
+/// - Others: sees their own recent valid entries only
+/// - Rejected entries are excluded
+/// - If projectId is passed, only that project's entries are returned
+static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
   try {
-    final response = await get('/transactions/my?limit=10');
+    final prefs = await SharedPreferences.getInstance();
+    final userId =
+        prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
+    final role = (prefs.getString('role') ?? prefs.getString('userRole') ?? '')
+        .toLowerCase()
+        .trim();
+
+    String url = '/transactions?limit=10';
+
+    if (projectId != null && projectId.isNotEmpty) {
+      url += '&project=$projectId';
+    }
+
+    if (role != 'admin' && userId.isNotEmpty) {
+      url += '&createdBy=$userId';
+    }
+
+    final response = await get(url);
+
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);
-      if (decoded is List) return decoded;
-      return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
-    }
-    // Fallback: try with createdBy param if /my route doesn't exist yet
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
-    if (userId.isNotEmpty) {
-      final fallback = await get('/transactions?createdBy=$userId&limit=10');
-      if (fallback.statusCode == 200) {
-        final decoded = json.decode(fallback.body);
-        if (decoded is List) return decoded;
-        return (decoded['transactions'] ?? decoded['data'] ?? []) as List;
-      }
+      final List<dynamic> rawEntries = decoded is List
+          ? decoded
+          : (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+
+      final filtered = rawEntries.where((entry) {
+        if (entry is! Map<String, dynamic>) return false;
+
+        final type = (entry['type'] ?? '').toString().toLowerCase().trim();
+        final approvalStatus = (entry['approvalStatus'] ?? '')
+            .toString()
+            .toLowerCase()
+            .trim();
+
+        if (type == 'income' || type == 'revenue') return false;
+        if (approvalStatus == 'rejected') return false;
+        if (approvalStatus.isNotEmpty && approvalStatus != 'approved') {
+          return false;
+        }
+
+        return true;
+      }).toList();
+
+      filtered.sort((a, b) {
+        final aDate = (a['date'] ?? a['createdAt'] ?? '').toString();
+        final bDate = (b['date'] ?? b['createdAt'] ?? '').toString();
+        return bDate.compareTo(aDate);
+      });
+
+      return filtered.take(10).toList();
     }
   } catch (e) {
     debugPrint('fetchMyRecentEntries error: $e');

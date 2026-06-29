@@ -60,7 +60,11 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline, color: AppColors.textLight, size: 48),
+              const Icon(
+                Icons.lock_outline,
+                color: AppColors.textLight,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(
                 'Session expired. Please log in again.',
@@ -130,7 +134,10 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
               onLeftTap: () => Navigator.maybePop(context),
               rightWidget: provider.state == AiReportState.results
                   ? IconButton(
-                      icon: const Icon(Icons.refresh, color: AppColors.textLight),
+                      icon: const Icon(
+                        Icons.refresh,
+                        color: AppColors.textLight,
+                      ),
                       onPressed: () {
                         _searchController.clear();
                         provider.resetToInitial();
@@ -160,19 +167,32 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
                   onSubmitted: (val) => _submitSearch(context, val),
                   decoration: InputDecoration(
                     hintText: 'Ask about materials, costs, projects...',
-                    hintStyle: AppTheme.body.copyWith(color: AppColors.textLight),
-                    prefixIcon: const Icon(Icons.auto_awesome, color: AppColors.primary),
+                    hintStyle: AppTheme.body.copyWith(
+                      color: AppColors.textLight,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.primary,
+                    ),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: AppColors.textLight),
+                            icon: const Icon(
+                              Icons.clear,
+                              color: AppColors.textLight,
+                            ),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() {}); // Trigger rebuild to hide clear icon
+                              setState(
+                                () {},
+                              ); // Trigger rebuild to hide clear icon
                             },
                           )
                         : null,
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -180,9 +200,7 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
             ),
 
             // Main Content Area based on state
-            Expanded(
-              child: _buildContent(provider),
-            ),
+            Expanded(child: _buildContent(provider)),
           ],
         ),
       ),
@@ -192,10 +210,12 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
   Widget _buildContent(AiChatReportProvider provider) {
     switch (provider.state) {
       case AiReportState.initial:
-        return _InitialState(onPromptSelected: (prompt) {
-          _searchController.text = prompt;
-          _submitSearch(context, prompt);
-        });
+        return _InitialState(
+          onPromptSelected: (prompt) {
+            _searchController.text = prompt;
+            _submitSearch(context, prompt);
+          },
+        );
       case AiReportState.loading:
         return const _LoadingState();
       case AiReportState.error:
@@ -246,9 +266,13 @@ class _InitialState extends StatelessWidget {
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: quickPrompts.map((p) => _PromptCard(prompt: p, onTap: () => onPromptSelected(p))).toList(),
+          children: quickPrompts
+              .map(
+                (p) => _PromptCard(prompt: p, onTap: () => onPromptSelected(p)),
+              )
+              .toList(),
         ),
-        
+
         if (provider.recentSearches.isNotEmpty) ...[
           const SizedBox(height: 32),
           Text(
@@ -256,13 +280,18 @@ class _InitialState extends StatelessWidget {
             style: AppTheme.heading3.copyWith(color: AppColors.textDark),
           ),
           const SizedBox(height: 12),
-          ...provider.recentSearches.map((s) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.history, color: AppColors.textLight),
-            title: Text(s, style: AppTheme.body.copyWith(color: AppColors.textDark)),
-            onTap: () => onPromptSelected(s),
-          )),
-        ]
+          ...provider.recentSearches.map(
+            (s) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.history, color: AppColors.textLight),
+              title: Text(
+                s,
+                style: AppTheme.body.copyWith(color: AppColors.textDark),
+              ),
+              onTap: () => onPromptSelected(s),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -292,7 +321,10 @@ class _PromptCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               prompt,
-              style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: FontWeight.w600),
+              style: AppTheme.body.copyWith(
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -330,10 +362,13 @@ class _LoadingState extends StatelessWidget {
               children: [
                 const CircularProgressIndicator(color: AppColors.primary),
                 const SizedBox(height: 16),
-                Text('Generating analytics...', style: AppTheme.body.copyWith(color: AppColors.textLight)),
+                Text(
+                  'Generating analytics...',
+                  style: AppTheme.body.copyWith(color: AppColors.textLight),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -420,20 +455,31 @@ class _ResultsState extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isCritical ? Colors.red.shade50 : Colors.orange.shade50,
+                    color: isCritical
+                        ? Colors.red.shade50
+                        : Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isCritical ? Colors.red.shade200 : Colors.orange.shade200),
+                    border: Border.all(
+                      color: isCritical
+                          ? Colors.red.shade200
+                          : Colors.orange.shade200,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(isCritical ? Icons.warning : Icons.info, 
-                           color: isCritical ? Colors.red : Colors.orange, size: 24),
+                      Icon(
+                        isCritical ? Icons.warning : Icons.info,
+                        color: isCritical ? Colors.red : Colors.orange,
+                        size: 24,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           alert['message'] ?? '',
                           style: TextStyle(
-                            color: isCritical ? Colors.red.shade900 : Colors.orange.shade900,
+                            color: isCritical
+                                ? Colors.red.shade900
+                                : Colors.orange.shade900,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -472,21 +518,35 @@ class _ResultsState extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.auto_awesome, color: AppColors.primary, size: 18),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    Text('Executive Summary', style: AppTheme.label.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Executive Summary',
+                      style: AppTheme.label.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   result.summary,
-                  style: AppTheme.body.copyWith(color: AppColors.textDark, height: 1.5, fontSize: 15),
+                  style: AppTheme.body.copyWith(
+                    color: AppColors.textDark,
+                    height: 1.5,
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
 
         // Action Bar
@@ -506,7 +566,9 @@ class _ResultsState extends StatelessWidget {
                   onPressed: () => provider.exportCsv(),
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('Export CSV'),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
                 ),
             ],
           ),
@@ -526,11 +588,14 @@ class _ResultsState extends StatelessWidget {
                       icon: Icons.currency_rupee,
                     ),
                   ),
-                if (result.totalAmount != null && result.rowCount != null) const SizedBox(width: 16),
+                if (result.totalAmount != null && result.rowCount != null)
+                  const SizedBox(width: 16),
                 if (result.rowCount != null)
                   Expanded(
                     child: _MetricCard(
-                      title: result.tableType == 'inventory' ? 'Items Tracked' : 'Total Entries',
+                      title: result.tableType == 'inventory'
+                          ? 'Items Tracked'
+                          : 'Total Entries',
                       value: result.rowCount.toString(),
                       icon: Icons.format_list_numbered,
                     ),
@@ -558,12 +623,17 @@ class _ResultsState extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFDDE0F0)),
                   ),
                   child: Column(
-                    children: List.generate(result.projectBreakdown.length, (index) {
+                    children: List.generate(result.projectBreakdown.length, (
+                      index,
+                    ) {
                       final item = result.projectBreakdown[index];
                       final isTop = index == 0;
                       // Fallback to quantity if amount is 0 (for inventory queries)
-                      final val = (item['totalAmount'] as num?)?.toDouble() ?? 0;
-                      final valStr = val > 0 ? _formatCurrency(val) : '${item['totalQty'] ?? 0} units';
+                      final val =
+                          (item['totalAmount'] as num?)?.toDouble() ?? 0;
+                      final valStr = val > 0
+                          ? _formatCurrency(val)
+                          : '${item['totalQty'] ?? 0} units';
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
@@ -571,12 +641,31 @@ class _ResultsState extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                if (isTop) const Text('🏆 ', style: TextStyle(fontSize: 12)),
+                                if (isTop)
+                                  const Text(
+                                    '🏆 ',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
                                 if (!isTop) const SizedBox(width: 16),
-                                Text(item['projectName']?.toString() ?? 'Unknown', style: AppTheme.body.copyWith(color: AppColors.textDark, fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
+                                Text(
+                                  item['projectName']?.toString() ?? 'Unknown',
+                                  style: AppTheme.body.copyWith(
+                                    color: AppColors.textDark,
+                                    fontWeight: isTop
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
                               ],
                             ),
-                            Text(valStr, style: AppTheme.body.copyWith(fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
+                            Text(
+                              valStr,
+                              style: AppTheme.body.copyWith(
+                                fontWeight: isTop
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -601,13 +690,17 @@ class _ResultsState extends StatelessWidget {
               child: ExpansionTile(
                 initiallyExpanded: true,
                 title: Text(
-                  result.tableType == 'inventory' ? 'Inventory Details' : 'Transaction Details',
+                  result.tableType == 'inventory'
+                      ? 'Inventory Details'
+                      : 'Transaction Details',
                   style: AppTheme.heading3.copyWith(fontSize: 16),
                 ),
                 children: [
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: result.tableType == 'inventory' ? _buildInventoryTable() : _buildTransactionTable(),
+                    child: result.tableType == 'inventory'
+                        ? _buildInventoryTable()
+                        : _buildTransactionTable(),
                   ),
                 ],
               ),
@@ -620,7 +713,10 @@ class _ResultsState extends StatelessWidget {
         if (result.actions.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Suggested Explorations', style: AppTheme.label.copyWith(color: AppColors.textLight)),
+            child: Text(
+              'Suggested Explorations',
+              style: AppTheme.label.copyWith(color: AppColors.textLight),
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -636,12 +732,15 @@ class _ResultsState extends StatelessWidget {
                   onPressed: () => onActionTap(result.actions[i]),
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   labelStyle: const TextStyle(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.transparent)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: const BorderSide(color: Colors.transparent),
+                  ),
                 );
               },
             ),
           ),
-        ]
+        ],
       ],
     );
   }
@@ -655,8 +754,14 @@ class _ResultsState extends StatelessWidget {
 
   Widget _buildTransactionTable() {
     return DataTable(
-      headingTextStyle: AppTheme.label.copyWith(color: AppColors.textLight, fontWeight: FontWeight.bold),
-      dataTextStyle: AppTheme.body.copyWith(color: AppColors.textDark, fontSize: 13),
+      headingTextStyle: AppTheme.label.copyWith(
+        color: AppColors.textLight,
+        fontWeight: FontWeight.bold,
+      ),
+      dataTextStyle: AppTheme.body.copyWith(
+        color: AppColors.textDark,
+        fontSize: 13,
+      ),
       columnSpacing: 24,
       columns: const [
         DataColumn(label: Text('Date')),
@@ -666,22 +771,34 @@ class _ResultsState extends StatelessWidget {
         DataColumn(label: Text('Amount'), numeric: true),
       ],
       rows: result.tableRows.map((r) {
-        final qty = r['quantity'] != null && r['quantity'].toString().isNotEmpty ? '${r['quantity']} ${r['unit'] ?? ''}' : '-';
-        return DataRow(cells: [
-          DataCell(Text(r['date']?.toString() ?? '-')),
-          DataCell(Text(r['projectName']?.toString() ?? '-')),
-          DataCell(Text(r['item']?.toString() ?? '-')),
-          DataCell(Text(qty)),
-          DataCell(Text(_formatCurrency((r['amount'] as num?)?.toDouble() ?? 0))),
-        ]);
+        final qty = r['quantity'] != null && r['quantity'].toString().isNotEmpty
+            ? '${r['quantity']} ${r['unit'] ?? ''}'
+            : '-';
+        return DataRow(
+          cells: [
+            DataCell(Text(r['date']?.toString() ?? '-')),
+            DataCell(Text(r['projectName']?.toString() ?? '-')),
+            DataCell(Text(r['item']?.toString() ?? '-')),
+            DataCell(Text(qty)),
+            DataCell(
+              Text(_formatCurrency((r['amount'] as num?)?.toDouble() ?? 0)),
+            ),
+          ],
+        );
       }).toList(),
     );
   }
 
   Widget _buildInventoryTable() {
     return DataTable(
-      headingTextStyle: AppTheme.label.copyWith(color: AppColors.textLight, fontWeight: FontWeight.bold),
-      dataTextStyle: AppTheme.body.copyWith(color: AppColors.textDark, fontSize: 13),
+      headingTextStyle: AppTheme.label.copyWith(
+        color: AppColors.textLight,
+        fontWeight: FontWeight.bold,
+      ),
+      dataTextStyle: AppTheme.body.copyWith(
+        color: AppColors.textDark,
+        fontSize: 13,
+      ),
       columns: const [
         DataColumn(label: Text('Material')),
         DataColumn(label: Text('Type')),
@@ -694,25 +811,41 @@ class _ResultsState extends StatelessWidget {
         if (severity == 'critical') statusColor = AppColors.error;
         if (severity == 'low') statusColor = Colors.orange;
 
-        return DataRow(cells: [
-          DataCell(Text(r['name']?.toString() ?? '-')),
-          DataCell(Text(r['category']?.toString().toUpperCase() ?? '-')),
-          DataCell(Text('${r['quantity'] ?? 0} ${r['unit'] ?? ''}')),
-          DataCell(
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Text(severity.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+        return DataRow(
+          cells: [
+            DataCell(Text(r['name']?.toString() ?? '-')),
+            DataCell(Text(r['category']?.toString().toUpperCase() ?? '-')),
+            DataCell(Text('${r['quantity'] ?? 0} ${r['unit'] ?? ''}')),
+            DataCell(
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  severity.toUpperCase(),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ]);
+          ],
+        );
       }).toList(),
     );
   }
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.title, required this.value, required this.icon});
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
   final String title;
   final String value;
   final IconData icon;
@@ -731,9 +864,15 @@ class _MetricCard extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.textLight, size: 20),
           const SizedBox(height: 12),
-          Text(value, style: AppTheme.heading2.copyWith(color: AppColors.primary)),
+          Text(
+            value,
+            style: AppTheme.heading2.copyWith(color: AppColors.primary),
+          ),
           const SizedBox(height: 4),
-          Text(title, style: AppTheme.caption.copyWith(color: AppColors.textLight)),
+          Text(
+            title,
+            style: AppTheme.caption.copyWith(color: AppColors.textLight),
+          ),
         ],
       ),
     );

@@ -1,9 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -14,7 +11,8 @@ class FulfillmentPaymentScreen extends StatefulWidget {
   const FulfillmentPaymentScreen({super.key});
 
   @override
-  State<FulfillmentPaymentScreen> createState() => _FulfillmentPaymentScreenState();
+  State<FulfillmentPaymentScreen> createState() =>
+      _FulfillmentPaymentScreenState();
 }
 
 class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
@@ -24,7 +22,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   late String _entryId;
   late String _projectId;
   late String _projectName;
-  late String _itemId;
   late String _itemName;
   late String _itemType; // 'material' | 'labour' | 'equipment'
   late double _quantity;
@@ -33,7 +30,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   late double _alreadyPaid;
   late double _outstanding;
   late String? _existingReceipt;
-  late Map<String, dynamic> _transactionDetails;
 
   // Payment Form States
   late PaymentStatus _selectedStatus;
@@ -67,16 +63,26 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     _entryId = (args['id'] ?? args['entryId'] ?? args['_id'] ?? '').toString();
     _projectId = (args['projectId'] ?? args['project'] ?? '').toString();
     _projectName = (args['projectName'] ?? '').toString();
-    _itemId = (args['itemId'] ?? '').toString();
-    _itemName = (args['itemName'] ?? args['name'] ?? args['title'] ?? 'Unknown Item').toString();
-    _itemType = (args['itemType'] ?? args['category'] ?? args['type'] ?? 'material').toString();
+    _itemName =
+        (args['itemName'] ?? args['name'] ?? args['title'] ?? 'Unknown Item')
+            .toString();
+    _itemType =
+        (args['itemType'] ?? args['category'] ?? args['type'] ?? 'material')
+            .toString();
     _quantity = (args['quantity'] as num?)?.toDouble() ?? 0.0;
     _rate = (args['rate'] as num?)?.toDouble() ?? 0.0;
-    _totalAmount = (args['totalAmount'] as num?)?.toDouble() ?? (args['billAmount'] as num?)?.toDouble() ?? 0.0;
-    _alreadyPaid = (args['paidAmount'] as num?)?.toDouble() ?? (args['alreadyPaid'] as num?)?.toDouble() ?? 0.0;
-    _outstanding = (args['outstandingAmount'] as num?)?.toDouble() ?? (_totalAmount - _alreadyPaid).clamp(0.0, double.infinity);
+    _totalAmount =
+        (args['totalAmount'] as num?)?.toDouble() ??
+        (args['billAmount'] as num?)?.toDouble() ??
+        0.0;
+    _alreadyPaid =
+        (args['paidAmount'] as num?)?.toDouble() ??
+        (args['alreadyPaid'] as num?)?.toDouble() ??
+        0.0;
+    _outstanding =
+        (args['outstandingAmount'] as num?)?.toDouble() ??
+        (_totalAmount - _alreadyPaid).clamp(0.0, double.infinity);
     _existingReceipt = args['receipt'] as String?;
-    _transactionDetails = Map<String, dynamic>.from(args['transactionDetails'] ?? args);
 
     // Initialize fields
     _selectedStatus = _outstanding > 0
@@ -89,7 +95,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       _amountCtrl.text = '0';
     }
 
-    _selectedMethod = args['paymentMethod']?.toString() ?? args['paymentMode']?.toString() ?? 'UPI';
+    _selectedMethod =
+        args['paymentMethod']?.toString() ??
+        args['paymentMode']?.toString() ??
+        'UPI';
     if (!_pMethods.any((m) => m['label'] == _selectedMethod)) {
       if (_selectedMethod == 'Bank') {
         _selectedMethod = 'Bank Transfer';
@@ -145,8 +154,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     final amount = _selectedStatus == PaymentStatus.paid
         ? _outstanding
         : _selectedStatus == PaymentStatus.pending
-            ? 0.0
-            : (_parseAmount(_amountCtrl.text.trim()) ?? 0.0);
+        ? 0.0
+        : (_parseAmount(_amountCtrl.text.trim()) ?? 0.0);
 
     setState(() {
       _isSaving = true;
@@ -160,8 +169,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       final String newStatusStr = newStatusVal == PaymentStatus.paid
           ? 'Paid'
           : newStatusVal == PaymentStatus.partial
-              ? 'Partial'
-              : 'Pending';
+          ? 'Partial'
+          : 'Pending';
 
       String apiPaymentMode = _selectedMethod;
       if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
@@ -176,7 +185,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         'paymentDate': _selectedPaymentDate.toIso8601String(),
       };
 
-      final success = await ApiService.updateTransactionPayment(_entryId, payload);
+      final success = await ApiService.updateTransactionPayment(
+        _entryId,
+        payload,
+      );
 
       if (success) {
         // Trigger loaders to sync state locally
@@ -254,7 +266,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     }
 
     final double parentW = MediaQuery.of(context).size.width;
-    final double chipW = (parentW - 40) / 2; // Subtract horizontal padding (16*2=32) and spacing (8)
+    final double chipW =
+        (parentW - 40) /
+        2; // Subtract horizontal padding (16*2=32) and spacing (8)
     final double fullW = parentW - 32;
 
     return Scaffold(
@@ -303,7 +317,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -444,7 +461,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                           (v) => setState(() {
                             _selectedStatus = v;
                             _amountError = null;
-                            if (_amountCtrl.text == '0' || _amountCtrl.text == _outstanding.toStringAsFixed(0)) {
+                            if (_amountCtrl.text == '0' ||
+                                _amountCtrl.text ==
+                                    _outstanding.toStringAsFixed(0)) {
                               _amountCtrl.clear();
                             }
                           }),
@@ -514,7 +533,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 8),
                     AnimatedOpacity(
-                      opacity: _selectedStatus == PaymentStatus.pending ? 0.4 : 1.0,
+                      opacity: _selectedStatus == PaymentStatus.pending
+                          ? 0.4
+                          : 1.0,
                       duration: const Duration(milliseconds: 180),
                       child: Container(
                         height: 60,
@@ -531,13 +552,22 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                         child: TextField(
                           controller: _amountCtrl,
                           enabled: _selectedStatus != PaymentStatus.pending,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           onChanged: (val) {
-                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
-                              final stripped = val.replaceFirst(RegExp(r'^0+'), '');
+                            if (val.length > 1 &&
+                                val.startsWith('0') &&
+                                !val.startsWith('0.')) {
+                              final stripped = val.replaceFirst(
+                                RegExp(r'^0+'),
+                                '',
+                              );
                               if (stripped.isNotEmpty && stripped != '.') {
                                 _amountCtrl.text = stripped;
-                                _amountCtrl.selection = TextSelection.collapsed(offset: stripped.length);
+                                _amountCtrl.selection = TextSelection.collapsed(
+                                  offset: stripped.length,
+                                );
                                 val = stripped;
                               }
                             }
@@ -564,7 +594,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                             hintText: '0.00',
                             hintStyle: TextStyle(color: _kGray),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                           ),
                           style: const TextStyle(
                             fontSize: 20,
@@ -579,9 +612,13 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       child: Text(
                         _amountError ?? helperText,
                         style: TextStyle(
-                          color: _amountError != null ? const Color(0xFFDC2626) : const Color(0xFF6B7280),
+                          color: _amountError != null
+                              ? const Color(0xFFDC2626)
+                              : const Color(0xFF6B7280),
                           fontSize: 11,
-                          fontStyle: _amountError != null ? FontStyle.italic : FontStyle.normal,
+                          fontStyle: _amountError != null
+                              ? FontStyle.italic
+                              : FontStyle.normal,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -614,12 +651,19 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
                         decoration: BoxDecoration(
-                          color: _uploadedReceipt != null ? const Color(0xFFF0FDF4) : Colors.white,
+                          color: _uploadedReceipt != null
+                              ? const Color(0xFFF0FDF4)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _uploadedReceipt != null ? const Color(0xFF15803D) : const Color(0xFFCCCFE8),
+                            color: _uploadedReceipt != null
+                                ? const Color(0xFF15803D)
+                                : const Color(0xFFCCCFE8),
                             width: 1.5,
                           ),
                         ),
@@ -645,7 +689,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   GestureDetector(
-                                    onTap: () => setState(() => _uploadedReceipt = null),
+                                    onTap: () =>
+                                        setState(() => _uploadedReceipt = null),
                                     child: const Icon(
                                       Icons.close,
                                       color: Color(0xFF6B7280),
@@ -672,7 +717,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   const Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Upload Payment Receipt',
@@ -734,7 +780,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       },
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -838,7 +887,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF173EEA).withValues(alpha: 0.25),
+                              color: const Color(
+                                0xFF173EEA,
+                              ).withValues(alpha: 0.25),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -944,7 +995,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
           color: isSelected ? const Color(0xFFEEF1FF) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF173EEA) : const Color(0xFFE2E4F6),
+            color: isSelected
+                ? const Color(0xFF173EEA)
+                : const Color(0xFFE2E4F6),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),

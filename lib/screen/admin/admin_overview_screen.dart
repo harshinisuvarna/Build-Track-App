@@ -82,8 +82,9 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
             ? decoded
             : (decoded['transactions'] ?? decoded['data'] ?? []) as List;
         setState(() {
-          _transactions =
-              raw.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+          _transactions = raw
+              .map((t) => Map<String, dynamic>.from(t as Map))
+              .toList();
           _loadingTx = false;
         });
       } else {
@@ -101,84 +102,92 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
   }
 
   @override
-Widget build(BuildContext context) {
-  // ── Issue 1: Non-admin gate ──────────────────────────────────────────
-  if (!RoleManager.canViewTeamAccess) {
-    return Scaffold(
-      backgroundColor: AppColors.gradientStart,
-      body: SafeArea(
-        child: Column(
-          children: [
-            AppTopBar(
-              title: 'Team & Activity Overview',
-              isSubScreen: true,
-              leftIcon: Icons.arrow_back,
-              onLeftTap: () => Navigator.maybePop(context),
-            ),
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySurface,
-                          shape: BoxShape.circle,
+  Widget build(BuildContext context) {
+    // ── Issue 1: Non-admin gate ──────────────────────────────────────────
+    if (!RoleManager.canViewTeamAccess) {
+      return Scaffold(
+        backgroundColor: AppColors.gradientStart,
+        body: SafeArea(
+          child: Column(
+            children: [
+              AppTopBar(
+                title: 'Team & Activity Overview',
+                isSubScreen: true,
+                leftIcon: Icons.arrow_back,
+                onLeftTap: () => Navigator.maybePop(context),
+              ),
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySurface,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_outline,
+                            color: AppColors.primary,
+                            size: 34,
+                          ),
                         ),
-                        child: const Icon(Icons.lock_outline,
-                            color: AppColors.primary, size: 34),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Admin Access Only',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textDark,
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Admin Access Only',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'This screen is only accessible to Admins.\nContact your administrator for access.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textLight,
-                          height: 1.5,
+                        const SizedBox(height: 8),
+                        const Text(
+                          'This screen is only accessible to Admins.\nContact your administrator for access.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textLight,
+                            height: 1.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 28),
-                      ElevatedButton(
-                        onPressed: () => Navigator.maybePop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 14),
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          onPressed: () => Navigator.maybePop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 14,
+                            ),
+                          ),
+                          child: const Text(
+                            'Go Back',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
-                        child: const Text('Go Back',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  return Scaffold(
-    backgroundColor: AppColors.gradientStart,
-    body: SafeArea(
+    return Scaffold(
+      backgroundColor: AppColors.gradientStart,
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -208,9 +217,13 @@ Widget build(BuildContext context) {
                       children: [
                         const Icon(Icons.people_outline, size: 16),
                         const SizedBox(width: 6),
-                        Text('Team (${_users.length})',
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w700)),
+                        Text(
+                          'Team (${_users.length})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -220,9 +233,13 @@ Widget build(BuildContext context) {
                       children: [
                         const Icon(Icons.receipt_long_outlined, size: 16),
                         const SizedBox(width: 6),
-                        Text('All Entries (${_transactions.length})',
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w700)),
+                        Text(
+                          'All Entries (${_transactions.length})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -232,10 +249,7 @@ Widget build(BuildContext context) {
             Expanded(
               child: TabBarView(
                 controller: _tabCtrl,
-                children: [
-                  _buildUsersTab(),
-                  _buildTransactionsTab(),
-                ],
+                children: [_buildUsersTab(), _buildTransactionsTab()],
               ),
             ),
           ],
@@ -249,26 +263,30 @@ Widget build(BuildContext context) {
   Widget _buildUsersTab() {
     if (_loadingUsers) {
       return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
     if (_usersError != null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_usersError!,
-                style: const TextStyle(color: AppColors.textLight)),
+            Text(
+              _usersError!,
+              style: const TextStyle(color: AppColors.textLight),
+            ),
             const SizedBox(height: 12),
-            ElevatedButton(
-                onPressed: _loadUsers, child: const Text('Retry')),
+            ElevatedButton(onPressed: _loadUsers, child: const Text('Retry')),
           ],
         ),
       );
     }
     if (_users.isEmpty) {
       return Center(
-        child: Text('No team members yet.',
-            style: AppTheme.body.copyWith(color: AppColors.textLight)),
+        child: Text(
+          'No team members yet.',
+          style: AppTheme.body.copyWith(color: AppColors.textLight),
+        ),
       );
     }
     return RefreshIndicator(
@@ -276,15 +294,15 @@ Widget build(BuildContext context) {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: _users.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (_, i) => _UserCard(
-  user: _users[i],
-  onEdit: () => Navigator.pushNamed(
-    context,
-    '/assign-role',
-    arguments: {'editUser': _users[i]},
-  ).then((_) => _loadUsers()),
-),
+          user: _users[i],
+          onEdit: () => Navigator.pushNamed(
+            context,
+            '/assign-role',
+            arguments: {'editUser': _users[i]},
+          ).then((_) => _loadUsers()),
+        ),
       ),
     );
   }
@@ -294,26 +312,30 @@ Widget build(BuildContext context) {
   Widget _buildTransactionsTab() {
     if (_loadingTx) {
       return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
     if (_txError != null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_txError!,
-                style: const TextStyle(color: AppColors.textLight)),
+            Text(_txError!, style: const TextStyle(color: AppColors.textLight)),
             const SizedBox(height: 12),
             ElevatedButton(
-                onPressed: _loadTransactions, child: const Text('Retry')),
+              onPressed: _loadTransactions,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       );
     }
     if (_transactions.isEmpty) {
       return Center(
-        child: Text('No entries yet.',
-            style: AppTheme.body.copyWith(color: AppColors.textLight)),
+        child: Text(
+          'No entries yet.',
+          style: AppTheme.body.copyWith(color: AppColors.textLight),
+        ),
       );
     }
     return RefreshIndicator(
@@ -321,7 +343,7 @@ Widget build(BuildContext context) {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: _transactions.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _TxCard(tx: _transactions[i]),
       ),
     );
@@ -339,10 +361,8 @@ class _UserCard extends StatelessWidget {
     final name = user['name']?.toString() ?? 'Unknown';
     final email = user['email']?.toString() ?? '';
     final role = user['role']?.toString() ?? 'Mason';
-    final permissions =
-        (user['permissions'] as List?)?.cast<String>() ?? [];
-    final projectIds =
-        (user['projectIds'] as List?)?.cast<String>() ?? [];
+    final permissions = (user['permissions'] as List?)?.cast<String>() ?? [];
+    final projectIds = (user['projectIds'] as List?)?.cast<String>() ?? [];
     final isAdminUser = role.toLowerCase() == 'admin';
 
     Color roleColor;
@@ -367,8 +387,7 @@ class _UserCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -382,9 +401,10 @@ class _UserCard extends StatelessWidget {
                 child: Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
                   style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -392,29 +412,41 @@ class _UserCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textDark)),
-                    Text(email,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textLight)),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: roleBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(role,
-                    style: TextStyle(
-                        color: roleColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
+                child: Text(
+                  role,
+                  style: TextStyle(
+                    color: roleColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
               // ── Edit button — hidden for Admin users ───────────────
               if (!isAdminUser && onEdit != null) ...[
@@ -428,8 +460,11 @@ class _UserCard extends StatelessWidget {
                       color: AppColors.primarySurface,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.edit_outlined,
-                        color: AppColors.primary, size: 16),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      color: AppColors.primary,
+                      size: 16,
+                    ),
                   ),
                 ),
               ],
@@ -441,32 +476,46 @@ class _UserCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
-                ...permissions.take(5).map((p) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F2FF),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(p,
+                ...permissions
+                    .take(5)
+                    .map(
+                      (p) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F2FF),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          p,
                           style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600)),
-                    )),
+                            fontSize: 10,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                 if (permissions.length > 5)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF0F2FF),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text('+${permissions.length - 5} more',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textLight,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      '+${permissions.length - 5} more',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -476,9 +525,10 @@ class _UserCard extends StatelessWidget {
             Text(
               '${projectIds.length} project${projectIds.length > 1 ? "s" : ""} assigned',
               style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w500),
+                fontSize: 11,
+                color: AppColors.textLight,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ],
@@ -486,7 +536,6 @@ class _UserCard extends StatelessWidget {
     );
   }
 }
-
 
 // ── Transaction card ──────────────────────────────────────────────────────────
 
@@ -505,16 +554,14 @@ class _TxCard extends StatelessWidget {
     final title = tx['title']?.toString() ?? 'Untitled';
     final type = tx['type']?.toString() ?? '';
     final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-    final approvalStatus =
-        tx['approvalStatus']?.toString() ?? 'Pending';
+    final approvalStatus = tx['approvalStatus']?.toString() ?? 'Pending';
     final createdByName =
-        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)
-                ?.toString() ??
-            'Unknown';
+        (tx['createdBy'] is Map ? tx['createdBy']['name'] : null)?.toString() ??
+        'Unknown';
     final projectName =
         (tx['project'] is Map ? tx['project']['projectName'] : null)
-                ?.toString() ??
-            'No Project';
+            ?.toString() ??
+        'No Project';
 
     String dateStr = '';
     final rawDate = tx['date'] ?? tx['createdAt'];
@@ -522,8 +569,18 @@ class _TxCard extends StatelessWidget {
       try {
         final d = DateTime.parse(rawDate.toString());
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         dateStr = '${d.day} ${months[d.month - 1]}';
       } catch (_) {}
@@ -567,8 +624,7 @@ class _TxCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -577,7 +633,7 @@ class _TxCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: iconColor, size: 20),
@@ -587,18 +643,23 @@ class _TxCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '$createdByName · $projectName${dateStr.isNotEmpty ? ' · $dateStr' : ''}',
                   style: const TextStyle(
-                      fontSize: 11.5, color: AppColors.textLight),
+                    fontSize: 11.5,
+                    color: AppColors.textLight,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -609,24 +670,29 @@ class _TxCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(_fmt(amount),
-                  style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textDark)),
+              Text(
+                _fmt(amount),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textDark,
+                ),
+              ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(approvalStatus,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700)),
+                child: Text(
+                  approvalStatus,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),

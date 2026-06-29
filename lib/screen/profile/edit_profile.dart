@@ -46,8 +46,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _initialPhotoUrl = args.profilePhoto;
     } else {
       // Fallback: use session values
-      _nameCtrl.text =
-          UserSession.userId.isNotEmpty ? UserSession.userId : '';
+      _nameCtrl.text = UserSession.userId.isNotEmpty ? UserSession.userId : '';
       _emailCtrl.text = '';
       _initialPhotoUrl = UserSession.profilePhoto;
       // Try to fetch fresh from API
@@ -76,7 +75,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _showImageOptions() async {
-    final hasPhoto = _selectedImageBytes != null ||
+    final hasPhoto =
+        _selectedImageBytes != null ||
         (_initialPhotoUrl != null && _initialPhotoUrl!.isNotEmpty);
 
     showModalBottomSheet(
@@ -100,8 +100,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             if (hasPhoto)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove Profile Photo',
-                    style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Remove Profile Photo',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   setState(() {
@@ -140,9 +142,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final email = _emailCtrl.text.trim();
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name cannot be empty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
       return;
     }
     if (email.isNotEmpty && !email.contains('@')) {
@@ -157,10 +159,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       // 1. Handle profile picture upload/deletion if changed
       if (_deletePhoto) {
-        final photoResponse = await ApiService.put(
-          '/users/profile/photo',
-          {'profilePhoto': 'delete'},
-        );
+        final photoResponse = await ApiService.put('/users/profile/photo', {
+          'profilePhoto': 'delete',
+        });
         if (photoResponse.statusCode != 200) {
           throw Exception('Failed to delete profile photo');
         }
@@ -171,12 +172,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             : 'jpg';
         final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
 
-        final photoResponse = await ApiService.put(
-          '/users/profile/photo',
-          {
-            'profilePhoto': 'data:$mimeType;base64,$base64Image',
-          },
-        );
+        final photoResponse = await ApiService.put('/users/profile/photo', {
+          'profilePhoto': 'data:$mimeType;base64,$base64Image',
+        });
         if (photoResponse.statusCode != 200) {
           throw Exception('Failed to upload profile photo');
         }
@@ -197,7 +195,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final userJson = decoded['user'] ?? decoded;
 
         // Update local session (includes updated profile photo, name, email)
-        await UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
+        await UserSession.fromLoginResponse(
+          Map<String, dynamic>.from(userJson),
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -211,10 +211,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final body = json.decode(response.body);
         final msg = body['message']?.toString() ?? 'Update failed';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -267,17 +264,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               imageProvider = MemoryImage(_selectedImageBytes!);
                             } else if (_initialPhotoUrl != null &&
                                 _initialPhotoUrl!.isNotEmpty) {
-                              imageProvider =
-                                  getProfileImageProvider(_initialPhotoUrl);
+                              imageProvider = getProfileImageProvider(
+                                _initialPhotoUrl,
+                              );
                             }
                             return CircleAvatar(
                               radius: 40,
-                              backgroundColor:
-                                  Colors.white.withValues(alpha: 0.2),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.2,
+                              ),
                               backgroundImage: imageProvider,
                               child: imageProvider == null
-                                  ? const Icon(Icons.person,
-                                      size: 40, color: Colors.white)
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: Colors.white,
+                                    )
                                   : null,
                             );
                           },
@@ -295,12 +297,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: Colors.white,
                               shape: BoxShape.circle,
                               boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.black12, blurRadius: 6),
+                                BoxShadow(color: Colors.black12, blurRadius: 6),
                               ],
                             ),
-                            child: const Icon(Icons.edit,
-                                color: AppColors.primary, size: 14),
+                            child: const Icon(
+                              Icons.edit,
+                              color: AppColors.primary,
+                              size: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -333,7 +337,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _isSaving
                     ? const Center(
                         child: CircularProgressIndicator(
-                            color: AppColors.primary),
+                          color: AppColors.primary,
+                        ),
                       )
                     : AppButton(
                         label: 'Save Changes',

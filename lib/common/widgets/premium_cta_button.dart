@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 
 // ── CtaVariant ────────────────────────────────────────────────────────────────
 enum CtaVariant {
-  primary,    // gradient background — used for highlighted Pro plan / main CTA
-  secondary,  // translucent white — used for "Restore" on dark gradient cards
-  outline,    // white with border — used for other plans
+  primary, // gradient background — used for highlighted Pro plan / main CTA
+  secondary, // translucent white — used for "Restore" on dark gradient cards
+  outline, // white with border — used for other plans
 }
 
 // ── PremiumCtaButton ──────────────────────────────────────────────────────────
