@@ -8,7 +8,7 @@ class ApiConfig {
   /// The active environment is set via --dart-define=ENV=environment.
   /// Valid values: 'development' (localhost), 'emulator' (10.0.2.2), 'production'.
   /// Defaults to 'production' if not specified.
-  static const String environment = String.fromEnvironment('ENV', defaultValue: 'development');
+  static const String environment = String.fromEnvironment('ENV', defaultValue: 'production');
 
   static String get baseUrl {
     switch (environment) {
