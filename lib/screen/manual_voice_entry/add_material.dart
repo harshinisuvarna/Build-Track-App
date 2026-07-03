@@ -1323,11 +1323,19 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             : 'Material entry saved successfully!',
       );
       // Navigate to inventory, clearing the entry form from stack
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/inventory',
-        (route) => route.settings.name == '/' || route.isFirst,
-      );
+      if (UserSession.hasPermission('view_inventory')) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/inventory',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/add-entry',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      }
     } else {
       _snack('Error saving to server. Please try again.');
     }

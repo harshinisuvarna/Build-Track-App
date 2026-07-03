@@ -182,9 +182,9 @@ class ApiService {
 
   static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
   try {
-    String endpoint = '/transactions';
+    String endpoint = '/transactions?filterByViewAccess=true';
     if (projectId != null && projectId.isNotEmpty) {
-      endpoint += '?project=$projectId';
+      endpoint += '&project=$projectId';
     }
     final response = await get(endpoint);
 
@@ -366,7 +366,19 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      String endpoint = '/transactions?limit=10000';
+      final prefs = await SharedPreferences.getInstance();
+      final sessionStr = prefs.getString('user_session');
+      String userId = '';
+      String role = '';
+      if (sessionStr != null && sessionStr.isNotEmpty) {
+        try {
+          final sessionData = json.decode(sessionStr);
+          userId = sessionData['id'] ?? '';
+          role = (sessionData['role'] ?? '').toString().toLowerCase().trim();
+        } catch (_) {}
+      }
+
+      String endpoint = '/transactions?limit=10000&filterByViewAccess=true';
       if (projectId.isNotEmpty) endpoint += '&project=$projectId';
 
       final response = await get(endpoint);
@@ -545,7 +557,7 @@ class ApiService {
     String? projectId,
   }) async {
     try {
-      String endpoint = '/transactions?limit=10000&';
+      String endpoint = '/transactions?limit=10000&filterByViewAccess=true&';
       if (projectId != null && projectId.isNotEmpty) {
         endpoint += 'project=$projectId&';
       }
@@ -1002,20 +1014,21 @@ class ApiService {
 static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final userId =
-        prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
-    final role = (prefs.getString('role') ?? prefs.getString('userRole') ?? '')
-        .toLowerCase()
-        .trim();
+    final sessionStr = prefs.getString('user_session');
+    String userId = '';
+    String role = '';
+    if (sessionStr != null && sessionStr.isNotEmpty) {
+      try {
+        final sessionData = json.decode(sessionStr);
+        userId = sessionData['id'] ?? '';
+        role = (sessionData['role'] ?? '').toString().toLowerCase().trim();
+      } catch (_) {}
+    }
 
-    String url = '/transactions?limit=10';
+    String url = '/transactions?limit=10&filterByViewAccess=true';
 
     if (projectId != null && projectId.isNotEmpty) {
       url += '&project=$projectId';
-    }
-
-    if (role != 'admin' && userId.isNotEmpty) {
-      url += '&createdBy=$userId';
     }
 
     final response = await get(url);
@@ -1037,7 +1050,7 @@ static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
 
         if (type == 'income' || type == 'revenue') return false;
         if (approvalStatus == 'rejected') return false;
-        if (approvalStatus.isNotEmpty && approvalStatus != 'approved') {
+        if (approvalStatus != 'approved') {
           return false;
         }
 
