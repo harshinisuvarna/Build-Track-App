@@ -214,7 +214,7 @@ class ProjectProvider extends ChangeNotifier {
       final Map<String, dynamic> existing =
           raw != null && raw.isNotEmpty ? json.decode(raw) : {};
       existing['$projectId|$activityId'] = {
-        if (notes != null) 'notes': notes,
+        'notes': ?notes,
         'photo': photo,
         'photos': photos,
       };
@@ -633,12 +633,11 @@ class ProjectProvider extends ChangeNotifier {
             ? ['Ground']
             : p.floors!;
 
-        final effectivePhases = mergedPhases ?? p.selectedPhases;
+        final effectivePhases = mergedPhases;
         final totalActs =
-            effectivePhases?.fold<int>(0, (s, ph) => s + ph.totalCount) ?? 0;
+            effectivePhases.fold<int>(0, (s, ph) => s + ph.totalCount);
         final doneActs =
-            effectivePhases?.fold<int>(0, (s, ph) => s + ph.completedCount) ??
-            0;
+            effectivePhases.fold<int>(0, (s, ph) => s + ph.completedCount);
         final computedProgress = totalActs > 0
             ? doneActs / totalActs
             : p.progress;
@@ -678,7 +677,7 @@ class ProjectProvider extends ChangeNotifier {
       } else {
         if (targetProjId != null) {
           final existingIdx = _projects.indexWhere(
-            (p) => p.id.trim() == targetProjId!.trim(),
+            (p) => p.id.trim() == targetProjId.trim(),
           );
           if (existingIdx != -1) {
             _selectedProject = _projects[existingIdx];
@@ -931,25 +930,25 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<bool> updateProjectProgress(String id, double progress) async {
-    print('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
+    debugPrint('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) {
-      print('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
+      debugPrint('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
       return false;
     }
     _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
-      print('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
+      debugPrint('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
       final response = await ApiService.put('/projects/$id', _projects[idx].toJson());
-      print('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
+      debugPrint('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
       if (response.statusCode == 200 || response.statusCode == 204) {
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
-      print('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
       return false;
     }
   }
@@ -963,10 +962,10 @@ class ProjectProvider extends ChangeNotifier {
     List<String>? photos,
     double? manualProgress,
   }) async {
-    print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
+    debugPrint('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex == -1) {
-      print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
+      debugPrint('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
       return false;
     }
 
@@ -999,7 +998,7 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     if (!found) {
-      print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
+      debugPrint('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
       return false;
     }
 
@@ -1023,9 +1022,9 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     try {
-      print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
+      debugPrint('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
       final response = await ApiService.put('/projects/$projectId', updated.toJson());
-      print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
+      debugPrint('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else {
@@ -1035,7 +1034,7 @@ class ProjectProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
       _projects[projectIndex] = project;
       if (_selectedProject?.id == projectId) _selectedProject = project;
       notifyListeners();

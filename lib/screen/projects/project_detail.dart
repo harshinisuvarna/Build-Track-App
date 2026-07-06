@@ -2291,7 +2291,7 @@ class _RecentEntriesSection extends StatelessWidget {
     final filtered = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
-      if ((e.approvalStatus ?? '').toLowerCase().trim() != 'approved') return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
 
@@ -2771,7 +2771,7 @@ class _AllProjectEntriesScreen extends StatelessWidget {
     final entries = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
-      if ((e.approvalStatus ?? '').toLowerCase().trim() != 'approved') return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
 

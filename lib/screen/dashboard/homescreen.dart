@@ -16,7 +16,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
 // ── Shared time-label helper ────────────────────────────────────────────────
@@ -275,7 +274,6 @@ class _AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<_AdminDashboard> {
   static const primaryBlue = AppColors.primary;
-  static const purple = AppColors.primary;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
 
@@ -481,7 +479,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedMode,
+                  initialValue: selectedMode,
                   decoration: const InputDecoration(
                     labelText: 'Payment Mode',
                     border: UnderlineInputBorder(),
@@ -732,7 +730,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                           'paymentMode': selectedMode,
                           'paidAmount': amount,
                           'notes': notesCtrl.text.trim(),
-                          if (base64Image != null) 'receiptImage': base64Image,
+                          'receiptImage': ?base64Image,
                           if (base64Image == null && editingTx != null)
                             'attachments': existingImageUrl != null ? [existingImageUrl] : [],
                         };
@@ -741,7 +739,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                         final bool success;
 
                         if (isEdit) {
-                          final txId = editingTx?['_id']?.toString() ?? editingTx?['id']?.toString() ?? '';
+                          final txId = editingTx['_id']?.toString() ?? editingTx['id']?.toString() ?? '';
                           success = await ApiService.updateTransaction(txId, payload);
                         } else {
                           final result = await ApiService.addTransaction(payload);
@@ -2567,7 +2565,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       : provider
           .entriesForProject(selectedProjectId)
           .where((e) =>
-              (e.approvalStatus ?? '').toLowerCase().trim() != 'rejected')
+              e.approvalStatus.toLowerCase().trim() != 'rejected')
           .toList();
 
   allEntries.sort((a, b) => b.date.compareTo(a.date));

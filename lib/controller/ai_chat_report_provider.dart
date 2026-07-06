@@ -232,7 +232,12 @@ class AiChatReportProvider extends ChangeNotifier {
       final file = File(path);
       await file.writeAsString(csvString);
 
-      await Share.shareXFiles([XFile(path)], text: 'BuildTrack Analytics Export\n\n${_result!.summary}');
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'BuildTrack Analytics Export\n\n${_result!.summary}',
+          files: [XFile(path)],
+        ),
+      );
     } catch (e) {
       debugPrint('Export Error: $e');
     }
@@ -242,7 +247,9 @@ class AiChatReportProvider extends ChangeNotifier {
     if (_result == null) return;
     try {
       final text = 'BuildTrack Report: $_currentQuery\n\n${_result!.summary}';
-      await Share.share(text);
+      await SharePlus.instance.share(
+        ShareParams(text: text),
+      );
     } catch (e) {
       debugPrint('Share Error: $e');
     }
