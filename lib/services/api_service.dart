@@ -27,7 +27,7 @@ class ApiService {
     debugPrint('API Request [GET]: $url');
     final response = await http
         .get(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -43,7 +43,7 @@ class ApiService {
     debugPrint('Payload: ${jsonEncode(body)}');
     final response = await http
         .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -59,7 +59,7 @@ class ApiService {
     debugPrint('Payload: ${jsonEncode(body)}');
     final response = await http
         .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -71,7 +71,7 @@ class ApiService {
     debugPrint('API Request [DELETE]: $url');
     final response = await http
         .delete(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 90));
     debugPrint('Status: ${response.statusCode}');
     debugPrint('Body: ${response.body}');
     return response;
@@ -182,9 +182,9 @@ class ApiService {
 
   static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
   try {
-    String endpoint = '/transactions';
+    String endpoint = '/transactions?filterByViewAccess=true';
     if (projectId != null && projectId.isNotEmpty) {
-      endpoint += '?project=$projectId';
+      endpoint += '&project=$projectId';
     }
     final response = await get(endpoint);
 
@@ -366,7 +366,7 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      String endpoint = '/transactions?limit=10000';
+      String endpoint = '/transactions?limit=10000&filterByViewAccess=true';
       if (projectId.isNotEmpty) endpoint += '&project=$projectId';
 
       final response = await get(endpoint);
@@ -545,7 +545,7 @@ class ApiService {
     String? projectId,
   }) async {
     try {
-      String endpoint = '/transactions?limit=10000&';
+      String endpoint = '/transactions?limit=10000&filterByViewAccess=true&';
       if (projectId != null && projectId.isNotEmpty) {
         endpoint += 'project=$projectId&';
       }
@@ -693,21 +693,39 @@ class ApiService {
     }
   }
 
-  static Future<bool> resetPassword(String email) async {
-    try {
-      final response = await post('/auth/forgot-password', {'email': email});
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else {
-        throw Exception('Server returned ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('resetPassword Error: $e');
-      }
-      rethrow;
+  static Future<String?> resetPassword(String email) async {
+  try {
+    final response = await post('/auth/forgot-password', {'email': email});
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final body = json.decode(response.body);
+      return body['resetToken'] as String?; // null in production
+    } else {
+      throw Exception('Server returned ${response.statusCode}');
     }
+  } catch (e) {
+    if (kDebugMode) debugPrint('resetPassword Error: $e');
+    rethrow;
   }
+}
+
+  static Future<void> confirmResetPassword({
+  required String token,
+  required String password,
+}) async {
+  try {
+    final response = await post('/auth/reset-password', {
+      'token': token,
+      'password': password,
+    });
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      final body = json.decode(response.body);
+      throw Exception(body['message'] ?? 'Failed to reset password');
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('confirmResetPassword Error: $e');
+    rethrow;
+  }
+}
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
@@ -983,21 +1001,10 @@ class ApiService {
 /// - If projectId is passed, only that project's entries are returned
 static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    final userId =
-        prefs.getString('userId') ?? prefs.getString('user_id') ?? '';
-    final role = (prefs.getString('role') ?? prefs.getString('userRole') ?? '')
-        .toLowerCase()
-        .trim();
-
-    String url = '/transactions?limit=10';
+    String url = '/transactions?limit=10&filterByViewAccess=true';
 
     if (projectId != null && projectId.isNotEmpty) {
       url += '&project=$projectId';
-    }
-
-    if (role != 'admin' && userId.isNotEmpty) {
-      url += '&createdBy=$userId';
     }
 
     final response = await get(url);
@@ -1019,7 +1026,7 @@ static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
 
         if (type == 'income' || type == 'revenue') return false;
         if (approvalStatus == 'rejected') return false;
-        if (approvalStatus.isNotEmpty && approvalStatus != 'approved') {
+        if (approvalStatus != 'approved') {
           return false;
         }
 

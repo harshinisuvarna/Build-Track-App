@@ -77,6 +77,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
           continue;
         }
 
+        // ── Only show Approved entries in inventory ─────────────────
+        final approvalStatus = (tx['approvalStatus'] ?? '')
+            .toString()
+            .toLowerCase()
+            .trim();
+        if (approvalStatus != 'approved') {
+          continue;
+        }
+
         // ── Parse date ──────────────────────────────────────────────────────
         DateTime date = DateTime.now();
         for (final key in ['date', 'createdAt', 'purchaseDate', 'updatedAt']) {

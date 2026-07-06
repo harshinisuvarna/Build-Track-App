@@ -59,9 +59,14 @@ class AiReportResult {
       metrics: data['metrics'] as Map<String, dynamic>? ?? {},
       tableType: table['type']?.toString() ?? 'none',
       tableRows: table['rows'] as List<dynamic>? ?? [],
-      columns: (table['columns'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      totalAmount: (table['total'] as num?)?.toDouble()
-          ?? (table['totalAmount'] as num?)?.toDouble(),
+      columns:
+          (table['columns'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      totalAmount:
+          (table['total'] as num?)?.toDouble() ??
+          (table['totalAmount'] as num?)?.toDouble(),
       rowCount: table['rowCount'] as int?,
       actions:
           (data['actions'] as List<dynamic>?)
@@ -258,7 +263,7 @@ class AiChatReportProvider extends ChangeNotifier {
     if (_result == null) return;
     try {
       final text = 'BuildTrack Report: $_currentQuery\n\n${_result!.summary}';
-      await Share.share(text);
+      await SharePlus.instance.share(ShareParams(text: text));
     } catch (e) {
       debugPrint('Share Error: $e');
     }

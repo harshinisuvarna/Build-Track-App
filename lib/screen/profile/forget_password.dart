@@ -3,7 +3,7 @@ import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:buildtrack_mobile/services/api_service.dart'; // Added API Service
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -13,11 +13,20 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
-  bool _isLoading = false; // Added loading state
+  final _tokenCtrl = TextEditingController();
+  final _newPassCtrl = TextEditingController();
+
+  bool _isLoading = false;
+  bool _obscurePass = true;
+
+  // false = step 1 (email), true = step 2 (token + new password)
+  bool _step2 = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
+    _tokenCtrl.dispose();
+    _newPassCtrl.dispose();
     super.dispose();
   }
 
@@ -40,7 +49,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               children: [
                 _buildHeader(),
                 const SizedBox(height: AppTheme.spacingXl),
-                _buildForm(),
+                _step2 ? _buildStep2Form() : _buildStep1Form(),
                 const SizedBox(height: AppTheme.spacingLg),
                 _buildActions(),
               ],
@@ -69,12 +78,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: AppTheme.spacingLg),
         Text(
-          'Reset Password',
+          _step2 ? 'Enter Reset Token' : 'Reset Password',
           style: AppTheme.heading2.copyWith(fontSize: 26, letterSpacing: -0.5),
         ),
         const SizedBox(height: AppTheme.spacingSm),
         Text(
-          'Enter your email to receive a reset link',
+          _step2
+              ? 'Copy the token from the reset link in your email and enter it below.'
+              : 'Enter your email to receive a reset link.',
           textAlign: TextAlign.center,
           style: AppTheme.body.copyWith(
             color: AppColors.textLight,
@@ -85,7 +96,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildStep1Form() {
     return AppTextField(
       label: 'Email Address',
       controller: _emailCtrl,
@@ -95,26 +106,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  Widget _buildStep2Form() {
+    return Column(
+      children: [
+        AppTextField(
+          label: 'Reset Token',
+          controller: _tokenCtrl,
+          hint: 'Paste token from email link',
+          prefixIcon: Icons.key_outlined,
+        ),
+        AppTextField(
+          label: 'New Password',
+          controller: _newPassCtrl,
+          hint: 'At least 6 characters',
+          prefixIcon: Icons.lock_outline,
+          obscureText: _obscurePass,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePass
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+            ),
+            onPressed: () => setState(() => _obscurePass = !_obscurePass),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActions() {
     return Column(
       children: [
-        // Show loading spinner if waiting for API, otherwise show the button
         _isLoading
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12.0),
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
-            : AppButton(label: 'Reset Password', onPressed: _onResetPressed),
+            : AppButton(
+                label: _step2 ? 'Set New Password' : 'Send Reset Link',
+                onPressed: _step2 ? _onSetPassword : _onSendLink,
+              ),
         const SizedBox(height: AppTheme.spacingLg),
         GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () {
+            if (_step2) {
+              // Go back to step 1
+              setState(() => _step2 = false);
+            } else {
+              Navigator.pop(context);
+            }
+          },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.arrow_back, color: AppColors.textDark, size: 16),
               const SizedBox(width: 6),
               Text(
-                'Back to login',
+                _step2 ? 'Back' : 'Back to login',
                 style: AppTheme.body.copyWith(
                   color: AppColors.textDark.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w500,
@@ -127,47 +175,66 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  // --- UPDATED: Live API connection with Snackbars ---
-  Future<void> _onResetPressed() async {
+  Future<void> _onSendLink() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid email address'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnack('Please enter a valid email address', isError: true);
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      // Wake up Render server before actual request
+      try { await ApiService.get('/health'); } catch (_) {}
+      await Future.delayed(const Duration(seconds: 3));
+      final token = await ApiService.resetPassword(email);
+      if (!mounted) return;
+      _showSnack('Reset link sent! Check your email.');
+      setState(() {
+        _step2 = true;
+        if (token != null) _tokenCtrl.text = token;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString().replaceAll('Exception: ', ''), isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onSetPassword() async {
+    final token = _tokenCtrl.text.trim();
+    final password = _newPassCtrl.text.trim();
+
+    if (token.isEmpty) {
+      _showSnack('Please paste the token from your email', isError: true);
+      return;
+    }
+    if (password.length < 6) {
+      _showSnack('Password must be at least 6 characters', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
-      final success = await ApiService.resetPassword(email);
-
+      await ApiService.confirmResetPassword(token: token, password: password);
       if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset link sent to your email.'),
-            backgroundColor: Colors.green, // Green on success
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context); // Send user back to login screen
-      }
+      _showSnack('Password reset successfully! Please log in.');
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red, // Red on error
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showSnack(e.toString().replaceAll('Exception: ', ''), isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }

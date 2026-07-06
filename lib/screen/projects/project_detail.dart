@@ -2284,14 +2284,16 @@ class _RecentEntriesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAdmin = UserSession.isAdmin;
-
-    // FIX: Admins see all entries; non-admins see only their own
     final allEntries = provider.entriesForProject(project.id).toList();
-    final filtered = isAdmin
-        ? allEntries
-        : (currentUserId != null && currentUserId!.isNotEmpty)
-        ? allEntries.where((e) => e.createdBy == currentUserId).toList()
-        : allEntries;
+
+    // STRICT FILTER: Only show the current user's own entries, and only if they are approved.
+    // This applies to everyone, including admins and supervisors.
+    final filtered = allEntries.where((e) {
+      if (currentUserId == null || currentUserId!.isEmpty) return false;
+      if (e.createdBy != currentUserId) return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
+      return true;
+    }).toList();
 
     // Sort newest first, take 3 for the preview
     filtered.sort((a, b) => b.date.compareTo(a.date));
@@ -2301,8 +2303,8 @@ class _RecentEntriesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSectionHeader(
-          // FIX: label differentiates admin vs user view
-          title: isAdmin ? 'Recent Entries' : 'My Recent Entries',
+          // Always show as "My Recent Entries" since it strictly filters by current user
+          title: 'My Recent Entries',
           actionLabel: entries.isEmpty ? null : 'View All',
           onAction: () {
             Navigator.push(
@@ -2764,13 +2766,14 @@ class _AllProjectEntriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: admins see all entries; others see only their own
+    // STRICT FILTER: Only show the current user's own entries, and only if they are approved.
     final allEntries = provider.entriesForProject(project.id).toList();
-    final entries = isAdmin
-        ? allEntries
-        : (currentUserId != null && currentUserId!.isNotEmpty)
-        ? allEntries.where((e) => e.createdBy == currentUserId).toList()
-        : allEntries;
+    final entries = allEntries.where((e) {
+      if (currentUserId == null || currentUserId!.isEmpty) return false;
+      if (e.createdBy != currentUserId) return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
+      return true;
+    }).toList();
 
     entries.sort((a, b) => b.date.compareTo(a.date));
 

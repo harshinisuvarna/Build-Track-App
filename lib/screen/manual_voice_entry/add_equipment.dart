@@ -1175,6 +1175,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   bool _validate() {
+    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
@@ -1352,11 +1353,19 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             ? 'Equipment entry updated successfully!'
             : 'Equipment entry saved successfully!',
       );
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/inventory',
-        (route) => route.settings.name == '/' || route.isFirst,
-      );
+      if (UserSession.hasPermission('view_inventory')) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/inventory',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/add-entry',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      }
     } else {
       _snack('Error saving to server. Please try again.');
     }

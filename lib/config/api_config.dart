@@ -10,7 +10,7 @@ class ApiConfig {
   /// Defaults to 'production' if not specified.
   static const String environment = String.fromEnvironment(
     'ENV',
-    defaultValue: 'development',
+    defaultValue: 'production',
   );
 
   static String get baseUrl {
