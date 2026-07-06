@@ -115,6 +115,15 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   }
 
   String get _unitLabel {
+    if (_allLogs.isNotEmpty) {
+      final String rawUnit = (_allLogs.first['unit'] ?? '').toString().toLowerCase();
+      if (rawUnit.isNotEmpty) {
+        if (rawUnit == 'hour' || rawUnit == 'hours') return 'hours';
+        if (rawUnit == 'day' || rawUnit == 'days') return 'days';
+        if (rawUnit == 'worker' || rawUnit == 'workers') return 'workers';
+        return rawUnit;
+      }
+    }
     switch (_itemType) {
       case 'labour':
         return 'workers';

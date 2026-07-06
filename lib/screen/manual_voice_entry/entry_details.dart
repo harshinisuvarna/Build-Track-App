@@ -187,15 +187,18 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
     final now = DateTime.now();
     final diff = now.difference(dt);
+    final isFuture = diff.isNegative;
+    final absDiff = diff.abs();
+
     final String relativeStr;
-    if (diff.inMinutes < 60) {
-      relativeStr = '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      relativeStr = '${diff.inHours}h ago';
-    } else if (diff.inDays == 1) {
-      relativeStr = 'Yesterday';
+    if (absDiff.inMinutes < 60) {
+      relativeStr = isFuture ? 'in ${absDiff.inMinutes}m' : '${absDiff.inMinutes}m ago';
+    } else if (absDiff.inHours < 24) {
+      relativeStr = isFuture ? 'in ${absDiff.inHours}h' : '${absDiff.inHours}h ago';
+    } else if (absDiff.inDays == 1) {
+      relativeStr = isFuture ? 'Tomorrow' : 'Yesterday';
     } else {
-      relativeStr = '${diff.inDays}d ago';
+      relativeStr = isFuture ? 'in ${absDiff.inDays}d' : '${absDiff.inDays}d ago';
     }
 
     return '$dateStr • $timeStr ($relativeStr)';
@@ -677,6 +680,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -686,12 +690,16 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             color: textGray,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
-            color: color,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+              color: color,
+            ),
           ),
         ),
       ],

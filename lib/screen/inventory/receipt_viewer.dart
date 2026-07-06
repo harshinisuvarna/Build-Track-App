@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:buildtrack_mobile/config/api_config.dart';
 
 class ReceiptViewerScreen extends StatefulWidget {
   const ReceiptViewerScreen({super.key});
@@ -51,6 +52,14 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     return false;
   }
 
+  String _normalizeUrl(String url) {
+    if (url.startsWith('/')) {
+      final base = ApiConfig.baseUrl.replaceAll('/api', '');
+      return '$base$url';
+    }
+    return url;
+  }
+
   String _getFileName(String path) {
     if (path.startsWith('data:image/')) {
       return 'Base64 Image';
@@ -81,8 +90,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       );
 
       File file;
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        final response = await http.get(Uri.parse(url));
+      final normalizedUrl = _normalizeUrl(url);
+      if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+        final response = await http.get(Uri.parse(normalizedUrl));
         if (response.statusCode != 200) {
           throw HttpException('Failed to download file (Status: ${response.statusCode})');
         }
@@ -99,7 +109,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
         file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(response.bodyBytes);
       } else {
-        file = File(url);
+        file = File(normalizedUrl);
         if (!await file.exists()) {
           throw const FileSystemException('Local file does not exist');
         }
@@ -152,9 +162,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
   }
 
   Widget _buildImageWidget(String receipt) {
-    if (receipt.startsWith('http://') || receipt.startsWith('https://')) {
+    final normalizedReceipt = _normalizeUrl(receipt);
+    if (normalizedReceipt.startsWith('http://') || normalizedReceipt.startsWith('https://')) {
       return Image.network(
-        receipt,
+        normalizedReceipt,
         fit: BoxFit.contain,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
@@ -178,9 +189,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
           );
         },
       );
-    } else if (receipt.startsWith('data:image/')) {
+    } else if (normalizedReceipt.startsWith('data:image/')) {
       try {
-        final base64String = receipt.split(',').last;
+        final base64String = normalizedReceipt.split(',').last;
         return Image.memory(
           base64Decode(base64String),
           fit: BoxFit.contain,
@@ -191,7 +202,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
         );
       }
     } else {
-      final file = File(receipt);
+      final file = File(normalizedReceipt);
       if (file.existsSync()) {
         return Image.file(
           file,
@@ -258,8 +269,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
   }
 
   Widget _buildReceiptView(BuildContext context, String receipt) {
-    final isPdf = receipt.toLowerCase().endsWith('.pdf');
-    final isImage = _isImageFile(receipt);
+    final normalizedReceipt = _normalizeUrl(receipt);
+    final isPdf = normalizedReceipt.toLowerCase().endsWith('.pdf');
+    final isImage = _isImageFile(normalizedReceipt);
 
     return Padding(
       padding: const EdgeInsets.all(16),

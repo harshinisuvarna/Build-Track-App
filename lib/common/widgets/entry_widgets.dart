@@ -2681,10 +2681,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
+          final String receiptData = attachment != null ? attachment!.dataUri : name!;
           Navigator.pushNamed(
             context,
             '/receipt-viewer',
-            arguments: {'receipt': name},
+            arguments: {'receipt': receiptData},
           );
         }
       },
