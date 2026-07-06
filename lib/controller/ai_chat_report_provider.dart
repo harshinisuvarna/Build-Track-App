@@ -28,6 +28,7 @@ class AiReportResult {
   final Map<String, dynamic> metrics;
   final String tableType;
   final List<dynamic> tableRows;
+  final List<String> columns;
   final double? totalAmount;
   final int? rowCount;
   final List<String> actions;
@@ -40,6 +41,7 @@ class AiReportResult {
     required this.metrics,
     required this.tableType,
     required this.tableRows,
+    required this.columns,
     this.totalAmount,
     this.rowCount,
     this.actions = const [],
@@ -51,20 +53,33 @@ class AiReportResult {
   factory AiReportResult.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
     final table = data['table'] as Map<String, dynamic>? ?? {};
-    
+
     return AiReportResult(
       summary: data['summary']?.toString() ?? '',
       metrics: data['metrics'] as Map<String, dynamic>? ?? {},
       tableType: table['type']?.toString() ?? 'none',
       tableRows: table['rows'] as List<dynamic>? ?? [],
-      totalAmount: (table['totalAmount'] as num?)?.toDouble(),
+      columns: (table['columns'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      totalAmount: (table['total'] as num?)?.toDouble()
+          ?? (table['totalAmount'] as num?)?.toDouble(),
       rowCount: table['rowCount'] as int?,
-      actions: (data['actions'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      actions:
+          (data['actions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       charts: data['charts'] as Map<String, dynamic>?,
-      alerts: (data['alerts'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
-      projectBreakdown: ((data['charts'] as Map<String, dynamic>?)?['projectBreakdown'] as List?)
-          ?.map((e) => Map<String, dynamic>.from(e as Map))
-          .toList() ?? [],
+      alerts:
+          (data['alerts'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
+      projectBreakdown:
+          ((data['charts'] as Map<String, dynamic>?)?['projectBreakdown']
+                  as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
     );
   }
 }
@@ -98,7 +113,7 @@ class AiChatReportProvider extends ChangeNotifier {
     'Low stock materials',
     'Labour summary',
     'Pending payments',
-    'Budget health'
+    'Budget health',
   ];
   List<String> get recentSearches => List.unmodifiable(_recentSearches);
 
@@ -120,89 +135,15 @@ class AiChatReportProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-<<<<<<< HEAD
       final uri = Uri.parse('$baseUrl/api/reports/dashboard/query');
       final projectId = projectProvider.selectedProject?.id ?? 'all';
-      
+
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
       };
-      
-      final payloadStr = jsonEncode({
-        'query': trimmed,
-        'projectId': projectId,
-      });
-=======
-      final reply = await _callBackend(trimmed);
-      _messages.add(reply);
-    } catch (e) {
-      _errorMessage = 'Failed to get a response. Please try again.';
-      _messages.add(
-        ChatMessage(
-          role: MessageRole.assistant,
-          text: 'Something went wrong. Please try again.',
-        ),
-      );
-    }
 
-    _isTyping = false;
-    notifyListeners();
-  }
-
-  void clearHistory() {
-    _messages.clear();
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  // ─── Backend call ─────────────────────────────────────────────────────────
-
-  // ─── Backend call ─────────────────────────────────────────────────────────
-
-  Future<ChatMessage> _callBackend(String question) async {
-    final uri = Uri.parse('$baseUrl/api/reports/ai-chat');
-
-    // Extract projectId from context if available
-    // The backend handles all logic locally from MongoDB — no AI key needed
-    final projectId = projectProvider.selectedProject?.id ?? 'all';
-
-    // Send prior turns so the backend (and the model) has conversational
-    // context. We exclude the message we just added locally (it's passed
-    // separately as `question`), and cap history length to keep payload
-    // size sane on a long-running chat.
-    const maxHistoryMessages = 20;
-    final priorMessages = _messages
-        .where((m) => m.text != question || m.role != MessageRole.user)
-        .toList();
-    final historyToSend = priorMessages.length > maxHistoryMessages
-        ? priorMessages.sublist(priorMessages.length - maxHistoryMessages)
-        : priorMessages;
-
-    final history = historyToSend
-        .map(
-          (m) => {
-            'role': m.role == MessageRole.user ? 'user' : 'assistant',
-            'text': m.text,
-          },
-        )
-        .toList();
-
-    final response = await http
-        .post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $authToken',
-          },
-          body: jsonEncode({
-            'question': question,
-            'projectId': projectId,
-            'history': history,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
->>>>>>> b6ea0ac2883f79e6e2607b4764aeef4697d188ae
+      final payloadStr = jsonEncode({'query': trimmed, 'projectId': projectId});
 
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] REQUEST SENDING');
@@ -213,13 +154,11 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('Payload: $payloadStr');
 
       final stopWatch = Stopwatch()..start();
-      
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: payloadStr,
-      ).timeout(const Duration(seconds: 45));
-      
+
+      final response = await http
+          .post(uri, headers: headers, body: payloadStr)
+          .timeout(const Duration(seconds: 45));
+
       stopWatch.stop();
 
       debugPrint('\n==============================');
@@ -230,7 +169,11 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode != 200) {
-        throw ApiException('Server returned ${response.statusCode}', response.statusCode, response.body);
+        throw ApiException(
+          'Server returned ${response.statusCode}',
+          response.statusCode,
+          response.body,
+        );
       }
 
       final decoded = jsonDecode(response.body);
@@ -240,7 +183,7 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] EXCEPTION CAUGHT');
       debugPrint('==============================');
-      
+
       if (e is ApiException) {
         debugPrint('Status Code: ${e.statusCode}');
         debugPrint('Response Body: ${e.responseBody}');
@@ -270,7 +213,7 @@ class AiChatReportProvider extends ChangeNotifier {
 
     try {
       List<List<dynamic>> csvData = [];
-      
+
       // Header
       if (_result!.tableType == 'inventory') {
         csvData.add(['Material', 'Quantity', 'Unit', 'Status']);
@@ -283,27 +226,29 @@ class AiChatReportProvider extends ChangeNotifier {
           ]);
         }
       } else {
-        csvData.add(['Date', 'Project', 'Item', 'Quantity', 'Unit', 'Amount']);
+        // Dynamic export based on requested columns
+        final headers = ['#', ..._result!.columns];
+        csvData.add(headers);
         for (var row in _result!.tableRows) {
-          csvData.add([
-            row['date'] ?? '',
-            row['projectName'] ?? '',
-            row['item'] ?? '',
-            row['quantity'] ?? '',
-            row['unit'] ?? '',
-            row['amount'] ?? 0,
-          ]);
+          final rowData = <dynamic>[row['number'] ?? ''];
+          for (var col in _result!.columns) {
+            rowData.add(row[col] ?? '');
+          }
+          csvData.add(rowData);
         }
       }
 
       String csvString = const ListToCsvConverter().convert(csvData);
-      
+
       final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/report_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final path =
+          '${directory.path}/report_${DateTime.now().millisecondsSinceEpoch}.csv';
       final file = File(path);
       await file.writeAsString(csvString);
 
-      await Share.shareXFiles([XFile(path)], text: 'BuildTrack Analytics Export\n\n${_result!.summary}');
+      await Share.shareXFiles([
+        XFile(path),
+      ], text: 'BuildTrack Analytics Export\n\n${_result!.summary}');
     } catch (e) {
       debugPrint('Export Error: $e');
     }

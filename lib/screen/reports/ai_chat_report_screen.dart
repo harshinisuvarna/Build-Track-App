@@ -432,14 +432,190 @@ class _ErrorState extends StatelessWidget {
 
 // ─── Results State ─────────────────────────────────────────────────────────────
 
-class _ResultsState extends StatelessWidget {
+class _ResultsState extends StatefulWidget {
   const _ResultsState({required this.result, required this.onActionTap});
   final AiReportResult result;
   final ValueChanged<String> onActionTap;
 
   @override
+  State<_ResultsState> createState() => _ResultsStateState();
+}
+
+class _ResultsStateState extends State<_ResultsState> {
+  late List<String> _visibleColumns;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibleColumns = List.from(widget.result.columns);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ResultsState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.result != widget.result) {
+      _visibleColumns = List.from(widget.result.columns);
+    }
+  }
+
+  void _showCustomizeColumnsDialog() {
+    List<String> tempActive = List.from(_visibleColumns);
+    List<String> tempAll = List.from(widget.result.columns);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: Colors.white,
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Customize Columns',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Drag items to reorder. Toggle checkbox to show/hide columns.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 300,
+                      child: ReorderableListView.builder(
+                        shrinkWrap: true,
+                        itemCount: tempAll.length,
+                        onReorder: (oldIndex, newIndex) {
+                          setDialogState(() {
+                            if (newIndex > oldIndex) {
+                              newIndex -= 1;
+                            }
+                            final item = tempAll.removeAt(oldIndex);
+                            tempAll.insert(newIndex, item);
+
+                            final newTempActive = <String>[];
+                            for (final col in tempAll) {
+                              if (tempActive.contains(col)) {
+                                newTempActive.add(col);
+                              }
+                            }
+                            tempActive = newTempActive;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final col = tempAll[index];
+                          final isChecked = tempActive.contains(col);
+
+                          return ListTile(
+                            key: ValueKey(col),
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(
+                              col,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            leading: Checkbox(
+                              activeColor: AppColors.primary,
+                              value: isChecked,
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  if (val == true) {
+                                    tempActive.add(col);
+                                    final newTempActive = <String>[];
+                                    for (final c in tempAll) {
+                                      if (tempActive.contains(c)) {
+                                        newTempActive.add(c);
+                                      }
+                                    }
+                                    tempActive = newTempActive;
+                                  } else {
+                                    if (tempActive.length > 1) {
+                                      tempActive.remove(col);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('At least one column must be visible.'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                });
+                              },
+                            ),
+                            trailing: const Icon(Icons.drag_handle, size: 20, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              tempActive = List.from(widget.result.columns);
+                              tempAll = List.from(widget.result.columns);
+                            });
+                          },
+                          child: const Text('Reset', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _visibleColumns = tempActive;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<AiChatReportProvider>();
+    final result = widget.result;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
@@ -689,19 +865,36 @@ class _ResultsState extends StatelessWidget {
               ),
               child: ExpansionTile(
                 initiallyExpanded: true,
-                title: Text(
-                  result.tableType == 'inventory'
-                      ? 'Inventory Details'
-                      : 'Transaction Details',
-                  style: AppTheme.heading3.copyWith(fontSize: 16),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      result.tableType == 'inventory'
+                          ? 'Inventory Details'
+                          : 'Transaction Details',
+                      style: AppTheme.heading3.copyWith(fontSize: 16),
+                    ),
+                    if (result.tableType != 'inventory')
+                      TextButton.icon(
+                        onPressed: _showCustomizeColumnsDialog,
+                        icon: const Icon(Icons.view_column, size: 16),
+                        label: const Text('Customize'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                  ],
                 ),
                 children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: result.tableType == 'inventory'
-                        ? _buildInventoryTable()
-                        : _buildTransactionTable(),
-                  ),
+                  if (result.tableType == 'inventory')
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _buildInventoryTable(),
+                    )
+                  else
+                    _buildTransactionTable(),
                 ],
               ),
             ),
@@ -729,7 +922,7 @@ class _ResultsState extends StatelessWidget {
               itemBuilder: (ctx, i) {
                 return ActionChip(
                   label: Text(result.actions[i]),
-                  onPressed: () => onActionTap(result.actions[i]),
+                  onPressed: () => widget.onActionTap(result.actions[i]),
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   labelStyle: const TextStyle(color: AppColors.primary),
                   shape: RoundedRectangleBorder(
@@ -753,39 +946,218 @@ class _ResultsState extends StatelessWidget {
   }
 
   Widget _buildTransactionTable() {
-    return DataTable(
-      headingTextStyle: AppTheme.label.copyWith(
-        color: AppColors.textLight,
-        fontWeight: FontWeight.bold,
-      ),
-      dataTextStyle: AppTheme.body.copyWith(
-        color: AppColors.textDark,
-        fontSize: 13,
-      ),
-      columnSpacing: 24,
-      columns: const [
-        DataColumn(label: Text('Date')),
-        DataColumn(label: Text('Project')),
-        DataColumn(label: Text('Item')),
-        DataColumn(label: Text('Qty')),
-        DataColumn(label: Text('Amount'), numeric: true),
-      ],
-      rows: result.tableRows.map((r) {
-        final qty = r['quantity'] != null && r['quantity'].toString().isNotEmpty
-            ? '${r['quantity']} ${r['unit'] ?? ''}'
-            : '-';
-        return DataRow(
-          cells: [
-            DataCell(Text(r['date']?.toString() ?? '-')),
-            DataCell(Text(r['projectName']?.toString() ?? '-')),
-            DataCell(Text(r['item']?.toString() ?? '-')),
-            DataCell(Text(qty)),
-            DataCell(
-              Text(_formatCurrency((r['amount'] as num?)?.toDouble() ?? 0)),
+    final result = widget.result;
+    
+    // ── Calculate grand total from rows ────────────────────────────
+    double grandTotal = 0;
+    for (final r in result.tableRows) {
+      final p = r['Amount (INR)'] ?? r['price']; // Fallback for backwards compatibility if needed
+      grandTotal += (p is num) ? p.toDouble() : (double.tryParse(p?.toString() ?? '') ?? 0);
+    }
+
+    // ── Dynamic column widths ────────────────────────────────────────
+    const double colHash = 36;
+    const double rowPadH = 16;
+    
+    double getColWidth(String colName) {
+      if (colName == 'Amount (INR)') return 104;
+      if (colName == 'Description' || colName == 'Project' || colName == 'Material') return 160;
+      if (colName == 'Purchased Date' || colName == 'Payment Date' || colName == 'Qty') return 96;
+      return 120; // Default for others (Brand, Activity, Status, etc)
+    }
+
+    double tableWidth = colHash + (rowPadH * 2);
+    for (final col in _visibleColumns) {
+      tableWidth += getColWidth(col);
+    }
+
+    // ── Styles ────────────────────────────────────────────────────
+    const headerBg = Color(0xFFF1F3F8);
+    const headerTextStyle = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: Color(0xFF64748B),
+      letterSpacing: 0.5,
+    );
+    const cellTextStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w400,
+      color: Color(0xFF1E293B),
+      height: 1.4,
+    );
+    const dividerColor = Color(0xFFE2E8F0);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: tableWidth,
+        child: Column(
+          children: [
+            // ── Header Row ───────────────────────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                color: headerBg,
+                border: Border(
+                  bottom: BorderSide(color: dividerColor, width: 1),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 12),
+              child: Row(
+                children: [
+                  SizedBox(width: colHash, child: const Text('#', style: headerTextStyle, softWrap: false, maxLines: 1)),
+                  ..._visibleColumns.map((colName) {
+                    final isAmount = colName == 'Amount (INR)';
+                    final width = getColWidth(colName);
+                    
+                    return SizedBox(
+                      width: width,
+                      child: Align(
+                        alignment: isAmount ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Text(colName.toUpperCase(), style: headerTextStyle, softWrap: false, maxLines: 1),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+            // ── Data Rows ────────────────────────────────────────────
+            ...List.generate(result.tableRows.length, (index) {
+              final r = result.tableRows[index];
+              final isEven = index.isEven;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: isEven ? Colors.white : const Color(0xFFFAFBFD),
+                  border: const Border(
+                    bottom: BorderSide(color: dividerColor, width: 0.5),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 11),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: colHash,
+                      child: Text(
+                        (r['number'] ?? (index + 1)).toString(),
+                        style: cellTextStyle.copyWith(color: const Color(0xFF94A3B8), fontSize: 12),
+                        softWrap: false,
+                        maxLines: 1,
+                      ),
+                    ),
+                    ..._visibleColumns.map((colName) {
+                      final isAmount = colName == 'Amount (INR)';
+                      final width = getColWidth(colName);
+                      final val = r[colName];
+                      
+                      String displayVal;
+                      TextStyle style = cellTextStyle;
+                      
+                      if (isAmount) {
+                        final parsed = (val is num) ? val.toDouble() : (double.tryParse(val?.toString() ?? '') ?? 0);
+                        displayVal = _formatCurrency(parsed);
+                        style = style.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E293B));
+                      } else {
+                        displayVal = (val ?? '-').toString();
+                        if (colName == 'Description' || colName == 'Project') {
+                          style = style.copyWith(fontWeight: FontWeight.w500);
+                        } else if (colName == 'Brand' || colName == 'Type') {
+                          style = style.copyWith(color: const Color(0xFF475569));
+                        }
+                      }
+
+                      return SizedBox(
+                        width: width,
+                        child: Align(
+                          alignment: isAmount ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Text(
+                            displayVal,
+                            style: style,
+                            softWrap: false,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            }),
+
+            // ── Total Footer Row ─────────────────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F3F8),
+                border: Border(
+                  top: BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 14),
+              child: Row(
+                children: [
+                  SizedBox(width: colHash),
+                  // The text should span all columns up to Amount (INR)
+                  Builder(builder: (context) {
+                    double spanWidth = 0;
+                    double amountWidth = 0;
+                    bool hasAmount = false;
+                    
+                    for (final col in _visibleColumns) {
+                      if (col == 'Amount (INR)') {
+                        hasAmount = true;
+                        amountWidth = getColWidth(col);
+                      } else {
+                        spanWidth += getColWidth(col);
+                      }
+                    }
+                    
+                    return Row(
+                      children: [
+                        SizedBox(
+                          width: spanWidth,
+                          child: Text(
+                            'TOTAL (${result.tableRows.length} entries)',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF334155),
+                              letterSpacing: 0.3,
+                            ),
+                            softWrap: false,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (hasAmount)
+                          SizedBox(
+                            width: amountWidth,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                _formatCurrency(grandTotal),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF173EEA),
+                                ),
+                                softWrap: false,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ],
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 
@@ -805,7 +1177,7 @@ class _ResultsState extends StatelessWidget {
         DataColumn(label: Text('Quantity')),
         DataColumn(label: Text('Status')),
       ],
-      rows: result.tableRows.map((r) {
+      rows: widget.result.tableRows.map((r) {
         final severity = r['severity']?.toString() ?? 'ok';
         Color statusColor = AppColors.success;
         if (severity == 'critical') statusColor = AppColors.error;
