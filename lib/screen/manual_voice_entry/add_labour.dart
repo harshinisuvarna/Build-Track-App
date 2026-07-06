@@ -1161,7 +1161,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           ? "sqft"
           : "unit",
       "project": _selectedProjectId,
-      "date": _selectedDate.toIso8601String(),
+      "date": _selectedDate.toUtc().toIso8601String(),
       "floor": _selectedFloor,
       if (_selectedFloorId != null) "floorId": _selectedFloorId,
       "phase": _selectedPhase,
@@ -1204,7 +1204,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           : totalPaid > 0
           ? "Partial"
           : "Pending";
-      payload["paymentDate"] = _paymentDate.toIso8601String();
+      payload["paymentDate"] = _paymentDate.toUtc().toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
@@ -1232,10 +1232,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           : totalPaid > 0
           ? "Partial"
           : "Pending";
-      payload["paymentDate"] = payDate.toIso8601String();
+      payload["paymentDate"] = payDate.toUtc().toIso8601String();
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
       }
+      if ((_paymentResult!['receipt'] as String?)?.isNotEmpty == true) {
+        payload["receipt"] = _paymentResult!['receipt'];
+      }
+    }
+
+    if (_attachment != null) {
+      payload["attachments"] = [_attachment!.dataUri];
     }
 
     debugPrint('===== SAVE PAYLOAD =====');
