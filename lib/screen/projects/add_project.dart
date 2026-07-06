@@ -228,6 +228,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     required DateTime initial,
     required ValueChanged<DateTime> onPicked,
   }) async {
+    final savedOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -236,7 +239,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
     if (picked != null && mounted) {
       setState(() => onPicked(picked));
-      FocusScope.of(context).unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(
+            savedOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+          );
+        }
+      });
     }
   }
 

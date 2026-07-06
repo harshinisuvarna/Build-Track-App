@@ -1341,6 +1341,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 activeThumbColor: AppColors.primary,
                 onChanged: (v) async {
                   if (v) {
+                    final savedOffset = _scrollCtrl.hasClients
+                        ? _scrollCtrl.offset
+                        : 0.0;
                     final result = await showPaymentSheet(
                       context,
                       entryTitle: _nameCtrl.text.trim().isEmpty
@@ -1359,6 +1362,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         if (result != null) {
                           _recordPaymentNow = true;
                           _paymentResult = result;
+                        }
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollCtrl.hasClients) {
+                          _scrollCtrl.jumpTo(
+                            savedOffset.clamp(
+                              0.0,
+                              _scrollCtrl.position.maxScrollExtent,
+                            ),
+                          );
                         }
                       });
                     }
@@ -1391,6 +1404,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final note = (_paymentResult!['note'] as String?) ?? '';
     return GestureDetector(
       onTap: () async {
+        final savedOffset = _scrollCtrl.hasClients
+            ? _scrollCtrl.offset
+            : 0.0;
         final result = await showPaymentSheet(
           context,
           entryTitle: _nameCtrl.text.trim().isEmpty
@@ -1404,7 +1420,19 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               ? 'Labour'
               : _categoryCtrl.text.trim(),
         );
-        if (result != null && mounted) setState(() => _paymentResult = result);
+        if (result != null && mounted) {
+          setState(() => _paymentResult = result);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollCtrl.hasClients) {
+              _scrollCtrl.jumpTo(
+                savedOffset.clamp(
+                  0.0,
+                  _scrollCtrl.position.maxScrollExtent,
+                ),
+              );
+            }
+          });
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -1626,6 +1654,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () async {
+              final savedOffset = _scrollCtrl.hasClients
+                  ? _scrollCtrl.offset
+                  : 0.0;
               final picked = await showDatePicker(
                 context: context,
                 initialDate: _paymentDate,
@@ -1642,7 +1673,19 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                   child: child!,
                 ),
               );
-              if (picked != null) setState(() => _paymentDate = picked);
+              if (picked != null) {
+                setState(() => _paymentDate = picked);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollCtrl.hasClients) {
+                    _scrollCtrl.jumpTo(
+                      savedOffset.clamp(
+                        0.0,
+                        _scrollCtrl.position.maxScrollExtent,
+                      ),
+                    );
+                  }
+                });
+              }
             },
             child: Container(
               padding: const EdgeInsets.all(15),
