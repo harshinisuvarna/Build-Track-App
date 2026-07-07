@@ -1320,9 +1320,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
       }
-      if ((_paymentResult!['receipt'] as String?)?.isNotEmpty == true) {
-        payload["receipt"] = _paymentResult!['receipt'];
-      }
+      final receiptDataUri = _paymentResult!['receiptDataUri'] as String?;
+if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
+  payload["paymentReceipt"] = receiptDataUri;
+}
     }
 
     if (_attachment != null) {
@@ -1666,13 +1667,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString())
           : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
-      final pStatus = tx['paymentStatus']?.toString().toLowerCase();
-      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-        _isAddAndPay = true;
-        _paymentMethod = tx['paymentMode'] ?? 'Cash';
-        final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
-        _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
-      }
+      // FIX: this was flipping the payment toggle ON for a brand-new entry
+      // based on the copied entry's old payment status. Only data fields
+      // should prefill — payment state stays off/zeroed.
+      _existingPaidAmount = 0.0;
+      _isAddAndPay = false;
+      _recordPaymentNow = false;
+      _paymentResult = null;
+      _paymentAmountCtrl.clear();
     });
   }
 
@@ -1696,7 +1698,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   // ── Payment section ───────────────────────────────────────────────────────
   Widget _buildPaymentSection() {
-    if (_isAddAndPay) return _buildInlinePaymentForm();
 
     return EntrySectionCard(
       child: Column(
@@ -1931,163 +1932,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
   }
 
-  Widget _buildInlinePaymentForm() {
-    const methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
-    return EntrySectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(
-                  Icons.payments_outlined,
-                  color: Color(0xFF15803D),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Record Payment',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Log payment details for this entry',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Divider(color: Color(0xFFF0EEF8)),
-          const SizedBox(height: 16),
-          const EntryFieldLabel('Amount Paid', required: false),
-          const SizedBox(height: 8),
-          EntryUnderlineField(
-            controller: _paymentAmountCtrl,
-            hint: '0',
-            prefix: '₹',
-            keyboardType: TextInputType.number,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Payment Method'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: methods.map((m) {
-              final sel = _paymentMethod == m;
-              return GestureDetector(
-                onTap: () => setState(() => _paymentMethod = m),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primary : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: sel ? AppColors.primary : const Color(0xFFDDE0F0),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(
-                    m,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: sel ? Colors.white : AppColors.textDark,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Payment Date'),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _paymentDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-                builder: (ctx, child) => Theme(
-                  data: Theme.of(ctx).copyWith(
-                    colorScheme: const ColorScheme.light(
-                      primary: AppColors.primary,
-                      onPrimary: Colors.white,
-                      onSurface: AppColors.textDark,
-                    ),
-                  ),
-                  child: child!,
-                ),
-              );
-              if (picked != null) setState(() => _paymentDate = picked);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_month_outlined,
-                    color: AppColors.primary,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Notes', required: false),
-          const SizedBox(height: 8),
-          EntryUnderlineField(
-            controller: _paymentNoteCtrl,
-            hint: 'e.g. Paid by site manager',
-            maxLines: 2,
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── Calc row helper ───────────────────────────────────────────────────────
   Widget _calcRow(String label, String value, {bool muted = false}) {
@@ -2360,7 +2204,19 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                               if (!mounted) return;
                               setState(() {
                                 _isDatePickerOpen = false;
-                                if (picked != null) _selectedDate = picked;
+                                if (picked != null) {
+                                  // FIX: showDatePicker only returns a date
+                                  // (midnight) — preserve the real time-of-
+                                  // day instead of zeroing it out.
+                                  _selectedDate = DateTime(
+                                    picked.year,
+                                    picked.month,
+                                    picked.day,
+                                    _selectedDate.hour,
+                                    _selectedDate.minute,
+                                    _selectedDate.second,
+                                  );
+                                }
                               });
                             },
 

@@ -66,11 +66,22 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     } else {
       _paymentHistory = [];
     }
-    _customDate = args['date'] as String?;
+   _customDate = args['date'] as String?;
     _floor = args['floor'] as String?;
     _phase = args['phase'] as String?;
     _activity = args['activity'] as String?;
     _projectName = args['projectName'] as String?;
+
+    // FIX: populate payment receipt on initial load, not just after
+    // recording a new payment in this session.
+    // FIX: payment receipt must NOT reuse the invoice's `receipt` field —
+    // that field feeds InvoiceAttachmentCard (see `receipt` below). The
+    // actual payment receipt lives on its own field, falling back to the
+    // most recent payment-history entry's own `receipt` value.
+    _paymentReceiptFile = args['paymentReceipt'] as String? ??
+        (_paymentHistory.isNotEmpty
+            ? _paymentHistory.last['receipt'] as String?
+            : null);
   }
 
   // ── Static type helpers ──────────────────────────────────────────────────
@@ -218,8 +229,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String name = args['name'] as String? ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
     final String? receipt = args['receipt'] as String?;
-    final PickedAttachment? attachment =
-        args['attachment'] as PickedAttachment?;
+    // FIX: 'attachment' arrives from the transaction list as a URL String
+// (not a PickedAttachment, which only exists transiently during the
+// Add-entry form session before upload). Casting String -> PickedAttachment
+// threw at runtime and crashed this page whenever an entry had an invoice.
+// The actual URL is already available via `receipt` below, so this is
+// intentionally always null here.
+final PickedAttachment? attachment = null;
     final String createdBy = args['createdBy'] as String? ?? '';
     final String projectId = args['projectId'] as String? ?? '';
     final String supplier = args['supplier'] as String? ?? '';
@@ -407,25 +423,27 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                             ],
                           ),
                           const AppDivider(verticalPadding: 12),
-                          _fieldLabel('PURCHASE DATE'),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                color: _typeColor(type),
-                                size: 14,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                displayDate,
-                                style: AppTheme.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: textDark,
-                                ),
-                              ),
-                            ],
-                          ),
+          _fieldLabel('PURCHASE DATE'),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                color: _typeColor(type),
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  displayDate,
+                  style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: textDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
                         ],
                       ),
                     ),
@@ -682,16 +700,18 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: textGray,
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: textGray,
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(
+        Flexible(
           child: Text(
             value,
             textAlign: TextAlign.end,
@@ -745,7 +765,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             double.infinity,
           ),
           'paymentStatus': _payStatus,
-          'receipt': _paymentReceiptFile ?? _args['receipt'] ?? '',
+          'receipt': _paymentReceiptFile ?? '',
           'transactionDetails': _args,
         };
 
@@ -778,10 +798,16 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     ? List.from(latest['paymentHistory'])
                     : [];
 
-                // If there's an updated receipt in the transaction, load it
-                if (latest['attachments'] is List &&
-                    latest['attachments'].isNotEmpty) {
-                  _paymentReceiptFile = latest['attachments'].first?.toString();
+                // FIX: `attachments` is the INVOICE array — reading it here
+                // is exactly why the Payment Receipt card mirrored the
+                // Invoice card. Pull from the payment's own field instead.
+                final dynamic freshPaymentReceipt = latest['paymentReceipt'] ??
+                    (_paymentHistory.isNotEmpty
+                        ? _paymentHistory.last['receipt']
+                        : null);
+                if (freshPaymentReceipt != null &&
+                    freshPaymentReceipt.toString().isNotEmpty) {
+                  _paymentReceiptFile = freshPaymentReceipt.toString();
                 }
               });
             }
