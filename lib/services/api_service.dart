@@ -366,18 +366,6 @@ class ApiService {
 
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionStr = prefs.getString('user_session');
-      String userId = '';
-      String role = '';
-      if (sessionStr != null && sessionStr.isNotEmpty) {
-        try {
-          final sessionData = json.decode(sessionStr);
-          userId = sessionData['id'] ?? '';
-          role = (sessionData['role'] ?? '').toString().toLowerCase().trim();
-        } catch (_) {}
-      }
-
       String endpoint = '/transactions?limit=10000&filterByViewAccess=true';
       if (projectId.isNotEmpty) endpoint += '&project=$projectId';
 
@@ -1013,18 +1001,6 @@ class ApiService {
 /// - If projectId is passed, only that project's entries are returned
 static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    final sessionStr = prefs.getString('user_session');
-    String userId = '';
-    String role = '';
-    if (sessionStr != null && sessionStr.isNotEmpty) {
-      try {
-        final sessionData = json.decode(sessionStr);
-        userId = sessionData['id'] ?? '';
-        role = (sessionData['role'] ?? '').toString().toLowerCase().trim();
-      } catch (_) {}
-    }
-
     String url = '/transactions?limit=10&filterByViewAccess=true';
 
     if (projectId != null && projectId.isNotEmpty) {

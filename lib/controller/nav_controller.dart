@@ -33,7 +33,6 @@ class NavController extends ChangeNotifier {
 
   void setRoute(String route, BuildContext context) {
     if (!isRouteEnabled(route)) return;
-    if (_currentRoute == route) return;
 
     _currentRoute = route;
     notifyListeners();

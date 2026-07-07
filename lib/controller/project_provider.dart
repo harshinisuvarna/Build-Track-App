@@ -214,7 +214,7 @@ class ProjectProvider extends ChangeNotifier {
       final Map<String, dynamic> existing =
           raw != null && raw.isNotEmpty ? json.decode(raw) : {};
       existing['$projectId|$activityId'] = {
-        if (notes != null) 'notes': notes,
+        'notes': ?notes,
         'photo': photo,
         'photos': photos,
       };
@@ -448,143 +448,215 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> load() async {
-    _setLoading(true);
-    try {
-      final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-      final phaseRaw = prefs.getString('phases');
-      if (phaseRaw != null && phaseRaw.isNotEmpty) {
-        try {
-          _phases = PhaseModel.decodeList(phaseRaw);
-        } catch (_) {
-          _phases = [];
+    // 1. Try to load phases from cache
+    final phaseRaw = prefs.getString('phases');
+    if (phaseRaw != null && phaseRaw.isNotEmpty) {
+      try {
+        _phases = PhaseModel.decodeList(phaseRaw);
+      } catch (_) {
+        _phases = [];
+      }
+    }
+    if (_phases.isEmpty || _phases.length < 11) {
+      _phases = [
+        'Pre-Construction',
+        'Site Preparation',
+        'Foundation',
+        'Plinth',
+        'Superstructure',
+        'Masonry',
+        'MEP',
+        'Plastering',
+        'Finishing',
+        'Fixtures',
+        'Handover',
+      ].asMap().entries.map((e) => PhaseModel(
+        id: e.value.toLowerCase().replaceAll(' ', '_'),
+        name: e.value,
+        order: e.key,
+      )).toList();
+      _savePhases();
+    }
+
+    // 2. Try to load projects and entries from cache
+    final cachedProjectsRaw = prefs.getString('buildtrack_projects_v1');
+    final cachedEntriesRaw = prefs.getString(_kEntriesKey);
+
+    bool loadedFromCache = false;
+    if (cachedProjectsRaw != null && cachedProjectsRaw.isNotEmpty) {
+      try {
+        final List<ProjectModel> decodedProjects = ProjectModel.decodeList(cachedProjectsRaw);
+        _projects = _filterForCurrentUser(decodedProjects);
+        loadedFromCache = true;
+      } catch (e) {
+        dev.log('Decoding cached projects failed: $e');
+      }
+    }
+
+    if (cachedEntriesRaw != null && cachedEntriesRaw.isNotEmpty) {
+      try {
+        _entries = EntryModel.decodeList(cachedEntriesRaw);
+      } catch (e) {
+        dev.log('Decoding cached entries failed: $e');
+      }
+    }
+
+    final String? cachedProjId = prefs.getString('buildtrack_selected_project_id');
+    final String? initialProjId = cachedProjId ??
+        (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
+
+    if (loadedFromCache) {
+      if (initialProjId != null) {
+        final existingIdx = _projects.indexWhere((p) => p.id.trim() == initialProjId.trim());
+        if (existingIdx != -1) {
+          _selectedProject = _projects[existingIdx];
+        } else if (_projects.isNotEmpty) {
+          _selectedProject = _projects.first;
+        }
+      } else if (_projects.isNotEmpty) {
+        _selectedProject = _projects.first;
+      }
+
+      if (_selectedProject != null) {
+        UserSession.projectId = _selectedProject!.id;
+        final cachedProjId = prefs.getString('buildtrack_selected_project_id');
+        if (cachedProjId == _selectedProject?.id) {
+          _selectedFloor = prefs.getString('buildtrack_selected_floor');
+          _selectedPhase = prefs.getString('buildtrack_selected_phase');
+          _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
+          _selectedActivity = prefs.getString('buildtrack_selected_activity');
+          _selectedActivityId = prefs.getString('buildtrack_selected_activity_id');
         }
       }
-      if (_phases.isEmpty || _phases.length < 11) {
-        _phases =
-            [
-                  'Pre-Construction',
-                  'Site Preparation',
-                  'Foundation',
-                  'Plinth',
-                  'Superstructure',
-                  'Masonry',
-                  'MEP',
-                  'Plastering',
-                  'Finishing',
-                  'Fixtures',
-                  'Handover',
-                ]
-                .asMap()
-                .entries
-                .map(
-                  (e) => PhaseModel(
-                    id: e.value.toLowerCase().replaceAll(' ', '_'),
-                    name: e.value,
-                    order: e.key,
-                  ),
-                )
-                .toList();
-        _savePhases();
-      }
 
-      try {
-        final Map<String, DateTime> persistedDates =
-            await _loadPersistedCompletedAt();
-        final Map<String, Map<String, dynamic>> persistedDetails =
-            await _loadPersistedActivityDetails();
+      // Notify UI instantly with cached data
+      _isLoading = false;
+      notifyListeners();
 
-        final Map<String, Map<String, DateTime>> prevCompletedAt = {};
-        persistedDates.forEach((key, date) {
-          final parts = key.split('|');
-          if (parts.length == 2) {
-            prevCompletedAt.putIfAbsent(parts[0], () => {})[parts[1]] = date;
-          }
-        });
+      // Trigger background network fetch asynchronously without awaiting it here
+      _fetchNetworkData(initialProjId);
+      return;
+    }
 
-        for (final p in _projects) {
-          for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
-            for (final act in phase.activities) {
-              if (act.completed && act.completedAt != null) {
-                prevCompletedAt.putIfAbsent(p.id, () => {})[act.id] =
-                    act.completedAt!;
-              } else if (act.completed && act.completedAt == null) {
-                prevCompletedAt
-                    .putIfAbsent(p.id, () => {})
-                    .putIfAbsent(act.id, () => DateTime(2000));
-              }
+    // 3. If there is no cache, perform a blocking network load
+    _setLoading(true);
+    await _fetchNetworkData(initialProjId);
+    _setLoading(false);
+  }
+
+  Future<void> _fetchNetworkData(String? initialProjId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Determine initial project ID if not passed
+      final String? targetProjId = initialProjId ?? prefs.getString('buildtrack_selected_project_id') ??
+          (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
+
+      final Map<String, DateTime> persistedDates =
+          await _loadPersistedCompletedAt();
+      final Map<String, Map<String, dynamic>> persistedDetails =
+          await _loadPersistedActivityDetails();
+
+      final Map<String, Map<String, DateTime>> prevCompletedAt = {};
+      persistedDates.forEach((key, date) {
+        final parts = key.split('|');
+        if (parts.length == 2) {
+          prevCompletedAt.putIfAbsent(parts[0], () => {})[parts[1]] = date;
+        }
+      });
+
+      for (final p in _projects) {
+        for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
+          for (final act in phase.activities) {
+            if (act.completed && act.completedAt != null) {
+              prevCompletedAt.putIfAbsent(p.id, () => {})[act.id] =
+                  act.completedAt!;
+            } else if (act.completed && act.completedAt == null) {
+              prevCompletedAt
+                  .putIfAbsent(p.id, () => {})
+                  .putIfAbsent(act.id, () => DateTime(2000));
             }
           }
         }
+      }
 
-        final fetched = await ApiService.fetchProjects();
+      // Fetch projects AND entries concurrently
+      final results = await Future.wait([
+        ApiService.fetchProjects(),
+        if (targetProjId != null)
+          _fetchEntriesForProject(targetProjId)
+        else
+          Future.value(<EntryModel>[]),
+      ]);
 
-        _projects = _filterForCurrentUser(fetched);
+      final fetched = results[0] as List<ProjectModel>;
+      final List<EntryModel> freshEntries = results[1] as List<EntryModel>;
 
-        _projects = _projects.map((p) {
-          final actDates = prevCompletedAt[p.id];
-          final List<ProjectPhase> mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
-            final mergedActivities = phase.activities.map((act) {
-              var updatedAct = act;
+      _projects = _filterForCurrentUser(fetched);
 
-              if (actDates != null) {
-                final savedDate = actDates[act.id];
-                if (savedDate != null) {
-                  if (updatedAct.completedAt == null || !updatedAct.completed) {
-                    updatedAct = updatedAct.copyWith(
-                      completed: true,
-                      completedAt: savedDate == DateTime(2000) ? null : savedDate,
-                    );
-                  }
+      _projects = _projects.map((p) {
+        final actDates = prevCompletedAt[p.id];
+        final List<ProjectPhase> mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
+          final mergedActivities = phase.activities.map((act) {
+            var updatedAct = act;
+
+            if (actDates != null) {
+              final savedDate = actDates[act.id];
+              if (savedDate != null) {
+                if (updatedAct.completedAt == null || !updatedAct.completed) {
+                  updatedAct = updatedAct.copyWith(
+                    completed: true,
+                    completedAt: savedDate == DateTime(2000) ? null : savedDate,
+                  );
                 }
               }
+            }
 
-              final detailsKey = '${p.id}|${act.id}';
-              final savedDetails = persistedDetails[detailsKey];
-              if (savedDetails != null) {
-                updatedAct = updatedAct.copyWith(
-                  notes: updatedAct.notes ?? savedDetails['notes']?.toString(),
-                  photo: updatedAct.photo ?? savedDetails['photo']?.toString(),
-                  photos: updatedAct.photos ?? (savedDetails['photos'] as List?)?.map((x) => x.toString()).toList(),
-                );
-              }
+            final detailsKey = '${p.id}|${act.id}';
+            final savedDetails = persistedDetails[detailsKey];
+            if (savedDetails != null) {
+              updatedAct = updatedAct.copyWith(
+                notes: updatedAct.notes ?? savedDetails['notes']?.toString(),
+                photo: updatedAct.photo ?? savedDetails['photo']?.toString(),
+                photos: updatedAct.photos ?? (savedDetails['photos'] as List?)?.map((x) => x.toString()).toList(),
+              );
+            }
 
-              return updatedAct;
-            }).toList();
-            return phase.copyWith(activities: mergedActivities);
+            return updatedAct;
           }).toList();
-
-          final floors = (p.floors == null || p.floors!.isEmpty)
-              ? ['Ground']
-              : p.floors!;
-
-          final effectivePhases = mergedPhases ?? p.selectedPhases;
-          final totalActs =
-              effectivePhases?.fold<int>(0, (s, ph) => s + ph.totalCount) ?? 0;
-          final doneActs =
-              effectivePhases?.fold<int>(0, (s, ph) => s + ph.completedCount) ??
-              0;
-          final computedProgress = totalActs > 0
-              ? doneActs / totalActs
-              : p.progress;
-
-          return p.copyWith(
-            selectedPhases: effectivePhases,
-            floors: floors,
-            progress: computedProgress,
-          );
+          return phase.copyWith(activities: mergedActivities);
         }).toList();
 
-        debugPrint('Projects loaded: ${_projects.length}');
-        for (final p in _projects) {
-          debugPrint(
-            '  Project: "${p.name}" id=${p.id} floors=${p.floors} spentAmount=${p.spentAmount}',
-          );
-        }
-      } catch (e) {
-        dev.log('fetchProjects failed: $e');
-        _projects = [];
+        final floors = (p.floors == null || p.floors!.isEmpty)
+            ? ['Ground']
+            : p.floors!;
+
+        final effectivePhases = mergedPhases;
+        final totalActs =
+            effectivePhases.fold<int>(0, (s, ph) => s + ph.totalCount);
+        final doneActs =
+            effectivePhases.fold<int>(0, (s, ph) => s + ph.completedCount);
+        final computedProgress = totalActs > 0
+            ? doneActs / totalActs
+            : p.progress;
+
+        return p.copyWith(
+          selectedPhases: effectivePhases,
+          floors: floors,
+          progress: computedProgress,
+        );
+      }).toList();
+
+      debugPrint('Projects loaded: ${_projects.length}');
+      for (final p in _projects) {
+        debugPrint(
+          '  Project: "${p.name}" id=${p.id} floors=${p.floors} spentAmount=${p.spentAmount}',
+        );
       }
+
+      await _persistProjects();
 
       // Save in-memory progress before we overwrite _selectedProject below,
       // so we don't lose optimistic updates from toggleActivityCompletion
@@ -602,8 +674,21 @@ class ProjectProvider extends ChangeNotifier {
         } else {
           _selectedProject = null;
         }
-      } else if (_projects.isNotEmpty) {
-        _selectedProject = _projects.first;
+      } else {
+        if (targetProjId != null) {
+          final existingIdx = _projects.indexWhere(
+            (p) => p.id.trim() == targetProjId.trim(),
+          );
+          if (existingIdx != -1) {
+            _selectedProject = _projects[existingIdx];
+          } else if (_projects.isNotEmpty) {
+            _selectedProject = _projects.first;
+          } else {
+            _selectedProject = null;
+          }
+        } else if (_projects.isNotEmpty) {
+          _selectedProject = _projects.first;
+        }
       }
 
       if (prevProgress != null && _selectedProject != null) {
@@ -614,24 +699,15 @@ class ProjectProvider extends ChangeNotifier {
         UserSession.projectId = _selectedProject!.id;
       }
 
-      // MERGE FIX 1: fetch entries SCOPED to whichever project ended up
-      // selected, via the shared helper above (instead of fetching every
-      // transaction across every project on every load()).
-      try {
-        if (_selectedProject != null) {
+      // Reuse freshEntries if selected project matches targetProjId, otherwise fetch
+      if (_selectedProject != null) {
+        if (_selectedProject!.id == targetProjId) {
+          _entries = freshEntries;
+        } else {
           _entries = await _fetchEntriesForProject(_selectedProject!.id);
-        } else {
-          _entries = [];
         }
-        await _persistEntries();
-      } catch (e, st) {
-        debugPrint('Initial entries fetch failed: $e\n$st');
-        final rawEntries = prefs.getString(_kEntriesKey);
-        if (rawEntries != null && rawEntries.isNotEmpty) {
-          _entries = EntryModel.decodeList(rawEntries);
-        } else {
-          _entries = [];
-        }
+      } else {
+        _entries = [];
       }
 
       // Override spentAmount with locally computed total from entries,
@@ -662,13 +738,13 @@ class ProjectProvider extends ChangeNotifier {
       }
 
       await _backfillCompletedActivities();
-
+      await _persistEntries();
+      
       _error = '';
+      notifyListeners();
     } catch (e, st) {
-      _error = 'Failed to load: $e';
-      dev.log('ProjectProvider.load error', error: e, stackTrace: st);
-    } finally {
-      _setLoading(false);
+      _error = 'Failed to load background network: $e';
+      dev.log('ProjectProvider._fetchNetworkData error', error: e, stackTrace: st);
     }
   }
 
@@ -854,25 +930,25 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<bool> updateProjectProgress(String id, double progress) async {
-    print('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
+    debugPrint('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) {
-      print('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
+      debugPrint('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
       return false;
     }
     _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
-      print('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
+      debugPrint('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
       final response = await ApiService.put('/projects/$id', _projects[idx].toJson());
-      print('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
+      debugPrint('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
       if (response.statusCode == 200 || response.statusCode == 204) {
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
-      print('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
       return false;
     }
   }
@@ -886,10 +962,10 @@ class ProjectProvider extends ChangeNotifier {
     List<String>? photos,
     double? manualProgress,
   }) async {
-    print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
+    debugPrint('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex == -1) {
-      print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
+      debugPrint('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
       return false;
     }
 
@@ -922,7 +998,7 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     if (!found) {
-      print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
+      debugPrint('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
       return false;
     }
 
@@ -946,9 +1022,9 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     try {
-      print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
+      debugPrint('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
       final response = await ApiService.put('/projects/$projectId', updated.toJson());
-      print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
+      debugPrint('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else {
@@ -958,7 +1034,7 @@ class ProjectProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
       _projects[projectIndex] = project;
       if (_selectedProject?.id == projectId) _selectedProject = project;
       notifyListeners();
@@ -1037,6 +1113,15 @@ class ProjectProvider extends ChangeNotifier {
   Future<void> _persistEntries() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEntriesKey, EntryModel.encodeList(_entries));
+  }
+
+  Future<void> _persistProjects() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('buildtrack_projects_v1', ProjectModel.encodeList(_projects));
+    } catch (e) {
+      dev.log('Persisting projects error: $e');
+    }
   }
 
   void _savePhases() async {

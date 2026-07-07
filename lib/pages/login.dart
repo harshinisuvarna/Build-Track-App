@@ -184,11 +184,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (data != null) {
         if (mounted) {
-          // Fetch subscription status upon login so it persists
-          await context.read<SubscriptionProvider>().fetchStatus();
-          // ProjectProvider.load() will now filter projects correctly
-          // based on UserSession.isAdmin / UserSession.projectId
-          await context.read<ProjectProvider>().load();
+          // Trigger fetchStatus and load in the background without awaiting them,
+          // so the app transitions to the home page completely instantly!
+          context.read<SubscriptionProvider>().fetchStatus();
+          context.read<ProjectProvider>().load();
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
