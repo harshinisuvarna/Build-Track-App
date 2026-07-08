@@ -199,6 +199,15 @@ class ProjectActivity {
   final double? budgetMaterial;
   final double? budgetLabour;
   final double? budgetEquipment;
+  final double? qty;
+  final String? unit;
+  final double? materialRate;
+  final double? materialAmount;
+  final double? labourRate;
+  final double? labourAmount;
+  final double? equipmentRate;
+  final double? equipmentAmount;
+  final double? totalAmount;
 
   ProjectActivity({
     required this.id,
@@ -212,6 +221,15 @@ class ProjectActivity {
     this.budgetMaterial,
     this.budgetLabour,
     this.budgetEquipment,
+    this.qty,
+    this.unit,
+    this.materialRate,
+    this.materialAmount,
+    this.labourRate,
+    this.labourAmount,
+    this.equipmentRate,
+    this.equipmentAmount,
+    this.totalAmount,
   });
 
   double get budgetTotal =>
@@ -229,6 +247,15 @@ class ProjectActivity {
     double? budgetMaterial,
     double? budgetLabour,
     double? budgetEquipment,
+    double? qty,
+    String? unit,
+    double? materialRate,
+    double? materialAmount,
+    double? labourRate,
+    double? labourAmount,
+    double? equipmentRate,
+    double? equipmentAmount,
+    double? totalAmount,
   }) {
     return ProjectActivity(
       id: id,
@@ -244,6 +271,15 @@ class ProjectActivity {
       budgetMaterial: budgetMaterial ?? this.budgetMaterial,
       budgetLabour: budgetLabour ?? this.budgetLabour,
       budgetEquipment: budgetEquipment ?? this.budgetEquipment,
+      qty: qty ?? this.qty,
+      unit: unit ?? this.unit,
+      materialRate: materialRate ?? this.materialRate,
+      materialAmount: materialAmount ?? this.materialAmount,
+      labourRate: labourRate ?? this.labourRate,
+      labourAmount: labourAmount ?? this.labourAmount,
+      equipmentRate: equipmentRate ?? this.equipmentRate,
+      equipmentAmount: equipmentAmount ?? this.equipmentAmount,
+      totalAmount: totalAmount ?? this.totalAmount,
     );
   }
 
@@ -259,6 +295,15 @@ class ProjectActivity {
         'budgetMaterial': budgetMaterial ?? 0.0,
         'budgetLabour': budgetLabour ?? 0.0,
         'budgetEquipment': budgetEquipment ?? 0.0,
+        if (qty != null) 'qty': qty,
+        if (unit != null) 'unit': unit,
+        if (materialRate != null) 'materialRate': materialRate,
+        if (materialAmount != null) 'materialAmount': materialAmount,
+        if (labourRate != null) 'labourRate': labourRate,
+        if (labourAmount != null) 'labourAmount': labourAmount,
+        if (equipmentRate != null) 'equipmentRate': equipmentRate,
+        if (equipmentAmount != null) 'equipmentAmount': equipmentAmount,
+        if (totalAmount != null) 'totalAmount': totalAmount,
       };
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
@@ -277,6 +322,15 @@ class ProjectActivity {
         budgetMaterial: (j['budgetMaterial'] as num?)?.toDouble() ?? 0.0,
         budgetLabour: (j['budgetLabour'] as num?)?.toDouble() ?? 0.0,
         budgetEquipment: (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0,
+        qty: (j['qty'] as num?)?.toDouble(),
+        unit: j['unit']?.toString(),
+        materialRate: (j['materialRate'] as num?)?.toDouble(),
+        materialAmount: (j['materialAmount'] as num?)?.toDouble(),
+        labourRate: (j['labourRate'] as num?)?.toDouble(),
+        labourAmount: (j['labourAmount'] as num?)?.toDouble(),
+        equipmentRate: (j['equipmentRate'] as num?)?.toDouble(),
+        equipmentAmount: (j['equipmentAmount'] as num?)?.toDouble(),
+        totalAmount: (j['totalAmount'] as num?)?.toDouble(),
       );
 }
 class ProjectPhase {

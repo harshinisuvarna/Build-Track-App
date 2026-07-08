@@ -485,6 +485,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           act.budgetMaterial = prev?.budgetMaterial;
           act.budgetLabour = prev?.budgetLabour;
           act.budgetEquipment = prev?.budgetEquipment;
+          act.qty = prev?.qty;
+          act.unit = prev?.unit;
+          act.materialRate = prev?.materialRate;
+          act.materialAmount = prev?.materialAmount;
+          act.labourRate = prev?.labourRate;
+          act.labourAmount = prev?.labourAmount;
+          act.equipmentRate = prev?.equipmentRate;
+          act.equipmentAmount = prev?.equipmentAmount;
         }
       }
       if (phaseHasSelection || existingPhaseNames.contains(phase.name)) {
@@ -513,6 +521,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             budgetMaterial: act.budgetMaterial,
             budgetLabour: act.budgetLabour,
             budgetEquipment: act.budgetEquipment,
+            qty: act.qty,
+            unit: act.unit,
+            materialRate: act.materialRate,
+            materialAmount: act.materialAmount,
+            labourRate: act.labourRate,
+            labourAmount: act.labourAmount,
+            equipmentRate: act.equipmentRate,
+            equipmentAmount: act.equipmentAmount,
           );
           customAct.isSelected = true;
           customPhase.activities.add(customAct);
@@ -533,6 +549,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               budgetMaterial: act.budgetMaterial,
               budgetLabour: act.budgetLabour,
               budgetEquipment: act.budgetEquipment,
+              qty: act.qty,
+              unit: act.unit,
+              materialRate: act.materialRate,
+              materialAmount: act.materialAmount,
+              labourRate: act.labourRate,
+              labourAmount: act.labourAmount,
+              equipmentRate: act.equipmentRate,
+              equipmentAmount: act.equipmentAmount,
             );
             customAct.isSelected = true;
             matchPhase.activities.add(customAct);
@@ -679,6 +703,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                   budgetMaterial: a.budgetMaterial ?? prev?.budgetMaterial,
                   budgetLabour: a.budgetLabour ?? prev?.budgetLabour,
                   budgetEquipment: a.budgetEquipment ?? prev?.budgetEquipment,
+                  qty: a.qty ?? prev?.qty,
+                  unit: a.unit ?? prev?.unit,
+                  materialRate: a.materialRate ?? prev?.materialRate,
+                  materialAmount: a.materialAmount ?? prev?.materialAmount,
+                  labourRate: a.labourRate ?? prev?.labourRate,
+                  labourAmount: a.labourAmount ?? prev?.labourAmount,
+                  equipmentRate: a.equipmentRate ?? prev?.equipmentRate,
+                  equipmentAmount: a.equipmentAmount ?? prev?.equipmentAmount,
                 );
               }).toList(),
             );
@@ -2704,6 +2736,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
       final qtyIdx = headers.indexOf('qty');
+      final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
       final matAmtIdx = headers.indexOf('material_amount');
       final labRateIdx = headers.indexOf('labour_rate');
@@ -2737,6 +2770,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
         final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+        final String unit = unitIdx != -1 && unitIdx < row.length ? row[unitIdx].toString().trim() : '';
 
         final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
         double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
@@ -2774,6 +2808,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           act.budgetMaterial = matAmt;
           act.budgetLabour = labAmt;
           act.budgetEquipment = eqAmt;
+          act.qty = qty;
+          act.unit = unit;
+          act.materialRate = matRate;
+          act.materialAmount = matAmt;
+          act.labourRate = labRate;
+          act.labourAmount = labAmt;
+          act.equipmentRate = eqRate;
+          act.equipmentAmount = eqAmt;
         } else {
           final newAct = ConstructionActivity(
             key: '$phaseName::Custom::$activityName',
@@ -2783,6 +2825,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             budgetMaterial: matAmt,
             budgetLabour: labAmt,
             budgetEquipment: eqAmt,
+            qty: qty,
+            unit: unit,
+            materialRate: matRate,
+            materialAmount: matAmt,
+            labourRate: labRate,
+            labourAmount: labAmt,
+            equipmentRate: eqRate,
+            equipmentAmount: eqAmt,
           );
           phase.activities.add(newAct);
         }
