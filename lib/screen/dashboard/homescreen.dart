@@ -12,15 +12,11 @@ import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-// --- TASK 3: Imported API Service ---
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
-// ── Shared time-label helper ────────────────────────────────────────────────
-// Fixes the "-304 minutes ago" bug: never shows a negative diff, and falls
-// back to an actual date once something is older than a week.
 String relativeTimeLabel(DateTime date) {
   final now = DateTime.now();
   final diff = now.difference(date);
