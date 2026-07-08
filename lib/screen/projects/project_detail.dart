@@ -14,6 +14,12 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/screen/projects/edit_project.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
+    if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
+    if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
+
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
@@ -150,6 +156,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
                     const AppSectionHeader(title: 'Financial Overview'),
                     _FinancialCard(project: project),
+                    const SizedBox(height: 14),
+
+                    _CsvImportExportCard(project: project),
                     const SizedBox(height: 14),
 
                     AppSectionHeader(
@@ -3258,3 +3267,387 @@ class _GalleryDialogState extends State<_GalleryDialog> {
     );
   }
 }
+
+// ── CSV Import/Export Card ──────────────────────────────────────────────────
+class _CsvImportExportCard extends StatefulWidget {
+  const _CsvImportExportCard({required this.project});
+  final ProjectModel project;
+
+  @override
+  State<_CsvImportExportCard> createState() => _CsvImportExportCardState();
+}
+
+class _CsvImportExportCardState extends State<_CsvImportExportCard> {
+  bool _isUploading = false;
+
+  Future<void> _downloadTemplate() async {
+    final List<List<dynamic>> csvRows = [
+      [
+        'Phase',
+        'Sl No',
+        'Particular',
+        'Qty',
+        'Unit',
+        'Material_Rate',
+        'Material_Amount',
+        'Labour_Rate',
+        'Labour_Amount',
+        'Equipment_Rate',
+        'Equipment_Amount',
+        'Total_Amount'
+      ]
+    ];
+
+    final defaultPhases = buildDefaultPhases();
+    final Map<String, ProjectActivity> existingActivities = {};
+    if (widget.project.selectedPhases != null) {
+      for (final phase in widget.project.selectedPhases!) {
+        for (final act in phase.activities) {
+          existingActivities['${phase.phaseName.trim().toLowerCase()}::${act.name.trim().toLowerCase()}'] = act;
+        }
+      }
+    }
+
+    for (final phase in defaultPhases) {
+      int slNo = 1;
+      for (final act in phase.allActivities) {
+        final key = '${phase.name.trim().toLowerCase()}::${act.name.trim().toLowerCase()}';
+        final existingAct = existingActivities[key];
+
+        final double matAmt = existingAct?.budgetMaterial ?? 0.0;
+        final double labAmt = existingAct?.budgetLabour ?? 0.0;
+        final double eqAmt = existingAct?.budgetEquipment ?? 0.0;
+        final double totAmt = matAmt + labAmt + eqAmt;
+
+        csvRows.add([
+          phase.name,
+          slNo++,
+          act.name,
+          '', // Qty
+          '', // Unit
+          '', // Material_Rate
+          matAmt > 0 ? matAmt.toStringAsFixed(0) : '',
+          '', // Labour_Rate
+          labAmt > 0 ? labAmt.toStringAsFixed(0) : '',
+          '', // Equipment_Rate
+          eqAmt > 0 ? eqAmt.toStringAsFixed(0) : '',
+          totAmt > 0 ? totAmt.toStringAsFixed(0) : '',
+        ]);
+      }
+    }
+
+    final csvContent = const ListToCsvConverter().convert(csvRows);
+    final filename = '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
+
+    try {
+      await saveAndShareCsv(
+        csvContent: csvContent,
+        filename: filename,
+        shareText: 'Exported phase template for ${widget.project.name}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Template downloaded successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download template: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadCsv() async {
+    setState(() => _isUploading = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        setState(() => _isUploading = false);
+        return;
+      }
+
+      final fileBytes = result.files.first.bytes;
+      if (fileBytes == null) {
+        throw Exception("Failed to read file data");
+      }
+
+      final csvString = utf8.decode(fileBytes);
+      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+
+      if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
+        throw Exception("CSV file is empty or missing headers");
+      }
+
+      final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
+      final phaseIdx = headers.indexOf('phase');
+      final particularIdx = headers.indexOf('particular');
+      final qtyIdx = headers.indexOf('qty');
+      final matRateIdx = headers.indexOf('material_rate');
+      final matAmtIdx = headers.indexOf('material_amount');
+      final labRateIdx = headers.indexOf('labour_rate');
+      final labAmtIdx = headers.indexOf('labour_amount');
+      final eqRateIdx = headers.indexOf('equipment_rate');
+      final eqAmtIdx = headers.indexOf('equipment_amount');
+
+      if (phaseIdx == -1 || particularIdx == -1) {
+        throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
+      }
+
+      double parseVal(dynamic v) {
+        if (v == null) return 0.0;
+        if (v is num) return v.toDouble();
+        final clean = v.toString().trim().replaceAll(RegExp(r'[^\d\.]'), '');
+        return double.tryParse(clean) ?? 0.0;
+      }
+
+      List<ProjectPhase> updatedPhases = [];
+      if (widget.project.selectedPhases != null && widget.project.selectedPhases!.isNotEmpty) {
+        updatedPhases = List<ProjectPhase>.from(widget.project.selectedPhases!);
+      } else {
+        final defaultPhases = buildDefaultPhases();
+        updatedPhases = defaultPhases.map((cp) {
+          return ProjectPhase(
+            id: 'phase_${cp.name.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
+            phaseName: cp.name,
+            isCustom: cp.isCustom,
+            activities: cp.allActivities.map((ca) {
+              return ProjectActivity(
+                id: ca.key,
+                name: ca.name,
+                isCustom: ca.isCustom,
+                completed: false,
+                budgetMaterial: 0.0,
+                budgetLabour: 0.0,
+                budgetEquipment: 0.0,
+              );
+            }).toList(),
+          );
+        }).toList();
+      }
+
+      int updatedCount = 0;
+      for (int i = 1; i < parsedCsv.length; i++) {
+        final row = parsedCsv[i];
+        final maxIdx = phaseIdx > particularIdx ? phaseIdx : particularIdx;
+        if (row.length <= maxIdx) continue;
+
+        final String phaseName = row[phaseIdx].toString().trim();
+        final String activityName = row[particularIdx].toString().trim();
+        if (phaseName.isEmpty || activityName.isEmpty) continue;
+
+        final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+
+        final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
+        double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
+        if (matAmt == 0.0 && matRate > 0.0) matAmt = qty * matRate;
+
+        final double labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : 0.0;
+        double labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : 0.0;
+        if (labAmt == 0.0 && labRate > 0.0) labAmt = qty * labRate;
+
+        final double eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : 0.0;
+        double eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : 0.0;
+        if (eqAmt == 0.0 && eqRate > 0.0) eqAmt = qty * eqRate;
+
+        int phaseIndex = updatedPhases.indexWhere((p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase());
+        if (phaseIndex == -1) {
+          final newPhase = ProjectPhase(
+            id: 'phase_${phaseName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
+            phaseName: phaseName,
+            isCustom: true,
+            activities: [],
+          );
+          updatedPhases.add(newPhase);
+          phaseIndex = updatedPhases.length - 1;
+        }
+
+        final phase = updatedPhases[phaseIndex];
+        final activities = List<ProjectActivity>.from(phase.activities);
+        final actIndex = activities.indexWhere((a) => a.name.trim().toLowerCase() == activityName.toLowerCase());
+
+        if (actIndex != -1) {
+          activities[actIndex] = activities[actIndex].copyWith(
+            budgetMaterial: matAmt,
+            budgetLabour: labAmt,
+            budgetEquipment: eqAmt,
+          );
+        } else {
+          final newAct = ProjectActivity(
+            id: '$phaseName::Custom::$activityName',
+            name: activityName,
+            isCustom: true,
+            budgetMaterial: matAmt,
+            budgetLabour: labAmt,
+            budgetEquipment: eqAmt,
+          );
+          activities.add(newAct);
+        }
+
+        updatedPhases[phaseIndex] = phase.copyWith(activities: activities);
+        updatedCount++;
+      }
+
+      double materialSum = 0;
+      double labourSum = 0;
+      double equipmentSum = 0;
+      for (final phase in updatedPhases) {
+        for (final act in phase.activities) {
+          materialSum += act.budgetMaterial ?? 0.0;
+          labourSum += act.budgetLabour ?? 0.0;
+          equipmentSum += act.budgetEquipment ?? 0.0;
+        }
+      }
+      final double totalSum = materialSum + labourSum + equipmentSum + (widget.project.budgetMisc ?? 0.0);
+
+      final updatedProject = widget.project.copyWith(
+        selectedPhases: updatedPhases,
+        budgetMaterial: materialSum,
+        budgetLabour: labourSum,
+        budgetEquipment: equipmentSum,
+        totalBudget: totalSum,
+      );
+
+      await context.read<ProjectProvider>().updateProject(updatedProject);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully imported budget for $updatedCount activities!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isUploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.table_chart_rounded,
+                  color: Color(0xFF10B981),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PHASES & BUDGET CONFIGURATION',
+                      style: AppTheme.caption.copyWith(
+                        fontSize: 10,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const Text(
+                      'Import/Export CSV budgets for all phases.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _downloadTemplate,
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Template'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    foregroundColor: AppColors.primary,
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _isUploading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: _uploadCsv,
+                        icon: const Icon(Icons.upload_file_rounded, size: 16),
+                        label: const Text('Upload CSV'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
