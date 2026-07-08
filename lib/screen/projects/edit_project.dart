@@ -44,6 +44,13 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'dart:convert';
+import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
+    if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
+    if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
+
 
 class EditProjectScreen extends StatefulWidget {
   const EditProjectScreen({super.key, required this.project});
@@ -474,6 +481,18 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         if (_existingActivityById.containsKey(act.key)) {
           act.isSelected = true;
           phaseHasSelection = true;
+          final prev = _existingActivityById[act.key];
+          act.budgetMaterial = prev?.budgetMaterial;
+          act.budgetLabour = prev?.budgetLabour;
+          act.budgetEquipment = prev?.budgetEquipment;
+          act.qty = prev?.qty;
+          act.unit = prev?.unit;
+          act.materialRate = prev?.materialRate;
+          act.materialAmount = prev?.materialAmount;
+          act.labourRate = prev?.labourRate;
+          act.labourAmount = prev?.labourAmount;
+          act.equipmentRate = prev?.equipmentRate;
+          act.equipmentAmount = prev?.equipmentAmount;
         }
       }
       if (phaseHasSelection || existingPhaseNames.contains(phase.name)) {
@@ -499,6 +518,17 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             key: act.id,
             name: act.name,
             isCustom: true,
+            budgetMaterial: act.budgetMaterial,
+            budgetLabour: act.budgetLabour,
+            budgetEquipment: act.budgetEquipment,
+            qty: act.qty,
+            unit: act.unit,
+            materialRate: act.materialRate,
+            materialAmount: act.materialAmount,
+            labourRate: act.labourRate,
+            labourAmount: act.labourAmount,
+            equipmentRate: act.equipmentRate,
+            equipmentAmount: act.equipmentAmount,
           );
           customAct.isSelected = true;
           customPhase.activities.add(customAct);
@@ -516,6 +546,17 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               key: act.id,
               name: act.name,
               isCustom: true,
+              budgetMaterial: act.budgetMaterial,
+              budgetLabour: act.budgetLabour,
+              budgetEquipment: act.budgetEquipment,
+              qty: act.qty,
+              unit: act.unit,
+              materialRate: act.materialRate,
+              materialAmount: act.materialAmount,
+              labourRate: act.labourRate,
+              labourAmount: act.labourAmount,
+              equipmentRate: act.equipmentRate,
+              equipmentAmount: act.equipmentAmount,
             );
             customAct.isSelected = true;
             matchPhase.activities.add(customAct);
@@ -659,6 +700,17 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                   isCustom: a.isCustom,
                   completed: prev?.completed ?? false,
                   completedAt: prev?.completedAt,
+                  budgetMaterial: a.budgetMaterial ?? prev?.budgetMaterial,
+                  budgetLabour: a.budgetLabour ?? prev?.budgetLabour,
+                  budgetEquipment: a.budgetEquipment ?? prev?.budgetEquipment,
+                  qty: a.qty ?? prev?.qty,
+                  unit: a.unit ?? prev?.unit,
+                  materialRate: a.materialRate ?? prev?.materialRate,
+                  materialAmount: a.materialAmount ?? prev?.materialAmount,
+                  labourRate: a.labourRate ?? prev?.labourRate,
+                  labourAmount: a.labourAmount ?? prev?.labourAmount,
+                  equipmentRate: a.equipmentRate ?? prev?.equipmentRate,
+                  equipmentAmount: a.equipmentAmount ?? prev?.equipmentAmount,
                 );
               }).toList(),
             );
@@ -1570,6 +1622,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      _buildCsvImportExportCard(),
                       const SizedBox(height: 16),
 
                       // CONSTRUCTION PHASES — FIX 4c
@@ -2575,5 +2630,360 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ctrl.dispose();
       focusNode.dispose();
     });
+  }
+
+  bool _isUploadingCsv = false;
+
+  Future<void> _downloadTemplate() async {
+    final List<List<dynamic>> csvRows = [
+      [
+        'Phase',
+        'Sl No',
+        'Particular',
+        'Qty',
+        'Unit',
+        'Material_Rate',
+        'Material_Amount',
+        'Labour_Rate',
+        'Labour_Amount',
+        'Equipment_Rate',
+        'Equipment_Amount',
+        'Total_Amount'
+      ]
+    ];
+
+    for (final phase in _phases) {
+      int slNo = 1;
+      for (final act in phase.allActivities) {
+        final double matAmt = act.budgetMaterial ?? 0.0;
+        final double labAmt = act.budgetLabour ?? 0.0;
+        final double eqAmt = act.budgetEquipment ?? 0.0;
+        final double totAmt = matAmt + labAmt + eqAmt;
+
+        csvRows.add([
+          phase.name,
+          slNo++,
+          act.name,
+          '', // Qty
+          '', // Unit
+          '', // Material_Rate
+          matAmt > 0 ? matAmt.toStringAsFixed(0) : '',
+          '', // Labour_Rate
+          labAmt > 0 ? labAmt.toStringAsFixed(0) : '',
+          '', // Equipment_Rate
+          eqAmt > 0 ? eqAmt.toStringAsFixed(0) : '',
+          totAmt > 0 ? totAmt.toStringAsFixed(0) : '',
+        ]);
+      }
+    }
+
+    final csvContent = const ListToCsvConverter().convert(csvRows);
+    final filename = '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
+
+    try {
+      await saveAndShareCsv(
+        csvContent: csvContent,
+        filename: filename,
+        shareText: 'Exported phase template for ${widget.project.name}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Template downloaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download template: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadCsv() async {
+    setState(() => _isUploadingCsv = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        setState(() => _isUploadingCsv = false);
+        return;
+      }
+
+      final fileBytes = result.files.first.bytes;
+      if (fileBytes == null) {
+        throw Exception("Failed to read file data");
+      }
+
+      final csvString = utf8.decode(fileBytes);
+      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+
+      if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
+        throw Exception("CSV file is empty or missing headers");
+      }
+
+      final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
+      final phaseIdx = headers.indexOf('phase');
+      final particularIdx = headers.indexOf('particular');
+      final qtyIdx = headers.indexOf('qty');
+      final unitIdx = headers.indexOf('unit');
+      final matRateIdx = headers.indexOf('material_rate');
+      final matAmtIdx = headers.indexOf('material_amount');
+      final labRateIdx = headers.indexOf('labour_rate');
+      final labAmtIdx = headers.indexOf('labour_amount');
+      final eqRateIdx = headers.indexOf('equipment_rate');
+      final eqAmtIdx = headers.indexOf('equipment_amount');
+
+      if (phaseIdx == -1 || particularIdx == -1) {
+        throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
+      }
+
+      double parseVal(dynamic v) {
+        if (v == null) return 0.0;
+        if (v is num) return v.toDouble();
+        final clean = v.toString().trim().replaceAll(RegExp(r'[^\d\.]'), '');
+        return double.tryParse(clean) ?? 0.0;
+      }
+
+      int updatedCount = 0;
+      double materialSum = 0.0;
+      double labourSum = 0.0;
+      double equipmentSum = 0.0;
+
+      for (int i = 1; i < parsedCsv.length; i++) {
+        final row = parsedCsv[i];
+        final maxIdx = phaseIdx > particularIdx ? phaseIdx : particularIdx;
+        if (row.length <= maxIdx) continue;
+
+        final String phaseName = row[phaseIdx].toString().trim();
+        final String activityName = row[particularIdx].toString().trim();
+        if (phaseName.isEmpty || activityName.isEmpty) continue;
+
+        final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+        final String unit = unitIdx != -1 && unitIdx < row.length ? row[unitIdx].toString().trim() : '';
+
+        final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
+        double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
+        if (matAmt == 0.0 && matRate > 0.0) matAmt = qty * matRate;
+
+        final double labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : 0.0;
+        double labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : 0.0;
+        if (labAmt == 0.0 && labRate > 0.0) labAmt = qty * labRate;
+
+        final double eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : 0.0;
+        double eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : 0.0;
+        if (eqAmt == 0.0 && eqRate > 0.0) eqAmt = qty * eqRate;
+
+        int phaseIndex = _phases.indexWhere((p) => p.name.trim().toLowerCase() == phaseName.toLowerCase());
+        if (phaseIndex == -1) {
+          final newPhase = ConstructionPhase(
+            name: phaseName,
+            isCustom: true,
+          );
+          newPhase.isSelected = true;
+          newPhase.isExpanded = true;
+          _phases.add(newPhase);
+          phaseIndex = _phases.length - 1;
+        }
+
+        final phase = _phases[phaseIndex];
+        phase.isSelected = true;
+        phase.isExpanded = true;
+
+        final actIndex = phase.allActivities.indexWhere((a) => a.name.trim().toLowerCase() == activityName.toLowerCase());
+
+        if (actIndex != -1) {
+          final act = phase.allActivities[actIndex];
+          act.isSelected = true;
+          act.budgetMaterial = matAmt;
+          act.budgetLabour = labAmt;
+          act.budgetEquipment = eqAmt;
+          act.qty = qty;
+          act.unit = unit;
+          act.materialRate = matRate;
+          act.materialAmount = matAmt;
+          act.labourRate = labRate;
+          act.labourAmount = labAmt;
+          act.equipmentRate = eqRate;
+          act.equipmentAmount = eqAmt;
+        } else {
+          final newAct = ConstructionActivity(
+            key: '$phaseName::Custom::$activityName',
+            name: activityName,
+            isCustom: true,
+            isSelected: true,
+            budgetMaterial: matAmt,
+            budgetLabour: labAmt,
+            budgetEquipment: eqAmt,
+            qty: qty,
+            unit: unit,
+            materialRate: matRate,
+            materialAmount: matAmt,
+            labourRate: labRate,
+            labourAmount: labAmt,
+            equipmentRate: eqRate,
+            equipmentAmount: eqAmt,
+          );
+          phase.activities.add(newAct);
+        }
+
+        materialSum += matAmt;
+        labourSum += labAmt;
+        equipmentSum += eqAmt;
+        updatedCount++;
+      }
+
+      _budgetMaterialCtrl.text = materialSum > 0 ? materialSum.toStringAsFixed(0) : '';
+      _budgetLabourCtrl.text = labourSum > 0 ? labourSum.toStringAsFixed(0) : '';
+      _budgetEquipmentCtrl.text = equipmentSum > 0 ? equipmentSum.toStringAsFixed(0) : '';
+
+      setState(() {});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully imported budget for $updatedCount activities!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isUploadingCsv = false);
+    }
+  }
+
+  Widget _buildCsvImportExportCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.table_chart_rounded,
+                  color: Color(0xFF10B981),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PHASES & BUDGET CONFIGURATION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: textGray,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      'Import/Export CSV budgets for all phases.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: textDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _downloadTemplate,
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Template'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    foregroundColor: primaryBlue,
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _isUploadingCsv
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: _uploadCsv,
+                        icon: const Icon(Icons.upload_file_rounded, size: 16),
+                        label: const Text('Upload CSV'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
