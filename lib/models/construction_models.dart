@@ -4,11 +4,18 @@ class ConstructionActivity {
   final bool isCustom;
   bool isSelected; // used in add_project for scope selection
 
+  double? budgetMaterial;
+  double? budgetLabour;
+  double? budgetEquipment;
+
   ConstructionActivity({
     required this.key,
     required this.name,
     this.isCustom = false,
     this.isSelected = false,
+    this.budgetMaterial,
+    this.budgetLabour,
+    this.budgetEquipment,
   });
 }
 
