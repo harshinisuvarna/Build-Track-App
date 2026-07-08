@@ -1103,6 +1103,21 @@ class ProjectProvider extends ChangeNotifier {
         '[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}',
       );
       if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(response.body);
+            if (data['project'] != null) {
+              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              _projects[projectIndex] = newProject;
+              if (_selectedProject?.id == projectId) {
+                _selectedProject = newProject;
+              }
+              notifyListeners();
+            }
+          } catch (e) {
+            print('[DEBUG] toggleActivityCompletion parse error: $e');
+          }
+        }
         return true;
       } else {
         _projects[projectIndex] = project;
@@ -1192,6 +1207,21 @@ class ProjectProvider extends ChangeNotifier {
         '[DEBUG] updateActivityBudget: PUT response status: ${response.statusCode}',
       );
       if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(response.body);
+            if (data['project'] != null) {
+              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              _projects[projectIndex] = newProject;
+              if (_selectedProject?.id == projectId) {
+                _selectedProject = newProject;
+              }
+              notifyListeners();
+            }
+          } catch (e) {
+            print('[DEBUG] updateActivityBudget parse error: $e');
+          }
+        }
         return true;
       } else {
         // revert on failure
