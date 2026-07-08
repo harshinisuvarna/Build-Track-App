@@ -196,6 +196,9 @@ class ProjectActivity {
   final String? notes;
   final String? photo;
   final List<String>? photos;
+  final double? budgetMaterial;
+  final double? budgetLabour;
+  final double? budgetEquipment;
 
   ProjectActivity({
     required this.id,
@@ -206,7 +209,13 @@ class ProjectActivity {
     this.notes,
     this.photo,
     this.photos,
+    this.budgetMaterial,
+    this.budgetLabour,
+    this.budgetEquipment,
   });
+
+  double get budgetTotal =>
+      (budgetMaterial ?? 0.0) + (budgetLabour ?? 0.0) + (budgetEquipment ?? 0.0);
 
   ProjectActivity copyWith({
     bool? completed,
@@ -217,6 +226,9 @@ class ProjectActivity {
     String? notes,
     String? photo,
     List<String>? photos,
+    double? budgetMaterial,
+    double? budgetLabour,
+    double? budgetEquipment,
   }) {
     return ProjectActivity(
       id: id,
@@ -229,6 +241,9 @@ class ProjectActivity {
       notes: notes ?? this.notes,
       photo: clearPhoto ? null : (photo ?? this.photo),
       photos: clearPhotos ? null : (photos ?? this.photos),
+      budgetMaterial: budgetMaterial ?? this.budgetMaterial,
+      budgetLabour: budgetLabour ?? this.budgetLabour,
+      budgetEquipment: budgetEquipment ?? this.budgetEquipment,
     );
   }
 
@@ -241,6 +256,9 @@ class ProjectActivity {
         if (notes != null) 'notes': notes,
         'photo': photo,
         'photos': photos,
+        'budgetMaterial': budgetMaterial ?? 0.0,
+        'budgetLabour': budgetLabour ?? 0.0,
+        'budgetEquipment': budgetEquipment ?? 0.0,
       };
 
   factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
@@ -256,6 +274,9 @@ class ProjectActivity {
         photos: j['photos'] != null
             ? List<String>.from(j['photos'] as List)
             : null,
+        budgetMaterial: (j['budgetMaterial'] as num?)?.toDouble() ?? 0.0,
+        budgetLabour: (j['budgetLabour'] as num?)?.toDouble() ?? 0.0,
+        budgetEquipment: (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0,
       );
 }
 class ProjectPhase {

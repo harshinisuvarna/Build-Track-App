@@ -162,8 +162,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ...selectedPhases.map(
                         (phase) => _TrackerPhaseCard(
                           phase: phase,
-                          projectId: project.id,
-                          projectFloors: project.floors ?? [],
+                          project: project,
                           isExpanded: _expanded.contains(phase.id),
                           onToggleExpand: () => setState(() {
                             if (_expanded.contains(phase.id)) {
@@ -296,16 +295,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 class _TrackerPhaseCard extends StatelessWidget {
   const _TrackerPhaseCard({
     required this.phase,
-    required this.projectId,
-    required this.projectFloors,
+    required this.project,
     required this.isExpanded,
     required this.onToggleExpand,
     required this.onToggleActivity,
   });
 
   final ProjectPhase phase;
-  final String projectId;
-  final List<String> projectFloors;
+  final ProjectModel project;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
   final void Function(String activityId) onToggleActivity;
@@ -438,9 +435,8 @@ class _TrackerPhaseCard extends StatelessWidget {
                 ...phase.activities.map(
                   (act) => _TrackerActivityRow(
                     activity: act,
-                    projectId: projectId,
+                    project: project,
                     phaseName: phase.phaseName,
-                    projectFloors: projectFloors,
                     onToggle: () => onToggleActivity(act.id),
                   ),
                 ),
@@ -458,20 +454,25 @@ class _TrackerPhaseCard extends StatelessWidget {
 }
 
 // ── Tracker Activity Row ──────────────────────────────────────────────────────
-class _TrackerActivityRow extends StatelessWidget {
+class _TrackerActivityRow extends StatefulWidget {
   const _TrackerActivityRow({
     required this.activity,
-    required this.projectId,
+    required this.project,
     required this.phaseName,
-    required this.projectFloors,
     required this.onToggle,
   });
 
   final ProjectActivity activity;
-  final String projectId;
+  final ProjectModel project;
   final String phaseName;
-  final List<String> projectFloors;
   final VoidCallback onToggle;
+
+  @override
+  State<_TrackerActivityRow> createState() => _TrackerActivityRowState();
+}
+
+class _TrackerActivityRowState extends State<_TrackerActivityRow> {
+  bool _isBudgetExpanded = false;
 
   static const _months = [
     'Jan',
@@ -489,8 +490,8 @@ class _TrackerActivityRow extends StatelessWidget {
   ];
 
   String? _completedDateLabel() {
-    if (!activity.completed) return null;
-    final dt = activity.completedAt;
+    if (!widget.activity.completed) return null;
+    final dt = widget.activity.completedAt;
     if (dt == null) return 'Date not recorded';
     // Sentinel date means completed but date was unknown
     if (dt.year == 2000 && dt.month == 1 && dt.day == 1) {
@@ -499,167 +500,18 @@ class _TrackerActivityRow extends StatelessWidget {
     return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final done = activity.completed;
-    final dateLabel = _completedDateLabel();
-
-    return InkWell(
-      onTap: activity.completed ? null : onToggle,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                color: done ? AppColors.success : Colors.transparent,
-                border: Border.all(
-                  color: done ? AppColors.success : const Color(0xFFCDD0DA),
-                  width: 1.5,
-                ),
-              ),
-              child: done
-                  ? const Icon(
-                      Icons.check_rounded,
-                      size: 14,
-                      color: Colors.white,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    activity.name,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: done ? FontWeight.w600 : FontWeight.w500,
-                      color: done
-                          ? const Color(0xFF9CA3AF)
-                          : AppColors.textDark,
-                      decoration: done
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                      decorationColor: const Color(0xFF9CA3AF),
-                    ),
-                  ),
-                  if (done && dateLabel != null) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_outline,
-                          size: 10,
-                          color: AppColors.success,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          'Completed $dateLabel',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: done
-                    ? AppColors.success.withValues(alpha: 0.10)
-                    : const Color(0xFFFFF3CD),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                done ? 'Done' : 'Pending',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: done ? AppColors.success : const Color(0xFFF59E0B),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              onTap: () => _openUpdateProgress(context),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.20),
-                    width: 1,
-                  ),
-                ),
-                child: const Text(
-                  'ADD',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            ),
-            if (done) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _showActivityDetails(context),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.success.withValues(alpha: 0.20),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Text(
-                    'VIEW',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.success,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   void _openUpdateProgress(BuildContext context) {
+    final floors = widget.project.floors ?? [];
     Navigator.pushNamed(
       context,
       '/update-progress',
       arguments: {
-        'projectId': projectId,
-        'phaseName': phaseName,
-        'activityName': activity.name,
-        'activityId': activity.id,
-        'floor': projectFloors.isNotEmpty ? projectFloors.first : null,
-        'projectFloors': projectFloors,
+        'projectId': widget.project.id,
+        'phaseName': widget.phaseName,
+        'activityName': widget.activity.name,
+        'activityId': widget.activity.id,
+        'floor': floors.isNotEmpty ? floors.first : null,
+        'projectFloors': floors,
       },
     ).then((_) async {
       if (context.mounted) {
@@ -671,6 +523,460 @@ class _TrackerActivityRow extends StatelessWidget {
         }
       }
     });
+  }
+
+  void _openUpdateBudgetDialog(BuildContext context) {
+    final materialController = TextEditingController(
+        text: (widget.activity.budgetMaterial ?? 0.0).toStringAsFixed(0));
+    final labourController = TextEditingController(
+        text: (widget.activity.budgetLabour ?? 0.0).toStringAsFixed(0));
+    final equipmentController = TextEditingController(
+        text: (widget.activity.budgetEquipment ?? 0.0).toStringAsFixed(0));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE0F0),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Budget Allocation: ${widget.activity.name}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Allocate activity budgets under Materials, Labour, and Equipment categories.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textLight,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildDialogTextField('Materials Budget (₹)', materialController),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Labour Budget (₹)', labourController),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Equipment Budget (₹)', equipmentController),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final mat = double.tryParse(materialController.text) ?? 0.0;
+                    final lab = double.tryParse(labourController.text) ?? 0.0;
+                    final equ = double.tryParse(equipmentController.text) ?? 0.0;
+
+                    Navigator.pop(modalContext);
+
+                    // Show loading spinner
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
+                    final success = await context.read<ProjectProvider>().updateActivityBudget(
+                      widget.project.id,
+                      widget.activity.id,
+                      budgetMaterial: mat,
+                      budgetLabour: lab,
+                      budgetEquipment: equ,
+                    );
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading spinner
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Budget updated successfully!'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to update budget. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Save Budget Allocation',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogTextField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFDDE0F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFEEF0F5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBudgetSection(BuildContext context) {
+    final budgetMat = widget.activity.budgetMaterial ?? 0.0;
+    final budgetLab = widget.activity.budgetLabour ?? 0.0;
+    final budgetEqu = widget.activity.budgetEquipment ?? 0.0;
+    final budgetTot = widget.activity.budgetTotal;
+
+    final projMat = widget.project.budgetMaterial ?? 0.0;
+    final projLab = widget.project.budgetLabour ?? 0.0;
+    final projEqu = widget.project.budgetEquipment ?? 0.0;
+    final projTot = widget.project.totalBudget;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEF0F6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Activity Budget Allocation',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _openUpdateBudgetDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_rounded, size: 10, color: AppColors.primary),
+                      SizedBox(width: 4),
+                      Text(
+                        'Update Budget',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildBudgetItem('Materials', budgetMat, projMat, AppColors.primary),
+          const SizedBox(height: 8),
+          _buildBudgetItem('Labour', budgetLab, projLab, const Color(0xFF10B981)),
+          const SizedBox(height: 8),
+          _buildBudgetItem('Equipment', budgetEqu, projEqu, const Color(0xFFF59E0B)),
+          const Divider(height: 16, color: Color(0xFFE5E7EB)),
+          _buildBudgetItem('Total Budget', budgetTot, projTot, const Color(0xFF7C3AED), isBold: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetItem(String label, double allocated, double total, Color color, {bool isBold = false}) {
+    final pct = total > 0 ? (allocated / total).clamp(0.0, 1.0) : 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+                color: isBold ? const Color(0xFF1F2937) : const Color(0xFF4B5563),
+              ),
+            ),
+            Text(
+              '${formatCurrency(allocated)} / ${formatCurrency(total)}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+                color: isBold ? const Color(0xFF1F2937) : const Color(0xFF374151),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 4,
+            backgroundColor: const Color(0xFFE5E7EB),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final done = widget.activity.completed;
+    final dateLabel = _completedDateLabel();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _isBudgetExpanded = !_isBudgetExpanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: widget.onToggle,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: done ? AppColors.success : Colors.transparent,
+                      border: Border.all(
+                        color: done ? AppColors.success : const Color(0xFFCDD0DA),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: done
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.activity.name,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: done ? FontWeight.w600 : FontWeight.w500,
+                          color: done
+                              ? const Color(0xFF9CA3AF)
+                              : AppColors.textDark,
+                          decoration: done
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                          decorationColor: const Color(0xFF9CA3AF),
+                        ),
+                      ),
+                      if (done && dateLabel != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline,
+                              size: 10,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Completed $dateLabel',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: done
+                        ? AppColors.success.withValues(alpha: 0.10)
+                        : const Color(0xFFFFF3CD),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    done ? 'Done' : 'Pending',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: done ? AppColors.success : const Color(0xFFF59E0B),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => _openUpdateProgress(context),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.20),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Text(
+                      'ADD',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
+                if (done) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => _showActivityDetails(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.success.withValues(alpha: 0.20),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Text(
+                        'VIEW',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.success,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _isBudgetExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textLight,
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isBudgetExpanded) _buildBudgetSection(context),
+      ],
+    );
   }
 
   void _showActivityDetails(BuildContext context) {
@@ -718,7 +1024,7 @@ class _TrackerActivityRow extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              activity.name,
+                              widget.activity.name,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -733,7 +1039,7 @@ class _TrackerActivityRow extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                phaseName,
+                                widget.phaseName,
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -777,7 +1083,7 @@ class _TrackerActivityRow extends StatelessWidget {
                           ),
                           
                           // Notes/Remarks Section
-                          if (activity.notes != null && activity.notes!.trim().isNotEmpty) ...[
+                          if (widget.activity.notes != null && widget.activity.notes!.trim().isNotEmpty) ...[
                             const SizedBox(height: 20),
                             const Text(
                               'Notes & Remarks',
@@ -798,7 +1104,7 @@ class _TrackerActivityRow extends StatelessWidget {
                                 border: Border.all(color: const Color(0xFFE5E7EB)),
                               ),
                               child: Text(
-                                activity.notes!,
+                                widget.activity.notes!,
                                 style: const TextStyle(
                                   fontSize: 13.5,
                                   height: 1.5,
@@ -810,8 +1116,8 @@ class _TrackerActivityRow extends StatelessWidget {
                           ],
                           
                           // Photos Section
-                          if ((activity.photos != null && activity.photos!.isNotEmpty) ||
-                              (activity.photo != null && activity.photo!.isNotEmpty)) ...[
+                          if ((widget.activity.photos != null && widget.activity.photos!.isNotEmpty) ||
+                              (widget.activity.photo != null && widget.activity.photo!.isNotEmpty)) ...[
                             const SizedBox(height: 20),
                             const Text(
                               'Progress Photos',
@@ -823,13 +1129,13 @@ class _TrackerActivityRow extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            _buildProgressPhotosList(context, activity),
+                            _buildProgressPhotosList(context, widget.activity),
                           ],
 
                           // Empty details placeholder
-                          if ((activity.notes == null || activity.notes!.trim().isEmpty) &&
-                              (activity.photo == null || activity.photo!.isEmpty) &&
-                              (activity.photos == null || activity.photos!.isEmpty)) ...[
+                          if ((widget.activity.notes == null || widget.activity.notes!.trim().isEmpty) &&
+                              (widget.activity.photo == null || widget.activity.photo!.isEmpty) &&
+                              (widget.activity.photos == null || widget.activity.photos!.isEmpty)) ...[
                             const SizedBox(height: 20),
                             Container(
                               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
