@@ -1052,6 +1052,73 @@ class ProjectProvider extends ChangeNotifier {
         completedAt: completionDate);
   }
 
+  Future<bool> updateActivityBudget(
+    String projectId,
+    String activityId, {
+    required double budgetMaterial,
+    required double budgetLabour,
+    required double budgetEquipment,
+  }) async {
+    print('[DEBUG] updateActivityBudget: projectId=$projectId, activityId=$activityId');
+    final projectIndex = _projects.indexWhere((p) => p.id == projectId);
+    if (projectIndex == -1) {
+      print('[DEBUG] updateActivityBudget: project not found in list');
+      return false;
+    }
+
+    final project = _projects[projectIndex];
+    final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
+    bool found = false;
+
+    for (var p = 0; p < phases.length; p++) {
+      final phase = phases[p];
+      final activities = List<ProjectActivity>.from(phase.activities);
+      final aIndex = activities.indexWhere((a) => a.id == activityId);
+      if (aIndex != -1) {
+        final current = activities[aIndex];
+        activities[aIndex] = current.copyWith(
+          budgetMaterial: budgetMaterial,
+          budgetLabour: budgetLabour,
+          budgetEquipment: budgetEquipment,
+        );
+        phases[p] = phase.copyWith(activities: activities);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      print('[DEBUG] updateActivityBudget: activity $activityId not found in phases');
+      return false;
+    }
+
+    final updated = project.copyWith(selectedPhases: phases);
+    _projects[projectIndex] = updated;
+    if (_selectedProject?.id == projectId) _selectedProject = updated;
+    notifyListeners();
+
+    try {
+      print('[DEBUG] updateActivityBudget: sending PUT to /projects/$projectId...');
+      final response = await ApiService.put('/projects/$projectId', updated.toJson());
+      print('[DEBUG] updateActivityBudget: PUT response status: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        // revert on failure
+        _projects[projectIndex] = project;
+        if (_selectedProject?.id == projectId) _selectedProject = project;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      print('[DEBUG] updateActivityBudget PERSISTENCE ERROR: $e');
+      _projects[projectIndex] = project;
+      if (_selectedProject?.id == projectId) _selectedProject = project;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> addEntry(
     EntryModel entry, {
     String? brand,
