@@ -8,18 +8,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 
-
 class ProjectReportScreen extends StatelessWidget {
   const ProjectReportScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-    final project  = provider.selectedProject;
+    final project = provider.selectedProject;
 
     if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
     if (project == null) {
@@ -37,7 +38,8 @@ class ProjectReportScreen extends StatelessWidget {
               const Expanded(
                 child: AppEmptyState(
                   icon: Icons.folder_open_outlined,
-                  message: 'No project selected.\nGo back and select a project.',
+                  message:
+                      'No project selected.\nGo back and select a project.',
                 ),
               ),
             ],
@@ -45,11 +47,13 @@ class ProjectReportScreen extends StatelessWidget {
         ),
       );
     }
-    final all       = provider.entriesForProject(project.id);
-    final labour    = all.where((e) => e.type == EntryType.labour).toList();
+    final all = provider.entriesForProject(project.id);
+    final labour = all.where((e) => e.type == EntryType.labour).toList();
     final materials = all.where((e) => e.type == EntryType.material).toList();
     final equipment = all.where((e) => e.type == EntryType.equipment).toList();
-    final recent    = ([...all]..sort((a, b) => b.date.compareTo(a.date))).take(8).toList();
+    final recent = ([
+      ...all,
+    ]..sort((a, b) => b.date.compareTo(a.date))).take(8).toList();
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -137,19 +141,20 @@ class ProjectReportScreen extends StatelessWidget {
     );
   }
 }
+
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.project});
   final ProjectModel project;
   static const _stageMeta = <ProjectStage, (Color, Color)>{
-    ProjectStage.preConstruction:      (Color(0xFFE8EAF6), Color(0xFF3949AB)),
-    ProjectStage.sitePreparation:      (Color(0xFFFCE4EC), Color(0xFFC62828)),
+    ProjectStage.preConstruction: (Color(0xFFE8EAF6), Color(0xFF3949AB)),
+    ProjectStage.sitePreparation: (Color(0xFFFCE4EC), Color(0xFFC62828)),
     ProjectStage.foundationPlinthWork: (Color(0xFFEEEFFF), Color(0xFF4455CC)),
-    ProjectStage.floorConstruction:    (Color(0xFFE3F2FD), Color(0xFF1565C0)),
-    ProjectStage.finishingWork:        (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
-    ProjectStage.externalWorks:        (Color(0xFFF3E8FF), Color(0xFF9B59B6)),
-    ProjectStage.materialMaster:       (Color(0xFFFFF3E0), Color(0xFFE65100)),
-    ProjectStage.labourMaster:         (Color(0xFFE0F7FA), Color(0xFF00838F)),
-    ProjectStage.equipmentMaster:      (Color(0xFFF9FBE7), Color(0xFF827717)),
+    ProjectStage.floorConstruction: (Color(0xFFE3F2FD), Color(0xFF1565C0)),
+    ProjectStage.finishingWork: (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+    ProjectStage.externalWorks: (Color(0xFFF3E8FF), Color(0xFF9B59B6)),
+    ProjectStage.materialMaster: (Color(0xFFFFF3E0), Color(0xFFE65100)),
+    ProjectStage.labourMaster: (Color(0xFFE0F7FA), Color(0xFF00838F)),
+    ProjectStage.equipmentMaster: (Color(0xFFF9FBE7), Color(0xFF827717)),
   };
 
   @override
@@ -159,8 +164,8 @@ class _SummaryCard extends StatelessWidget {
     final barColor = pct >= 0.9
         ? AppColors.error
         : pct >= 0.6
-            ? AppColors.warning
-            : AppColors.primary;
+        ? AppColors.warning
+        : AppColors.primary;
 
     return AppCard(
       margin: EdgeInsets.zero,
@@ -175,54 +180,82 @@ class _SummaryCard extends StatelessWidget {
                 child: Text(
                   project.name,
                   style: AppTheme.heading2.copyWith(
-                      fontSize: 17,
-                      color: AppColors.textDark,
-                      letterSpacing: -0.3),
+                    fontSize: 17,
+                    color: AppColors.textDark,
+                    letterSpacing: -0.3,
+                  ),
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                    color: stageBg,
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text(project.stage.label,
-                    style: TextStyle(
-                        color: stageFg,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5)),
+                  color: stageBg,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  project.stage.label,
+                  style: TextStyle(
+                    color: stageFg,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Row(children: [
-            const Icon(Icons.location_on_outlined,
-                size: 13, color: AppColors.textLight),
-            const SizedBox(width: 4),
-            Text(project.location,
-                style: AppTheme.caption.copyWith(fontSize: 12)),
-          ]),
+          Row(
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 13,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                project.location,
+                style: AppTheme.caption.copyWith(fontSize: 12),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 13, color: AppColors.textLight),
-            const SizedBox(width: 4),
-            Text('Started ${_fmtDate(project.startDate)}',
-                style: AppTheme.caption.copyWith(fontSize: 12)),
-          ]),
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 13,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Started ${_fmtDate(project.startDate)}',
+                style: AppTheme.caption.copyWith(fontSize: 12),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Overall Progress',
-                  style: AppTheme.label
-                      .copyWith(color: AppColors.textLight, letterSpacing: 0.3)),
-              Text('${(pct * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: barColor)),
+              Text(
+                'Overall Progress',
+                style: AppTheme.label.copyWith(
+                  color: AppColors.textLight,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              Text(
+                '${(pct * 100).toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: barColor,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -239,11 +272,26 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
+
   String _fmtDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
 }
+
 class _FinancialSnapshot extends StatelessWidget {
   const _FinancialSnapshot({required this.project});
   final ProjectModel project;
@@ -260,8 +308,8 @@ class _FinancialSnapshot extends StatelessWidget {
     final statusColor = u >= 0.9
         ? AppColors.error
         : u >= 0.6
-            ? AppColors.warning
-            : AppColors.success;
+        ? AppColors.warning
+        : AppColors.success;
 
     return Row(
       children: [
@@ -274,14 +322,16 @@ class _FinancialSnapshot extends StatelessWidget {
         const SizedBox(width: 8),
         _StatChip(
           label: 'Spent',
-          value: formatCurrency(paidTotal),   // ✅ paid only
+          value: formatCurrency(paidTotal), // ✅ paid only
           icon: Icons.payments_outlined,
           color: AppColors.primary,
         ),
         const SizedBox(width: 8),
         _StatChip(
           label: 'Remaining',
-          value: formatCurrency(remaining < 0 ? 0 : remaining), // ✅ based on paid
+          value: formatCurrency(
+            remaining < 0 ? 0 : remaining,
+          ), // ✅ based on paid
           icon: Icons.savings_outlined,
           color: statusColor,
         ),
@@ -289,7 +339,6 @@ class _FinancialSnapshot extends StatelessWidget {
     );
   }
 }
-
 
 class _StatChip extends StatelessWidget {
   const _StatChip({
@@ -315,28 +364,38 @@ class _StatChip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 30, height: 30,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8)),
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Icon(icon, color: color, size: 15),
             ),
             const SizedBox(height: 12),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label,
-                style: AppTheme.caption
-                    .copyWith(fontSize: 10, color: AppColors.textLight)),
+            Text(
+              label,
+              style: AppTheme.caption.copyWith(
+                fontSize: 10,
+                color: AppColors.textLight,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
 class _EntrySection extends StatelessWidget {
   const _EntrySection({
     required this.entries,
@@ -344,8 +403,8 @@ class _EntrySection extends StatelessWidget {
     required this.emptyMsg,
   });
   final List<EntryModel> entries;
-  final EntryType        type;
-  final String           emptyMsg;
+  final EntryType type;
+  final String emptyMsg;
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) {
@@ -353,45 +412,56 @@ class _EntrySection extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(children: [
-            Icon(_typeIcon(type),
-                color: AppColors.textLight, size: 18),
-            const SizedBox(width: 8),
-            Text(emptyMsg,
-                style:
-                    AppTheme.body.copyWith(color: AppColors.textLight)),
-          ]),
+          child: Row(
+            children: [
+              Icon(_typeIcon(type), color: AppColors.textLight, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                emptyMsg,
+                style: AppTheme.body.copyWith(color: AppColors.textLight),
+              ),
+            ],
+          ),
         ),
       );
     }
     final displayed = entries.take(3).toList();
-    final total     = entries.fold(0.0, (s, e) => s + e.amount);
-    final color     = _typeColor(type);
+    final total = entries.fold(0.0, (s, e) => s + e.amount);
+    final color = _typeColor(type);
     return AppCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           // Header row: total entries + total amount
-          Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(16)),
-              child: Icon(_typeIcon(type), color: color, size: 18),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '${entries.length} ${_typeLabel(type)} entr${entries.length == 1 ? 'y' : 'ies'}',
-                style: AppTheme.body.copyWith(color: AppColors.textMedium),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(_typeIcon(type), color: color, size: 18),
               ),
-            ),
-            Text(formatCurrency(total),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${entries.length} ${_typeLabel(type)} entr${entries.length == 1 ? 'y' : 'ies'}',
+                  style: AppTheme.body.copyWith(color: AppColors.textMedium),
+                ),
+              ),
+              Text(
+                formatCurrency(total),
                 style: TextStyle(
-                    fontWeight: FontWeight.w800, color: color, fontSize: 14)),
-          ]),
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
 
           if (displayed.isNotEmpty) ...[
             const Divider(color: Color(0xFFEEF0F8), height: 20),
@@ -401,47 +471,67 @@ class _EntrySection extends StatelessWidget {
       ),
     );
   }
+
   Widget _entryRow(EntryModel e, Color c) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(children: [
-        Expanded(
-          child: Text(
-            e.description.isEmpty ? _typeLabel(type) : e.description,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.body.copyWith(color: AppColors.textDark),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              e.description.isEmpty ? _typeLabel(type) : e.description,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.body.copyWith(color: AppColors.textDark),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(formatCurrency(e.amount),
+          const SizedBox(width: 8),
+          Text(
+            formatCurrency(e.amount),
             style: TextStyle(
-                fontWeight: FontWeight.w700, color: c, fontSize: 13)),
-      ]),
+              fontWeight: FontWeight.w700,
+              color: c,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
+
   IconData _typeIcon(EntryType t) {
     switch (t) {
-      case EntryType.material:  return Icons.category_outlined;
-      case EntryType.labour:    return Icons.people_outline;
-      case EntryType.equipment: return Icons.construction_outlined;
-    }
-  }
-  Color _typeColor(EntryType t) {
-    switch (t) {
-      case EntryType.material:  return AppColors.primary;
-      case EntryType.labour:    return AppColors.info;
-      case EntryType.equipment: return const Color(0xFF7B3FE7);
-    }
-  }
-  String _typeLabel(EntryType t) {
-    switch (t) {
-      case EntryType.material:  return 'Material';
-      case EntryType.labour:    return 'Labour';
-      case EntryType.equipment: return 'Equipment';
+      case EntryType.material:
+        return Icons.category_outlined;
+      case EntryType.labour:
+        return Icons.people_outline;
+      case EntryType.equipment:
+        return Icons.construction_outlined;
     }
   }
 
+  Color _typeColor(EntryType t) {
+    switch (t) {
+      case EntryType.material:
+        return AppColors.primary;
+      case EntryType.labour:
+        return AppColors.info;
+      case EntryType.equipment:
+        return const Color(0xFF7B3FE7);
+    }
+  }
+
+  String _typeLabel(EntryType t) {
+    switch (t) {
+      case EntryType.material:
+        return 'Material';
+      case EntryType.labour:
+        return 'Labour';
+      case EntryType.equipment:
+        return 'Equipment';
+    }
+  }
 }
+
 class _ActivityTimeline extends StatelessWidget {
   const _ActivityTimeline({required this.entries});
   final List<EntryModel> entries;
@@ -461,9 +551,9 @@ class _ActivityTimeline extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         children: List.generate(entries.length, (idx) {
-          final e             = entries[idx];
+          final e = entries[idx];
           final (color, icon) = _typeStyle(e.type);
-          final isLast        = idx == entries.length - 1;
+          final isLast = idx == entries.length - 1;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +564,8 @@ class _ActivityTimeline extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        width: 32, height: 32,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
@@ -499,29 +590,35 @@ class _ActivityTimeline extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: [
-                          Expanded(
-                            child: Text(
-                              _entryTitle(e),
-                              style: AppTheme.bodyLarge.copyWith(
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _entryTitle(e),
+                                style: AppTheme.bodyLarge.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textDark,
-                                  fontSize: 13),
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                          ),
-                          Text(
-                            formatCurrency(e.amount),
-                            style: TextStyle(
+                            Text(
+                              formatCurrency(e.amount),
+                              style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: color,
-                                fontSize: 13),
-                          ),
-                        ]),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           _fmtDate(e.date),
-                          style: AppTheme.caption
-                              .copyWith(fontSize: 11, color: AppColors.textLight),
+                          style: AppTheme.caption.copyWith(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                          ),
                         ),
                       ],
                     ),
@@ -534,14 +631,19 @@ class _ActivityTimeline extends StatelessWidget {
       ),
     );
   }
+
   String _entryTitle(EntryModel e) {
     if (e.description.isNotEmpty) return e.description;
     switch (e.type) {
-      case EntryType.material:  return 'Material Added';
-      case EntryType.labour:    return 'Labour Entry';
-      case EntryType.equipment: return 'Equipment Used';
+      case EntryType.material:
+        return 'Material Added';
+      case EntryType.labour:
+        return 'Labour Entry';
+      case EntryType.equipment:
+        return 'Equipment Used';
     }
   }
+
   (Color, IconData) _typeStyle(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -552,9 +654,22 @@ class _ActivityTimeline extends StatelessWidget {
         return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
+
   String _fmtDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
-
 }

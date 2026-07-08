@@ -5,17 +5,9 @@ class PhaseModel {
   final String name;
   final int order;
 
-  PhaseModel({
-    required this.id,
-    required this.name,
-    required this.order,
-  });
+  PhaseModel({required this.id, required this.name, required this.order});
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'order': order,
-      };
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'order': order};
 
   factory PhaseModel.fromJson(Map<String, dynamic> json) {
     return PhaseModel(
@@ -31,6 +23,8 @@ class PhaseModel {
 
   static List<PhaseModel> decodeList(String raw) {
     final List<dynamic> decoded = jsonDecode(raw);
-    return decoded.map((e) => PhaseModel.fromJson(e as Map<String, dynamic>)).toList();
+    return decoded
+        .map((e) => PhaseModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

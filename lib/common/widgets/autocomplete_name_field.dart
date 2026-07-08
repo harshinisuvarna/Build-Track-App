@@ -47,16 +47,20 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     super.initState();
     widget.controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
-    print('[AutocompleteNameField] initState — '
-        'suggestions pool: ${widget.suggestions.length}');
+    debugPrint(
+      '[AutocompleteNameField] initState — '
+      'suggestions pool: ${widget.suggestions.length}',
+    );
   }
 
   @override
   void didUpdateWidget(AutocompleteNameField old) {
     super.didUpdateWidget(old);
     if (old.suggestions != widget.suggestions) {
-      print('[AutocompleteNameField] suggestions updated: '
-          '${widget.suggestions.length} records');
+      debugPrint(
+        '[AutocompleteNameField] suggestions updated: '
+        '${widget.suggestions.length} records',
+      );
       // Re-filter immediately with the new pool
       if (widget.controller.text.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,14 +84,18 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
 
   void _onTextChanged() {
     final text = widget.controller.text;
-    print('[AutocompleteNameField] text changed → "$text" '
-        '(pool: ${widget.suggestions.length})');
+    debugPrint(
+      '[AutocompleteNameField] text changed → "$text" '
+      '(pool: ${widget.suggestions.length})',
+    );
     _computeFiltered(text);
   }
 
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
-      print('[AutocompleteNameField] focus lost — scheduling suggestion collapse');
+      debugPrint(
+        '[AutocompleteNameField] focus lost — scheduling suggestion collapse',
+      );
       // Small delay so a row tap fires before the suggestion collapses
       Future.delayed(const Duration(milliseconds: 180), () {
         if (mounted && !_focusNode.hasFocus) {
@@ -97,7 +105,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
         }
       });
     } else {
-      print('[AutocompleteNameField] focus gained');
+      debugPrint('[AutocompleteNameField] focus gained');
       if (widget.controller.text.isNotEmpty) {
         _computeFiltered(widget.controller.text);
       }
@@ -114,7 +122,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
         _filtered = [];
         _showSuggestions = false;
       });
-      print('[AutocompleteNameField] query empty — suggestions hidden');
+      debugPrint('[AutocompleteNameField] query empty — suggestions hidden');
       return;
     }
 
@@ -122,8 +130,10 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     final contains = <Map<String, dynamic>>[];
 
     for (final s in widget.suggestions) {
-      final title =
-          (s['title'] ?? s['name'] ?? '').toString().trim().toLowerCase();
+      final title = (s['title'] ?? s['name'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
       if (title.startsWith(q)) {
         startsWith.add(s);
       } else if (title.contains(q)) {
@@ -137,9 +147,11 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       _showSuggestions = _focusNode.hasFocus;
     });
 
-    print('[AutocompleteNameField] query="$q" '
-        '→ ${_filtered.length} matches '
-        '(${startsWith.length} starts-with, ${contains.length} contains)');
+    debugPrint(
+      '[AutocompleteNameField] query="$q" '
+      '→ ${_filtered.length} matches '
+      '(${startsWith.length} starts-with, ${contains.length} contains)',
+    );
   }
 
   void _onSelectSuggestion(Map<String, dynamic> tx) {
@@ -150,10 +162,9 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     widget.controller.removeListener(_onTextChanged);
     final name = (tx['title'] ?? tx['name'] ?? '').toString().trim();
     widget.controller.text = name;
-    widget.controller.selection =
-        TextSelection.collapsed(offset: name.length);
+    widget.controller.selection = TextSelection.collapsed(offset: name.length);
     widget.controller.addListener(_onTextChanged);
-    print('[AutocompleteNameField] selected: "$name"');
+    debugPrint('[AutocompleteNameField] selected: "$name"');
     widget.onSuggestionSelected(tx);
   }
 
@@ -214,8 +225,10 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
                       ),
                     )
                   : null,
-              suffixIconConstraints:
-                  const BoxConstraints(minWidth: 24, minHeight: 24),
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 24,
+                minHeight: 24,
+              ),
             ),
             style: const TextStyle(
               fontSize: 16,
@@ -301,8 +314,9 @@ class _SuggestionDropdown extends StatelessWidget {
     final rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
     if (rate <= 0) return '';
     final unit = (tx['unit'] ?? '').toString().trim();
-    final rateStr =
-        rate % 1 == 0 ? '₹${rate.toInt()}' : '₹${rate.toStringAsFixed(2)}';
+    final rateStr = rate % 1 == 0
+        ? '₹${rate.toInt()}'
+        : '₹${rate.toStringAsFixed(2)}';
     return (unit.isNotEmpty && unit != 'unit' && unit != 'units')
         ? '$rateStr / $unit'
         : rateStr;
@@ -332,18 +346,18 @@ class _SuggestionDropdown extends StatelessWidget {
           children: [
             // ── Header ─────────────────────────────────────────────────
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: const BoxDecoration(
                 color: Color(0xFFF4F5FF),
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFFE0E5FF)),
-                ),
+                border: Border(bottom: BorderSide(color: Color(0xFFE0E5FF))),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.history_rounded,
-                      size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.history_rounded,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   const Text(
                     'Recent Entries',
@@ -386,8 +400,9 @@ class _SuggestionDropdown extends StatelessWidget {
                     return _AddNewRow(query: query, onTap: onAddNew);
                   }
                   final tx = items[index];
-                  final title =
-                      (tx['title'] ?? tx['name'] ?? '').toString().trim();
+                  final title = (tx['title'] ?? tx['name'] ?? '')
+                      .toString()
+                      .trim();
                   final unit = (tx['unit'] ?? '').toString().trim();
                   final rateLabel = _rateLabel(tx);
                   final dateLabel = _relativeDate(tx['date']?.toString());
@@ -519,10 +534,7 @@ class _SuggestionRow extends StatelessWidget {
             if (unit.isNotEmpty && unit != 'unit' && unit != 'units') ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEEF0FF),
                   borderRadius: BorderRadius.circular(20),

@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
 
 class UploadBox extends StatelessWidget {
@@ -44,10 +44,7 @@ class UploadBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFF8F9FF),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: const Color(0xFFCCCFE8),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0xFFCCCFE8), width: 1.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -169,8 +166,11 @@ class UploadBox extends StatelessWidget {
               color: attachment!.iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child:
-                Icon(attachment!.icon, color: attachment!.iconColor, size: 24),
+            child: Icon(
+              attachment!.icon,
+              color: attachment!.iconColor,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -217,8 +217,10 @@ class UploadBox extends StatelessWidget {
         children: [
           Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32),
           SizedBox(height: 6),
-          Text('Preview unavailable',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(
+            'Preview unavailable',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
         ],
       ),
     );

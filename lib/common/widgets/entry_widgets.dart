@@ -258,10 +258,7 @@ class EntryUnderlineField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: error != null ? _kRed : _kBlue,
-            width: 2,
-          ),
+          bottom: BorderSide(color: error != null ? _kRed : _kBlue, width: 2),
         ),
       ),
       child: Column(
@@ -385,8 +382,8 @@ class EntryDropdownField<T> extends StatelessWidget {
     final borderColor = error != null
         ? _kRed
         : enabled
-            ? _kBlue
-            : _kGray;
+        ? _kBlue
+        : _kGray;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -396,9 +393,7 @@ class EntryDropdownField<T> extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: borderColor, width: 2),
-              ),
+              border: Border(bottom: BorderSide(color: borderColor, width: 2)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<T>(
@@ -1688,6 +1683,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String selectedMethod = 'UPI';
   String? amountError;
   String? uploadedReceipt;
+String? uploadedReceiptDataUri;
   DateTime selectedPaymentDate = DateTime.now();
 
   const pMethods = [
@@ -2027,12 +2023,17 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       if (val.length > 1 &&
                                           val.startsWith('0') &&
                                           !val.startsWith('0.')) {
-                                        final stripped = val.replaceFirst(RegExp(r'^0+'), '');
-                                        if (stripped.isNotEmpty && stripped != '.') {
+                                        final stripped = val.replaceFirst(
+                                          RegExp(r'^0+'),
+                                          '',
+                                        );
+                                        if (stripped.isNotEmpty &&
+                                            stripped != '.') {
                                           amountCtrl.text = stripped;
-                                          amountCtrl.selection = TextSelection.collapsed(
-                                            offset: stripped.length,
-                                          );
+                                          amountCtrl.selection =
+                                              TextSelection.collapsed(
+                                                offset: stripped.length,
+                                              );
                                           val = stripped;
                                         }
                                       }
@@ -2121,21 +2122,12 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final result = await FilePicker.platform
-                                      .pickFiles(
-                                        type: FileType.custom,
-                                        allowedExtensions: [
-                                          'jpg',
-                                          'png',
-                                          'pdf',
-                                        ],
-                                      );
-                                  if (result != null &&
-                                      result.files.isNotEmpty) {
-                                    ss(
-                                      () => uploadedReceipt =
-                                          result.files.first.name,
-                                    );
+                                  final attachment = await pickAttachmentDirect(ctx);
+                                  if (attachment != null) {
+                                    ss(() {
+                                      uploadedReceipt = attachment.name;
+                                      uploadedReceiptDataUri = attachment.dataUri;
+                                    });
                                   }
                                 },
                                 child: AnimatedContainer(
@@ -2179,9 +2171,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                             ),
                                             const SizedBox(width: 8),
                                             GestureDetector(
-                                              onTap: () => ss(
-                                                () => uploadedReceipt = null,
-                                              ),
+                                              onTap: () => ss(() {
+                                                uploadedReceipt = null;
+                                                uploadedReceiptDataUri = null;
+                                              }),
                                               child: const Icon(
                                                 Icons.close,
                                                 color: Color(0xFF6B7280),
@@ -2367,8 +2360,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       );
                                       return;
                                     }
-                                    if (outstanding > 0 &&
-                                        amt > outstanding) {
+                                    if (outstanding > 0 && amt > outstanding) {
                                       ss(
                                         () => amountError =
                                             'Payment amount cannot exceed the outstanding amount.',
@@ -2388,16 +2380,15 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? outstanding
                                       : selectedStatus == PaymentStatus.pending
                                       ? 0.0
-                                      : (parseAmount(
-                                               amountCtrl.text.trim(),
-                                             ) ??
-                                             0);
-                                  Navigator.pop(ctx, {
+                                      : (parseAmount(amountCtrl.text.trim()) ??
+                                            0);
+                                    Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,
                                     'note': noteCtrl.text.trim(),
                                     'status': selectedStatus,
                                     'receipt': uploadedReceipt,
+                                    'receiptDataUri': uploadedReceiptDataUri,
                                     'paymentDate': selectedPaymentDate,
                                   });
                                 },
@@ -2684,10 +2675,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
+          final String receiptData = attachment != null ? attachment!.dataUri : name!;
           Navigator.pushNamed(
             context,
             '/receipt-viewer',
-            arguments: {'receipt': name},
+            arguments: {'receipt': receiptData},
           );
         }
       },
@@ -2715,7 +2707,23 @@ class InvoiceAttachmentCard extends StatelessWidget {
                 color: iconBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconData, color: iconColor, size: 22),
+              child: (attachment == null &&
+                      (name.startsWith('http://') || name.startsWith('https://')) &&
+                      (lowerName.contains('.jpg') ||
+                          lowerName.contains('.jpeg') ||
+                          lowerName.contains('.png')))
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        name,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(iconData, color: iconColor, size: 22),
+                      ),
+                    )
+                  : Icon(iconData, color: iconColor, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(

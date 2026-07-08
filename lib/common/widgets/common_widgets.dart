@@ -3,6 +3,8 @@ import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
 class AppTopBar extends StatelessWidget {
   final String title;
@@ -96,14 +98,29 @@ class AppBottomNav extends StatelessWidget {
               _navItem(context, nav, '/home', Icons.home_rounded, 'HOME'),
               if (nav.isRouteEnabled('/projects'))
                 _navItem(
-                    context, nav, '/projects', Icons.architecture_outlined, 'PROJECTS'),
-              if (nav.isRouteEnabled('/add-entry'))
-                _entryButton(context, nav),
+                  context,
+                  nav,
+                  '/projects',
+                  Icons.architecture_outlined,
+                  'PROJECTS',
+                ),
+              if (nav.isRouteEnabled('/add-entry')) _entryButton(context, nav),
               if (nav.isRouteEnabled('/inventory'))
                 _navItem(
-                    context, nav, '/inventory', Icons.inventory_2_outlined, 'INVENTORY'),
+                  context,
+                  nav,
+                  '/inventory',
+                  Icons.inventory_2_outlined,
+                  'INVENTORY',
+                ),
               if (nav.isRouteEnabled('/reports'))
-                _navItem(context, nav, '/reports', Icons.bar_chart_outlined, 'REPORTS'),
+                _navItem(
+                  context,
+                  nav,
+                  '/reports',
+                  Icons.bar_chart_outlined,
+                  'REPORTS',
+                ),
             ],
           ),
         ),
@@ -184,6 +201,26 @@ class AppBottomNav extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class ProfileAvatar extends StatelessWidget {
+  final double radius;
+
+  const ProfileAvatar({super.key, this.radius = 18});
+
+  @override
+  Widget build(BuildContext context) {
+    context.watch<UserSession>();
+    final imageProvider = getProfileImageProvider(UserSession.profilePhoto);
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.grey.shade800,
+      backgroundImage: imageProvider,
+      child: imageProvider == null
+          ? Icon(Icons.person, color: Colors.white, size: radius)
+          : null,
     );
   }
 }

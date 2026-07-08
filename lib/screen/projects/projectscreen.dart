@@ -3,7 +3,6 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
-import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
@@ -174,15 +173,7 @@ class ProjectsScreen extends StatelessWidget {
               title: 'BuildTrack',
               rightWidget: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
+                child: const ProfileAvatar(radius: 18),
               ),
             ),
             Expanded(child: _buildBody(context, provider)),
@@ -350,7 +341,7 @@ class ProjectsScreen extends StatelessWidget {
 
               // ── Budget summary ────────────────────────────────────────
               Text(
-                '${formatCurrency(provider.totalSpentForProject(p.id))} of ${p.formattedBudget}',
+                '${p.formattedSpent} of ${p.formattedBudget}',
                 style: const TextStyle(
                   color: primaryBlue,
                   fontSize: 12,

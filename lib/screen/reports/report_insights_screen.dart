@@ -1,5 +1,6 @@
 import 'dart:typed_data';
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
@@ -8,8 +9,9 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_model.dart';
+// ADD near the top, with the other imports:
+import 'package:buildtrack_mobile/screen/reports/report_widgets.dart'; // ⚠️ adjust path if needed
 import 'package:buildtrack_mobile/models/project_model.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -17,6 +19,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 // =============================================================================
 // MAIN SCREEN
@@ -28,10 +31,25 @@ class ReportInsightsScreen extends StatefulWidget {
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
 
+// REPLACE:
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
-  int _unitIndex = 0;
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
+
+  List<dynamic> _inventoryItems = [];
+  String? _lastInventoryProjectId;
+
+  Future<void> _loadInventory(String projectId) async {
+    if (_lastInventoryProjectId == projectId) return;
+    _lastInventoryProjectId = projectId;
+    final items = await ApiService.fetchInventory(
+      projectId == 'all' ? '' : projectId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _inventoryItems = items;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,14 +61,18 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
 
     ProjectModel? project;
     if (isAll) {
-      final totalBudget =
-          provider.projects.fold(0.0, (s, p) => s + p.totalBudget);
-      final spentAmount =
-          provider.projects.fold(0.0, (s, p) => s + p.spentAmount);
+      final totalBudget = provider.projects.fold(
+        0.0,
+        (s, p) => s + p.totalBudget,
+      );
+      final spentAmount = provider.projects.fold(
+        0.0,
+        (s, p) => s + p.spentAmount,
+      );
       final avgProgress = provider.projects.isEmpty
           ? 0.0
           : provider.projects.fold(0.0, (s, p) => s + p.progress) /
-              provider.projects.length;
+                provider.projects.length;
       project = ProjectModel(
         id: 'all',
         name: 'All Active Projects',
@@ -76,7 +98,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
         body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary)),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
@@ -107,13 +130,24 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     // ── Pull live report from the same source as report_widgets.dart ──
     final report = _buildReportForProject(provider, project.id, isAll);
 
-    final allEntries =
-        isAll ? provider.entries : provider.entriesForProject(project.id);
+    // Kick off inventory fetch once we know which project is selected.
+    // Guarded by _lastInventoryProjectId so it doesn't re-fire every build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInventory(project!.id);
+    });
+
+    final phases = project.selectedPhases ?? [];
+
+    final allEntries = isAll
+        ? provider.entries
+        : provider.entriesForProject(project.id);
 
     final filteredEntries = allEntries
-        .where((e) =>
-            !e.date.isBefore(_fromDate) &&
-            !e.date.isAfter(_toDate.add(const Duration(days: 1))))
+        .where(
+          (e) =>
+              !e.date.isBefore(_fromDate) &&
+              !e.date.isAfter(_toDate.add(const Duration(days: 1))),
+        )
         .toList();
 
     final categoryCosts = {
@@ -138,6 +172,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
           categoryCosts,
           categoryBudgets,
           filteredEntries,
+          phases,
+          _inventoryItems,
         ),
       ),
       body: SafeArea(
@@ -160,28 +196,35 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                     _DateRangeRow(
                       fromDate: _fromDate,
                       toDate: _toDate,
-                      onChanged: (from, to) =>
-                          setState(() {
-                            _fromDate = from;
-                            _toDate = to;
-                          }),
+                      onChanged: (from, to) => setState(() {
+                        _fromDate = from;
+                        _toDate = to;
+                      }),
                     ),
+                    // REPLACE:
                     const SizedBox(height: 10),
                     _ProjectSummaryCard(project: project, report: report),
                     const SizedBox(height: 14),
-                    const AppSectionHeader(title: 'Cost Trend'),
-                    _CostTrendChartCard(
-                      project: project,
-                      entries: filteredEntries,
-                      unitIndex: _unitIndex,
-                      onUnitChanged: (i) => setState(() => _unitIndex = i),
-                    ),
+                    ChartSection(report: report),
                     const SizedBox(height: 14),
                     const AppSectionHeader(title: 'Category Breakdown'),
                     _CategoryBreakdownCard(
                       project: project,
                       categoryCosts: categoryCosts,
                       categoryBudgets: categoryBudgets,
+                    ),
+                    const SizedBox(height: 18),
+                    _ExportDetailsHintCard(
+                      onTap: () => _showExportSheet(
+                        context,
+                        project!,
+                        report,
+                        categoryCosts,
+                        categoryBudgets,
+                        filteredEntries,
+                        phases,
+                        _inventoryItems,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     AppButton(
@@ -195,8 +238,7 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                       label: 'View Full Logs',
                       icon: Icons.receipt_long_outlined,
                       variant: AppButtonVariant.outline,
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/logs'),
+                      onPressed: () => Navigator.pushNamed(context, '/logs'),
                     ),
                   ],
                 ),
@@ -209,66 +251,71 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   }
 
   ReportModel _buildReportForProject(
-    ProjectProvider provider, String projectId, bool isAll) {
-  if (provider.projects.isEmpty) return ReportModel.empty();
+    ProjectProvider provider,
+    String projectId,
+    bool isAll,
+  ) {
+    if (provider.projects.isEmpty) return ReportModel.empty();
 
-  final targetProjects = isAll
-      ? provider.projects
-      : provider.projects.where((p) => p.id == projectId).toList();
+    final targetProjects = isAll
+        ? provider.projects
+        : provider.projects.where((p) => p.id == projectId).toList();
 
-  if (targetProjects.isEmpty) return ReportModel.empty();
+    if (targetProjects.isEmpty) return ReportModel.empty();
 
-  double material = 0, labour = 0, equipment = 0;
-  for (final p in targetProjects) {
-    for (final entry in provider.entriesForProject(p.id)) {
-      switch (entry.type) {
-        case EntryType.material:
-          material += entry.amount;
-          break;
-        case EntryType.labour:
-          labour += entry.amount;
-          break;
-        case EntryType.equipment:
-          equipment += entry.amount;
-          break;
+    double material = 0, labour = 0, equipment = 0;
+    for (final p in targetProjects) {
+      for (final entry in provider.entriesForProject(p.id)) {
+        switch (entry.type) {
+          case EntryType.material:
+            material += entry.amount;
+            break;
+          case EntryType.labour:
+            labour += entry.amount;
+            break;
+          case EntryType.equipment:
+            equipment += entry.amount;
+            break;
+        }
       }
     }
+
+    double targetMaterial = 0,
+        targetLabour = 0,
+        targetEquipment = 0,
+        targetMisc = 0;
+    for (final p in targetProjects) {
+      targetMaterial += p.budgetMaterial ?? 0;
+      targetLabour += p.budgetLabour ?? 0;
+      targetEquipment += p.budgetEquipment ?? 0;
+      targetMisc += p.budgetMisc ?? 0;
+    }
+
+    final total = material + labour + equipment;
+    final totalTarget =
+        targetMaterial + targetLabour + targetEquipment + targetMisc;
+    final isOver = totalTarget > 0 && total > totalTarget;
+
+    return ReportModel(
+      totalCost: total,
+      materialCost: material,
+      labourCost: labour,
+      equipmentCost: equipment,
+      miscCost: 0,
+      categoryBudget: {
+        'Material': targetMaterial,
+        'Labour': targetLabour,
+        'Equipment': targetEquipment,
+      },
+      targetMaterial: targetMaterial,
+      targetLabour: targetLabour,
+      targetEquipment: targetEquipment,
+      targetMisc: targetMisc,
+      efficiencyNote: isOver
+          ? 'Budget exceeded by ₹${(total - totalTarget).toStringAsFixed(0)}'
+          : 'Project is within budget',
+    );
   }
-
-  double targetMaterial = 0, targetLabour = 0,
-      targetEquipment = 0, targetMisc = 0;
-  for (final p in targetProjects) {
-    targetMaterial  += p.budgetMaterial  ?? 0;
-    targetLabour    += p.budgetLabour    ?? 0;
-    targetEquipment += p.budgetEquipment ?? 0;
-    targetMisc      += p.budgetMisc      ?? 0;
-  }
-
-  final total = material + labour + equipment;
-  final totalTarget =
-      targetMaterial + targetLabour + targetEquipment + targetMisc;
-  final isOver = totalTarget > 0 && total > totalTarget;
-
-  return ReportModel(
-    totalCost: total,
-    materialCost: material,
-    labourCost: labour,
-    equipmentCost: equipment,
-    miscCost: 0,
-    categoryBudget: {
-      'Material': targetMaterial,
-      'Labour': targetLabour,
-      'Equipment': targetEquipment,
-    },
-    targetMaterial: targetMaterial,
-    targetLabour: targetLabour,
-    targetEquipment: targetEquipment,
-    targetMisc: targetMisc,
-    efficiencyNote: isOver
-        ? 'Budget exceeded by ₹${(total - totalTarget).toStringAsFixed(0)}'
-        : 'Project is within budget',
-  );
-}
 
   void _showExportSheet(
     BuildContext context,
@@ -277,6 +324,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     Map<String, double> categoryCosts,
     Map<String, double> categoryBudgets,
     List<EntryModel> entries,
+    List<ProjectPhase> phases,
+    List<dynamic> inventoryItems,
   ) {
     showModalBottomSheet<void>(
       context: context,
@@ -291,14 +340,14 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         categoryCosts: categoryCosts,
         categoryBudgets: categoryBudgets,
         entries: entries,
+        phases: phases,
+        inventoryItems: inventoryItems,
         fromDate: _fromDate,
         toDate: _toDate,
       ),
     );
   }
-} 
-
-
+}
 
 // =============================================================================
 // DATE RANGE ROW
@@ -329,9 +378,7 @@ class _DateRangeRow extends StatelessWidget {
           initialDateRange: DateTimeRange(start: fromDate, end: toDate),
           builder: (ctx, child) => Theme(
             data: Theme.of(ctx).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: AppColors.primary,
-              ),
+              colorScheme: const ColorScheme.light(primary: AppColors.primary),
             ),
             child: child!,
           ),
@@ -356,8 +403,11 @@ class _DateRangeRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 15, color: AppColors.primary),
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 15,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -369,8 +419,11 @@ class _DateRangeRow extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.edit_outlined,
-                size: 13, color: AppColors.textLight),
+            const Icon(
+              Icons.edit_outlined,
+              size: 13,
+              color: AppColors.textLight,
+            ),
           ],
         ),
       ),
@@ -435,6 +488,8 @@ class _ExportSheet extends StatefulWidget {
     required this.categoryCosts,
     required this.categoryBudgets,
     required this.entries,
+    required this.phases,
+    required this.inventoryItems,
     required this.fromDate,
     required this.toDate,
   });
@@ -444,6 +499,8 @@ class _ExportSheet extends StatefulWidget {
   final Map<String, double> categoryCosts;
   final Map<String, double> categoryBudgets;
   final List<EntryModel> entries;
+  final List<ProjectPhase> phases;
+  final List<dynamic> inventoryItems;
   final DateTime fromDate;
   final DateTime toDate;
 
@@ -455,6 +512,8 @@ class _ExportSheetState extends State<_ExportSheet> {
   bool _includeCostBreakdown = true;
   bool _includeCategoryChart = true;
   bool _includeEntryLog = false;
+  bool _includeActivityProgress = true;
+  bool _includeInventory = true;
   bool _isGenerating = false;
 
   String _fmt(DateTime d) =>
@@ -466,8 +525,9 @@ class _ExportSheetState extends State<_ExportSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -498,8 +558,11 @@ class _ExportSheetState extends State<_ExportSheet> {
                       color: AppColors.primary.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(13),
                     ),
-                    child: const Icon(Icons.picture_as_pdf_outlined,
-                        color: AppColors.primary, size: 20),
+                    child: const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -517,7 +580,9 @@ class _ExportSheetState extends State<_ExportSheet> {
                         Text(
                           widget.project.name,
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textLight),
+                            fontSize: 12,
+                            color: AppColors.textLight,
+                          ),
                         ),
                       ],
                     ),
@@ -530,17 +595,23 @@ class _ExportSheetState extends State<_ExportSheet> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15)),
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.date_range,
-                        size: 15, color: AppColors.primary),
+                    const Icon(
+                      Icons.date_range,
+                      size: 15,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       _dateRangeLabel,
@@ -574,9 +645,10 @@ class _ExportSheetState extends State<_ExportSheet> {
                 _includeCostBreakdown,
                 (v) => setState(() => _includeCostBreakdown = v),
               ),
+              // REPLACE:
               _toggle(
-                'Category Analysis',
-                'Budget vs actual per category',
+                'Category Chart',
+                'Visual chart + table of budget vs actual',
                 Icons.bar_chart_outlined,
                 _includeCategoryChart,
                 (v) => setState(() => _includeCategoryChart = v),
@@ -587,6 +659,20 @@ class _ExportSheetState extends State<_ExportSheet> {
                 Icons.receipt_long_outlined,
                 _includeEntryLog,
                 (v) => setState(() => _includeEntryLog = v),
+              ),
+              _toggle(
+                'Activity Progress',
+                'Phase-wise completed activities',
+                Icons.checklist_outlined,
+                _includeActivityProgress,
+                (v) => setState(() => _includeActivityProgress = v),
+              ),
+              _toggle(
+                'Inventory Status',
+                'Stock levels and reorder alerts',
+                Icons.inventory_2_outlined,
+                _includeInventory,
+                (v) => setState(() => _includeInventory = v),
               ),
               const SizedBox(height: 20),
 
@@ -634,8 +720,7 @@ class _ExportSheetState extends State<_ExportSheet> {
         onTap: () => onChanged(!value),
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
             color: value
                 ? AppColors.primary.withValues(alpha: 0.06)
@@ -649,9 +734,11 @@ class _ExportSheetState extends State<_ExportSheet> {
           ),
           child: Row(
             children: [
-              Icon(icon,
-                  size: 18,
-                  color: value ? AppColors.primary : AppColors.textLight),
+              Icon(
+                icon,
+                size: 18,
+                color: value ? AppColors.primary : AppColors.textLight,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -662,14 +749,16 @@ class _ExportSheetState extends State<_ExportSheet> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: value
-                            ? AppColors.textDark
-                            : AppColors.textLight,
+                        color: value ? AppColors.textDark : AppColors.textLight,
                       ),
                     ),
-                    Text(subtitle,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.textLight)),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -700,8 +789,7 @@ class _ExportSheetState extends State<_ExportSheet> {
           color: isPrimary ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color:
-                isPrimary ? AppColors.primary : const Color(0xFFDDE0F0),
+            color: isPrimary ? AppColors.primary : const Color(0xFFDDE0F0),
           ),
           boxShadow: isPrimary
               ? [
@@ -725,10 +813,11 @@ class _ExportSheetState extends State<_ExportSheet> {
                       color: isPrimary ? Colors.white : AppColors.primary,
                     ),
                   )
-                : Icon(icon,
+                : Icon(
+                    icon,
                     size: 16,
-                    color:
-                        isPrimary ? Colors.white : AppColors.primary),
+                    color: isPrimary ? Colors.white : AppColors.primary,
+                  ),
             const SizedBox(width: 7),
             Text(
               label,
@@ -751,11 +840,15 @@ class _ExportSheetState extends State<_ExportSheet> {
       categoryCosts: widget.categoryCosts,
       categoryBudgets: widget.categoryBudgets,
       entries: widget.entries,
+      phases: widget.phases,
+      inventoryItems: widget.inventoryItems,
       fromDate: widget.fromDate,
       toDate: widget.toDate,
       includeCostBreakdown: _includeCostBreakdown,
       includeCategoryChart: _includeCategoryChart,
       includeEntryLog: _includeEntryLog,
+      includeActivityProgress: _includeActivityProgress,
+      includeInventory: _includeInventory,
     );
   }
 
@@ -770,19 +863,40 @@ class _ExportSheetState extends State<_ExportSheet> {
     setState(() => _isGenerating = true);
     try {
       final bytes = await _buildPdfBytes();
-      final dir = await getTemporaryDirectory();
       final fileName =
           'buildtrack_${widget.project.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsBytes(bytes);
-      if (!mounted) return;
-      Navigator.pop(context);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'application/pdf')],
-          subject: 'BuildTrack Report – ${widget.project.name}',
-        ),
-      );
+
+      if (kIsWeb) {
+        // Web has no filesystem/path_provider — share via in-memory bytes
+        // directly. XFile.fromData works on web without touching disk.
+        if (!mounted) return;
+        Navigator.pop(context);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [
+              XFile.fromData(
+                bytes,
+                name: fileName,
+                mimeType: 'application/pdf',
+              ),
+            ],
+            subject: 'BuildTrack Report – ${widget.project.name}',
+          ),
+        );
+      } else {
+        // Native platforms: write to temp dir, then share the file path.
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+        if (!mounted) return;
+        Navigator.pop(context);
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path, mimeType: 'application/pdf')],
+            subject: 'BuildTrack Report – ${widget.project.name}',
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -791,7 +905,8 @@ class _ExportSheetState extends State<_ExportSheet> {
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.all(16),
           ),
         );
@@ -823,11 +938,15 @@ class _ReportPdfBuilder {
     required Map<String, double> categoryCosts,
     required Map<String, double> categoryBudgets,
     required List<EntryModel> entries,
+    required List<ProjectPhase> phases,
+    required List<dynamic> inventoryItems,
     required DateTime fromDate,
     required DateTime toDate,
     required bool includeCostBreakdown,
     required bool includeCategoryChart,
     required bool includeEntryLog,
+    required bool includeActivityProgress,
+    required bool includeInventory,
   }) async {
     final doc = pw.Document();
 
@@ -835,13 +954,13 @@ class _ReportPdfBuilder {
     final lightBg = PdfColor.fromHex('#F5F6FA');
     final textDark = PdfColor.fromHex('#1A1D3A');
     final textGray = PdfColor.fromHex('#8A92A6');
+    // REPLACE:
     final successColor = PdfColor.fromHex('#2E7D32');
     final errorColor = PdfColor.fromHex('#C62828');
+    final targetBarColor = PdfColor.fromHex('#EF9A9A');
 
-    final totalSpent =
-        categoryCosts.values.fold(0.0, (s, v) => s + v);
-    final totalBudget =
-        categoryBudgets.values.fold(0.0, (s, v) => s + v);
+    final totalSpent = categoryCosts.values.fold(0.0, (s, v) => s + v);
+    final totalBudget = categoryBudgets.values.fold(0.0, (s, v) => s + v);
     final isOver = totalBudget > 0 && totalSpent > totalBudget;
 
     doc.addPage(
@@ -850,12 +969,10 @@ class _ReportPdfBuilder {
         margin: const pw.EdgeInsets.all(32),
         header: (_) => pw.Container(
           margin: const pw.EdgeInsets.only(bottom: 20),
-          padding: const pw.EdgeInsets.symmetric(
-              horizontal: 20, vertical: 14),
+          padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: pw.BoxDecoration(
             color: primaryColor,
-            borderRadius:
-                const pw.BorderRadius.all(pw.Radius.circular(10)),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
           ),
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -863,28 +980,41 @@ class _ReportPdfBuilder {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('BuildTrack',
-                      style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontSize: 18,
-                          fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Project Report',
-                      style: const pw.TextStyle(
-                          color: PdfColors.white, fontSize: 11)),
+                  pw.Text(
+                    'BuildTrack',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 18,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Project Report',
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  pw.Text(project.name,
-                      style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold)),
                   pw.Text(
-                      '${_fmt(fromDate)} – ${_fmt(toDate)}',
-                      style: const pw.TextStyle(
-                          color: PdfColors.white, fontSize: 10)),
+                    project.name,
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    '${_fmt(fromDate)} – ${_fmt(toDate)}',
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 10,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -903,8 +1033,7 @@ class _ReportPdfBuilder {
             padding: const pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               color: lightBg,
-              borderRadius:
-                  const pw.BorderRadius.all(pw.Radius.circular(8)),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -912,31 +1041,37 @@ class _ReportPdfBuilder {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(project.name,
-                        style: pw.TextStyle(
-                            fontSize: 14,
-                            fontWeight: pw.FontWeight.bold,
-                            color: textDark)),
+                    pw.Text(
+                      project.name,
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: textDark,
+                      ),
+                    ),
                     pw.SizedBox(height: 3),
-                    pw.Text(project.location,
-                        style:
-                            pw.TextStyle(fontSize: 10, color: textGray)),
+                    pw.Text(
+                      project.location,
+                      style: pw.TextStyle(fontSize: 10, color: textGray),
+                    ),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                        '${(project.progress * 100).toStringAsFixed(1)}% Complete',
-                        style: pw.TextStyle(
-                            fontSize: 11,
-                            fontWeight: pw.FontWeight.bold,
-                            color: primaryColor)),
+                      '${(project.progress * 100).toStringAsFixed(1)}% Complete',
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        fontWeight: pw.FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
                     pw.SizedBox(height: 3),
                     pw.Text(
-                        'Budget: ${_fmtAmt(project.totalBudget)}',
-                        style: pw.TextStyle(
-                            fontSize: 10, color: textGray)),
+                      'Budget: ${_fmtAmt(project.totalBudget)}',
+                      style: pw.TextStyle(fontSize: 10, color: textGray),
+                    ),
                   ],
                 ),
               ],
@@ -950,11 +1085,19 @@ class _ReportPdfBuilder {
             pw.SizedBox(height: 10),
             pw.Row(
               children: [
-                _summaryBox('Total Spent', _fmtAmt(totalSpent),
-                    primaryColor, lightBg),
+                _summaryBox(
+                  'Total Spent',
+                  _fmtAmt(totalSpent),
+                  primaryColor,
+                  lightBg,
+                ),
                 pw.SizedBox(width: 12),
-                _summaryBox('Total Budget', _fmtAmt(totalBudget),
-                    successColor, lightBg),
+                _summaryBox(
+                  'Total Budget',
+                  _fmtAmt(totalBudget),
+                  successColor,
+                  lightBg,
+                ),
                 pw.SizedBox(width: 12),
                 _summaryBox(
                   'Variance',
@@ -969,13 +1112,45 @@ class _ReportPdfBuilder {
           ],
 
           // ── Category analysis table ──
+          // REPLACE:
+          // ── Category chart + table ──
           if (includeCategoryChart) ...[
-            _sectionTitle('Category Breakdown', primaryColor),
+            _sectionTitle('Spend vs Budget by Category', primaryColor),
             pw.SizedBox(height: 10),
+            _categoryChart(
+              categoryCosts,
+              categoryBudgets,
+              primaryColor,
+              targetBarColor,
+              textGray,
+              textDark,
+            ),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                _legendDot(primaryColor),
+                pw.SizedBox(width: 4),
+                pw.Text(
+                  'Actual',
+                  style: pw.TextStyle(fontSize: 8, color: textGray),
+                ),
+                pw.SizedBox(width: 14),
+                _legendDot(targetBarColor),
+                pw.SizedBox(width: 4),
+                pw.Text(
+                  'Budget',
+                  style: pw.TextStyle(fontSize: 8, color: textGray),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 16),
             pw.Table(
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
-                    color: PdfColor.fromHex('#E8EAF5'), width: 0.5),
+                  color: PdfColor.fromHex('#E8EAF5'),
+                  width: 0.5,
+                ),
               ),
               columnWidths: {
                 0: const pw.FlexColumnWidth(3),
@@ -1006,21 +1181,21 @@ class _ReportPdfBuilder {
                   return pw.TableRow(
                     children: [
                       _tCell(e.key, color: textDark),
-                      _tCell(_fmtAmt(e.value),
-                          color: primaryColor, bold: true),
+                      _tCell(_fmtAmt(e.value), color: primaryColor, bold: true),
                       _tCell(
-                          hasBudget ? _fmtAmt(budget) : '—',
-                          color: textGray),
+                        hasBudget ? _fmtAmt(budget) : '—',
+                        color: textGray,
+                      ),
                       _tCell(
-                        hasBudget
-                            ? _fmtAmt((e.value - budget).abs())
-                            : '—',
+                        hasBudget ? _fmtAmt((e.value - budget).abs()) : '—',
                         color: varColor,
                         bold: true,
                       ),
-                      _tCell(pct,
-                          color: over ? errorColor : successColor,
-                          bold: true),
+                      _tCell(
+                        pct,
+                        color: over ? errorColor : successColor,
+                        bold: true,
+                      ),
                     ],
                   );
                 }),
@@ -1032,12 +1207,16 @@ class _ReportPdfBuilder {
           // ── Entry log ──
           if (includeEntryLog && entries.isNotEmpty) ...[
             _sectionTitle(
-                'Entry Log (${entries.length} entries)', primaryColor),
+              'Entry Log (${entries.length} entries)',
+              primaryColor,
+            ),
             pw.SizedBox(height: 10),
             pw.Table(
               border: pw.TableBorder(
                 horizontalInside: pw.BorderSide(
-                    color: PdfColor.fromHex('#E8EAF5'), width: 0.5),
+                  color: PdfColor.fromHex('#E8EAF5'),
+                  width: 0.5,
+                ),
               ),
               columnWidths: {
                 0: const pw.FlexColumnWidth(1.5),
@@ -1055,7 +1234,9 @@ class _ReportPdfBuilder {
                     _tCell('Amount', bold: true, color: textGray),
                   ],
                 ),
-                ...entries.take(100).map(
+                ...entries
+                    .take(100)
+                    .map(
                       (e) => pw.TableRow(
                         children: [
                           _tCell(_fmt(e.date), color: textGray),
@@ -1066,27 +1247,33 @@ class _ReportPdfBuilder {
                             color: textDark,
                           ),
                           _tCell(e.type.name, color: textGray),
-                          _tCell(_fmtAmt(e.amount),
-                              color: primaryColor, bold: true),
+                          _tCell(
+                            _fmtAmt(e.amount),
+                            color: primaryColor,
+                            bold: true,
+                          ),
                         ],
                       ),
                     ),
                 if (entries.length > 100)
-                  pw.TableRow(children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
-                      child: pw.Text(
-                        '… and ${entries.length - 100} more entries not shown',
-                        style: pw.TextStyle(
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          '… and ${entries.length - 100} more entries not shown',
+                          style: pw.TextStyle(
                             fontSize: 8,
                             color: textGray,
-                            fontStyle: pw.FontStyle.italic),
+                            fontStyle: pw.FontStyle.italic,
+                          ),
+                        ),
                       ),
-                    ),
-                    _tCell('', color: textGray),
-                    _tCell('', color: textGray),
-                    _tCell('', color: textGray),
-                  ]),
+                      _tCell('', color: textGray),
+                      _tCell('', color: textGray),
+                      _tCell('', color: textGray),
+                    ],
+                  ),
               ],
             ),
           ],
@@ -1094,8 +1281,149 @@ class _ReportPdfBuilder {
           if (includeEntryLog && entries.isEmpty) ...[
             _sectionTitle('Entry Log', primaryColor),
             pw.SizedBox(height: 10),
-            pw.Text('No entries found for the selected date range.',
-                style: pw.TextStyle(fontSize: 10, color: textGray)),
+            pw.Text(
+              'No entries found for the selected date range.',
+              style: pw.TextStyle(fontSize: 10, color: textGray),
+            ),
+          ],
+
+          // ── Activity progress ──
+          if (includeActivityProgress) ...[
+            pw.SizedBox(height: 20),
+            _sectionTitle('Activity Progress', primaryColor),
+            pw.SizedBox(height: 10),
+            if (phases.isEmpty)
+              pw.Text(
+                'No phases/activities tracked for this project.',
+                style: pw.TextStyle(fontSize: 10, color: textGray),
+              )
+            else
+              ...phases.map((phase) {
+                final total = phase.totalCount;
+                final done = phase.completedCount;
+                final pct = total > 0
+                    ? '${((done / total) * 100).toStringAsFixed(0)}%'
+                    : '—';
+                return pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 10),
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    color: lightBg,
+                    borderRadius: const pw.BorderRadius.all(
+                      pw.Radius.circular(6),
+                    ),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(
+                            phase.phaseName,
+                            style: pw.TextStyle(
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                              color: textDark,
+                            ),
+                          ),
+                          pw.Text(
+                            '$done / $total ($pct)',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (phase.activities.isNotEmpty) ...[
+                        pw.SizedBox(height: 6),
+                        ...phase.activities.map(
+                          (a) => pw.Padding(
+                            padding: const pw.EdgeInsets.only(bottom: 2),
+                            child: pw.Text(
+                              '${a.completed ? "[x]" : "[ ]"} ${a.name}',
+                              style: pw.TextStyle(
+                                fontSize: 9,
+                                color: a.completed ? textDark : textGray,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+          ],
+
+          // ── Inventory status ──
+          if (includeInventory) ...[
+            pw.SizedBox(height: 20),
+            _sectionTitle('Inventory Status', primaryColor),
+            pw.SizedBox(height: 10),
+            if (inventoryItems.isEmpty)
+              pw.Text(
+                'No inventory data available for this project.',
+                style: pw.TextStyle(fontSize: 10, color: textGray),
+              )
+            else
+              pw.Table(
+                border: pw.TableBorder(
+                  horizontalInside: pw.BorderSide(
+                    color: PdfColor.fromHex('#E8EAF5'),
+                    width: 0.5,
+                  ),
+                ),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: lightBg),
+                    children: [
+                      _tCell('Material', bold: true, color: textGray),
+                      _tCell('Stock', bold: true, color: textGray),
+                      _tCell('Status', bold: true, color: textGray),
+                    ],
+                  ),
+                  ...inventoryItems.map((raw) {
+                    final item = raw as Map<String, dynamic>;
+                    final name = item['materialName']?.toString() ?? 'Unknown';
+                    final unit = item['unit']?.toString() ?? '';
+                    final closing =
+                        (item['closingStock'] as num?)?.toDouble() ?? 0.0;
+                    final threshold =
+                        (item['threshold'] as num?)?.toDouble() ?? 10.0;
+                    final pct = threshold > 0 ? closing / threshold : 1.0;
+                    final isCritical = closing <= 0 || pct < 0.30;
+                    final isLow = !isCritical && pct < 0.60;
+                    final statusColor = isCritical
+                        ? errorColor
+                        : isLow
+                        ? PdfColor.fromHex('#E65100')
+                        : successColor;
+                    final statusLabel = isCritical
+                        ? 'Critical'
+                        : isLow
+                        ? 'Low'
+                        : 'OK';
+                    return pw.TableRow(
+                      children: [
+                        _tCell(name, color: textDark),
+                        _tCell(
+                          '${closing.toStringAsFixed(0)} $unit',
+                          color: textGray,
+                        ),
+                        _tCell(statusLabel, color: statusColor, bold: true),
+                      ],
+                    );
+                  }),
+                ],
+              ),
           ],
         ],
       ),
@@ -1104,23 +1432,21 @@ class _ReportPdfBuilder {
     return doc.save();
   }
 
-  static pw.Widget _sectionTitle(String title, PdfColor color) =>
-      pw.Container(
-        padding: const pw.EdgeInsets.symmetric(vertical: 6),
-        decoration: pw.BoxDecoration(
-          border: pw.Border(
-              bottom: pw.BorderSide(color: color, width: 2)),
-        ),
-        child: pw.Text(
-          title.toUpperCase(),
-          style: pw.TextStyle(
-            fontSize: 11,
-            fontWeight: pw.FontWeight.bold,
-            color: color,
-            letterSpacing: 1.2,
-          ),
-        ),
-      );
+  static pw.Widget _sectionTitle(String title, PdfColor color) => pw.Container(
+    padding: const pw.EdgeInsets.symmetric(vertical: 6),
+    decoration: pw.BoxDecoration(
+      border: pw.Border(bottom: pw.BorderSide(color: color, width: 2)),
+    ),
+    child: pw.Text(
+      title.toUpperCase(),
+      style: pw.TextStyle(
+        fontSize: 11,
+        fontWeight: pw.FontWeight.bold,
+        color: color,
+        letterSpacing: 1.2,
+      ),
+    ),
+  );
 
   static pw.Widget _summaryBox(
     String label,
@@ -1128,56 +1454,216 @@ class _ReportPdfBuilder {
     PdfColor color,
     PdfColor bg, {
     String? sub,
-  }) =>
-      pw.Expanded(
-        child: pw.Container(
-          padding: const pw.EdgeInsets.all(12),
-          decoration: pw.BoxDecoration(
-            color: bg,
-            borderRadius:
-                const pw.BorderRadius.all(pw.Radius.circular(8)),
+  }) => pw.Expanded(
+    child: pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: bg,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 9,
+              color: PdfColor.fromHex('#8A92A6'),
+            ),
           ),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(label,
-                  style: pw.TextStyle(
-                      fontSize: 9,
-                      color: PdfColor.fromHex('#8A92A6'))),
-              pw.SizedBox(height: 4),
-              pw.Text(value,
-                  style: pw.TextStyle(
-                      fontSize: 15,
-                      fontWeight: pw.FontWeight.bold,
-                      color: color)),
-              if (sub != null)
-                pw.Text(sub,
-                    style: pw.TextStyle(fontSize: 9, color: color)),
-            ],
+          pw.SizedBox(height: 4),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 15,
+              fontWeight: pw.FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-      );
+          if (sub != null)
+            pw.Text(sub, style: pw.TextStyle(fontSize: 9, color: color)),
+        ],
+      ),
+    ),
+  );
 
-  static pw.Widget _tCell(
-    String text, {
-    bool bold = false,
-    PdfColor? color,
-  }) =>
+  static pw.Widget _tCell(String text, {bool bold = false, PdfColor? color}) =>
       pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(
-            horizontal: 8, vertical: 7),
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         child: pw.Text(
           text,
           style: pw.TextStyle(
             fontSize: 9,
-            fontWeight:
-                bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
             color: color ?? PdfColor.fromHex('#1A1D3A'),
           ),
         ),
       );
+
+  static pw.Widget _categoryChart(
+    Map<String, double> categoryCosts,
+    Map<String, double> categoryBudgets,
+    PdfColor actualColor,
+    PdfColor targetColor,
+    PdfColor textGray,
+    PdfColor textDark,
+  ) {
+    const maxBarHeight = 90.0;
+    final allValues = [...categoryCosts.values, ...categoryBudgets.values];
+    final maxVal = allValues.isEmpty
+        ? 1.0
+        : allValues.reduce((a, b) => a > b ? a : b);
+    final safeMax = maxVal <= 0 ? 1.0 : maxVal;
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        color: PdfColor.fromHex('#FAFBFF'),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: categoryCosts.entries.map((e) {
+          final actual = e.value;
+          final budget = categoryBudgets[e.key] ?? 0;
+          final actualH = (actual / safeMax) * maxBarHeight;
+          final budgetH = (budget / safeMax) * maxBarHeight;
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Container(
+                    width: 16,
+                    height: actualH < 2 ? 2 : actualH,
+                    decoration: pw.BoxDecoration(
+                      color: actualColor,
+                      borderRadius: const pw.BorderRadius.vertical(
+                        top: pw.Radius.circular(3),
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(width: 4),
+                  pw.Container(
+                    width: 16,
+                    height: budgetH < 2 ? 2 : budgetH,
+                    decoration: pw.BoxDecoration(
+                      color: targetColor,
+                      borderRadius: const pw.BorderRadius.vertical(
+                        top: pw.Radius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(
+                e.key,
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  color: textDark,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  static pw.Widget _legendDot(PdfColor color) => pw.Container(
+    width: 8,
+    height: 8,
+    decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
+  );
 }
 
+class _ExportDetailsHintCard extends StatelessWidget {
+  const _ExportDetailsHintCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E5FF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+              ),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.fact_check_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Want the full breakdown?',
+                  style: AppTheme.bodyLarge.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Activity log, inventory status & every entry — pick what to include and export as PDF.',
+                  style: AppTheme.caption.copyWith(
+                    color: AppColors.textLight,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Export',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 // =============================================================================
 // PROJECT SUMMARY CARD  (uses live ReportModel — fixed)
 // =============================================================================
@@ -1185,12 +1671,12 @@ class _ReportPdfBuilder {
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
   final ReportModel report;
-  const _ProjectSummaryCard(
-      {required this.project, required this.report});
+  const _ProjectSummaryCard({required this.project, required this.report});
 
   @override
   Widget build(BuildContext context) {
-    final totalTarget = report.targetMaterial +
+    final totalTarget =
+        report.targetMaterial +
         report.targetLabour +
         report.targetEquipment +
         report.targetMisc;
@@ -1207,19 +1693,26 @@ class _ProjectSummaryCard extends StatelessWidget {
         children: [
           Text(
             project.name,
-            style: AppTheme.heading2
-                .copyWith(fontSize: 18, color: AppColors.textDark),
+            style: AppTheme.heading2.copyWith(
+              fontSize: 18,
+              color: AppColors.textDark,
+            ),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 14, color: AppColors.textLight),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: AppColors.textLight,
+              ),
               const SizedBox(width: 4),
               Text(
                 project.location,
-                style: AppTheme.caption
-                    .copyWith(fontSize: 13, color: AppColors.textLight),
+                style: AppTheme.caption.copyWith(
+                  fontSize: 13,
+                  color: AppColors.textLight,
+                ),
               ),
             ],
           ),
@@ -1230,19 +1723,16 @@ class _ProjectSummaryCard extends StatelessWidget {
               if (project.id != 'all')
                 Text(
                   'Stage: ${project.stage.name.toUpperCase()}',
-                  style:
-                      AppTheme.label.copyWith(color: AppColors.primary),
+                  style: AppTheme.label.copyWith(color: AppColors.primary),
                 )
               else
                 Text(
                   'Aggregate Portfolio View',
-                  style:
-                      AppTheme.label.copyWith(color: AppColors.primary),
+                  style: AppTheme.label.copyWith(color: AppColors.primary),
                 ),
               Text(
                 '${(project.progress * 100).toStringAsFixed(1)}% Complete',
-                style:
-                    AppTheme.label.copyWith(color: AppColors.textDark),
+                style: AppTheme.label.copyWith(color: AppColors.textDark),
               ),
             ],
           ),
@@ -1254,16 +1744,14 @@ class _ProjectSummaryCard extends StatelessWidget {
               Text(
                 'Spent: ${report.formattedTotal}',
                 style: AppTheme.caption.copyWith(
-                  color:
-                      isOver ? AppColors.error : AppColors.primary,
+                  color: isOver ? AppColors.error : AppColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               if (totalTarget > 0)
                 Text(
                   'Budget: ${formatCurrency(totalTarget)}',
-                  style: AppTheme.caption
-                      .copyWith(color: AppColors.textLight),
+                  style: AppTheme.caption.copyWith(color: AppColors.textLight),
                 ),
             ],
           ),
@@ -1285,307 +1773,12 @@ class _ProjectSummaryCard extends StatelessWidget {
               child: Text(
                 'Budget exceeded by ${formatCurrency(report.totalCost - totalTarget)}',
                 style: AppTheme.caption.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w600),
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// COST TREND CHART CARD  (unchanged from original)
-// =============================================================================
-
-class _CostTrendChartCard extends StatelessWidget {
-  final ProjectModel project;
-  final List<EntryModel> entries;
-  final int unitIndex;
-  final ValueChanged<int> onUnitChanged;
-
-  const _CostTrendChartCard({
-    required this.project,
-    required this.entries,
-    required this.unitIndex,
-    required this.onUnitChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSqft = unitIndex == 0;
-    final unitLabel = isSqft ? 'SQFT' : 'CUYD';
-    final multiplier = isSqft ? 1.0 : 1.5;
-    final baseCost =
-        (project.spentAmount > 0 ? project.spentAmount / 1000 : 50.0) *
-            multiplier;
-    final data = [
-      baseCost * 0.60,
-      baseCost * 0.70,
-      baseCost * 0.75,
-      baseCost * 0.85,
-      baseCost * 0.92,
-      baseCost,
-    ];
-    final target = data.map((v) => v * 0.93).toList();
-    final spots = [
-      for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])
-    ];
-    final targetSpots = [
-      for (int i = 0; i < target.length; i++)
-        FlSpot(i.toDouble(), target[i])
-    ];
-    final minY = data.reduce((a, b) => a < b ? a : b) * 0.92;
-    final maxY = data.reduce((a, b) => a > b ? a : b) * 1.05;
-    final currentVal = data.last;
-    final targetVal = target.last;
-
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Cost per $unitLabel',
-                      style: AppTheme.heading3
-                          .copyWith(color: AppColors.textDark)),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Spending trend vs target',
-                    style: AppTheme.caption.copyWith(
-                        color: AppColors.textLight, height: 1.4),
-                  ),
-                ],
-              ),
-              _InsightUnitToggle(
-                  unitIndex: unitIndex, onChanged: onUnitChanged),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 140,
-            child: LineChart(
-              key: ValueKey('ins-$unitIndex-${project.id}'),
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              LineChartData(
-                minY: minY,
-                maxY: maxY,
-                clipData: const FlClipData.all(),
-                lineTouchData: LineTouchData(
-                  handleBuiltInTouches: true,
-                  getTouchedSpotIndicator: (barData, spotIndexes) =>
-                      spotIndexes
-                          .map((i) => TouchedSpotIndicatorData(
-                                const FlLine(strokeWidth: 0),
-                                FlDotData(
-                                  getDotPainter:
-                                      (spot, pct, bar, idx) =>
-                                          FlDotCirclePainter(
-                                    radius: 6,
-                                    color: AppColors.primary,
-                                    strokeWidth: 2.5,
-                                    strokeColor: Colors.white,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => const Color(0xFF1A1D3A),
-                    tooltipRoundedRadius: 12,
-                    tooltipPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    getTooltipItems: (spots) => spots.map((s) {
-                      if (s.barIndex != 0) return null;
-                      final v = '${formatCurrency(s.y)}/$unitLabel';
-                      return LineTooltipItem(
-                        v,
-                        const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: (maxY - minY) / 3,
-                  getDrawingHorizontalLine: (_) => const FlLine(
-                      color: Color(0xFFEEF0F8), strokeWidth: 1),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: (maxY - minY) / 3,
-                      getTitlesWidget: (v, meta) {
-                        final s = v >= 1000
-                            ? '${(v / 1000).toStringAsFixed(1)}k'
-                            : v.toStringAsFixed(0);
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 4,
-                          child: Text(
-                            s,
-                            style: AppTheme.caption.copyWith(
-                                fontSize: 9,
-                                color: AppColors.textLight),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    gradient: LinearGradient(colors: [
-                      AppColors.primary,
-                      AppColors.primary.withValues(alpha: 0.70),
-                    ]),
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.22),
-                          AppColors.primary.withValues(alpha: 0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: targetSpots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: const Color(0xFFBBC0D0),
-                    barWidth: 1.8,
-                    dashArray: [6, 4],
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              'WK 12',
-              'WK 13',
-              'WK 14',
-              'WK 15',
-              'WK 16',
-              'WK 17'
-            ]
-                .map((w) => Text(w,
-                    style: AppTheme.caption
-                        .copyWith(color: AppColors.textLight)))
-                .toList(),
-          ),
-          const SizedBox(height: 14),
-          Row(children: [
-            _dot(AppColors.primary),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Actual: ${formatCurrency(currentVal)}/$unitLabel',
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.caption.copyWith(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 14),
-            _dot(const Color(0xFFBBC0D0)),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                'Target: ${formatCurrency(targetVal)}/$unitLabel',
-                overflow: TextOverflow.ellipsis,
-                style:
-                    AppTheme.caption.copyWith(color: AppColors.textLight),
-              ),
-            ),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _dot(Color c) => Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-}
-
-// =============================================================================
-// UNIT TOGGLE  (unchanged)
-// =============================================================================
-
-class _InsightUnitToggle extends StatelessWidget {
-  const _InsightUnitToggle(
-      {required this.unitIndex, required this.onChanged});
-  final int unitIndex;
-  final void Function(int) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDE0F0)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: ['SQFT', 'CUYD'].asMap().entries.map((e) {
-          final sel = e.key == unitIndex;
-          return InkWell(
-            onTap: () => onChanged(e.key),
-            borderRadius: BorderRadius.circular(6),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: sel ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                e.value,
-                style: TextStyle(
-                    color: sel ? Colors.white : AppColors.textLight,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -1616,20 +1809,19 @@ class _CategoryBreakdownCard extends StatelessWidget {
           final cost = e.value;
           final budget = categoryBudgets[cat] ?? 0.0;
           final hasBudget = budget > 0;
-          final pct =
-              hasBudget ? (cost / budget).clamp(0.0, 1.0) : 0.0;
+          final pct = hasBudget ? (cost / budget).clamp(0.0, 1.0) : 0.0;
           final color = pct >= 0.9
               ? AppColors.error
               : pct >= 0.6
-                  ? AppColors.warning
-                  : AppColors.primary;
+              ? AppColors.warning
+              : AppColors.primary;
 
           return InkWell(
-            onTap: () => Navigator.pushNamed(context, '/logs',
-                arguments: {
-                  'projectId': project.id,
-                  'category': cat
-                }),
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/logs',
+              arguments: {'projectId': project.id, 'category': cat},
+            ),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.only(bottom: 14),
@@ -1642,28 +1834,32 @@ class _CategoryBreakdownCard extends StatelessWidget {
                         child: Text(
                           cat,
                           style: AppTheme.bodyLarge.copyWith(
-                              color: AppColors.textDark,
-                              fontWeight: FontWeight.w600),
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       Text(
                         formatCurrency(cost),
                         style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13),
+                          color: color,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
                       ),
                       Text(
-                        hasBudget
-                            ? ' / ${formatCurrency(budget)}'
-                            : ' / —',
+                        hasBudget ? ' / ${formatCurrency(budget)}' : ' / —',
                         style: AppTheme.caption.copyWith(
-                            color: AppColors.textLight,
-                            fontSize: 11),
+                          color: AppColors.textLight,
+                          fontSize: 11,
+                        ),
                       ),
                       const SizedBox(width: 6),
-                      const Icon(Icons.chevron_right,
-                          size: 14, color: AppColors.textLight),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 14,
+                        color: AppColors.textLight,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1675,8 +1871,7 @@ class _CategoryBreakdownCard extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: pct,
                             backgroundColor: const Color(0xFFEEF0F8),
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(color),
+                            valueColor: AlwaysStoppedAnimation<Color>(color),
                             minHeight: 8,
                           ),
                         ),
@@ -1690,9 +1885,10 @@ class _CategoryBreakdownCard extends StatelessWidget {
                               : '—',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                              color: color,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11),
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ],
@@ -1703,8 +1899,9 @@ class _CategoryBreakdownCard extends StatelessWidget {
                       child: Text(
                         'Exceeded by ${formatCurrency(cost - budget)}',
                         style: AppTheme.caption.copyWith(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600),
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                 ],

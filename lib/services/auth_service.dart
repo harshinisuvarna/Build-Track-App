@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-
   // ─────────────────────────────────────────────────────────
   // LOGIN
   // Returns the full decoded response body on success,
@@ -28,8 +27,9 @@ class AuthService {
       if (response.statusCode == 200) {
         final token = data['token'];
         // ✅ backend safeUser() returns 'id' not '_id'
-        final Map<String, dynamic> user =
-            Map<String, dynamic>.from(data['user'] ?? {});
+        final Map<String, dynamic> user = Map<String, dynamic>.from(
+          data['user'] ?? {},
+        );
 
         if (token == null) {
           throw Exception('Token not found in login response');
@@ -48,9 +48,11 @@ class AuthService {
         //    AND permissions — and persists all of them to prefs
         await UserSession.fromLoginResponse(user);
 
-        debugPrint('[AuthService] Login OK — role=$roleStr '
-            'projectId=${UserSession.projectId} '
-            'permissions=${UserSession.permissions}');
+        debugPrint(
+          '[AuthService] Login OK — role=$roleStr '
+          'projectId=${UserSession.projectId} '
+          'permissions=${UserSession.permissions}',
+        );
 
         return data;
       } else {

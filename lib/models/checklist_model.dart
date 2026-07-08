@@ -4,13 +4,8 @@ class ChecklistItem {
 
   ChecklistItem({required this.id, required this.label});
 
-  factory ChecklistItem.fromJson(Map<String, dynamic> j) => ChecklistItem(
-        id: j['id'] as String,
-        label: j['label'] as String,
-      );
+  factory ChecklistItem.fromJson(Map<String, dynamic> j) =>
+      ChecklistItem(id: j['id'] as String, label: j['label'] as String);
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'label': label,
-      };
+  Map<String, dynamic> toJson() => {'id': id, 'label': label};
 }

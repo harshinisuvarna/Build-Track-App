@@ -5,8 +5,8 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
+import 'dart:convert';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-import 'package:buildtrack_mobile/common/widgets/upload_box.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -29,22 +29,33 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   String? _selectedActivityName;
 
   // ── Pre-fill from route args (activity row deep-link) ────────────────────
-  String? _prefillActivityId;   // used to toggle completion on submit
+  String? _prefillActivityId; // used to toggle completion on submit
   bool _argsLoaded = false;
-  bool _launchedFromTracker = false; // hides project / phase dropdowns when pre-filled
+  bool _launchedFromTracker =
+      false; // hides project / phase dropdowns when pre-filled
 
   // ── Form state ──────────────────────────────────────────────────────────
   final TextEditingController _notesCtrl = TextEditingController();
   late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
-  PickedAttachment? _attachment;
+  List<PhotoAttachment> _attachments = [];
 
   // ── Full phase catalogue ─────────────────────────────────────────────────
   late final List<ConstructionPhase> _catalogue;
 
   static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   @override
@@ -86,7 +97,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           _selectedFloor = floors.first;
         }
 
-        // Sync progress from provider
+        // Sync progress & pre-fill completed details from provider
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           final provider = context.read<ProjectProvider>();
@@ -95,7 +106,29 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             orElse: () => null,
           );
           if (project != null) {
-            setState(() => _completionProgress = project.progress);
+            setState(() {
+              _completionProgress = project.progress;
+              
+              // Find matching activity
+              final matchedAct = project.selectedPhases
+                  ?.expand((ph) => ph.activities)
+                  .cast<ProjectActivity?>()
+                  .firstWhere((act) => act?.id == activityId || act?.name == activityName, orElse: () => null);
+                  
+              if (matchedAct != null) {
+                if (matchedAct.notes != null && matchedAct.notes!.trim().isNotEmpty) {
+                  _notesCtrl.text = matchedAct.notes!;
+                }
+                if (matchedAct.completedAt != null) {
+                  _selectedDate = matchedAct.completedAt!;
+                }
+                if (matchedAct.photos != null && matchedAct.photos!.isNotEmpty) {
+                  _attachments = matchedAct.photos!.map((url) => PhotoAttachment.remote(url)).toList();
+                } else if (matchedAct.photo != null && matchedAct.photo!.isNotEmpty) {
+                  _attachments = [PhotoAttachment.remote(matchedAct.photo!)];
+                }
+              }
+            });
           }
         });
       }
@@ -128,30 +161,30 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: primaryBlue,
-            letterSpacing: 0.4,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: primaryBlue,
+        letterSpacing: 0.4,
+      ),
+    ),
+  );
 
   Widget _sectionTitle(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: textDark,
-            letterSpacing: -0.2,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+        color: textDark,
+        letterSpacing: -0.2,
+      ),
+    ),
+  );
 
   Widget _dropdownCard<T>({
     required T? value,
@@ -194,7 +227,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             hint: Text(
               hint,
               style: const TextStyle(
-                  color: textGray, fontSize: 14, fontWeight: FontWeight.w500),
+                color: textGray,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             style: const TextStyle(
               fontSize: 15,
@@ -404,8 +440,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   color: primaryBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.tune_rounded,
-                    color: primaryBlue, size: 17),
+                child: const Icon(
+                  Icons.tune_rounded,
+                  color: primaryBlue,
+                  size: 17,
+                ),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -438,17 +477,22 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   value: _selectedProjectId,
                   hint: 'Select project',
                   items: projects
-                      .map((p) => DropdownMenuItem<String>(
-                          value: p.id, child: Text(p.name)))
+                      .map(
+                        (p) => DropdownMenuItem<String>(
+                          value: p.id,
+                          child: Text(p.name),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) => setState(() {
                     _selectedProjectId = val;
                     _selectedFloor = null;
                     _selectedPhaseName = null;
                     _selectedActivityName = null;
-                    final p = projects
-                        .cast<ProjectModel?>()
-                        .firstWhere((x) => x?.id == val, orElse: () => null);
+                    final p = projects.cast<ProjectModel?>().firstWhere(
+                      (x) => x?.id == val,
+                      orElse: () => null,
+                    );
                     _completionProgress = p?.progress ?? 0.0;
                   }),
                 ),
@@ -463,18 +507,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 : 'Select floor or zone',
             enabled: _selectedProjectId != null,
             items: floors
-                .map((f) =>
-                    DropdownMenuItem<String>(value: f, child: Text(f)))
+                .map((f) => DropdownMenuItem<String>(value: f, child: Text(f)))
                 .toList(),
             onChanged: _selectedProjectId == null
                 ? null
                 : (val) => setState(() {
-                      _selectedFloor = val;
-                      if (!_launchedFromTracker) {
-                        _selectedPhaseName = null;
-                        _selectedActivityName = null;
-                      }
-                    }),
+                    _selectedFloor = val;
+                    if (!_launchedFromTracker) {
+                      _selectedPhaseName = null;
+                      _selectedActivityName = null;
+                    }
+                  }),
           ),
           const SizedBox(height: 16),
 
@@ -489,15 +532,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       : 'Select phase',
                   enabled: _selectedFloor != null,
                   items: phaseNames
-                      .map((n) => DropdownMenuItem<String>(
-                          value: n, child: Text(n)))
+                      .map(
+                        (n) =>
+                            DropdownMenuItem<String>(value: n, child: Text(n)),
+                      )
                       .toList(),
                   onChanged: _selectedFloor == null
                       ? null
                       : (val) => setState(() {
-                            _selectedPhaseName = val;
-                            _selectedActivityName = null;
-                          }),
+                          _selectedPhaseName = val;
+                          _selectedActivityName = null;
+                        }),
                 ),
           const SizedBox(height: 16),
 
@@ -510,8 +555,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   hint: _selectedPhaseName == null
                       ? 'Select phase first'
                       : 'Select activity',
-                  enabled: _selectedPhaseName != null &&
-                      activityNames.isNotEmpty,
+                  enabled:
+                      _selectedPhaseName != null && activityNames.isNotEmpty,
                   items: activityNames.isEmpty && _selectedPhaseName != null
                       ? [
                           const DropdownMenuItem<String>(
@@ -520,14 +565,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           ),
                         ]
                       : activityNames
-                          .map((a) => DropdownMenuItem<String>(
-                              value: a, child: Text(a)))
-                          .toList(),
+                            .map(
+                              (a) => DropdownMenuItem<String>(
+                                value: a,
+                                child: Text(a),
+                              ),
+                            )
+                            .toList(),
                   onChanged:
                       (_selectedPhaseName == null || activityNames.isEmpty)
-                          ? null
-                          : (val) =>
-                              setState(() => _selectedActivityName = val),
+                      ? null
+                      : (val) => setState(() => _selectedActivityName = val),
                 ),
         ],
       ),
@@ -541,7 +589,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4FF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: primaryBlue.withValues(alpha: 0.25), width: 1.5),
+        border: Border.all(
+          color: primaryBlue.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
@@ -702,11 +753,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(14),
             ),
-            style: const TextStyle(
-              fontSize: 14,
-              color: textDark,
-              height: 1.5,
-            ),
+            style: const TextStyle(fontSize: 14, color: textDark, height: 1.5),
           ),
         ),
       ],
@@ -756,8 +803,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_outlined,
-                    color: primaryBlue, size: 19),
+                const Icon(
+                  Icons.calendar_month_outlined,
+                  color: primaryBlue,
+                  size: 19,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   dateStr,
@@ -781,26 +831,182 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle('Progress Photos'),
-        UploadBox(
-          attachment: _attachment,
-          emptyLabel: 'Tap to add site photo or proof of work',
-          onPicked: (a) => setState(() => _attachment = a),
-          onRemove: () => setState(() => _attachment = null),
-        ),
+        if (_attachments.isEmpty)
+          GestureDetector(
+            onTap: () async {
+              final result = await pickAttachmentDirect(context);
+              if (result != null) {
+                setState(() {
+                  _attachments.add(PhotoAttachment.local(result));
+                });
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFCCCFE8),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.cloud_upload_outlined,
+                      color: primaryBlue,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tap to add site photos (Up to 4)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF1A1D3B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'PNG, JPG, JPEG',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF8A90A8),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ..._attachments.asMap().entries.map((entry) {
+                final index = entry.key;
+                final att = entry.value;
+                return Stack(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFEEF0FF), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: att.isImage
+                            ? Image(
+                                image: att.imageProvider,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                color: att.iconBg,
+                                child: Center(
+                                  child: Icon(att.icon, color: att.iconColor, size: 28),
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _attachments.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              if (_attachments.length < 4)
+                GestureDetector(
+                  onTap: () async {
+                    final result = await pickAttachmentDirect(context);
+                    if (result != null) {
+                      setState(() {
+                        _attachments.add(PhotoAttachment.local(result));
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFCCCFE8),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.add_a_photo_outlined,
+                        color: primaryBlue,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }
 
   // ── MATERIAL CONSUMPTION ─────────────────────────────────────────────────
   Widget _buildMaterialConsumption(
-      BuildContext context, ProjectProvider provider) {
+    BuildContext context,
+    ProjectProvider provider,
+  ) {
     List<EntryModel> materials = [];
     if (_selectedProjectId != null && _selectedFloor != null) {
       materials = provider.entries
-          .where((e) =>
-              e.type == EntryType.material &&
-              e.projectId == _selectedProjectId &&
-              e.floor == _selectedFloor)
+          .where(
+            (e) =>
+                e.type == EntryType.material &&
+                e.projectId == _selectedProjectId &&
+                e.floor == _selectedFloor,
+          )
           .toList();
     }
     return Container(
@@ -856,17 +1062,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               child: Text(
                 'No materials logged for this location yet.',
                 style: TextStyle(
-                    color: textGray,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13),
+                  color: textGray,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
               ),
             )
           else
             ...materials.map(
               (m) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child:
-                    _materialTag(m.description, m.amount.toString()),
+                child: _materialTag(m.description, m.amount.toString()),
               ),
             ),
         ],
@@ -881,7 +1087,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           width: 7,
           height: 7,
           decoration: const BoxDecoration(
-              color: primaryBlue, shape: BoxShape.circle),
+            color: primaryBlue,
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -916,71 +1124,107 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   // ── SUBMIT CTA ───────────────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context, ProjectProvider provider) {
     // Label changes based on whether there's an activity to mark done
-    final label = _launchedFromTracker && _prefillActivityId != null
+    final label = (_launchedFromTracker && _prefillActivityId != null) || _selectedActivityName != null
         ? 'Mark as Done & Submit'
         : 'Submit Progress Update';
 
     return GestureDetector(
       onTap: () async {
-        final project = provider.selectedProject ??
+        final project =
+            provider.selectedProject ??
             provider.projects.cast<ProjectModel?>().firstWhere(
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,
             );
 
-        // 1. Update project-level progress percentage
-        if (project != null) {
-          await provider.updateProjectProgress(
-              project.id, _completionProgress);
+        // 1. Identify target activity and toggle completion + details
+        String? targetActivityId = _prefillActivityId;
+        if (targetActivityId == null && _selectedActivityName != null && project != null) {
+          final matchedAct = project.selectedPhases
+              ?.expand((ph) => ph.activities)
+              .cast<ProjectActivity?>()
+              .firstWhere((act) => act?.name == _selectedActivityName, orElse: () => null);
+          if (matchedAct != null) {
+            targetActivityId = matchedAct.id;
+          }
         }
 
-        // 2. If launched from tracker, toggle the activity to completed
-        //    and record completion date via the provider
-        if (_launchedFromTracker &&
-            _prefillActivityId != null &&
-            _selectedProjectId != null) {
-          await provider.toggleActivityCompletion(
-            _selectedProjectId!,
-            _prefillActivityId!,
+        final targetProjectId = _selectedProjectId ?? project?.id;
+        bool success = false;
+        if (targetProjectId != null && targetActivityId != null) {
+          success = await provider.toggleActivityCompletion(
+            targetProjectId,
+            targetActivityId,
             completedAt: _selectedDate, // pass date from the form
+            notes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+            photo: _attachments.isNotEmpty ? _attachments.first.dataUri : null,
+            photos: _attachments.map((a) => a.dataUri).toList(),
+            manualProgress: _completionProgress,
           );
+        } else if (targetProjectId != null) {
+          success = await provider.updateProjectProgress(
+              targetProjectId, _completionProgress);
         }
 
         if (context.mounted) {
-          // Show success snackbar with the completion date
-          final months = [
-            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-          ];
-          final dateLabel =
-              '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+          if (success) {
+            // Show success snackbar with the completion date
+            final months = [
+              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+            ];
+            final dateLabel =
+                '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded,
-                      color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _launchedFromTracker &&
-                              _selectedActivityName != null
-                          ? '${_selectedActivityName!} marked done · $dateLabel'
-                          : 'Progress updated · $dateLabel',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700),
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _launchedFromTracker &&
+                                _selectedActivityName != null
+                            ? '${_selectedActivityName!} marked done · $dateLabel'
+                            : 'Progress updated · $dateLabel',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+            );
 
-          Navigator.maybePop(context);
+            Navigator.maybePop(context);
+          } else {
+            // Show error snackbar
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Failed to save progress details. Please check network connection and try again.',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
         }
       },
       child: Container(
@@ -1020,5 +1264,61 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         ),
       ),
     );
+  }
+}
+
+class PhotoAttachment {
+  final PickedAttachment? localAttachment;
+  final String? remoteUrl;
+
+  PhotoAttachment.local(this.localAttachment) : remoteUrl = null;
+  PhotoAttachment.remote(this.remoteUrl) : localAttachment = null;
+
+  bool get isImage {
+    if (localAttachment != null) {
+      return localAttachment!.isImage;
+    }
+    final url = remoteUrl!.toLowerCase();
+    return url.startsWith('data:image/') ||
+        url.contains(';base64,') ||
+        url.endsWith('.png') ||
+        url.endsWith('.jpg') ||
+        url.endsWith('.jpeg') ||
+        url.endsWith('.webp') ||
+        url.endsWith('.gif');
+  }
+
+  String get dataUri {
+    if (localAttachment != null) {
+      return localAttachment!.dataUri;
+    }
+    return remoteUrl!;
+  }
+
+  ImageProvider get imageProvider {
+    if (localAttachment != null) {
+      return localAttachment!.imageProvider!;
+    }
+    final url = remoteUrl!;
+    if (url.startsWith('data:image/') && url.contains(';base64,')) {
+      final base64String = url.split(';base64,').last;
+      return MemoryImage(base64.decode(base64String));
+    }
+    return NetworkImage(url);
+  }
+
+  IconData get icon {
+    if (localAttachment != null) return localAttachment!.icon;
+    return Icons.insert_drive_file_outlined;
+  }
+
+  Color get iconColor {
+    if (localAttachment != null) return localAttachment!.iconColor;
+    return const Color(0xFF6B7280);
+  }
+
+  Color get iconBg {
+    if (localAttachment != null) return localAttachment!.iconBg;
+    return const Color(0xFFF3F4F6);
   }
 }

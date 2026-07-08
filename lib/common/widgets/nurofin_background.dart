@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
+
 class NurofinBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -74,9 +75,11 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow4);
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
 class NurofinBackground extends StatelessWidget {
   const NurofinBackground({super.key, required this.child});
 
@@ -84,9 +87,6 @@ class NurofinBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: NurofinBackgroundPainter(),
-      child: child,
-    );
+    return CustomPaint(painter: NurofinBackgroundPainter(), child: child);
   }
 }

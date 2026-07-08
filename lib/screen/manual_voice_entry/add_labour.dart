@@ -16,7 +16,6 @@ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 
-
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 
 class AddLabourScreen extends StatefulWidget {
@@ -57,7 +56,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   bool _isEditing = false;
   String? _editingTransactionId;
   bool _argsLoaded = false;
-  bool _isDatePickerOpen = false;      // guards against dialog/card overlap
+  bool _isDatePickerOpen = false; // guards against dialog/card overlap
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
@@ -98,7 +97,14 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (val == null) return '';
     if (val is String) return val.trim();
     if (val is Map) {
-      return (val['name'] ?? val['title'] ?? val['phaseName'] ?? val['id'] ?? val['_id'] ?? '').toString().trim();
+      return (val['name'] ??
+              val['title'] ??
+              val['phaseName'] ??
+              val['id'] ??
+              val['_id'] ??
+              '')
+          .toString()
+          .trim();
     }
     return val.toString().trim();
   }
@@ -121,6 +127,15 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       }
     }
     return '';
+  }
+
+  double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val) ?? 0.0;
+    }
+    return 0.0;
   }
 
   @override
@@ -154,8 +169,61 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           _fetchAndRestoreEdit(txId, argsData: routeData);
         });
       } else {
-        // ── New entry — default project from session ───────────────────
-        _selectedProjectId ??= UserSession.projectId;
+        // ── New entry — load from ProjectProvider ───────────────────
+        final projectProvider = Provider.of<ProjectProvider>(
+          context,
+          listen: false,
+        );
+        final preProjectId = projectProvider.selectedProject?.id;
+        final preFloor = projectProvider.selectedFloor;
+        final prePhase = projectProvider.selectedPhase;
+        final preActivity = projectProvider.selectedActivity;
+
+        if (preProjectId != null &&
+            preProjectId.isNotEmpty &&
+            preFloor != null &&
+            preFloor.isNotEmpty &&
+            prePhase != null &&
+            prePhase.isNotEmpty &&
+            preActivity != null &&
+            preActivity.isNotEmpty) {
+          _selectedProjectId = preProjectId;
+          _selectedFloor = preFloor;
+          _selectedFloorId = preFloor;
+          _selectedPhase = prePhase;
+          _selectedPhaseId = projectProvider.selectedPhaseId;
+          _selectedActivity = preActivity;
+          _selectedActivityId = projectProvider.selectedActivityId;
+          debugPrint(
+            '[AddLabour] Context injected from ProjectProvider: '
+            'project=$_selectedProjectId floor=$_selectedFloor '
+            'phase=$_selectedPhase activity=$_selectedActivity',
+          );
+        } else {
+          // Fallback to route arguments
+          final routeProjectId =
+              args['projectId']?.toString() ?? UserSession.projectId;
+          final routeFloor = args['floor']?.toString();
+          final routePhase = args['phase']?.toString();
+          final routeActivity = args['activity']?.toString();
+          if (routeProjectId.isNotEmpty &&
+              routeFloor != null &&
+              routeFloor.isNotEmpty &&
+              routePhase != null &&
+              routePhase.isNotEmpty &&
+              routeActivity != null &&
+              routeActivity.isNotEmpty) {
+            _selectedProjectId = routeProjectId;
+            _selectedFloor = routeFloor;
+            _selectedFloorId = args['floorId']?.toString() ?? routeFloor;
+            _selectedPhase = routePhase;
+            _selectedPhaseId = args['phaseId']?.toString();
+            _selectedActivity = routeActivity;
+            _selectedActivityId = args['activityId']?.toString();
+          } else {
+            _selectedProjectId = routeProjectId;
+          }
+        }
 
         // ── Detect duplicate / Add More mode ──────────────────────────
         _isDuplicate = args['isDuplicate'] as bool? ?? false;
@@ -198,11 +266,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Future<void> _loadFloors(String? projectId) async {
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-    final ProjectModel? project = projectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
-      (p) => p?.id == projectId,
-      orElse: () => null,
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
     );
+    final ProjectModel? project = projectId == null
+        ? null
+        : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == projectId,
+            orElse: () => null,
+          );
 
     const List<String> defaultFloors = [
       'Basement',
@@ -223,11 +296,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Future<void> _loadPhases(String? floor) async {
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-    final ProjectModel? project = _selectedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
-      (p) => p?.id == _selectedProjectId,
-      orElse: () => null,
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
     );
+    final ProjectModel? project = _selectedProjectId == null
+        ? null
+        : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null,
+          );
 
     if (project == null) {
       _phases = [];
@@ -235,7 +313,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     }
 
     final List<ProjectPhase>? projectPhases = project.selectedPhases;
-    final bool hasNewWorkflow = projectPhases != null && projectPhases.isNotEmpty;
+    final bool hasNewWorkflow =
+        projectPhases != null && projectPhases.isNotEmpty;
 
     if (hasNewWorkflow) {
       _phases = projectPhases
@@ -247,7 +326,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       final List<String>? legacyPhaseNames = project.selectedPhaseNames != null
           ? List<String>.from(project.selectedPhaseNames!)
           : null;
-      final List<ConstructionPhase> visiblePhases = (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
+      final List<ConstructionPhase> visiblePhases =
+          (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
           ? allPhases
           : allPhases.where((p) => legacyPhaseNames.contains(p.name)).toList();
       _phases = visiblePhases.map((p) => p.name).toList();
@@ -255,11 +335,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Future<void> _loadActivities(dynamic phase) async {
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-    final ProjectModel? project = _selectedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
-      (p) => p?.id == _selectedProjectId,
-      orElse: () => null,
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
     );
+    final ProjectModel? project = _selectedProjectId == null
+        ? null
+        : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == _selectedProjectId,
+            orElse: () => null,
+          );
 
     if (project == null || phase == null) {
       _activities = [];
@@ -268,25 +353,28 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
     final String phaseName = phase is String
         ? phase
-        : (phase is Map ? (phase['phaseName'] ?? phase['name'] ?? phase['id'])?.toString() ?? '' : phase.toString());
+        : (phase is Map
+              ? (phase['phaseName'] ?? phase['name'] ?? phase['id'])
+                        ?.toString() ??
+                    ''
+              : phase.toString());
 
     final List<ProjectPhase>? projectPhases = project.selectedPhases;
-    final bool hasNewWorkflow = projectPhases != null && projectPhases.isNotEmpty;
+    final bool hasNewWorkflow =
+        projectPhases != null && projectPhases.isNotEmpty;
 
     if (hasNewWorkflow) {
-      final ProjectPhase? selPhase = projectPhases.cast<ProjectPhase?>().firstWhere(
-        (p) => p?.phaseName == phaseName,
-        orElse: () => null,
-      );
+      final ProjectPhase? selPhase = projectPhases
+          .cast<ProjectPhase?>()
+          .firstWhere((p) => p?.phaseName == phaseName, orElse: () => null);
       _activities = selPhase != null
           ? selPhase.activities.map((a) => a.name).toList()
           : <String>[];
     } else {
       final List<ConstructionPhase> allPhases = buildDefaultPhases();
-      final ConstructionPhase? selPhase = allPhases.cast<ConstructionPhase?>().firstWhere(
-        (p) => p?.name == phaseName,
-        orElse: () => null,
-      );
+      final ConstructionPhase? selPhase = allPhases
+          .cast<ConstructionPhase?>()
+          .firstWhere((p) => p?.name == phaseName, orElse: () => null);
       _activities = selPhase != null
           ? selPhase.allActivities.map<String>((a) => a.name).toList()
           : <String>[];
@@ -302,7 +390,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     } else if (phaseNameOrObj is ProjectPhase) {
       return phaseNameOrObj.id;
     } else if (phaseNameOrObj is Map) {
-      phaseName = (phaseNameOrObj['phaseName'] ?? phaseNameOrObj['name'])?.toString();
+      phaseName = (phaseNameOrObj['phaseName'] ?? phaseNameOrObj['name'])
+          ?.toString();
     } else if (phaseNameOrObj != null) {
       phaseName = phaseNameOrObj.toString();
     }
@@ -321,7 +410,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
 
   /// Look up the ProjectActivity.id matching the given activity name.
   String? _deriveActivityId(String? activityName) {
-    if (activityName == null || activityName.isEmpty || _selectedProjectId == null) return null;
+    if (activityName == null ||
+        activityName.isEmpty ||
+        _selectedProjectId == null) {
+      return null;
+    }
     final projectProvider = context.read<ProjectProvider>();
     final project = projectProvider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
@@ -336,7 +429,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     return null;
   }
 
-  Future<void> _fetchAndRestoreEdit(String txId, {Map<String, dynamic>? argsData}) async {
+  Future<void> _fetchAndRestoreEdit(
+    String txId, {
+    Map<String, dynamic>? argsData,
+  }) async {
     debugPrint('');
     debugPrint('========== EDIT ENTRY — LAYER 1: ROUTE ARGS ==========');
     debugPrint('txId: $txId');
@@ -345,34 +441,80 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
-      _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
-      final double qty = (argsData['quantity'] as num?)?.toDouble() ?? 0.0;
-      _qtyCtrl.text = qty > 0 ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString()) : '';
-      final double rate = (argsData['rate'] as num?)?.toDouble() ?? 0.0;
-      _rateCtrl.text = rate > 0 ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString()) : '';
+      _nameCtrl.text = _safeString(
+        argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
+      );
+      final double qty = _parseDouble(argsData['quantity']);
+      _qtyCtrl.text = qty > 0
+          ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+          : '';
+      final double rate = _parseDouble(argsData['rate']);
+      _rateCtrl.text = rate > 0
+          ? (rate % 1 == 0 ? rate.toInt().toString() : rate.toString())
+          : '';
       final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
-      if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
-      else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
-      else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
-      else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
-      _notesCtrl.text = _safeString(argsData['notes']);
-      if (argsData['date'] != null) {
-        try { _selectedDate = DateTime.parse(argsData['date'].toString()); } catch (_) {}
+      if (rawUnit == 'day' || rawUnit == 'days') {
+        _selectedUnit = 'Day';
+      } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+        _selectedUnit = 'Hour';
+      } else if (rawUnit == 'sqft' ||
+          rawUnit == 'sq.ft' ||
+          rawUnit == 'sq ft') {
+        _selectedUnit = 'Sq.ft';
+      } else if (rawUnit.isNotEmpty) {
+        _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
       }
-      final pStatus = argsData['paymentStatus']?.toString().toLowerCase() ?? argsData['status']?.toString().toLowerCase();
+      final catVal = _safeString(
+        argsData['categoryName'] ?? argsData['category'],
+      );
+      _categoryCtrl.text = catVal;
+      _workTypeCtrl.text = _safeString(
+        argsData['workType'] ?? argsData['remarks'],
+      );
+      _notesCtrl.text = _safeString(argsData['notes']);
+      double overtimeVal = _parseDouble(argsData['overtime']);
+      if (overtimeVal == 0) {
+        final double totalAmt = _parseDouble(
+          argsData['amount'] ??
+              argsData['totalAmount'] ??
+              argsData['billAmount'],
+        );
+        overtimeVal = (totalAmt - (qty * rate)).clamp(0.0, double.infinity);
+      }
+      _overtimeCtrl.text = overtimeVal > 0
+          ? (overtimeVal % 1 == 0
+                ? overtimeVal.toInt().toString()
+                : overtimeVal.toString())
+          : '';
+      if (argsData['date'] != null) {
+        try {
+          _selectedDate = DateTime.parse(argsData['date'].toString());
+        } catch (_) {}
+      }
+      final pStatus =
+          argsData['paymentStatus']?.toString().toLowerCase() ??
+          argsData['status']?.toString().toLowerCase();
       if (pStatus != null && pStatus != 'pending' && pStatus != '') {
         _isAddAndPay = true;
-        _paymentMethod = argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
-        _existingPaidAmount = (argsData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        _paymentMethod =
+            argsData['paymentMode'] ?? argsData['paymentMethod'] ?? 'Cash';
+        _existingPaidAmount = _parseDouble(argsData['paidAmount']);
       }
-      debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
+      debugPrint(
+        'PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}',
+      );
     }
 
-    debugPrint('========== LAYER 2: API FETCH (fetchTransactionById) ==========');
+    debugPrint(
+      '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
+    );
     Map<String, dynamic>? apiData;
     if (txId.isNotEmpty) {
       apiData = await ApiService.fetchTransactionById(txId);
@@ -398,38 +540,90 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     }
 
     // ── Re-prefill ALL controllers from authoritative source ──────────────
-    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
-    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
-    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    final double freshRate = (latest['rate'] as num?)?.toDouble() ?? 0.0;
-    _rateCtrl.text = freshRate > 0 ? (freshRate % 1 == 0 ? freshRate.toInt().toString() : freshRate.toString()) : '';
+    debugPrint(
+      '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
+    );
+    _nameCtrl.text = _safeString(
+      latest['title'] ?? latest['name'] ?? latest['materialName'],
+    );
+    final double freshQty = _parseDouble(latest['quantity']);
+    _qtyCtrl.text = freshQty > 0
+        ? (freshQty % 1 == 0
+              ? freshQty.toInt().toString()
+              : freshQty.toString())
+        : '';
+    final double freshRate = _parseDouble(latest['rate']);
+    _rateCtrl.text = freshRate > 0
+        ? (freshRate % 1 == 0
+              ? freshRate.toInt().toString()
+              : freshRate.toString())
+        : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
-    if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
-    else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
-    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
-    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
-    _notesCtrl.text = _safeString(latest['notes']);
-    if (latest['date'] != null) {
-      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+    if (freshUnit == 'day' || freshUnit == 'days') {
+      _selectedUnit = 'Day';
+    } else if (freshUnit == 'hour' || freshUnit == 'hours') {
+      _selectedUnit = 'Hour';
+    } else if (freshUnit == 'sqft' ||
+        freshUnit == 'sq.ft' ||
+        freshUnit == 'sq ft') {
+      _selectedUnit = 'Sq.ft';
+    } else if (freshUnit.isNotEmpty) {
+      _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1);
     }
-    final freshPStatus = latest['paymentStatus']?.toString().toLowerCase() ?? latest['status']?.toString().toLowerCase();
-    if (freshPStatus != null && freshPStatus != 'pending' && freshPStatus != '') {
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks']);
+    _notesCtrl.text = _safeString(latest['notes']);
+    double freshOvertime = _parseDouble(latest['overtime']);
+    if (freshOvertime == 0) {
+      final double totalAmount = _parseDouble(
+        latest['amount'] ?? latest['totalAmount'],
+      );
+      freshOvertime = (totalAmount - (freshQty * freshRate)).clamp(
+        0.0,
+        double.infinity,
+      );
+    }
+    _overtimeCtrl.text = freshOvertime > 0
+        ? (freshOvertime % 1 == 0
+              ? freshOvertime.toInt().toString()
+              : freshOvertime.toString())
+        : '';
+    if (latest['date'] != null) {
+      try {
+        _selectedDate = DateTime.parse(latest['date'].toString());
+      } catch (_) {}
+    }
+    final freshPStatus =
+        latest['paymentStatus']?.toString().toLowerCase() ??
+        latest['status']?.toString().toLowerCase();
+    if (freshPStatus != null &&
+        freshPStatus != 'pending' &&
+        freshPStatus != '') {
       _isAddAndPay = true;
-      _paymentMethod = latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
-      _existingPaidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      _paymentMethod =
+          latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
+      _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floor': _extractString(latest, [
+        'floor',
+        'floorName',
+        'floor_name',
+        'zone',
+        'Zone',
+      ]),
       'floorId': (latest['floorId'] ?? '').toString(),
       'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
       'phaseId': (latest['phaseId'] ?? '').toString(),
-      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
+      'activity': _extractString(latest, [
+        'activity',
+        'activityName',
+        'activity_name',
+      ]),
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
@@ -439,7 +633,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     await _restoreDuplicateEntry(contextToRestore);
   }
 
-  Future<void> _fetchAndRestoreDuplicate(String txId, {Map<String, dynamic>? argsData}) async {
+  Future<void> _fetchAndRestoreDuplicate(
+    String txId, {
+    Map<String, dynamic>? argsData,
+  }) async {
     debugPrint('');
     debugPrint('========== DUPLICATE ENTRY — LAYER 1: ROUTE ARGS ==========');
     debugPrint('txId: $txId');
@@ -448,28 +645,70 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
-        _selectedProjectId = pId is Map ? (pId['_id']?.toString()) : pId.toString();
+        if (pId is Map) {
+          _selectedProjectId = (pId['_id'] ?? pId['id'])?.toString();
+        } else {
+          final idStr = pId.toString().trim();
+          _selectedProjectId = idStr.startsWith('{') ? null : idStr;
+        }
       }
-      _nameCtrl.text = _safeString(argsData['title'] ?? argsData['name'] ?? argsData['materialName']);
+      _nameCtrl.text = _safeString(
+        argsData['title'] ?? argsData['name'] ?? argsData['materialName'],
+      );
       final rawUnit = _safeString(argsData['unit']).trim().toLowerCase();
-      if (rawUnit == 'day' || rawUnit == 'days') { _selectedUnit = 'Day'; }
-      else if (rawUnit == 'hour' || rawUnit == 'hours') { _selectedUnit = 'Hour'; }
-      else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
-      else if (rawUnit.isNotEmpty) { _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1); }
-      _categoryCtrl.text = _safeString(argsData['categoryName'] ?? argsData['category']);
-      _workTypeCtrl.text = _safeString(argsData['workType'] ?? argsData['remarks'] ?? argsData['notes']);
-      _notesCtrl.text = _safeString(argsData['notes']);
-      final double rateVal = (argsData['rate'] as num?)?.toDouble()
-          ?? (argsData['dailyWage'] as num?)?.toDouble()
-          ?? (argsData['hourlyRate'] as num?)?.toDouble()
-          ?? 0.0;
-      if (rateVal > 0) {
-        _rateCtrl.text = rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString();
+      if (rawUnit == 'day' || rawUnit == 'days') {
+        _selectedUnit = 'Day';
+      } else if (rawUnit == 'hour' || rawUnit == 'hours') {
+        _selectedUnit = 'Hour';
+      } else if (rawUnit == 'sqft' ||
+          rawUnit == 'sq.ft' ||
+          rawUnit == 'sq ft') {
+        _selectedUnit = 'Sq.ft';
+      } else if (rawUnit.isNotEmpty) {
+        _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
       }
-      debugPrint('PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}');
+      final catVal = _safeString(
+        argsData['categoryName'] ?? argsData['category'],
+      );
+      _categoryCtrl.text = catVal;
+      _workTypeCtrl.text = _safeString(
+        argsData['workType'] ?? argsData['remarks'],
+      );
+      _notesCtrl.text = _safeString(argsData['notes']);
+      double overtimeVal = _parseDouble(argsData['overtime']);
+      final double qtyVal = _parseDouble(argsData['quantity']);
+      final double rateVal = _parseDouble(
+        argsData['rate'] ?? argsData['dailyWage'] ?? argsData['hourlyRate'],
+      );
+      if (overtimeVal == 0) {
+        final double totalAmt = _parseDouble(
+          argsData['amount'] ??
+              argsData['totalAmount'] ??
+              argsData['billAmount'],
+        );
+        overtimeVal = (totalAmt - (qtyVal * rateVal)).clamp(
+          0.0,
+          double.infinity,
+        );
+      }
+      _overtimeCtrl.text = overtimeVal > 0
+          ? (overtimeVal % 1 == 0
+                ? overtimeVal.toInt().toString()
+                : overtimeVal.toString())
+          : '';
+      if (rateVal > 0) {
+        _rateCtrl.text = rateVal % 1 == 0
+            ? rateVal.toInt().toString()
+            : rateVal.toString();
+      }
+      debugPrint(
+        'PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}',
+      );
     }
 
-    debugPrint('========== LAYER 2: API FETCH (fetchTransactionById) ==========');
+    debugPrint(
+      '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
+    );
     Map<String, dynamic>? apiData;
     if (txId.isNotEmpty) {
       apiData = await ApiService.fetchTransactionById(txId);
@@ -495,31 +734,81 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     }
 
     // ── Re-prefill ALL controllers from authoritative source ──────────────
-    debugPrint('========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========');
-    _nameCtrl.text = _safeString(latest['title'] ?? latest['name'] ?? latest['materialName']);
-    final double freshQty = (latest['quantity'] as num?)?.toDouble() ?? 0.0;
-    _qtyCtrl.text = freshQty > 0 ? (freshQty % 1 == 0 ? freshQty.toInt().toString() : freshQty.toString()) : '';
-    _rateCtrl.text = _safeString(latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate']);
+    debugPrint(
+      '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
+    );
+    _nameCtrl.text = _safeString(
+      latest['title'] ?? latest['name'] ?? latest['materialName'],
+    );
+    final double freshQty = _parseDouble(latest['quantity']);
+    _qtyCtrl.text = freshQty > 0
+        ? (freshQty % 1 == 0
+              ? freshQty.toInt().toString()
+              : freshQty.toString())
+        : '';
+    final double freshRate = _parseDouble(
+      latest['rate'] ?? latest['dailyWage'] ?? latest['hourlyRate'],
+    );
+    _rateCtrl.text = freshRate > 0
+        ? (freshRate % 1 == 0
+              ? freshRate.toInt().toString()
+              : freshRate.toString())
+        : '';
     final freshUnit = _safeString(latest['unit']).trim().toLowerCase();
-    if (freshUnit == 'day' || freshUnit == 'days') { _selectedUnit = 'Day'; }
-    else if (freshUnit == 'hour' || freshUnit == 'hours') { _selectedUnit = 'Hour'; }
-    else if (freshUnit == 'sqft' || freshUnit == 'sq.ft' || freshUnit == 'sq ft') { _selectedUnit = 'Sq.ft'; }
-    else if (freshUnit.isNotEmpty) { _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1); }
-    _categoryCtrl.text = _safeString(latest['categoryName'] ?? latest['category']);
-    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks'] ?? latest['notes']);
+    if (freshUnit == 'day' || freshUnit == 'days') {
+      _selectedUnit = 'Day';
+    } else if (freshUnit == 'hour' || freshUnit == 'hours') {
+      _selectedUnit = 'Hour';
+    } else if (freshUnit == 'sqft' ||
+        freshUnit == 'sq.ft' ||
+        freshUnit == 'sq ft') {
+      _selectedUnit = 'Sq.ft';
+    } else if (freshUnit.isNotEmpty) {
+      _selectedUnit = freshUnit[0].toUpperCase() + freshUnit.substring(1);
+    }
+    final catVal = _safeString(latest['categoryName'] ?? latest['category']);
+    _categoryCtrl.text = catVal;
+    _workTypeCtrl.text = _safeString(latest['workType'] ?? latest['remarks']);
     _notesCtrl.text = _safeString(latest['notes']);
+    double freshOvertime = _parseDouble(latest['overtime']);
+    if (freshOvertime == 0) {
+      final double totalAmount = _parseDouble(
+        latest['amount'] ?? latest['totalAmount'],
+      );
+      freshOvertime = (totalAmount - (freshQty * freshRate)).clamp(
+        0.0,
+        double.infinity,
+      );
+    }
+    _overtimeCtrl.text = freshOvertime > 0
+        ? (freshOvertime % 1 == 0
+              ? freshOvertime.toInt().toString()
+              : freshOvertime.toString())
+        : '';
     if (latest['date'] != null) {
-      try { _selectedDate = DateTime.parse(latest['date'].toString()); } catch (_) {}
+      try {
+        _selectedDate = DateTime.parse(latest['date'].toString());
+      } catch (_) {}
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
     final contextToRestore = {
       'projectId': _selectedProjectId,
-      'floor': _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']),
+      'floor': _extractString(latest, [
+        'floor',
+        'floorName',
+        'floor_name',
+        'zone',
+        'Zone',
+      ]),
       'floorId': (latest['floorId'] ?? '').toString(),
       'phase': _extractString(latest, ['phase', 'phaseName', 'phase_name']),
       'phaseId': (latest['phaseId'] ?? '').toString(),
-      'activity': _extractString(latest, ['activity', 'activityName', 'activity_name']),
+      'activity': _extractString(latest, [
+        'activity',
+        'activityName',
+        'activity_name',
+      ]),
       'activityId': (latest['activityId'] ?? '').toString(),
     };
 
@@ -535,7 +824,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     debugPrint('RAW INPUT: ${jsonEncode(latest)}');
     debugPrint('INPUT KEYS: ${latest.keys.join(', ')}');
 
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
+    );
     if (projectProvider.projects.isEmpty) {
       await projectProvider.load();
     }
@@ -544,31 +836,49 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final pId = latest['projectId'] ?? latest['project'];
     String? resolvedProjectId;
     if (pId != null) {
-      resolvedProjectId = pId is Map ? (pId['_id'] ?? pId['id'])?.toString() : pId.toString();
+      resolvedProjectId = pId is Map
+          ? (pId['_id'] ?? pId['id'])?.toString()
+          : pId.toString();
     }
     debugPrint('resolvedProjectId => $resolvedProjectId');
 
     // ── Extract floor / phase / activity (names AND IDs) ──────────────
-    final String floorName = _extractString(latest, ['floor', 'floorName', 'floor_name', 'zone', 'Zone']);
-    final String floorId   = (latest['floorId'] ?? '').toString();
+    final String floorName = _extractString(latest, [
+      'floor',
+      'floorName',
+      'floor_name',
+      'zone',
+      'Zone',
+    ]);
+    final String floorId = (latest['floorId'] ?? '').toString();
     debugPrint('floorName => "$floorName"');
     debugPrint('floorId   => "$floorId"');
 
-    final String phaseName = _extractString(latest, ['phase', 'phaseName', 'phase_name']);
-    final String phaseId   = (latest['phaseId'] ?? '').toString();
+    final String phaseName = _extractString(latest, [
+      'phase',
+      'phaseName',
+      'phase_name',
+    ]);
+    final String phaseId = (latest['phaseId'] ?? '').toString();
     debugPrint('phaseName => "$phaseName"');
     debugPrint('phaseId   => "$phaseId"');
 
-    final String activityName = _extractString(latest, ['activity', 'activityName', 'activity_name']);
-    final String activityId   = (latest['activityId'] ?? '').toString();
+    final String activityName = _extractString(latest, [
+      'activity',
+      'activityName',
+      'activity_name',
+    ]);
+    final String activityId = (latest['activityId'] ?? '').toString();
     debugPrint('activityName => "$activityName"');
     debugPrint('activityId   => "$activityId"');
 
     // Look up the project model for ID→name resolution
-    final ProjectModel? project = resolvedProjectId == null ? null : projectProvider.projects.cast<ProjectModel?>().firstWhere(
-      (p) => p?.id == resolvedProjectId,
-      orElse: () => null,
-    );
+    final ProjectModel? project = resolvedProjectId == null
+        ? null
+        : projectProvider.projects.cast<ProjectModel?>().firstWhere(
+            (p) => p?.id == resolvedProjectId,
+            orElse: () => null,
+          );
 
     if (project != null) {
       debugPrint('PROJECT FOUND: ${project.name} (${project.id})');
@@ -601,8 +911,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       final floorFound = _floors.any((f) => f.toString() == resolvedFloor);
       if (!floorFound) {
         _floors.insert(0, resolvedFloor);
-        _floorWarning = '⚠ Previously selected floor "$resolvedFloor" no longer exists.\nPlease select another floor.';
-        debugPrint('FLOOR WARNING: "$resolvedFloor" not found — inserted at index 0');
+        _floorWarning =
+            '⚠ Previously selected floor "$resolvedFloor" no longer exists.\nPlease select another floor.';
+        debugPrint(
+          'FLOOR WARNING: "$resolvedFloor" not found — inserted at index 0',
+        );
       } else {
         debugPrint('FLOOR "$resolvedFloor" found in project floors');
       }
@@ -622,7 +935,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     String? resolvedPhaseId;
     if (phaseName.isNotEmpty) {
       resolvedPhase = phaseName;
-      resolvedPhaseId = phaseId.isNotEmpty ? phaseId : _derivePhaseId(phaseName);
+      resolvedPhaseId = phaseId.isNotEmpty
+          ? phaseId
+          : _derivePhaseId(phaseName);
     } else if (phaseId.isNotEmpty && project != null) {
       final phaseObj = project.selectedPhases?.cast<ProjectPhase?>().firstWhere(
         (p) => p?.id == phaseId,
@@ -635,7 +950,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       } else {
         resolvedPhase = phaseId;
         resolvedPhaseId = phaseId;
-        debugPrint('PHASE ID $phaseId not found in project data — using ID as display');
+        debugPrint(
+          'PHASE ID $phaseId not found in project data — using ID as display',
+        );
       }
     }
 
@@ -643,8 +960,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       final phaseFound = _phases.any((p) => p.toString() == resolvedPhase);
       if (!phaseFound) {
         _phases.insert(0, resolvedPhase);
-        _phaseWarning = '⚠ Previously selected phase "$resolvedPhase" no longer exists.\nPlease select another phase.';
-        debugPrint('PHASE WARNING: "$resolvedPhase" not found — inserted at index 0');
+        _phaseWarning =
+            '⚠ Previously selected phase "$resolvedPhase" no longer exists.\nPlease select another phase.';
+        debugPrint(
+          'PHASE WARNING: "$resolvedPhase" not found — inserted at index 0',
+        );
       } else {
         debugPrint('PHASE "$resolvedPhase" found in project phases');
       }
@@ -664,7 +984,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     String? resolvedActivityId;
     if (activityName.isNotEmpty) {
       resolvedActivity = activityName;
-      resolvedActivityId = activityId.isNotEmpty ? activityId : _deriveActivityId(activityName);
+      resolvedActivityId = activityId.isNotEmpty
+          ? activityId
+          : _deriveActivityId(activityName);
     } else if (activityId.isNotEmpty && project != null) {
       String? found;
       for (final phase in project.selectedPhases ?? []) {
@@ -679,39 +1001,57 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       if (found != null) {
         resolvedActivity = found;
         resolvedActivityId = activityId;
-        debugPrint('RESOLVED ACTIVITY NAME from ID $activityId => "$resolvedActivity"');
+        debugPrint(
+          'RESOLVED ACTIVITY NAME from ID $activityId => "$resolvedActivity"',
+        );
       } else {
         resolvedActivity = activityId;
         resolvedActivityId = activityId;
-        debugPrint('ACTIVITY ID $activityId not found in project data — using ID as display');
+        debugPrint(
+          'ACTIVITY ID $activityId not found in project data — using ID as display',
+        );
       }
     }
 
     if (resolvedActivity != null) {
-      final activityFound = _activities.any((a) => a.toString() == resolvedActivity);
+      final activityFound = _activities.any(
+        (a) => a.toString() == resolvedActivity,
+      );
       if (!activityFound) {
         _activities.insert(0, resolvedActivity);
-        _activityWarning = '⚠ Previously selected activity "$resolvedActivity" no longer exists.\nPlease select another activity.';
-        debugPrint('ACTIVITY WARNING: "$resolvedActivity" not found — inserted at index 0');
+        _activityWarning =
+            '⚠ Previously selected activity "$resolvedActivity" no longer exists.\nPlease select another activity.';
+        debugPrint(
+          'ACTIVITY WARNING: "$resolvedActivity" not found — inserted at index 0',
+        );
       } else {
         debugPrint('ACTIVITY "$resolvedActivity" found in project activities');
       }
       _selectedActivity = resolvedActivity;
       _selectedActivityId = resolvedActivityId;
-      debugPrint('ACTIVITY => $_selectedActivity  ACTIVITY_ID => $_selectedActivityId');
+      debugPrint(
+        'ACTIVITY => $_selectedActivity  ACTIVITY_ID => $_selectedActivityId',
+      );
     } else {
       debugPrint('ACTIVITY => NO DATA (both name and ID empty)');
     }
 
     // ── Type-safety assertions (soft — warnings only) ──────────────────
     if (resolvedFloor != null && !_floors.any((f) => f == resolvedFloor)) {
-      debugPrint('!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert');
+      debugPrint(
+        '!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert',
+      );
     }
     if (resolvedPhase != null && !_phases.any((p) => p == resolvedPhase)) {
-      debugPrint('!!! TYPE/STRING MISMATCH: phase "$resolvedPhase" not in _phases after insert');
+      debugPrint(
+        '!!! TYPE/STRING MISMATCH: phase "$resolvedPhase" not in _phases after insert',
+      );
     }
-    if (resolvedActivity != null && !_activities.any((a) => a == resolvedActivity)) {
-      debugPrint('!!! TYPE/STRING MISMATCH: activity "$resolvedActivity" not in _activities after insert');
+    if (resolvedActivity != null &&
+        !_activities.any((a) => a == resolvedActivity)) {
+      debugPrint(
+        '!!! TYPE/STRING MISMATCH: activity "$resolvedActivity" not in _activities after insert',
+      );
     }
 
     debugPrint('========== RESTORATION COMPLETE ==========');
@@ -749,42 +1089,42 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _scrollCtrl.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
   bool _validate() {
+    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
           ? 'Worker / team name is required'
           : null;
       final qty = double.tryParse(_qtyCtrl.text);
-      _qtyError =
-          (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
+      _qtyError = (qty == null || qty <= 0) ? 'Enter valid quantity > 0' : null;
       final rate = double.tryParse(_rateCtrl.text);
-      _rateError =
-          (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
+      _rateError = (rate == null || rate <= 0) ? 'Enter valid rate > 0' : null;
 
       _projectError = _selectedProjectId == null
           ? 'Please select a Project.'
           : null;
-      _floorError =
-          _selectedFloor == null ? 'Please select a Floor / Zone.' : null;
-      _phaseError =
-          _selectedPhase == null ? 'Please select a Phase.' : null;
-      _activityError = _selectedActivity == null ||
-              _selectedActivity!.isEmpty
+      _floorError = _selectedFloor == null
+          ? 'Please select a Floor / Zone.'
+          : null;
+      _phaseError = _selectedPhase == null ? 'Please select a Phase.' : null;
+      _activityError = _selectedActivity == null || _selectedActivity!.isEmpty
           ? 'Please select an Activity.'
           : null;
-      _unitError =
-          _selectedUnit == null ? 'Please select a Unit.' : null;
+      _unitError = _selectedUnit == null ? 'Please select a Unit.' : null;
 
-      ok = _nameError == null &&
+      ok =
+          _nameError == null &&
           _qtyError == null &&
           _rateError == null &&
           _projectError == null &&
@@ -806,33 +1146,39 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final payload = {
       "title": _nameCtrl.text.trim(),
       "type": "Wages",
-      "category": _categoryCtrl.text.trim().isEmpty
-          ? "General Labour"
-          : _categoryCtrl.text.trim(),
+      "category": _categoryCtrl.text.trim(),
       "quantity": double.tryParse(_qtyCtrl.text) ?? 0,
       "rate": double.tryParse(_rateCtrl.text) ?? 0,
       "unit": _selectedUnit == null
           ? "hour"
           : _selectedUnit == "Day" || _selectedUnit == "day"
-              ? "day"
-              : _selectedUnit == "Hour" || _selectedUnit == "hour"
-                  ? "hour"
-                  : _selectedUnit == "Sq ft" ||
-                          _selectedUnit == "sqft" ||
-                          _selectedUnit == "Sq.ft"
-                      ? "sqft"
-                      : "unit",
+          ? "day"
+          : _selectedUnit == "Hour" || _selectedUnit == "hour"
+          ? "hour"
+          : _selectedUnit == "Sq ft" ||
+                _selectedUnit == "sqft" ||
+                _selectedUnit == "Sq.ft"
+          ? "sqft"
+          : "unit",
       "project": _selectedProjectId,
-      "date": _selectedDate.toIso8601String(),
+      "date": _selectedDate.toUtc().toIso8601String(),
       "floor": _selectedFloor,
       if (_selectedFloorId != null) "floorId": _selectedFloorId,
       "phase": _selectedPhase,
-      "phaseId": _selectedPhaseId ?? (_selectedPhase != null ? _derivePhaseId(_selectedPhase) : null),
+      "phaseId":
+          _selectedPhaseId ??
+          (_selectedPhase != null ? _derivePhaseId(_selectedPhase) : null),
       if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
         "activity": _selectedActivity,
-      "activityId": _selectedActivityId ?? (_selectedActivity != null && _selectedActivity!.isNotEmpty ? _deriveActivityId(_selectedActivity) : null),
+      "activityId":
+          _selectedActivityId ??
+          (_selectedActivity != null && _selectedActivity!.isNotEmpty
+              ? _deriveActivityId(_selectedActivity)
+              : null),
       "amount": _totalCost(),
       "overtime": double.tryParse(_overtimeCtrl.text) ?? 0,
+      "remarks": _workTypeCtrl.text.trim(),
+      "notes": _notesCtrl.text.trim(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
@@ -840,7 +1186,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (_isAddAndPay) {
       final paid = parseAmount(_paymentAmountCtrl.text) ?? 0.0;
       final totalPaid = _existingPaidAmount + paid;
-      final outstanding = (_totalCost() - _existingPaidAmount).clamp(0.0, double.infinity);
+      final outstanding = (_totalCost() - _existingPaidAmount).clamp(
+        0.0,
+        double.infinity,
+      );
       if (paid > outstanding) {
         _snack('Payment amount cannot exceed the outstanding amount.');
         setState(() => _isSaving = false);
@@ -850,16 +1199,22 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
-      payload["paymentStatus"] =
-          totalPaid >= _totalCost() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
-      payload["paymentDate"] = _paymentDate.toIso8601String();
+      payload["paymentStatus"] = totalPaid >= _totalCost()
+          ? "Paid"
+          : totalPaid > 0
+          ? "Partial"
+          : "Pending";
+      payload["paymentDate"] = _paymentDate.toUtc().toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
     } else if (_recordPaymentNow && _paymentResult != null) {
       final paid = (_paymentResult!['amount'] as double?) ?? 0.0;
       final totalPaid = _existingPaidAmount + paid;
-      final outstanding = (_totalCost() - _existingPaidAmount).clamp(0.0, double.infinity);
+      final outstanding = (_totalCost() - _existingPaidAmount).clamp(
+        0.0,
+        double.infinity,
+      );
       if (paid > outstanding) {
         _snack('Payment amount cannot exceed the outstanding amount.');
         setState(() => _isSaving = false);
@@ -872,26 +1227,43 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
-      payload["paymentStatus"] =
-          totalPaid >= _totalCost() ? "Paid" : totalPaid > 0 ? "Partial" : "Pending";
-      payload["paymentDate"] = payDate.toIso8601String();
+      payload["paymentStatus"] = totalPaid >= _totalCost()
+          ? "Paid"
+          : totalPaid > 0
+          ? "Partial"
+          : "Pending";
+      payload["paymentDate"] = payDate.toUtc().toIso8601String();
       if ((_paymentResult!['note'] as String?)?.isNotEmpty == true) {
         payload["notes"] = _paymentResult!['note'];
       }
+      final receiptDataUri = _paymentResult!['receiptDataUri'] as String?;
+if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
+  payload["paymentReceipt"] = receiptDataUri;
+}
+    }
+
+    if (_attachment != null) {
+      payload["attachments"] = [_attachment!.dataUri];
     }
 
     debugPrint('===== SAVE PAYLOAD =====');
     debugPrint(payload.toString());
     debugPrint('========================');
-    debugPrint('SAVE PATH CHECK: _isEditing=$_isEditing  _editingTransactionId=$_editingTransactionId  condition=${_isEditing && _editingTransactionId != null}');
+    debugPrint(
+      'SAVE PATH CHECK: _isEditing=$_isEditing  _editingTransactionId=$_editingTransactionId  condition=${_isEditing && _editingTransactionId != null}',
+    );
 
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
       debugPrint('>>> SAVE PATH: updateTransaction($_editingTransactionId)');
-      success =
-          await ApiService.updateTransaction(_editingTransactionId!, payload);
+      success = await ApiService.updateTransaction(
+        _editingTransactionId!,
+        payload,
+      );
     } else {
-      debugPrint('>>> SAVE PATH: addMaterial (CREATE NEW) — WARNING: not updating!');
+      debugPrint(
+        '>>> SAVE PATH: addMaterial (CREATE NEW) — WARNING: not updating!',
+      );
       success = await ApiService.addMaterial(payload);
     }
 
@@ -901,10 +1273,24 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
 
-      _snack(_isEditing
-          ? 'Labour entry UPDATED successfully!'
-          : 'NEW Labour entry created!');
-      Navigator.maybePop(context);
+      _snack(
+        _isEditing
+            ? 'Labour entry updated successfully!'
+            : 'Labour entry saved successfully!',
+      );
+      if (UserSession.hasPermission('view_inventory')) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/inventory',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/add-entry',
+          (route) => route.settings.name == '/' || route.isFirst,
+        );
+      }
     } else {
       _snack('Error saving to server. Please try again.');
     }
@@ -913,7 +1299,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
 
   Widget _buildPaymentSection() {
-    if (_isAddAndPay) return _buildInlinePaymentForm();
+    
 
     return EntrySectionCard(
       child: Column(
@@ -963,6 +1349,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 activeThumbColor: AppColors.primary,
                 onChanged: (v) async {
                   if (v) {
+                    final savedOffset = _scrollCtrl.hasClients
+                        ? _scrollCtrl.offset
+                        : 0.0;
                     final result = await showPaymentSheet(
                       context,
                       entryTitle: _nameCtrl.text.trim().isEmpty
@@ -981,6 +1370,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         if (result != null) {
                           _recordPaymentNow = true;
                           _paymentResult = result;
+                        }
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollCtrl.hasClients) {
+                          _scrollCtrl.jumpTo(
+                            savedOffset.clamp(
+                              0.0,
+                              _scrollCtrl.position.maxScrollExtent,
+                            ),
+                          );
                         }
                       });
                     }
@@ -1013,6 +1412,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     final note = (_paymentResult!['note'] as String?) ?? '';
     return GestureDetector(
       onTap: () async {
+        final savedOffset = _scrollCtrl.hasClients
+            ? _scrollCtrl.offset
+            : 0.0;
         final result = await showPaymentSheet(
           context,
           entryTitle: _nameCtrl.text.trim().isEmpty
@@ -1026,7 +1428,19 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               ? 'Labour'
               : _categoryCtrl.text.trim(),
         );
-        if (result != null && mounted) setState(() => _paymentResult = result);
+        if (result != null && mounted) {
+          setState(() => _paymentResult = result);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollCtrl.hasClients) {
+              _scrollCtrl.jumpTo(
+                savedOffset.clamp(
+                  0.0,
+                  _scrollCtrl.position.maxScrollExtent,
+                ),
+              );
+            }
+          });
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -1040,50 +1454,65 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.check_circle_rounded,
-                    color: Color(0xFF16A34A), size: 18),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
-                const Text('Payment Recorded',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF15803D))),
+                const Text(
+                  'Payment Recorded',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
                 const Spacer(),
-                const Text('Tap to edit',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF15803D))),
+                const Text(
+                  'Tap to edit',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: _summaryChip(Icons.currency_rupee,
-                      '₹${amount.toStringAsFixed(0)}', 'Amount'),
+                  child: _summaryChip(
+                    Icons.currency_rupee,
+                    '₹${amount.toStringAsFixed(0)}',
+                    'Amount',
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child:
-                      _summaryChip(Icons.payment_outlined, method, 'Method'),
+                  child: _summaryChip(Icons.payment_outlined, method, 'Method'),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _summaryChip(
-                      Icons.calendar_today_outlined,
-                      '${payDate.day}/${payDate.month}/${payDate.year}',
-                      'Date'),
+                    Icons.calendar_today_outlined,
+                    '${payDate.day}/${payDate.month}/${payDate.year}',
+                    'Date',
+                  ),
                 ),
               ],
             ),
             if (note.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Note: $note',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF4B5563),
-                      fontWeight: FontWeight.w500)),
+              Text(
+                'Note: $note',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF4B5563),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ],
         ),
@@ -1102,23 +1531,29 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF6B7280))),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6B7280),
+            ),
+          ),
           const SizedBox(height: 3),
           Row(
             children: [
               Icon(icon, size: 11, color: const Color(0xFF15803D)),
               const SizedBox(width: 3),
               Expanded(
-                child: Text(value,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827))),
+                child: Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1127,142 +1562,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     );
   }
 
-  Widget _buildInlinePaymentForm() {
-    const methods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
-    return EntrySectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF15803D).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(Icons.payments_outlined,
-                    color: Color(0xFF15803D), size: 22),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Record Payment',
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark)),
-                    SizedBox(height: 2),
-                    Text('Log payment details for this entry',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textLight)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Divider(color: Color(0xFFF0EEF8)),
-          const SizedBox(height: 16),
-          const EntryFieldLabel('Amount Paid', required: false),
-          const SizedBox(height: 8),
-          EntryUnderlineField(
-            controller: _paymentAmountCtrl,
-            hint: '0',
-            prefix: '₹',
-            keyboardType: TextInputType.number,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Payment Method'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: methods.map((m) {
-              final sel = _paymentMethod == m;
-              return GestureDetector(
-                onTap: () => setState(() => _paymentMethod = m),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primary : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color:
-                            sel ? AppColors.primary : const Color(0xFFDDE0F0),
-                        width: 1.5),
-                  ),
-                  child: Text(m,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: sel ? Colors.white : AppColors.textDark)),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Payment Date'),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _paymentDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-                builder: (ctx, child) => Theme(
-                  data: Theme.of(ctx).copyWith(
-                      colorScheme: const ColorScheme.light(
-                          primary: AppColors.primary,
-                          onPrimary: Colors.white,
-                          onSurface: AppColors.textDark)),
-                  child: child!,
-                ),
-              );
-              if (picked != null) setState(() => _paymentDate = picked);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_month_outlined,
-                      color: AppColors.primary, size: 19),
-                  const SizedBox(width: 8),
-                  Text(
-                      '${_paymentDate.day}/${_paymentDate.month}/${_paymentDate.year}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: AppColors.textDark)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const EntryFieldLabel('Notes', required: false),
-          const SizedBox(height: 8),
-          EntryUnderlineField(
-            controller: _paymentNoteCtrl,
-            hint: 'e.g. Paid by site manager',
-            maxLines: 2,
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1310,28 +1610,37 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.10),
+                            color: const Color(
+                              0xFF2E7D32,
+                            ).withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.history_rounded,
-                              color: Color(0xFF2E7D32), size: 20),
+                          child: const Icon(
+                            Icons.history_rounded,
+                            color: Color(0xFF2E7D32),
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Recent Labour Entries',
-                                style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textDark,
-                                    letterSpacing: -0.3)),
+                            const Text(
+                              'Recent Labour Entries',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
                             Text(
                               '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textLight,
-                                  fontWeight: FontWeight.w500),
+                                fontSize: 12,
+                                color: AppColors.textLight,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -1347,21 +1656,29 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       controller: scrollCtrl,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                       itemCount: _recentEntries.length,
-                      separatorBuilder: (_, index) => const SizedBox(height: 10),
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
                       itemBuilder: (_, i) {
                         final tx = _recentEntries[i] as Map<String, dynamic>;
-                        final String title = tx['title']?.toString() ?? 'Untitled';
-                        final double rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
+                        final String title =
+                            tx['title']?.toString() ?? 'Untitled';
+                        final double rate =
+                            (tx['rate'] as num?)?.toDouble() ?? 0.0;
                         final String unit = tx['unit']?.toString() ?? '';
-                        final String category = tx['category']?.toString() ?? '';
-                        final String workType = tx['workType']?.toString() ?? tx['remarks']?.toString() ?? '';
+                        final String category =
+                            tx['category']?.toString() ?? '';
+                        final String workType =
+                            tx['workType']?.toString() ??
+                            tx['remarks']?.toString() ??
+                            '';
 
                         String dateStr = '';
                         final rawDate = tx['date'] ?? tx['createdAt'];
                         if (rawDate != null) {
                           try {
                             final d = DateTime.parse(rawDate.toString());
-                            dateStr = '${d.day} ${_monthName(d.month)} ${d.year}';
+                            dateStr =
+                                '${d.day} ${_monthName(d.month)} ${d.year}';
                           } catch (_) {}
                         }
 
@@ -1384,7 +1701,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                    color: const Color(0xFFEEEFF8), width: 1.2),
+                                  color: const Color(0xFFEEEFF8),
+                                  width: 1.2,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.04),
@@ -1398,12 +1717,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF2E7D32)
-                                          .withValues(alpha: 0.08),
+                                      color: const Color(
+                                        0xFF2E7D32,
+                                      ).withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(Icons.people_outlined,
-                                        color: Color(0xFF2E7D32), size: 20),
+                                    child: const Icon(
+                                      Icons.people_outlined,
+                                      color: Color(0xFF2E7D32),
+                                      size: 20,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -1411,13 +1734,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(title,
-                                            style: const TextStyle(
-                                                fontSize: 13.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.textDark),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis),
+                                        Text(
+                                          title,
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textDark,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                         const SizedBox(height: 3),
                                         Text(
                                           [
@@ -1427,9 +1753,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                             if (dateStr.isNotEmpty) dateStr,
                                           ].join(' · '),
                                           style: const TextStyle(
-                                              fontSize: 11.5,
-                                              color: AppColors.textLight,
-                                              fontWeight: FontWeight.w500),
+                                            fontSize: 11.5,
+                                            color: AppColors.textLight,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1439,17 +1766,23 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                   const SizedBox(width: 10),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 7),
+                                      horizontal: 12,
+                                      vertical: 7,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF2E7D32)
-                                          .withValues(alpha: 0.08),
+                                      color: const Color(
+                                        0xFF2E7D32,
+                                      ).withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text('Use',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF2E7D32))),
+                                    child: const Text(
+                                      'Use',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1504,46 +1837,60 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   void _prefillFromRecent(Map<String, dynamic> tx) {
     setState(() {
       _nameCtrl.text = tx['title']?.toString() ?? '';
-      
+
       final rawUnit = (tx['unit'] ?? '').toString().trim().toLowerCase();
       if (rawUnit == 'day' || rawUnit == 'days') {
         _selectedUnit = 'Day';
       } else if (rawUnit == 'hour' || rawUnit == 'hours') {
         _selectedUnit = 'Hour';
-      } else if (rawUnit == 'sqft' || rawUnit == 'sq.ft' || rawUnit == 'sq ft') {
+      } else if (rawUnit == 'sqft' ||
+          rawUnit == 'sq.ft' ||
+          rawUnit == 'sq ft') {
         _selectedUnit = 'Sq.ft';
       } else if (rawUnit.isNotEmpty) {
         _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
       }
-      
-      _categoryCtrl.text = tx['category']?.toString() ?? '';
+
+      final catVal = tx['category']?.toString() ?? '';
+      _categoryCtrl.text = catVal;
       _workTypeCtrl.text = tx['remarks']?.toString() ?? '';
-      
+
       final double rateVal = (tx['rate'] as num?)?.toDouble() ?? 0.0;
-      _rateCtrl.text = rateVal > 0 ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString()) : '';
-      
-      final pStatus = tx['paymentStatus']?.toString().toLowerCase();
-      if (pStatus != null && pStatus != 'pending' && pStatus != '') {
-        _isAddAndPay = true;
-        _paymentMethod = tx['paymentMode'] ?? 'Cash';
-        final double paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
-        _paymentAmountCtrl.text = paid > 0 ? paid.toString() : '';
-      }
+      _rateCtrl.text = rateVal > 0
+          ? (rateVal % 1 == 0 ? rateVal.toInt().toString() : rateVal.toString())
+          : '';
+
+      // FIX: this was flipping the payment toggle ON for a brand-new entry
+      // based on the copied entry's old payment status. Only data fields
+      // should prefill — payment state stays off/zeroed.
+      _existingPaidAmount = 0.0;
+      _isAddAndPay = false;
+      _recordPaymentNow = false;
+      _paymentResult = null;
+      _paymentAmountCtrl.clear();
     });
   }
 
   String _monthName(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     if (month >= 1 && month <= 12) {
       return months[month - 1];
     }
     return '';
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -1560,8 +1907,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
               title: _isEditing
                   ? 'Modify Labour Log'
                   : _isDuplicate
-                      ? 'Repeat Entry'
-                      : 'Log Labour Force',
+                  ? 'Repeat Entry'
+                  : 'Log Labour Force',
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
@@ -1574,52 +1921,77 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── Execution Context (Edit mode only) ──────────────
+                    // In Create mode the user already chose Project/Floor/
+                    // Phase/Activity in ExecutionContextScreen before arriving
+                    // here, so we intentionally hide this section.
+                    // In Edit mode there is no preceding context screen, so
+                    // we restore the card so users can change the context.
+                    if (_isEditing) ...[
+                      ExecutionContextCard(
+                        selectedProjectId: _selectedProjectId,
+                        selectedFloor: _selectedFloor,
+                        selectedPhase: _selectedPhase,
+                        selectedActivity: _selectedActivity,
+                        projectError: _projectError,
+                        floorError: _floorError,
+                        phaseError: _phaseError,
+                        activityError: _activityError,
+                        onProjectChanged: (v) async {
+                          setState(() {
+                            _selectedProjectId = v;
+                            _selectedFloor = null;
+                            _selectedFloorId = null;
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _projectError = null;
+                          });
+                          await _loadFloors(v);
+                          setState(() {});
+                        },
+                        onFloorChanged: (v) async {
+                          setState(() {
+                            _selectedFloor = v?.toString();
+                            _selectedFloorId = v?.toString();
+                            _selectedPhase = null;
+                            _selectedPhaseId = null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _floorError = null;
+                          });
+                          await _loadPhases(v);
+                          setState(() {});
+                        },
+                        onPhaseChanged: (v) async {
+                          final phaseName = v?.toString();
+                          setState(() {
+                            _selectedPhase = phaseName;
+                            _selectedPhaseId = phaseName != null
+                                ? _derivePhaseId(phaseName)
+                                : null;
+                            _selectedActivity = null;
+                            _selectedActivityId = null;
+                            _phaseError = null;
+                          });
+                          await _loadActivities(v);
+                          setState(() {});
+                        },
+                        onActivityChanged: (v) {
+                          final actName = v?.toString();
+                          setState(() {
+                            _selectedActivity = actName;
+                            _selectedActivityId = actName != null
+                                ? _deriveActivityId(actName)
+                                : null;
+                            _activityError = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-                    ExecutionContextCard(
-                      selectedProjectId: _selectedProjectId,
-                      selectedFloor: _selectedFloor,
-                      selectedPhase: _selectedPhase,
-                      selectedActivity: _selectedActivity,
-                      projectError: _projectError,
-                      floorError: _floorError,
-                      phaseError: _phaseError,
-                      activityError: _activityError,
-                      onProjectChanged: (v) => setState(() {
-                        _selectedProjectId = v;
-                        _selectedFloor = null;
-                        _selectedFloorId = null;
-                        _selectedPhase = null;
-                        _selectedPhaseId = null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _projectError = null;
-                        _loadRecentEntries();
-                      }),
-                      onFloorChanged: (v) => setState(() {
-                        _selectedFloor = v;
-                        _selectedFloorId = v;
-                        _selectedPhase = null;
-                        _selectedPhaseId = null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _floorError = null;
-                        _floorWarning = null;
-                      }),
-                      onPhaseChanged: (v) => setState(() {
-                        _selectedPhase = v;
-                        _selectedPhaseId = v != null ? _derivePhaseId(v) : null;
-                        _selectedActivity = null;
-                        _selectedActivityId = null;
-                        _phaseError = null;
-                        _phaseWarning = null;
-                      }),
-                      onActivityChanged: (v) => setState(() {
-                        _selectedActivity = v;
-                        _selectedActivityId = v != null ? _deriveActivityId(v) : null;
-                        _activityError = null;
-                        _activityWarning = null;
-                      }),
-                    ),
 
                     // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)
@@ -1636,8 +2008,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: Color(0xFFE65100), size: 20),
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Color(0xFFE65100),
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -1667,8 +2042,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: Color(0xFFE65100), size: 20),
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Color(0xFFE65100),
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -1698,8 +2076,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: Color(0xFFE65100), size: 20),
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Color(0xFFE65100),
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -1724,7 +2105,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const EntryCardHeader(
                             icon: Icons.people_outline,
                             title: 'Labour Entry',
-                            subtitle: 'Date · Labour Type · Unit · Qty · Rate · Amount',
+                            subtitle:
+                                'Date · Labour Type · Unit · Qty · Rate · Amount',
                           ),
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
@@ -1755,21 +2137,41 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                               if (!mounted) return;
                               setState(() {
                                 _isDatePickerOpen = false;
-                                if (picked != null) _selectedDate = picked;
+                                if (picked != null) {
+                                  // FIX: showDatePicker only returns a date
+                                  // (midnight) — preserve the real time-of-
+                                  // day instead of zeroing it out.
+                                  _selectedDate = DateTime(
+                                    picked.year,
+                                    picked.month,
+                                    picked.day,
+                                    _selectedDate.hour,
+                                    _selectedDate.minute,
+                                    _selectedDate.second,
+                                  );
+                                }
                               });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 0, vertical: 12),
+                                horizontal: 0,
+                                vertical: 12,
+                              ),
                               decoration: const BoxDecoration(
                                 border: Border(
-                                    bottom: BorderSide(
-                                        color: Color(0xFF173EEA), width: 2)),
+                                  bottom: BorderSide(
+                                    color: Color(0xFF173EEA),
+                                    width: 2,
+                                  ),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today_outlined,
-                                      color: AppColors.primary, size: 18),
+                                  const Icon(
+                                    Icons.calendar_today_outlined,
+                                    color: AppColors.primary,
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
@@ -1780,8 +2182,11 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     ),
                                   ),
                                   const Spacer(),
-                                  const Icon(Icons.keyboard_arrow_down_rounded,
-                                      color: AppColors.primary, size: 22),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: AppColors.primary,
+                                    size: 22,
+                                  ),
                                 ],
                               ),
                             ),
@@ -1800,7 +2205,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                             errorText: _nameError,
                           ),
                           const SizedBox(height: 20),
-
 
                           // ── 3. UNIT ────────────────────────────────────────
                           const EntryFieldLabel('Unit', required: true),
@@ -1848,25 +2252,36 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14),
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0F2FF),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: const Color(0xFFCDD1F0), width: 1.5),
+                                color: const Color(0xFFCDD1F0),
+                                width: 1.5,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.currency_rupee_rounded,
-                                    size: 16, color: Color(0xFF173EEA)),
+                                const Icon(
+                                  Icons.currency_rupee_rounded,
+                                  size: 16,
+                                  color: Color(0xFF173EEA),
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   (() {
-                                    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
-                                    final rate = double.tryParse(_rateCtrl.text) ?? 0;
+                                    final qty =
+                                        double.tryParse(_qtyCtrl.text) ?? 0;
+                                    final rate =
+                                        double.tryParse(_rateCtrl.text) ?? 0;
                                     final sub = qty * rate;
                                     return sub > 0
-                                        ? sub.toStringAsFixed(sub % 1 == 0 ? 0 : 2)
+                                        ? sub.toStringAsFixed(
+                                            sub % 1 == 0 ? 0 : 2,
+                                          )
                                         : '—';
                                   })(),
                                   style: const TextStyle(
@@ -1879,7 +2294,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 const Spacer(),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFE0E3FF),
                                     borderRadius: BorderRadius.circular(6),
@@ -1903,10 +2320,12 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           Row(
                             children: [
                               const Expanded(
-                                  child: Divider(color: Color(0xFFF0EEF8))),
+                                child: Divider(color: Color(0xFFF0EEF8)),
+                              ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10),
+                                  horizontal: 10,
+                                ),
                                 child: Text(
                                   'OPTIONAL DETAILS',
                                   style: TextStyle(
@@ -1918,7 +2337,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 ),
                               ),
                               const Expanded(
-                                  child: Divider(color: Color(0xFFF0EEF8))),
+                                child: Divider(color: Color(0xFFF0EEF8)),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -1961,8 +2381,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-
-
                     CostSummaryCard(
                       totalAmount: _totalCost(),
                       label: 'Calculated Operational Labor Budget',
@@ -1999,7 +2417,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ),
                     ),
 
-                    if (RoleManager.canApprovePayments)
+                    if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 
@@ -2011,8 +2429,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Center(
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2)),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         )
                       else if (_recentEntries.isNotEmpty) ...[
                         const SizedBox(height: 16),
@@ -2020,12 +2438,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           onTap: _showRecentEntriesSheet,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                  color: const Color(0xFFD1EDD4), width: 1.2),
+                                color: const Color(0xFFD1EDD4),
+                                width: 1.2,
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.03),
@@ -2039,12 +2461,16 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2E7D32)
-                                        .withValues(alpha: 0.08),
+                                    color: const Color(
+                                      0xFF2E7D32,
+                                    ).withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(11),
                                   ),
-                                  child: const Icon(Icons.history_rounded,
-                                      color: Color(0xFF2E7D32), size: 20),
+                                  child: const Icon(
+                                    Icons.history_rounded,
+                                    color: Color(0xFF2E7D32),
+                                    size: 20,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -2052,24 +2478,31 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Recent Labour Entries',
-                                          style: TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.textDark)),
+                                      const Text(
+                                        'Recent Labour Entries',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textDark,
+                                        ),
+                                      ),
                                       const SizedBox(height: 2),
                                       Text(
                                         '${_recentEntries.length} similar entr${_recentEntries.length == 1 ? "y" : "ies"} found · Tap to view',
                                         style: const TextStyle(
-                                            fontSize: 11.5,
-                                            color: AppColors.textLight,
-                                            fontWeight: FontWeight.w500),
+                                          fontSize: 11.5,
+                                          color: AppColors.textLight,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right_rounded,
-                                    color: AppColors.textLight, size: 22),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textLight,
+                                  size: 22,
+                                ),
                               ],
                             ),
                           ),
@@ -2078,9 +2511,10 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       ],
                     ],
 
-
                     EntrySubmitButton(
-                      label: RoleManager.canApprovePayments ? 'Save Labour Entry' : 'Submit to Supervisor',
+                      label: RoleManager.canApprovePayments
+                          ? 'Save Labour Entry'
+                          : 'Submit to Supervisor',
                       icon: Icons.check_circle,
                       isLoading: _isSaving,
                       onTap: () => _save(context),

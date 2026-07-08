@@ -201,8 +201,9 @@ class SubscriptionScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                             decoration: TextDecoration.underline,
-                            decorationColor:
-                                AppColors.primary.withValues(alpha: 0.4),
+                            decorationColor: AppColors.primary.withValues(
+                              alpha: 0.4,
+                            ),
                           ),
                         ),
                       ),
@@ -252,21 +253,26 @@ class SubscriptionScreen extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15)),
+              color: AppColors.primary.withValues(alpha: 0.15),
+            ),
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.auto_awesome_rounded,
-                  color: AppColors.primary, size: 14),
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+                size: 14,
+              ),
               SizedBox(width: 6),
               Text(
                 'Unlock Premium Features',
                 style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2),
+                  color: AppColors.primary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
               ),
             ],
           ),
@@ -286,8 +292,7 @@ class SubscriptionScreen extends StatelessWidget {
         const Text(
           'Choose a plan that scales with your business.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 15, color: Color(0xFF667085), height: 1.4),
+          style: TextStyle(fontSize: 15, color: Color(0xFF667085), height: 1.4),
         ),
       ],
     );
@@ -299,7 +304,10 @@ class SubscriptionScreen extends StatelessWidget {
   // 3. Waits for result (true = success, false = failure)
   // 4. Shows success dialog or error banner
   Future<void> _onUpgrade(
-      BuildContext context, SubscriptionProvider sub, _PlanInfo plan) async {
+    BuildContext context,
+    SubscriptionProvider sub,
+    _PlanInfo plan,
+  ) async {
     // Free plan or already on this plan — do nothing
     if (plan.productId == null) return;
     if (sub.currentPlan == plan.plan) return;
@@ -334,7 +342,9 @@ class SubscriptionScreen extends StatelessWidget {
   }
 
   Future<void> _onRestore(
-      BuildContext context, SubscriptionProvider sub) async {
+    BuildContext context,
+    SubscriptionProvider sub,
+  ) async {
     await sub.restore();
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -342,15 +352,15 @@ class SubscriptionScreen extends StatelessWidget {
         content: Text(
           sub.error.isEmpty
               ? sub.isPaid
-                  ? 'Your ${sub.currentPlan.label} plan has been restored!'
-                  : 'No active subscriptions found.'
+                    ? 'Your ${sub.currentPlan.label} plan has been restored!'
+                    : 'No active subscriptions found.'
               : sub.error,
         ),
-        backgroundColor:
-            sub.error.isEmpty ? AppColors.success : AppColors.error,
+        backgroundColor: sub.error.isEmpty
+            ? AppColors.success
+            : AppColors.error,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
     );
@@ -361,8 +371,7 @@ class SubscriptionScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -375,26 +384,35 @@ class SubscriptionScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color: AppColors.primaryPurple.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8))
+                    color: AppColors.primaryPurple.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
               ),
-              child: const Icon(Icons.check_rounded,
-                  color: Colors.white, size: 36),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 36,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Welcome to ${plan.title}!',
               style: AppTheme.heading2.copyWith(
-                  fontSize: 22, color: const Color(0xFF101828)),
+                fontSize: 22,
+                color: const Color(0xFF101828),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your subscription is now active.\nEnjoy all ${plan.title} features.',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  color: Color(0xFF667085), fontSize: 14, height: 1.5),
+                color: Color(0xFF667085),
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 32),
             PremiumCtaButton(
@@ -443,20 +461,22 @@ class _PlanCard extends StatelessWidget {
             boxShadow: isPro
                 ? [
                     BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12)),
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
                     BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4)),
+                      color: AppColors.primary.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
                   ]
                 : [
                     BoxShadow(
-                        color: const Color(0xFF101828)
-                            .withValues(alpha: 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4))
+                      color: const Color(0xFF101828).withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
           ),
           child: Padding(
@@ -502,9 +522,10 @@ class _PlanCard extends StatelessWidget {
                 Text(
                   info.tagline,
                   style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF667085),
-                      height: 1.4),
+                    fontSize: 14,
+                    color: Color(0xFF667085),
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -524,9 +545,10 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       info.period,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF667085)),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF667085),
+                      ),
                     ),
                   ],
                 ),
@@ -534,7 +556,8 @@ class _PlanCard extends StatelessWidget {
                 const Divider(color: Color(0xFFEAECF0), height: 1),
                 const SizedBox(height: 24),
                 ...info.features.map(
-                    (f) => _FeatureItem(text: f, isHighlighted: isPro)),
+                  (f) => _FeatureItem(text: f, isHighlighted: isPro),
+                ),
                 const SizedBox(height: 8),
                 _buildCta(),
               ],
@@ -546,26 +569,26 @@ class _PlanCard extends StatelessWidget {
             top: -14,
             right: 24,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 gradient: AppGradients.primaryButton,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color:
-                          AppColors.primaryPurple.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4))
+                    color: AppColors.primaryPurple.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: const Text(
                 'Most Popular',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
           ),
@@ -574,8 +597,7 @@ class _PlanCard extends StatelessWidget {
             top: -14,
             right: 24,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFF101828),
                 borderRadius: BorderRadius.circular(20),
@@ -583,9 +605,10 @@ class _PlanCard extends StatelessWidget {
               child: const Text(
                 'Your Plan',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
@@ -607,9 +630,10 @@ class _PlanCard extends StatelessWidget {
           child: Text(
             'Current Plan',
             style: TextStyle(
-                color: Color(0xFF475467),
-                fontSize: 15,
-                fontWeight: FontWeight.w700),
+              color: Color(0xFF475467),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       );
@@ -637,9 +661,10 @@ class _PlanCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFFD0D5DD), width: 1.5),
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFF101828).withValues(alpha: 0.05),
-                blurRadius: 2,
-                offset: const Offset(0, 1))
+              color: const Color(0xFF101828).withValues(alpha: 0.05),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
         child: Center(
@@ -648,13 +673,18 @@ class _PlanCard extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Color(0xFF344054)),
+                    strokeWidth: 2.5,
+                    color: Color(0xFF344054),
+                  ),
                 )
-              : Text(info.cta,
+              : Text(
+                  info.cta,
                   style: const TextStyle(
-                      color: Color(0xFF344054),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700)),
+                    color: Color(0xFF344054),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
         ),
       ),
     );
@@ -680,11 +710,14 @@ class _LimitPill extends StatelessWidget {
         children: [
           Icon(icon, size: 11, color: const Color(0xFF667085)),
           const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF344054),
-                  fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF344054),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -712,21 +745,24 @@ class _FeatureItem extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(4),
-            child: Icon(Icons.check_rounded,
-                size: 14,
-                color: isHighlighted
-                    ? AppColors.primary
-                    : const Color(0xFF667085)),
+            child: Icon(
+              Icons.check_rounded,
+              size: 14,
+              color: isHighlighted
+                  ? AppColors.primary
+                  : const Color(0xFF667085),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                  fontSize: 14.5,
-                  color: Color(0xFF344054),
-                  height: 1.4,
-                  fontWeight: FontWeight.w500),
+                fontSize: 14.5,
+                color: Color(0xFF344054),
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -753,11 +789,14 @@ class _ErrorBanner extends StatelessWidget {
           const Icon(Icons.error_outline, color: Color(0xFFD92D20), size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(message,
-                style: const TextStyle(
-                    color: Color(0xFFB42318),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500)),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFFB42318),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

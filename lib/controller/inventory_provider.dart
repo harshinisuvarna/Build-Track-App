@@ -13,7 +13,9 @@ class InventoryProvider extends ChangeNotifier {
 
   // TASK 2 LOGIC: Dynamically filters items below their threshold!
   List<InventoryItem> get lowStockAlerts {
-    return _inventory.where((item) => item.closingStock < item.threshold).toList();
+    return _inventory
+        .where((item) => item.closingStock < item.threshold)
+        .toList();
   }
 
   // Filtered getters for each tab in InventoryScreen
@@ -51,12 +53,11 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
 
   Future<void> loadInventory(String projectId) async {
     _isLoading = true;
     _error = '';
-    notifyListeners(); 
+    notifyListeners();
 
     try {
       final rawData = await ApiService.fetchInventory(projectId);
@@ -72,7 +73,11 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   // New method for Server-Side Search
-  Future<void> performSearch(String query, String category, {String projectId = ''}) async {
+  Future<void> performSearch(
+    String query,
+    String category, {
+    String projectId = '',
+  }) async {
     _isLoading = true;
     _error = '';
     notifyListeners();

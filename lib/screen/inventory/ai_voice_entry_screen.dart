@@ -13,8 +13,9 @@ import 'package:provider/provider.dart';
 // All UI renders from this model. Backend integration just replaces the
 // population layer — the rendering pipeline stays identical.
 class VoiceResponseModel {
-  final String status; // idle | listening | processing | thinking | extracting |
-                       // waiting_for_user | summary | saving | completed | error
+  final String
+  status; // idle | listening | processing | thinking | extracting |
+  // waiting_for_user | summary | saving | completed | error
   final String? entryType;
   final String? transcript;
   final String? partialTranscript;
@@ -58,22 +59,21 @@ class VoiceResponseModel {
     double? confidence,
     String? errorMessage,
     String? welcomeMessage,
-  }) =>
-      VoiceResponseModel(
-        status: status ?? this.status,
-        entryType: entryType ?? this.entryType,
-        transcript: transcript ?? this.transcript,
-        partialTranscript: partialTranscript ?? this.partialTranscript,
-        detectedFields: detectedFields ?? this.detectedFields,
-        missingFields: missingFields ?? this.missingFields,
-        question: question ?? this.question,
-        suggestions: suggestions ?? this.suggestions,
-        completedFields: completedFields ?? this.completedFields,
-        totalFields: totalFields ?? this.totalFields,
-        confidence: confidence ?? this.confidence,
-        errorMessage: errorMessage ?? this.errorMessage,
-        welcomeMessage: welcomeMessage ?? this.welcomeMessage,
-      );
+  }) => VoiceResponseModel(
+    status: status ?? this.status,
+    entryType: entryType ?? this.entryType,
+    transcript: transcript ?? this.transcript,
+    partialTranscript: partialTranscript ?? this.partialTranscript,
+    detectedFields: detectedFields ?? this.detectedFields,
+    missingFields: missingFields ?? this.missingFields,
+    question: question ?? this.question,
+    suggestions: suggestions ?? this.suggestions,
+    completedFields: completedFields ?? this.completedFields,
+    totalFields: totalFields ?? this.totalFields,
+    confidence: confidence ?? this.confidence,
+    errorMessage: errorMessage ?? this.errorMessage,
+    welcomeMessage: welcomeMessage ?? this.welcomeMessage,
+  );
 
   bool get hasField => detectedFields.isNotEmpty;
   bool fieldHasValue(String key) =>
@@ -98,37 +98,13 @@ abstract final class VoiceStatus {
   static const String error = 'error';
 }
 
-// ─── Backward-compat enum mapping (will be removed when backend is connected) ──
-// Translates between the old _ConvStep enum values and the new status strings
-// so existing UI code continues working without modification.
-enum _ConvStep {
-  initialVoice,
-  aiProcessing,
-  extracted,
-  askProject,
-  askFloor,
-  askPhase,
-  askActivity,
-  askQuantity,
-  askUnit,
-  askRate,
-  askBrand,
-  askLabourType,
-  askWorkerCount,
-  askHours,
-  askEquipment,
-  askFuel,
-  summary,
-  saving,
-  success,
-}
-
-// ─── Backward-compat ExtractedData class ──────────────────────────────────────
+// ─── ExtractedData wrapper for backward-compat accessor convenience ──────────
 // Thin wrapper over Map<String, dynamic> so all existing `_data.xxx` calls work.
 class _ExtractedData {
   final Map<String, dynamic> _map;
+  final ProjectProvider? _projectProvider;
 
-  _ExtractedData(this._map);
+  _ExtractedData(this._map, [this._projectProvider]);
 
   String? get itemName => _map['Item Name'] as String?;
   set itemName(String? v) => _map['Item Name'] = v;
@@ -140,17 +116,35 @@ class _ExtractedData {
   set rate(double? v) => _map['Rate'] = v;
   String? get brand => _map['Brand'] as String?;
   set brand(String? v) => _map['Brand'] = v;
-  String? get projectId => _map['Project ID'] as String?;
+
+  String? get projectId => _projectProvider != null
+      ? _projectProvider.selectedProject?.id
+      : _map['Project ID'] as String?;
   set projectId(String? v) => _map['Project ID'] = v;
-  String? get projectName => _map['Project Name'] as String?;
+
+  String? get projectName => _projectProvider != null
+      ? _projectProvider.selectedProject?.name
+      : _map['Project Name'] as String?;
   set projectName(String? v) => _map['Project Name'] = v;
-  String? get floor => _map['Floor'] as String?;
+
+  String? get floor => _projectProvider != null
+      ? _projectProvider.selectedFloor
+      : _map['Floor'] as String?;
   set floor(String? v) => _map['Floor'] = v;
-  String? get phase => _map['Phase'] as String?;
+
+  String? get phase => _projectProvider != null
+      ? _projectProvider.selectedPhase
+      : _map['Phase'] as String?;
   set phase(String? v) => _map['Phase'] = v;
-  String? get phaseId => _map['Phase ID'] as String?;
+
+  String? get phaseId => _projectProvider != null
+      ? _projectProvider.selectedPhaseId
+      : _map['Phase ID'] as String?;
   set phaseId(String? v) => _map['Phase ID'] = v;
-  String? get activity => _map['Activity'] as String?;
+
+  String? get activity => _projectProvider != null
+      ? _projectProvider.selectedActivity
+      : _map['Activity'] as String?;
   set activity(String? v) => _map['Activity'] = v;
   int? get workerCount => _map['Worker Count'] as int?;
   set workerCount(int? v) => _map['Worker Count'] = v;
@@ -227,11 +221,7 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _ctrl,
-      child: Container(
-        width: 2,
-        height: 18,
-        color: AppColors.primary,
-      ),
+      child: Container(width: 2, height: 18, color: AppColors.primary),
     );
   }
 }
@@ -253,16 +243,6 @@ class AiVoiceEntryScreen extends StatefulWidget {
 
 class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     with TickerProviderStateMixin {
-  // ── Conversational Session Memory ──────────────────────────────────────────
-  static final Map<String, dynamic> _sessionMemory = {
-    'projectId': null,
-    'projectName': null,
-    'floor': null,
-    'phase': null,
-    'phaseId': null,
-    'activity': null,
-  };
-
   // ── Entry type ───────────────────────────────────────────────────────────────
   late String _entryType; // 'material' | 'labour' | 'equipment'
 
@@ -275,91 +255,52 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ── Detected fields (replaces _ExtractedData's individual fields) ─────────────
   final Map<String, dynamic> _detectedFields = {};
 
-  // ── Backward-compat wrappers so existing UI code continues working ────────────
-  // _data wraps _detectedFields; _step derives from _status.
-  // DELETE THESE AND ALL `_data.` / `_step` / `_ConvStep` REFERENCES
-  // WHEN THE BACKEND IS CONNECTED.
-  _ExtractedData get _data => _ExtractedData(_detectedFields);
+  // ── Data wrappers ─────────────────────────────────────────────────────────────
+  _ExtractedData get _data => _ExtractedData(
+    _detectedFields,
+    Provider.of<ProjectProvider>(context, listen: false),
+  );
   String _rawTranscript = '';
 
-  // ── Conversation status (replaces _ConvStep) ──────────────────────────────────
+  // ── Session phase (single source of truth state machine) ──────────────────────
+  // idle → listening → processing → waitingForUser → listening → ... → summary → saving → completed
   String _status = VoiceStatus.idle;
-  _ConvStep get _step => _convStepFromStatus(_status);
-  set _step(_ConvStep value) {
-    _status = _statusFromConvStep(value);
+
+  // The field name currently being asked (derived from first missing field).
+  // Only meaningful when _status == VoiceStatus.waitingForUser — null otherwise.
+  // This is the single function that decides which question to ask next.
+  // It reads fresh missing fields every time — never stale state.
+  String? _fieldToAsk() {
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI DEBUG] _fieldToAsk: missingFields=$missing');
+    if (missing.isEmpty) return null;
+    return missing.first;
   }
 
-  // Map from old _ConvStep to new status string (for backward compat assignments)
-  static String _statusFromConvStep(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.initialVoice:
-        return VoiceStatus.listening;
-      case _ConvStep.aiProcessing:
-        return VoiceStatus.processing;
-      case _ConvStep.extracted:
-        return VoiceStatus.extracting;
-      case _ConvStep.askProject:
-      case _ConvStep.askFloor:
-      case _ConvStep.askPhase:
-      case _ConvStep.askActivity:
-      case _ConvStep.askQuantity:
-      case _ConvStep.askUnit:
-      case _ConvStep.askRate:
-      case _ConvStep.askBrand:
-      case _ConvStep.askLabourType:
-      case _ConvStep.askWorkerCount:
-      case _ConvStep.askHours:
-      case _ConvStep.askEquipment:
-      case _ConvStep.askFuel:
-        return VoiceStatus.waitingForUser;
-      case _ConvStep.summary:
-        return VoiceStatus.summary;
-      case _ConvStep.saving:
-        return VoiceStatus.saving;
-      case _ConvStep.success:
-        return VoiceStatus.completed;
-    }
-  }
-
-  // Map from status string to old _ConvStep (for backward compat getter)
-  static _ConvStep _convStepFromStatus(String status) {
-    switch (status) {
-      case VoiceStatus.listening:
-      case VoiceStatus.idle:
-        return _ConvStep.initialVoice;
-      case VoiceStatus.processing:
-      case VoiceStatus.thinking:
-        return _ConvStep.aiProcessing;
-      case VoiceStatus.extracting:
-        return _ConvStep.extracted;
-      case VoiceStatus.summary:
-        return _ConvStep.summary;
-      case VoiceStatus.saving:
-        return _ConvStep.saving;
-      case VoiceStatus.completed:
-        return _ConvStep.success;
-      case VoiceStatus.error:
-        return _ConvStep.initialVoice; // fallback
-      case VoiceStatus.waitingForUser:
-        return _ConvStep.askProject; // will be refined dynamically
-      default:
-        return _ConvStep.initialVoice;
-    }
+  String? get _activeField {
+    if (_status != VoiceStatus.waitingForUser) return null;
+    return _fieldToAsk();
   }
 
   String? _saveError;
   String? _savedEntryId;
 
+  // ── Edit mode state ──────────────────────────────────────────────────
+  bool _isEditing = false;
+  final Map<String, TextEditingController> _editControllers = {};
+  Map<String, dynamic>? _savedEditFields;
+  String? _editError;
+
   // ── Backend-driven question & suggestions ─────────────────────────────────────
   String _backendQuestion = '';
   List<String> _backendSuggestions = const [];
 
-  // ── Field progress (computed via _rebuildResponse, read from _response) ────────
+  // ── Duplicate processing guard ──────────────────────────────────────────────────
+  bool _isProcessing = false;
 
   // ── Voice engine ──────────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
   bool _isListeningForAnswer = false;
-  bool _showAnalyzingLabel = false;
   String _partialAnswer = '';
 
   // ── Text input toggle & controllers ───────────────────────────────────────────
@@ -377,12 +318,23 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   late final AnimationController _waveCtrl;
 
   // ── Projects ──────────────────────────────────────────────────────────────────
-  List<ProjectModel> get _projects =>
-      Provider.of<ProjectProvider>(context, listen: false).projects;
+  List<ProjectModel> get _projects {
+    final projects = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
+    ).projects;
+
+    debugPrint(
+      "AI PROJECTS: ${projects.map((e) => "${e.name} (${e.id})").toList()}",
+    );
+
+    return projects;
+  }
 
   // ── Processing stages ─────────────────────────────────────────────────────────
   int _processingStage = 0;
   Timer? _processingTimer;
+  Timer? _answerTimeoutTimer;
 
   @override
   void initState() {
@@ -410,6 +362,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     _voiceCtrl = VoiceRecordingController();
     _voiceCtrl.addListener(_onVoiceChanged);
+    _voiceCtrl
+        .preInitialize(); // Pre-initialize STT so it starts instantly on tap
   }
 
   @override
@@ -419,36 +373,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _entryType = (args?['type'] as String?) ?? 'material';
 
-    // Pre-populate project and other context from static session memory first
-    if (_sessionMemory['projectId'] != null) {
-      _detectedFields['Project ID'] = _sessionMemory['projectId'];
-      _detectedFields['Project Name'] = _sessionMemory['projectName'];
-    } else {
-      final pid = UserSession.projectId;
-      if (pid.isNotEmpty) {
-        _detectedFields['Project ID'] = pid;
-        final match = _projects.cast<ProjectModel?>().firstWhere(
-              (p) => p?.id == pid,
-              orElse: () => null,
-            );
-        _detectedFields['Project Name'] = match?.name;
-      }
-    }
-    if (_sessionMemory['floor'] != null) _detectedFields['Floor'] = _sessionMemory['floor'];
-    if (_sessionMemory['phase'] != null) _detectedFields['Phase'] = _sessionMemory['phase'];
-    if (_sessionMemory['phaseId'] != null) _detectedFields['Phase ID'] = _sessionMemory['phaseId'];
-    if (_sessionMemory['activity'] != null) _detectedFields['Activity'] = _sessionMemory['activity'];
-
-    // Build initial response model from session
+    // Build initial response model
     _rebuildResponse();
-
-    // Auto-start initial voice entry recording on screen load
-    if (_rawTranscript.isEmpty && _voiceCtrl.engineState == VoiceEngineState.idle) {
-      setState(() => _status = VoiceStatus.listening);
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) _startInitialRecording();
-      });
-    }
   }
 
   @override
@@ -463,86 +389,236 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _focusNode.dispose();
     _scrollCtrl.dispose();
     _processingTimer?.cancel();
+    _answerTimeoutTimer?.cancel();
+    _disposeEditControllers();
     super.dispose();
   }
 
-  // ─── Example Phrases ──────────────────────────────────────────────────────────
-  String get _examplePhrase {
-    if (_entryType == 'material') {
-      return '20 bags of UltraTech cement for foundation work on first floor';
-    } else if (_entryType == 'labour') {
-      return '8 masons worked today for 6 hours on brick laying';
-    } else {
-      return 'JCB worked 5 hours today for excavation';
-    }
+  // ─── Cancel all orphanable timers ──────────────────────────────────────────────
+  void _cancelAllTimers() {
+    _processingTimer?.cancel();
+    _processingTimer = null;
+    _answerTimeoutTimer?.cancel();
+    _answerTimeoutTimer = null;
+  }
+
+  // ─── 30-second answer timeout ───────────────────────────────────────────────
+  void _startAnswerTimeout() {
+    _answerTimeoutTimer?.cancel();
+    _answerTimeoutTimer = Timer(const Duration(seconds: 30), () {
+      debugPrint('[VOICE] Answer timeout reached — auto-stopping');
+      if (_isListeningForAnswer && !_isProcessing && mounted) {
+        _stopAnswerListening();
+      }
+    });
+  }
+
+  // ─── Speech failed — recover without losing detected fields ─────────────────
+  void _speechFailed() {
+    if (!mounted) return;
+    _cancelAllTimers();
+    _isListeningForAnswer = false;
+    _isProcessing = false;
+    setState(() {
+      _status = VoiceStatus.listening;
+      _partialAnswer = '';
+      _rebuildResponse();
+    });
   }
 
   // ─── Voice engine listener ─────────────────────────────────────────────────────
   void _onVoiceChanged() {
     if (!mounted) return;
+
     final state = _voiceCtrl.engineState;
+    final text = _voiceCtrl.finalTranscript.trim().isNotEmpty
+        ? _voiceCtrl.finalTranscript.trim()
+        : _voiceCtrl.partialTranscript.trim();
+    final partial = _voiceCtrl.partialTranscript;
 
-    setState(() {
-      _partialAnswer = _voiceCtrl.partialTranscript;
-    });
+    // Always sync partial transcript for live preview
+    if (_partialAnswer != partial) {
+      setState(() => _partialAnswer = partial);
+      debugPrint('[VOICE] Partial: "$partial"');
+    }
 
+    debugPrint(
+      '[UI LISTENING STATE CHANGES] onVoiceChanged: EngineState=$state, STT.isListening=${_voiceCtrl.isListening}, UIStatus=$_status, isListeningForAnswer=$_isListeningForAnswer',
+    );
+
+    // ─── PARSED: Engine has finalized speech ─────────────────────────────────────
     if (state == VoiceEngineState.parsed) {
-      final text = _voiceCtrl.finalTranscript.trim();
-      if (_step == _ConvStep.initialVoice) {
+      debugPrint('[VOICE] Parsed: finalTranscript="$text"');
+
+      // Initial voice recording (first utterance from user)
+      if (_status == VoiceStatus.listening && _rawTranscript.isEmpty) {
         if (text.isNotEmpty) {
+          debugPrint('[VOICE] Setting rawTranscript from parsed: "$text"');
           _rawTranscript = text;
+          _beginAiProcessing();
+        } else {
+          debugPrint('[VOICE] Parsed with empty transcript — restarting');
+          _restartInitialRecording();
         }
-      } else if (_isListeningForAnswer) {
+        return;
+      }
+
+      // Answer listening (user responding to an AI question)
+      if (_isListeningForAnswer) {
+        if (_isProcessing) {
+          debugPrint('[VOICE] Parsed while processing — ignoring');
+          return;
+        }
         _isListeningForAnswer = false;
+        debugPrint('[VOICE] Answer listening stopped');
         if (text.isNotEmpty) {
+          debugPrint('[VOICE] Processing answer: "$text"');
           _handleVoiceAnswer(text);
+        } else {
+          debugPrint('[VOICE] Empty answer — unsticking');
+          _unstickListening();
         }
+        return;
+      }
+
+      // Unexpected parsed — just update display
+      setState(() => _rebuildResponse());
+      return;
+    }
+
+    // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
+    if (state == VoiceEngineState.error) {
+      debugPrint('[VOICE ERROR] Engine error: ${_voiceCtrl.errorMessage}');
+      if (mounted) {
+        setState(() {
+          _saveError = _voiceCtrl.errorMessage;
+          _status = VoiceStatus.idle;
+          _isListeningForAnswer = false;
+          _rebuildResponse();
+        });
+      }
+      return;
+    }
+
+    if (state == VoiceEngineState.idle) {
+      if (_isListeningForAnswer) {
+        if (_isProcessing) {
+          debugPrint('[VOICE] idle while processing — ignoring');
+          return;
+        }
+        debugPrint(
+          '[VOICE] Engine went idle while waiting for answer — unsticking',
+        );
+        _isListeningForAnswer = false;
+        _unstickListening();
+        return;
+      } else if (_status == VoiceStatus.listening) {
+        setState(() {
+          _status = VoiceStatus.idle;
+          _rebuildResponse();
+        });
+      }
+    }
+
+    // ─── PROCESSING: Engine is analyzing ─────────────────────────────────────────
+    if (state == VoiceEngineState.processing &&
+        text.isNotEmpty &&
+        _rawTranscript.isEmpty) {
+      if (_status == VoiceStatus.listening) {
+        debugPrint('[VOICE] Processing with transcript available: "$text"');
+        _rawTranscript = text;
+        _beginAiProcessing();
       }
     }
   }
 
+  // BUG 3 FIX: Force-reset the listening UI without losing detected fields
+  void _unstickListening() {
+    if (!mounted) return;
+    setState(() {
+      _partialAnswer = '';
+      _rebuildResponse();
+    });
+  }
+
+  void _restartInitialRecording() {
+    if (!mounted) return;
+    setState(() {
+      _status = VoiceStatus.idle;
+      _rebuildResponse();
+    });
+  }
+
   // ─── Recording control helpers ────────────────────────────────────────────────
   Future<void> _startInitialRecording() async {
+    if (_isProcessing || _voiceCtrl.engineState == VoiceEngineState.listening) {
+      debugPrint(
+        '[VOICE ACTION GUARD] _startInitialRecording ignored: isProcessing=$_isProcessing, engineState=${_voiceCtrl.engineState}',
+      );
+      return;
+    }
+    debugPrint("Listening: true");
+    debugPrint("Recording: true");
+    _resetCurrentEntryData();
+    setState(() {
+      _status = VoiceStatus.listening;
+      _saveError = null;
+      _rebuildResponse();
+    });
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
   }
 
   Future<void> _stopInitialRecording() async {
+    if (_voiceCtrl.engineState != VoiceEngineState.listening) {
+      debugPrint(
+        '[VOICE ACTION GUARD] _stopInitialRecording ignored: engineState=${_voiceCtrl.engineState}',
+      );
+      return;
+    }
+    debugPrint("Listening: false");
+    debugPrint("Recording: false");
+    debugPrint("Timer cancelled");
+    debugPrint("Waveform stopped");
     await _voiceCtrl.stopListening();
   }
 
   // ─── Stop & Analyze ───────────────────────────────────────────────────────────
-  // Single-button flow: stops recording, waits for the transcript to finalize,
-  // then immediately starts AI processing. No second "Continue" tap needed.
+  // Single-button flow: stops recording, immediately captures the transcript,
+  // then triggers AI processing. No busy-wait, no second click.
   Future<void> _stopAndAnalyze() async {
-    setState(() => _showAnalyzingLabel = true);
+    if (_isProcessing) {
+      debugPrint(
+        '[VOICE ACTION GUARD] _stopAndAnalyze ignored: already processing.',
+      );
+      return;
+    }
 
-    // Step 1 — stop the microphone (voice engine transitions processing → parsed)
+    // Step 1 — stop the microphone
+    debugPrint('[VOICE] Stop & Analyze pressed');
     await _voiceCtrl.stopListening();
+    // Allow the speech engine a small moment to flush the final recognized words
+    await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
 
-    // Step 2 — wait for the voice engine's internal 800ms pipeline to finish
-    // and for _onVoiceChanged to capture the final transcript into _rawTranscript.
-    // (We keep _status at listening/idle during this wait so that
-    //  _onVoiceChanged still sees _step == _ConvStep.initialVoice.)
-    const maxWait = Duration(seconds: 3);
-    final start = DateTime.now();
-    while (_rawTranscript.isEmpty &&
-        DateTime.now().difference(start) < maxWait) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
+    // Step 2 — capture transcript directly (before any reset)
+    final transcript = _voiceCtrl.finalTranscript.trim().isNotEmpty
+        ? _voiceCtrl.finalTranscript.trim()
+        : _voiceCtrl.partialTranscript.trim();
+
+    debugPrint('[VOICE] Stop & Analyze: transcript="$transcript"');
+
+    if (transcript.isNotEmpty) {
+      _rawTranscript = transcript;
     }
 
-    // Fallback: read direct from controller if listener missed it
-    if (_rawTranscript.isEmpty) {
-      _rawTranscript = _voiceCtrl.finalTranscript;
-    }
-
-    setState(() => _showAnalyzingLabel = false);
-
-    // Step 3 — now flip to processing state and fire the AI chain
+    // Step 3 — fire the AI chain immediately if we have speech
     if (mounted && _rawTranscript.isNotEmpty) {
       _beginAiProcessing();
+    } else if (mounted) {
+      debugPrint('[VOICE] No transcript captured — restarting');
+      setState(() => _status = VoiceStatus.listening);
+      _startInitialRecording();
     }
   }
 
@@ -565,21 +641,60 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.vendorName = null;
       _rawTranscript = '';
       _partialAnswer = '';
+      _detectedFields.clear();
+      _rebuildResponse();
+    });
+  }
+
+  Future<void> _cancelRecording() async {
+    debugPrint('[VOICE] Cancel recording pressed');
+    if (_isProcessing) {
+      debugPrint(
+        '[VOICE ACTION GUARD] _cancelRecording ignored: already processing.',
+      );
+      return;
+    }
+    // Stop recording and discard recognition sessions/timers
+    await _voiceCtrl.cancelListening();
+
+    // Clear transcripts, parsed values, progress, and AI checklist
+    _resetCurrentEntryData();
+
+    // Return screen to fresh recording mode (idle status)
+    setState(() {
+      _status = VoiceStatus.idle;
       _rebuildResponse();
     });
   }
 
   // ─── AI Processing transition ──────────────────────────────────────────────────
   void _beginAiProcessing() {
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — ignoring duplicate request');
+      return;
+    }
+    _isProcessing = true;
+    debugPrint('[AI] PROCESSING: begin, transcript="$_rawTranscript"');
+
+    _cancelAllTimers();
+    if (!mounted) {
+      _isProcessing = false;
+      return;
+    }
+
     setState(() {
       _status = VoiceStatus.processing;
       _processingStage = 0;
       _rebuildResponse();
     });
 
-    _processingTimer?.cancel();
+    // Animated stage progression (visual only)
     _processingTimer = Timer.periodic(const Duration(milliseconds: 600), (t) {
       if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_status != VoiceStatus.processing) {
         t.cancel();
         return;
       }
@@ -594,33 +709,85 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     });
+
+    // 5-second processing timeout safeguard
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted || _status != VoiceStatus.processing) return;
+      debugPrint('[AI] Processing timeout (5s) — forcing extraction');
+      _cancelAllTimers();
+      try {
+        if (_rawTranscript.isEmpty) {
+          _rawTranscript = _voiceCtrl.finalTranscript.trim().isNotEmpty
+              ? _voiceCtrl.finalTranscript.trim()
+              : _voiceCtrl.partialTranscript.trim();
+          debugPrint('[AI] Fallback transcript: "$_rawTranscript"');
+        }
+        _finishExtraction();
+      } catch (e, stack) {
+        debugPrint('[AI ERROR] Timeout extraction: $e');
+        debugPrint('[AI ERROR] $stack');
+        _isProcessing = false;
+        if (mounted) {
+          setState(() {
+            _status = VoiceStatus.waitingForUser;
+            _rebuildResponse();
+          });
+        }
+      }
+    });
   }
 
   void _finishExtraction() {
-    _parseTranscriptInto(_data, _rawTranscript);
-    setState(() {
-      _status = VoiceStatus.extracting;
-      _rebuildResponse();
-    });
+    debugPrint('[AI] === _finishExtraction ===');
+    debugPrint('[AI] Raw transcript: "$_rawTranscript"');
+    debugPrint('[AI] Detected fields before: $_detectedFields');
+
+    try {
+      if (_rawTranscript.isNotEmpty) {
+        _parseTranscriptInto(_data, _rawTranscript);
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _finishExtraction parse: $e');
+      debugPrint('[AI ERROR] $stack');
+    }
+
+    debugPrint('[AI] Detected fields after: $_detectedFields');
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI] Missing fields: $missing');
+
+    _isProcessing = false;
+
+    if (missing.isEmpty && _detectedFields.isNotEmpty) {
+      debugPrint('[AI] All fields collected — showing review');
+      _goToSummary();
+      return;
+    }
+
     _advanceToNextMissingField();
   }
 
   // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
-    if (_step == _ConvStep.initialVoice && _voiceCtrl.isListening && _partialAnswer.isNotEmpty) {
+    if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) &&
+        _voiceCtrl.isListening &&
+        _partialAnswer.isNotEmpty) {
       final tempMap = <String, dynamic>{};
-      final temp = _ExtractedData(tempMap);
-      if (_sessionMemory['projectId'] != null) {
-        temp.projectId = _sessionMemory['projectId'];
-        temp.projectName = _sessionMemory['projectName'];
-      }
-      if (_sessionMemory['floor'] != null) temp.floor = _sessionMemory['floor'];
-      if (_sessionMemory['phase'] != null) temp.phase = _sessionMemory['phase'];
-      if (_sessionMemory['phaseId'] != null) temp.phaseId = _sessionMemory['phaseId'];
-      if (_sessionMemory['activity'] != null) temp.activity = _sessionMemory['activity'];
+      final temp = _ExtractedData(
+        tempMap,
+        Provider.of<ProjectProvider>(context, listen: false),
+      );
 
       _parseTranscriptInto(temp, _partialAnswer);
       return temp;
+    } else if (_status == VoiceStatus.waitingForUser &&
+        _voiceCtrl.isListening &&
+        _partialAnswer.isNotEmpty) {
+      final tempMap = Map<String, dynamic>.from(_detectedFields);
+      final field = _activeField;
+      if (field != null) {
+        _applyAnswerForFieldToMap(tempMap, field, _partialAnswer);
+      }
+      return _ExtractedData(tempMap);
     }
     return _data;
   }
@@ -631,17 +798,52 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Auto-detect entry type from conversation ──────────────────────────────
     if (_entryType == 'material') {
       const labourKeywords = [
-        'mason', 'masons', 'worker', 'workers', 'carpenter', 'carpenters',
-        'plumber', 'plumbers', 'electrician', 'electricians', 'helper',
-        'helpers', 'labour', 'labourer', 'labourers', 'welder', 'welders',
-        'painter', 'painters', 'foreman', 'engineer', 'engineers',
-        'supervisor', 'supervisors', 'driver', 'drivers',
+        'mason',
+        'masons',
+        'worker',
+        'workers',
+        'carpenter',
+        'carpenters',
+        'plumber',
+        'plumbers',
+        'electrician',
+        'electricians',
+        'helper',
+        'helpers',
+        'labour',
+        'labourer',
+        'labourers',
+        'welder',
+        'welders',
+        'painter',
+        'painters',
+        'foreman',
+        'engineer',
+        'engineers',
+        'supervisor',
+        'supervisors',
+        'driver',
+        'drivers',
       ];
       const equipmentKeywords = [
-        'jcb', 'excavator', 'crane', 'concrete mixer', 'generator',
-        'road roller', 'roller', 'dumper', 'dumptruck', 'bulldozer',
-        'forklift', 'tractor', 'compressor', 'drill', 'water pump',
-        'hoist', 'lift', 'vibrator',
+        'jcb',
+        'excavator',
+        'crane',
+        'concrete mixer',
+        'generator',
+        'road roller',
+        'roller',
+        'dumper',
+        'dumptruck',
+        'bulldozer',
+        'forklift',
+        'tractor',
+        'compressor',
+        'drill',
+        'water pump',
+        'hoist',
+        'lift',
+        'vibrator',
       ];
       for (final kw in labourKeywords) {
         if (t.contains(kw)) {
@@ -667,18 +869,38 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // ── Unit ─────────────────────────────────────────────────────────────────
     const unitMap = {
-      'bag': 'Bags', 'bags': 'Bags',
-      'kg': 'Kg', 'kilo': 'Kg', 'kilos': 'Kg',
-      'ton': 'Tons', 'tons': 'Tons',
-      'cft': 'CFT', 'cubic feet': 'CFT',
-      'sqft': 'Sqft', 'square feet': 'Sqft',
-      'nos': 'Nos', 'number': 'Nos', 'piece': 'Nos', 'pieces': 'Nos',
-      'ltr': 'Ltrs', 'litre': 'Ltrs', 'litres': 'Ltrs', 'liter': 'Ltrs',
-      'cum': 'Cum', 'cubic meter': 'Cum', 'cubic metres': 'Cum',
-      'hour': 'Hours', 'hours': 'Hours', 'hr': 'Hours', 'hrs': 'Hours',
-      'day': 'Days', 'days': 'Days',
-      'rft': 'Rft', 'running feet': 'Rft',
-      'trip': 'Trips', 'trips': 'Trips',
+      'bag': 'Bags',
+      'bags': 'Bags',
+      'kg': 'Kg',
+      'kilo': 'Kg',
+      'kilos': 'Kg',
+      'ton': 'Tons',
+      'tons': 'Tons',
+      'cft': 'CFT',
+      'cubic feet': 'CFT',
+      'sqft': 'Sqft',
+      'square feet': 'Sqft',
+      'nos': 'Nos',
+      'number': 'Nos',
+      'piece': 'Nos',
+      'pieces': 'Nos',
+      'ltr': 'Ltrs',
+      'litre': 'Ltrs',
+      'litres': 'Ltrs',
+      'liter': 'Ltrs',
+      'cum': 'Cum',
+      'cubic meter': 'Cum',
+      'cubic metres': 'Cum',
+      'hour': 'Hours',
+      'hours': 'Hours',
+      'hr': 'Hours',
+      'hrs': 'Hours',
+      'day': 'Days',
+      'days': 'Days',
+      'rft': 'Rft',
+      'running feet': 'Rft',
+      'trip': 'Trips',
+      'trips': 'Trips',
     };
     for (final entry in unitMap.entries) {
       if (t.contains(entry.key)) {
@@ -688,13 +910,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ── Rate ─────────────────────────────────────────────────────────────────
-    final rateMatch =
-        RegExp(r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)')
-            .firstMatch(t);
+    final rateMatch = RegExp(
+      r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
+    ).firstMatch(t);
     if (rateMatch != null) {
       data.rate = double.tryParse(rateMatch.group(1) ?? '');
     } else {
-      final priceMatch = RegExp(r'(?:₹|rs\.?|rupees?)\s*(\d+\.?\d*)').firstMatch(t);
+      final priceMatch = RegExp(
+        r'(?:₹|rs\.?|rupees?)\s*(\d+\.?\d*)',
+      ).firstMatch(t);
       if (priceMatch != null) {
         data.rate = double.tryParse(priceMatch.group(1) ?? '');
       }
@@ -702,18 +926,31 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     // ── Brand ─────────────────────────────────────────────────────────────────
     const brands = [
-      'ultratech', 'ambuja', 'acc', 'india cement', 'tata',
-      'jk cement', 'dalmia', 'ramco', 'jsw', 'steel authority',
-      'birla', 'shree', 'jcb', 'caterpillar', 'l&t', 'volvo',
-      'mahindra', 'atlas copco', 'komatsu',
+      'ultratech',
+      'ambuja',
+      'acc',
+      'india cement',
+      'tata',
+      'jk cement',
+      'dalmia',
+      'ramco',
+      'jsw',
+      'steel authority',
+      'birla',
+      'shree',
+      'jcb',
+      'caterpillar',
+      'l&t',
+      'volvo',
+      'mahindra',
+      'atlas copco',
+      'komatsu',
     ];
     for (final b in brands) {
       if (t.contains(b)) {
         data.brand = b
             .split(' ')
-            .map((w) => w.isNotEmpty
-                ? w[0].toUpperCase() + w.substring(1)
-                : w)
+            .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w)
             .join(' ');
         break;
       }
@@ -722,14 +959,28 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Material name ─────────────────────────────────────────────────────────
     if (_entryType == 'material') {
       const materials = {
-        'cement': 'Cement', 'concrete': 'Ready-Mix Concrete',
-        'steel': 'Steel', 'rod': 'Steel Rod', 'rebar': 'Steel Rebar',
-        'brick': 'Brick', 'sand': 'Sand', 'aggregate': 'Aggregate',
-        'gravel': 'Gravel', 'tile': 'Tiles', 'paint': 'Paint',
-        'pipe': 'PVC Pipe', 'wire': 'Wire', 'plywood': 'Plywood',
-        'timber': 'Timber', 'wood': 'Wood', 'glass': 'Glass',
-        'marble': 'Marble', 'granite': 'Granite', 'block': 'Block',
-        'drywall': 'Drywall', 'plaster': 'Plaster',
+        'cement': 'Cement',
+        'concrete': 'Ready-Mix Concrete',
+        'steel': 'Steel',
+        'rod': 'Steel Rod',
+        'rebar': 'Steel Rebar',
+        'brick': 'Brick',
+        'sand': 'Sand',
+        'aggregate': 'Aggregate',
+        'gravel': 'Gravel',
+        'tile': 'Tiles',
+        'paint': 'Paint',
+        'pipe': 'PVC Pipe',
+        'wire': 'Wire',
+        'plywood': 'Plywood',
+        'timber': 'Timber',
+        'wood': 'Wood',
+        'glass': 'Glass',
+        'marble': 'Marble',
+        'granite': 'Granite',
+        'block': 'Block',
+        'drywall': 'Drywall',
+        'plaster': 'Plaster',
       };
       for (final entry in materials.entries) {
         if (t.contains(entry.key)) {
@@ -744,15 +995,24 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Labour details ───────────────────────────────────────────────────────
     if (_entryType == 'labour') {
       const trades = {
-        'masonry': 'Masonry', 'mason': 'Masonry',
-        'plumbing': 'Plumbing', 'plumber': 'Plumbing',
-        'electrical': 'Electrical', 'electrician': 'Electrical',
-        'carpentry': 'Carpentry', 'carpenter': 'Carpentry',
-        'welding': 'Welding', 'welder': 'Welding',
-        'painting': 'Painting', 'painter': 'Painting',
-        'helper': 'Helper', 'labourer': 'General Labour',
-        'driver': 'Driver', 'supervisor': 'Supervisor',
-        'foreman': 'Foreman', 'engineer': 'Engineer',
+        'masonry': 'Masonry',
+        'mason': 'Masonry',
+        'plumbing': 'Plumbing',
+        'plumber': 'Plumbing',
+        'electrical': 'Electrical',
+        'electrician': 'Electrical',
+        'carpentry': 'Carpentry',
+        'carpenter': 'Carpentry',
+        'welding': 'Welding',
+        'welder': 'Welding',
+        'painting': 'Painting',
+        'painter': 'Painting',
+        'helper': 'Helper',
+        'labourer': 'General Labour',
+        'driver': 'Driver',
+        'supervisor': 'Supervisor',
+        'foreman': 'Foreman',
+        'engineer': 'Engineer',
       };
       for (final entry in trades.entries) {
         if (t.contains(entry.key)) {
@@ -761,7 +1021,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
 
-      final workerMatch = RegExp(r'(\d+)\s*(?:mason|worker|carpenter|plumber|electrician|helper|labor|labour|painter|welder|man|men)s?').firstMatch(t);
+      final workerMatch = RegExp(
+        r'(\d+)\s*(?:mason|worker|carpenter|plumber|electrician|helper|labor|labour|painter|welder|man|men)s?',
+      ).firstMatch(t);
       if (workerMatch != null) {
         data.workerCount = int.tryParse(workerMatch.group(1) ?? '');
       }
@@ -772,7 +1034,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.unit = 'Hours';
       }
 
-      final nameMatch = RegExp(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b').firstMatch(text);
+      final nameMatch = RegExp(
+        r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b',
+      ).firstMatch(text);
       if (nameMatch != null) {
         data.itemName = nameMatch.group(0);
       } else if (data.workerCount != null && data.workType != null) {
@@ -787,14 +1051,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     // ── Equipment details ────────────────────────────────────────────────────
     if (_entryType == 'equipment') {
       const equipment = {
-        'jcb': 'JCB Excavator', 'excavator': 'Excavator',
-        'crane': 'Crane', 'mixer': 'Concrete Mixer',
-        'generator': 'Generator', 'roller': 'Road Roller',
-        'dumper': 'Dumper', 'truck': 'Truck',
-        'bulldozer': 'Bulldozer', 'forklift': 'Forklift',
-        'tractor': 'Tractor', 'compressor': 'Compressor',
-        'drill': 'Drill Machine', 'pump': 'Water Pump',
-        'lift': 'Hoist / Lift', 'vibrator': 'Vibrator',
+        'jcb': 'JCB Excavator',
+        'excavator': 'Excavator',
+        'crane': 'Crane',
+        'mixer': 'Concrete Mixer',
+        'generator': 'Generator',
+        'roller': 'Road Roller',
+        'dumper': 'Dumper',
+        'truck': 'Truck',
+        'bulldozer': 'Bulldozer',
+        'forklift': 'Forklift',
+        'tractor': 'Tractor',
+        'compressor': 'Compressor',
+        'drill': 'Drill Machine',
+        'pump': 'Water Pump',
+        'lift': 'Hoist / Lift',
+        'vibrator': 'Vibrator',
       };
       for (final entry in equipment.entries) {
         if (t.contains(entry.key)) {
@@ -809,11 +1081,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.unit = 'Hours';
       }
 
-      final fuelMatch = RegExp(r'(?:fuel|diesel)\s*(?:of|cost|rate|is)?\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)').firstMatch(t);
+      final fuelMatch = RegExp(
+        r'(?:fuel|diesel)\s*(?:of|cost|rate|is)?\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
+      ).firstMatch(t);
       if (fuelMatch != null) {
         data.fuelCost = double.tryParse(fuelMatch.group(1) ?? '');
       } else {
-        final fuelMatch2 = RegExp(r'(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)\s*(?:for)?\s*(?:fuel|diesel)').firstMatch(t);
+        final fuelMatch2 = RegExp(
+          r'(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)\s*(?:for)?\s*(?:fuel|diesel)',
+        ).firstMatch(t);
         if (fuelMatch2 != null) {
           data.fuelCost = double.tryParse(fuelMatch2.group(1) ?? '');
         }
@@ -821,53 +1097,64 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
 
     // ── Floor ─────────────────────────────────────────────────────────────────
-    if (t.contains('basement')) {
-      data.floor = 'Basement';
-    } else if (t.contains('ground floor') || t.contains('g floor')) {
-      data.floor = 'Ground Floor';
-    } else if (t.contains('1st') || t.contains('first floor')) {
-      data.floor = '1st Floor';
-    } else if (t.contains('2nd') || t.contains('second floor')) {
-      data.floor = '2nd Floor';
-    } else if (t.contains('3rd') || t.contains('third floor')) {
-      data.floor = '3rd Floor';
-    } else if (t.contains('terrace') || t.contains('roof')) {
-      data.floor = 'Terrace';
-    }
-
-    // ── Phase / Activity ──────────────────────────────────────────────────────
-    const phaseKeywords = [
-      'foundation', 'structural', 'plumbing', 'electrical',
-      'finishing', 'roofing', 'excavation', 'superstructure',
-      
-    ];
-    for (final p in phaseKeywords) {
-      if (t.contains(p)) {
-        data.phase = p[0].toUpperCase() + p.substring(1) + ' Work';
-        break;
+    if (data.floor == null || data.floor!.trim().isEmpty) {
+      if (t.contains('basement')) {
+        data.floor = 'Basement';
+      } else if (t.contains('ground floor') || t.contains('g floor')) {
+        data.floor = 'Ground Floor';
+      } else if (t.contains('1st') || t.contains('first floor')) {
+        data.floor = '1st Floor';
+      } else if (t.contains('2nd') || t.contains('second floor')) {
+        data.floor = '2nd Floor';
+      } else if (t.contains('3rd') || t.contains('third floor')) {
+        data.floor = '3rd Floor';
+      } else if (t.contains('terrace') || t.contains('roof')) {
+        data.floor = 'Terrace';
       }
     }
 
-    const activityKeywords = {
-      'column casting': 'Column Casting',
-      'beam casting': 'Beam Casting',
-      'slab': 'Slab Work',
-      'pcc': 'PCC',
-      'footing': 'Footing Work',
-      'block work': 'Block Work',
-      'brick laying': 'Brick Laying',
-      'plastering': 'Plastering',
-      'tile': 'Tiling',
-      'plumbing': 'Plumbing',
-      'wiring': 'Wiring',
-      'painting': 'Painting',
-      'excavation': 'Excavation',
-      'backfilling': 'Backfilling',
-    };
-    for (final entry in activityKeywords.entries) {
-      if (t.contains(entry.key)) {
-        data.activity = entry.value;
-        break;
+    // ── Phase / Activity ──────────────────────────────────────────────────────
+    if (data.phase == null || data.phase!.trim().isEmpty) {
+      const phaseKeywords = [
+        'foundation',
+        'structural',
+        'plumbing',
+        'electrical',
+        'finishing',
+        'roofing',
+        'excavation',
+        'superstructure',
+      ];
+      for (final p in phaseKeywords) {
+        if (t.contains(p)) {
+          data.phase = '${p[0].toUpperCase()}${p.substring(1)} Work';
+          break;
+        }
+      }
+    }
+
+    if (data.activity == null || data.activity!.trim().isEmpty) {
+      const activityKeywords = {
+        'column casting': 'Column Casting',
+        'beam casting': 'Beam Casting',
+        'slab': 'Slab Work',
+        'pcc': 'PCC',
+        'footing': 'Footing Work',
+        'block work': 'Block Work',
+        'brick laying': 'Brick Laying',
+        'plastering': 'Plastering',
+        'tile': 'Tiling',
+        'plumbing': 'Plumbing',
+        'wiring': 'Wiring',
+        'painting': 'Painting',
+        'excavation': 'Excavation',
+        'backfilling': 'Backfilling',
+      };
+      for (final entry in activityKeywords.entries) {
+        if (t.contains(entry.key)) {
+          data.activity = entry.value;
+          break;
+        }
       }
     }
 
@@ -884,94 +1171,91 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Conversation field navigation ─────────────────────────────────────────────
+  // Always re-derive from missing fields (single source of truth) — never from stale state.
   void _advanceToNextMissingField() {
-    final orderedSteps = [
-      _ConvStep.askProject,
-      if (_entryType == 'labour') ...[
-        _ConvStep.askLabourType,
-        _ConvStep.askWorkerCount,
-        _ConvStep.askHours,
-      ],
-      if (_entryType == 'equipment') ...[
-        _ConvStep.askEquipment,
-        _ConvStep.askHours,
-      ],
-      _ConvStep.askFloor,
-      if (_entryType == 'material') _ConvStep.askPhase,
-      _ConvStep.askActivity,
-      if (_entryType == 'material') ...[
-        _ConvStep.askQuantity,
-        _ConvStep.askUnit,
-      ],
-      if (_entryType == 'equipment') _ConvStep.askFuel,
-      _ConvStep.askRate,
-      if (_entryType == 'material') _ConvStep.askBrand,
-    ];
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — not advancing');
+      return;
+    }
+    _isProcessing = true;
 
-    for (final step in orderedSteps) {
-      if (_isStepMissing(step)) {
-        setState(() {
-          _step = step;
-          _rebuildResponse();
-        });
-        _scrollToBottom();
-        return;
-      }
+    // Get fresh missing fields (single source of truth)
+    final missing = _getStillNeededFieldsFor(_data);
+    debugPrint('[AI] _advanceToNextMissingField: missingFields=$missing');
+    debugPrint('[AI] Detected: $_detectedFields');
+
+    if (missing.isEmpty && _detectedFields.isNotEmpty) {
+      debugPrint('[AI] All fields collected → review screen');
+      _isProcessing = false;
+      _goToSummary();
+      return;
     }
 
-    _goToSummary();
+    if (missing.isEmpty) {
+      debugPrint('[AI] No data and no missing fields — restarting');
+      _isProcessing = false;
+      _speechFailed();
+      return;
+    }
+
+    // Derive question from the first missing field — no step enum, no hardcoded mapping
+    final field = _fieldToAsk();
+    final question = field != null ? _questionForField(field) : '';
+    debugPrint('[AI] Next question: "$question" (field=$field)');
+
+    _isProcessing = false;
+    if (!mounted) return;
+
+    setState(() {
+      _status = VoiceStatus.waitingForUser;
+      _rebuildResponse();
+    });
+    _scrollToBottom();
   }
 
   // ─── Rebuild _response model from internal state ──────────────────────────────
-  // Called after every state mutation. When the real backend is connected,
-  // this method is replaced by the incoming response payload.
+  // BUG 4 FIX: Single source of truth — _getStillNeededFieldsFor() drives everything.
+  // _response.missingFields and the "Still Needed" panel always match.
   void _rebuildResponse() {
-    final orderedSteps = [
-      if (_entryType == 'labour') ...[
-        'Labour Type', 'Worker Count', 'Hours',
-      ],
-      if (_entryType == 'equipment') ...[
-        'Equipment Type', 'Hours',
-      ],
-      'Floor',
-      if (_entryType == 'material') 'Phase',
-      'Activity',
-      if (_entryType == 'material') ...[
-        'Quantity', 'Unit',
-      ],
-      if (_entryType == 'equipment') 'Fuel Cost',
-      'Rate',
-      if (_entryType == 'material') 'Brand',
-    ];
+    // Always derive missing from the single authoritative function
+    final missing = _getStillNeededFieldsFor(_data);
 
-    final List<String> missing = [];
-    for (final field in orderedSteps) {
-      final key = _fieldLabelToDetectedKey(field);
-      if (!_detectedFields.containsKey(key) ||
-          _detectedFields[key] == null ||
-          '${_detectedFields[key]}'.trim().isEmpty) {
-        missing.add(field);
-      }
-    }
+    // Total = all fields for this entry type (from _getStillNeededFieldsFor when nothing detected)
+    final allFields = _getAllFieldsFor();
+    final total = allFields.length;
+    final completed = total - missing.length;
 
-    final completed = orderedSteps.length - missing.length;
-    final total = orderedSteps.length;
-
-    // _completedFields and _totalFields live on _response only
-    final currentMissing = missing.isNotEmpty ? missing.first : null;
-
+    // Question derived from FIRST missing field — always field-driven, never step-driven
     String? question;
-    if (_status == VoiceStatus.waitingForUser && currentMissing != null) {
-      question = _questionFor(
-        _convStepFromStatus(_status),
-      );
-      if (question.isEmpty) {
-        question = 'Please provide the $currentMissing.';
+    List<String> suggestions = [];
+    if (_status == VoiceStatus.waitingForUser && missing.isNotEmpty) {
+      final field = _fieldToAsk();
+      if (field != null) {
+        question = _questionForField(field);
+        if (question.isEmpty) {
+          question = 'Please provide the $field.';
+        }
+        suggestions = _suggestionsForField(field);
       }
+      debugPrint(
+        '[AI DEBUG] _rebuildResponse: question="$question" for field=$field',
+      );
     }
 
     _backendQuestion = question ?? '';
-    _backendSuggestions = currentMissing != null ? _suggestionsForCurrentStep() : [];
+    _backendSuggestions = suggestions;
+
+    debugPrint('[AI DEBUG] ===== _rebuildResponse =====');
+    debugPrint(
+      '[UI LISTENING STATE CHANGES] rebuildResponse: status=$_status, progress=$completed/$total',
+    );
+    debugPrint('[AI DEBUG] Status: $_status');
+    debugPrint('[AI DEBUG] Transcript: $_rawTranscript');
+    debugPrint('[AI DEBUG] Detected fields map: $_detectedFields');
+    debugPrint('[AI DEBUG] Missing fields: $missing');
+    debugPrint('[AI DEBUG] Total fields: $total');
+    debugPrint('[AI DEBUG] Completed fields: $completed');
+    debugPrint('[AI DEBUG] Progress: $completed/$total');
 
     _response = VoiceResponseModel(
       status: _status,
@@ -988,127 +1272,114 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  static String _fieldLabelToDetectedKey(String label) {
-    switch (label) {
-      case 'Project': return 'Project ID';
-      case 'Project Name': return 'Project Name';
-      case 'Floor': return 'Floor';
-      case 'Phase': return 'Phase';
-      case 'Activity': return 'Activity';
-      case 'Labour Type': return 'Work Type';
-      case 'Worker Count': return 'Worker Count';
-      case 'Hours': return 'Hours';
-      case 'Equipment Type': return 'Item Name';
-      case 'Fuel Cost': return 'Fuel Cost';
-      case 'Quantity': return 'Quantity';
-      case 'Unit': return 'Unit';
-      case 'Rate': return 'Rate';
-      case 'Brand': return 'Brand';
-      default: return label;
+  // Returns the full list of field labels for this entry type (used for total count)
+  // Must match _getStillNeededFieldsFor priority order.
+  List<String> _getAllFieldsFor() {
+    if (_entryType == 'material') {
+      return ['Material', 'Quantity', 'Unit', 'Rate'];
+    } else if (_entryType == 'labour') {
+      return ['Labour Type', 'Worker Count', 'Hours', 'Rate'];
+    } else {
+      return ['Equipment Name', 'Hours', 'Rate'];
     }
   }
 
-  bool _isStepMissing(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.askProject:
-        return !_data.hasProject;
-      case _ConvStep.askFloor:
-        return !_data.hasFloor;
-      case _ConvStep.askPhase:
-        if (_entryType != 'material') return false;
-        return !_data.hasPhase;
-      case _ConvStep.askActivity:
-        return !_data.hasActivity;
-      case _ConvStep.askLabourType:
-        if (_entryType != 'labour') return false;
-        return !_data.hasItemName;
-      case _ConvStep.askWorkerCount:
-        if (_entryType != 'labour') return false;
-        return !_data.hasWorkerCount;
-      case _ConvStep.askHours:
-        if (_entryType == 'material') return false;
-        if (_entryType == 'labour') return !_data.hasHours;
-        return !_data.hasQuantity;
-      case _ConvStep.askEquipment:
-        if (_entryType != 'equipment') return false;
-        return !_data.hasItemName;
-      case _ConvStep.askFuel:
-        if (_entryType != 'equipment') return false;
-        return !_data.hasFuelCost;
-      case _ConvStep.askQuantity:
-        if (_entryType != 'material') return false;
-        return !_data.hasQuantity;
-      case _ConvStep.askUnit:
-        if (_entryType != 'material') return false;
-        return !_data.hasUnit;
-      case _ConvStep.askRate:
-        return !_data.hasRate;
-      case _ConvStep.askBrand:
-        if (_entryType != 'material') return false;
-        return !_data.hasBrand;
-      default:
-        return false;
-    }
-  }
-
-  String _questionFor(_ConvStep step) {
-    switch (step) {
-      case _ConvStep.askProject:
+  // ─── Question generation (field-name-driven, no _ConvStep) ────────────────────
+  String _questionForField(String field) {
+    switch (field) {
+      case 'Project':
         return 'Which project is this for?';
-      case _ConvStep.askFloor:
+      case 'Floor':
         return 'Which floor or zone is this work happening on?';
-      case _ConvStep.askPhase:
+      case 'Phase':
         return 'Under which phase of the project is this scheduled?';
-      case _ConvStep.askActivity:
+      case 'Activity':
         return 'And what\'s the specific activity we are working on?';
-      case _ConvStep.askLabourType:
+      case 'Labour Type':
         return 'What is the trade or labor category? (e.g. Mason, Plumber, Helper)';
-      case _ConvStep.askWorkerCount:
+      case 'Worker Count':
         return 'How many workers were in this team?';
-      case _ConvStep.askHours:
+      case 'Hours':
         return _entryType == 'labour'
             ? 'How many hours did they work today?'
             : 'How many hours was the machine operated?';
-      case _ConvStep.askEquipment:
+      case 'Equipment':
         return 'Which equipment or machinery was used? (e.g. JCB, Crane)';
-      case _ConvStep.askFuel:
+      case 'Fuel':
         return 'What was the fuel or diesel cost for this operation? (Enter 0 if none)';
-      case _ConvStep.askQuantity:
+      case 'Quantity':
         return 'What\'s the total quantity we should enter?';
-      case _ConvStep.askUnit:
+      case 'Unit':
         return 'What unit of measurement are we tracking this in? (e.g. Bags, Kg, Tons)';
-      case _ConvStep.askRate:
-        final unitLabel = _data.unit ?? (_entryType == 'material' ? 'unit' : 'hour');
+      case 'Rate':
+        final unitLabel =
+            _data.unit ?? (_entryType == 'material' ? 'unit' : 'hour');
         return 'Got that. What purchase rate per $unitLabel should I log in ₹?';
-      case _ConvStep.askBrand:
+      case 'Brand':
         return 'What brand is it? (e.g. UltraTech, Ambuja)';
       default:
         return '';
     }
   }
 
-  List<String> _suggestionsForCurrentStep() {
-    switch (_step) {
-      case _ConvStep.askProject:
+  // ─── Suggestions generation (field-name-driven, no _ConvStep) ──────────────────
+  List<String> _suggestionsForField(String field) {
+    switch (field) {
+      case 'Project':
         return _projects.take(5).map((p) => p.name).toList();
-      case _ConvStep.askFloor:
-        return ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', 'Basement', 'Terrace'];
-      case _ConvStep.askPhase:
-        return ['Foundation Work', 'Structural Work', 'Finishing', 'Roofing', 'Plumbing Work', 'Electrical Work'];
-      case _ConvStep.askActivity:
-        return ['Column Casting', 'Slab Work', 'PCC', 'Brick Laying', 'Plastering', 'Excavation'];
-      case _ConvStep.askUnit:
+      case 'Floor':
+        return [
+          'Ground Floor',
+          '1st Floor',
+          '2nd Floor',
+          '3rd Floor',
+          'Basement',
+          'Terrace',
+        ];
+      case 'Phase':
+        return [
+          'Foundation Work',
+          'Structural Work',
+          'Finishing',
+          'Roofing',
+          'Plumbing Work',
+          'Electrical Work',
+        ];
+      case 'Activity':
+        return [
+          'Column Casting',
+          'Slab Work',
+          'PCC',
+          'Brick Laying',
+          'Plastering',
+          'Excavation',
+        ];
+      case 'Unit':
         return ['Bags', 'Kg', 'Tons', 'Sqft', 'Nos', 'Ltrs', 'Hours'];
-      case _ConvStep.askBrand:
+      case 'Brand':
         return ['UltraTech', 'Ambuja', 'ACC', 'JK Cement', 'Tata', 'JSW'];
-      case _ConvStep.askLabourType:
-        return ['Mason', 'Helper', 'Carpenter', 'Plumber', 'Electrician', 'Painter'];
-      case _ConvStep.askWorkerCount:
+      case 'Labour Type':
+        return [
+          'Mason',
+          'Helper',
+          'Carpenter',
+          'Plumber',
+          'Electrician',
+          'Painter',
+        ];
+      case 'Worker Count':
         return ['2', '4', '6', '8', '10', '12'];
-      case _ConvStep.askHours:
+      case 'Hours':
         return ['4', '6', '8', '10', '12'];
-      case _ConvStep.askEquipment:
-        return ['JCB Excavator', 'Crane', 'Concrete Mixer', 'Dumper', 'Generator', 'Road Roller'];
+      case 'Equipment':
+        return [
+          'JCB Excavator',
+          'Crane',
+          'Concrete Mixer',
+          'Dumper',
+          'Generator',
+          'Road Roller',
+        ];
       default:
         return [];
     }
@@ -1116,173 +1387,352 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Answer voice listener ────────────────────────────────────────────────────
   Future<void> _startAnswerListening() async {
+    if (_isProcessing) {
+      debugPrint('[VOICE] Processing in progress — not starting listening');
+      return;
+    }
     _isListeningForAnswer = true;
+    _startAnswerTimeout();
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
+    debugPrint('[VOICE] _startAnswerListening: started, status=$_status');
   }
 
+  // "Done Answering" — fully stops listening and refreshes all state
   Future<void> _stopAnswerListening() async {
-    await _voiceCtrl.stopListening();
+    debugPrint('[VOICE] _stopAnswerListening tapped');
+
+    if (_isProcessing) {
+      debugPrint('[VOICE] Already processing — ignoring stop');
+      return;
+    }
+    _isProcessing = true;
+    _answerTimeoutTimer?.cancel();
+    debugPrint('[VOICE] _stopAnswerListening: LOCKED processing');
+
+    try {
+      // 1. Stop the microphone (transitions state to processing)
+      await _voiceCtrl.stopListening();
+      debugPrint('[VOICE] _stopAnswerListening: mic stopped');
+      // Allow the speech engine a small moment to flush the final recognized words
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) {
+        _isProcessing = false;
+        return;
+      }
+
+      // 2. Capture answer transcript FIRST before resetting the engine!
+      final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
+          ? _voiceCtrl.finalTranscript.trim()
+          : _voiceCtrl.partialTranscript.trim();
+      debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
+
+      // 3. Reset STT engine for next listen (cancel() without changing state)
+      await _voiceCtrl.resetEngine();
+      debugPrint('[VOICE] _stopAnswerListening: engine reset');
+
+      _isListeningForAnswer = false;
+      _cancelAllTimers();
+
+      // 4. If we have a transcript, merge it into detected data
+      if (answer.isNotEmpty) {
+        final field = _activeField;
+        if (field != null) {
+          debugPrint(
+            '[VOICE] Applying captured answer for field "$field": "$answer"',
+          );
+          _applyAnswerForField(field, answer);
+        }
+      } else {
+        debugPrint(
+          '[VOICE] _stopAnswerListening: empty transcript — still advancing',
+        );
+      }
+
+      // 5. Recalculate everything and refresh UI
+      if (!mounted) {
+        _isProcessing = false;
+        return;
+      }
+      setState(() {
+        _partialAnswer = '';
+        _rebuildResponse();
+      });
+
+      final missing = _getStillNeededFieldsFor(_data);
+      debugPrint(
+        '[VOICE] After answer: detected=$_detectedFields, missing=$missing',
+      );
+
+      // 6. Advance conversation or show review
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _isProcessing = false;
+        debugPrint('[VOICE] _stopAnswerListening: releasing processing lock');
+        if (!mounted) return;
+        if (missing.isEmpty && _detectedFields.isNotEmpty) {
+          debugPrint('[VOICE] _stopAnswerListening: all fields → summary');
+          _goToSummary();
+        } else {
+          debugPrint(
+            '[VOICE] _stopAnswerListening: more fields needed → advancing',
+          );
+          _advanceToNextMissingField();
+        }
+      });
+    } catch (e, stack) {
+      debugPrint('[VOICE ERROR] _stopAnswerListening: $e');
+      debugPrint('[VOICE ERROR] $stack');
+      _isProcessing = false;
+      _isListeningForAnswer = false;
+      if (mounted) {
+        setState(() {
+          _status = VoiceStatus.waitingForUser;
+          _saveError = 'Error processing: $e';
+          _rebuildResponse();
+        });
+      }
+    }
   }
 
   void _handleVoiceAnswer(String text) {
-    _applyAnswer(_step, text);
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing answer — ignoring duplicate');
+      return;
+    }
+    _isProcessing = true;
+    debugPrint('[AI] TRANSCRIPT: answer="$text"');
+    try {
+      final field = _activeField;
+      debugPrint('[AI] _handleVoiceAnswer: field=$field');
+      if (field != null) {
+        _applyAnswerForField(field, text);
+        debugPrint('[AI] PROCESSING: applied answer to "$field"');
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _handleVoiceAnswer: $e');
+      debugPrint('[AI ERROR] $stack');
+    }
+    _isProcessing = false;
+    debugPrint('[AI] After apply, missing: ${_getStillNeededFieldsFor(_data)}');
     Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) _advanceToNextMissingField();
+      if (mounted) {
+        debugPrint('[AI] Advancing to next missing field');
+        _advanceToNextMissingField();
+      }
     });
   }
 
   void _handleTypedAnswer(String text) {
     if (text.trim().isEmpty) return;
+    if (_isProcessing) {
+      debugPrint('[AI] Already processing — ignoring typed answer');
+      return;
+    }
+    _isProcessing = true;
+    debugPrint('[AI] TRANSCRIPT: typed answer="$text"');
     _textCtrl.clear();
-    _applyAnswer(_step, text.trim());
+    try {
+      final field = _activeField;
+      if (field != null) {
+        _applyAnswerForField(field, text.trim());
+        debugPrint('[AI] PROCESSING: applied typed answer to "$field"');
+      }
+    } catch (e, stack) {
+      debugPrint('[AI ERROR] _handleTypedAnswer: $e');
+      debugPrint('[AI ERROR] $stack');
+    }
+    _isProcessing = false;
     _focusNode.unfocus();
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _advanceToNextMissingField();
     });
   }
 
-  void _applyAnswer(_ConvStep step, String text) {
-    final t = text.toLowerCase().trim();
+  void _applyAnswerForField(String field, String text) {
     setState(() {
-      switch (step) {
-        case _ConvStep.askProject:
-          final match = _projects.cast<ProjectModel?>().firstWhere(
-                (p) =>
-                    p!.name.toLowerCase().contains(t) ||
-                    t.contains(p.name.toLowerCase()),
-                orElse: () => null,
-              );
-          if (match != null) {
-            _data.projectId = match.id;
-            _data.projectName = match.name;
-          } else {
-            _data.projectName = text.trim();
-          }
-          break;
-
-        case _ConvStep.askFloor:
-          if (t.contains('ground') || t == 'g') {
-            _data.floor = 'Ground Floor';
-          } else if (t.contains('basement') || t == 'b') {
-            _data.floor = 'Basement';
-          } else if (t.contains('1') || t.contains('first') || t == '1st') {
-            _data.floor = '1st Floor';
-          } else if (t.contains('2') || t.contains('second') || t == '2nd') {
-            _data.floor = '2nd Floor';
-          } else if (t.contains('3') || t.contains('third') || t == '3rd') {
-            _data.floor = '3rd Floor';
-          } else if (t.contains('terrace') || t.contains('roof')) {
-            _data.floor = 'Terrace';
-          } else {
-            _data.floor = text.trim();
-          }
-          break;
-
-        case _ConvStep.askPhase:
-          _data.phase = text.trim();
-          break;
-
-        case _ConvStep.askActivity:
-          _data.activity = text.trim();
-          break;
-
-        case _ConvStep.askLabourType:
-          _data.workType = text.trim();
-          if (_data.workerCount != null) {
-            _data.itemName = '${_data.workerCount} ${_data.workType}s';
-          } else {
-            _data.itemName = '${_data.workType} Team';
-          }
-          break;
-
-        case _ConvStep.askWorkerCount:
-          final num = RegExp(r'(\d+)').firstMatch(t);
-          if (num != null) {
-            _data.workerCount = int.tryParse(num.group(1) ?? '');
-          }
-          if (_data.workType != null && _data.workerCount != null) {
-            _data.itemName = '${_data.workerCount} ${_data.workType}s';
-          }
-          break;
-
-        case _ConvStep.askHours:
-          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (num != null) {
-            final val = double.tryParse(num.group(1) ?? '');
-            if (_entryType == 'labour') {
-              _data.hours = val;
-            } else {
-              _data.quantity = val;
-            }
-          }
-          break;
-
-        case _ConvStep.askEquipment:
-          _data.itemName = text.trim();
-          break;
-
-        case _ConvStep.askFuel:
-          if (t.contains('no') || t.contains('none') || t.contains('zero') || t == '0') {
-            _data.fuelCost = 0;
-          } else {
-            final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-            if (num != null) {
-              _data.fuelCost = double.tryParse(num.group(1) ?? '');
-            }
-          }
-          break;
-
-        case _ConvStep.askQuantity:
-          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (num != null) {
-            _data.quantity = double.tryParse(num.group(0) ?? '');
-          }
-          break;
-
-        case _ConvStep.askUnit:
-          const unitMap = {
-            'bag': 'Bags', 'bags': 'Bags',
-            'kg': 'Kg', 'kilo': 'Kg',
-            'ton': 'Tons', 'tons': 'Tons',
-            'sqft': 'Sqft', 'square feet': 'Sqft',
-            'hour': 'Hours', 'hours': 'Hours', 'hr': 'Hours', 'hrs': 'Hours',
-            'day': 'Days', 'days': 'Days',
-            'nos': 'Nos', 'piece': 'Nos', 'pieces': 'Nos',
-            'ltr': 'Ltrs', 'litres': 'Ltrs', 'liters': 'Ltrs',
-            'cum': 'Cum', 'cubic': 'Cum',
-          };
-          bool found = false;
-          for (final entry in unitMap.entries) {
-            if (t.contains(entry.key)) {
-              _data.unit = entry.value;
-              found = true;
-              break;
-            }
-          }
-          if (!found) _data.unit = text.trim();
-          break;
-
-        case _ConvStep.askRate:
-          final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
-          if (rateNum != null) {
-            _data.rate = double.tryParse(rateNum.group(0) ?? '');
-          }
-          break;
-
-        case _ConvStep.askBrand:
-          _data.brand = text.trim();
-          break;
-
-        default:
-          break;
-      }
+      _applyAnswerForFieldToMap(_detectedFields, field, text);
       _rebuildResponse();
+      debugPrint(
+        '[AI DEBUG] _applyAnswer done: detectedFields=$_detectedFields, missing=${_getStillNeededFieldsFor(_data)}',
+      );
     });
+  }
+
+  void _applyAnswerForFieldToMap(
+    Map<String, dynamic> fields,
+    String field,
+    String text,
+  ) {
+    final t = text.toLowerCase().trim();
+    final data = _ExtractedData(fields);
+    switch (field) {
+      case 'Project':
+        final match = _projects.cast<ProjectModel?>().firstWhere(
+          (p) =>
+              p!.name.toLowerCase().contains(t) ||
+              t.contains(p.name.toLowerCase()),
+          orElse: () => null,
+        );
+        if (match != null) {
+          data.projectId = match.id;
+          data.projectName = match.name;
+        } else {
+          data.projectName = text.trim();
+        }
+        break;
+
+      case 'Floor':
+        if (t.contains('ground') || t == 'g') {
+          data.floor = 'Ground Floor';
+        } else if (t.contains('basement') || t == 'b') {
+          data.floor = 'Basement';
+        } else if (t.contains('1') || t.contains('first') || t == '1st') {
+          data.floor = '1st Floor';
+        } else if (t.contains('2') || t.contains('second') || t == '2nd') {
+          data.floor = '2nd Floor';
+        } else if (t.contains('3') || t.contains('third') || t == '3rd') {
+          data.floor = '3rd Floor';
+        } else if (t.contains('terrace') || t.contains('roof')) {
+          data.floor = 'Terrace';
+        } else {
+          data.floor = text.trim();
+        }
+        break;
+
+      case 'Phase':
+        data.phase = text.trim();
+        break;
+
+      case 'Activity':
+        data.activity = text.trim();
+        break;
+
+      case 'Labour Type':
+        data.workType = text.trim();
+        if (data.workerCount != null) {
+          data.itemName = '${data.workerCount} ${data.workType}s';
+        } else {
+          data.itemName = '${data.workType} Team';
+        }
+        break;
+
+      case 'Worker Count':
+        final num = RegExp(r'(\d+)').firstMatch(t);
+        if (num != null) {
+          data.workerCount = int.tryParse(num.group(1) ?? '');
+        }
+        if (data.workType != null && data.workerCount != null) {
+          data.itemName = '${data.workerCount} ${data.workType}s';
+        }
+        break;
+
+      case 'Hours':
+        final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (num != null) {
+          final val = double.tryParse(num.group(1) ?? '');
+          if (_entryType == 'labour') {
+            data.hours = val;
+          } else {
+            data.quantity = val;
+          }
+        }
+        break;
+
+      case 'Equipment':
+        data.itemName = text.trim();
+        break;
+
+      case 'Fuel':
+        if (t.contains('no') ||
+            t.contains('none') ||
+            t.contains('zero') ||
+            t == '0') {
+          data.fuelCost = 0;
+        } else {
+          final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+          if (num != null) {
+            data.fuelCost = double.tryParse(num.group(1) ?? '');
+          }
+        }
+        break;
+
+      case 'Quantity':
+        final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (num != null) {
+          data.quantity = double.tryParse(num.group(0) ?? '');
+        }
+        break;
+
+      case 'Unit':
+        const unitMap = {
+          'bag': 'Bags',
+          'bags': 'Bags',
+          'kg': 'Kg',
+          'kilo': 'Kg',
+          'ton': 'Tons',
+          'tons': 'Tons',
+          'sqft': 'Sqft',
+          'square feet': 'Sqft',
+          'hour': 'Hours',
+          'hours': 'Hours',
+          'hr': 'Hours',
+          'hrs': 'Hours',
+          'day': 'Days',
+          'days': 'Days',
+          'nos': 'Nos',
+          'piece': 'Nos',
+          'pieces': 'Nos',
+          'ltr': 'Ltrs',
+          'litres': 'Ltrs',
+          'liters': 'Ltrs',
+          'cum': 'Cum',
+          'cubic': 'Cum',
+        };
+        bool found = false;
+        for (final entry in unitMap.entries) {
+          if (t.contains(entry.key)) {
+            data.unit = entry.value;
+            found = true;
+            break;
+          }
+        }
+        if (!found) data.unit = text.trim();
+        break;
+
+      case 'Rate':
+        final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
+        if (rateNum != null) {
+          data.rate = double.tryParse(rateNum.group(0) ?? '');
+        }
+        break;
+
+      case 'Brand':
+        data.brand = text.trim();
+        break;
+
+      default:
+        break;
+    }
+    // Extract fields from answer text into a temp object, then merge only NEW keys
+    // (never overwrite existing detected fields)
+    if (text.isNotEmpty) {
+      final tempFields = <String, dynamic>{};
+      final tempData = _ExtractedData(tempFields);
+      _parseTranscriptInto(tempData, text);
+      tempFields.forEach((key, value) {
+        if (!fields.containsKey(key) && value != null) {
+          fields[key] = value;
+        }
+      });
+    }
   }
 
   // ─── Go to summary ────────────────────────────────────────────────────────────
   void _goToSummary() {
+    if (!mounted) return;
+    _cancelAllTimers();
+    _isListeningForAnswer = false;
+    _isProcessing = false;
     setState(() {
       _status = VoiceStatus.summary;
       _rebuildResponse();
@@ -1292,7 +1742,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Database helpers ─────────────────────────────────────────────────────────
   String? _derivePhaseId(String? phaseName) {
-    if (phaseName == null || phaseName.isEmpty || _data.projectId == null) return null;
+    if (phaseName == null || phaseName.isEmpty || _data.projectId == null) {
+      return null;
+    }
     final project = _projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _data.projectId,
       orElse: () => null,
@@ -1305,7 +1757,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   String? _deriveActivityId(String? activityName) {
-    if (activityName == null || activityName.isEmpty || _data.projectId == null) return null;
+    if (activityName == null ||
+        activityName.isEmpty ||
+        _data.projectId == null) {
+      return null;
+    }
     final project = _projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _data.projectId,
       orElse: () => null,
@@ -1320,7 +1776,36 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Save entry ───────────────────────────────────────────────────────────────
+  String _mapUnitToBackend(String? rawUnit) {
+    if (rawUnit == null || rawUnit.isEmpty) return 'unit';
+    final lower = rawUnit.toLowerCase();
+
+    if (lower.contains('bag')) return 'bag';
+    if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
+    if (lower.contains('ton')) return 'ton';
+    if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
+    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) {
+      return 'sqm';
+    }
+    if (lower.contains('day')) return 'day';
+    if (lower.contains('hour') || lower.contains('hr')) return 'hour';
+    if (lower.contains('ltr') || lower.contains('liter')) return 'ltr';
+    if (lower.contains('rft') || lower.contains('running')) return 'rft';
+    if (lower.contains('trip') || lower.contains('truck')) return 'truck';
+    if (lower.contains('nos') || lower.contains('piece')) return 'unit';
+
+    return 'unit';
+  }
+
   Future<void> _saveEntry() async {
+    if (_isProcessing) {
+      debugPrint('[AI] Already saving — ignoring duplicate');
+      return;
+    }
+    _isProcessing = true;
+    _cancelAllTimers();
+    if (!mounted) return;
+
     setState(() {
       _status = VoiceStatus.saving;
       _saveError = null;
@@ -1331,8 +1816,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       final String txType = _entryType == 'labour'
           ? 'Wages'
           : _entryType == 'equipment'
-              ? 'Expense'
-              : 'Materials';
+          ? 'Expense'
+          : 'Materials';
 
       final double qty = _entryType == 'labour'
           ? ((_data.workerCount ?? 1) * (_data.hours ?? 1)).toDouble()
@@ -1342,12 +1827,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       final double totalAmount = (qty * rate) + fuel;
 
       final payload = <String, dynamic>{
-        'title': _data.itemName ??
+        'title':
+            _data.itemName ??
             (_entryType == 'labour'
                 ? 'Labour Log'
                 : _entryType == 'equipment'
-                    ? 'Equipment Rental'
-                    : 'Material Delivery'),
+                ? 'Equipment Rental'
+                : 'Material Delivery'),
         'type': txType,
         'project': _data.projectId ?? '',
         'floor': _data.floor ?? '',
@@ -1358,9 +1844,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'category': _entryType == 'labour'
             ? (_data.workType ?? 'General Labour')
             : _entryType == 'equipment'
-                ? (_data.itemName ?? 'Equipment')
-                : 'Materials',
-        'unit': _data.unit ?? (_entryType == 'material' ? 'Bags' : 'hour'),
+            ? (_data.itemName ?? 'Equipment')
+            : 'Materials',
+        'unit': _mapUnitToBackend(
+          _data.unit ?? (_entryType == 'material' ? 'Bags' : 'hour'),
+        ),
         'quantity': qty,
         'rate': rate,
         'amount': totalAmount,
@@ -1369,36 +1857,36 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'paidAmount': 0,
         'date': DateTime.now().toIso8601String(),
         if (_entryType == 'material' && _data.hasBrand) 'brand': _data.brand,
-        if (_entryType == 'equipment' && _data.fuelCost != null) 'fuelCost': fuel,
+        if (_entryType == 'equipment' && _data.fuelCost != null)
+          'fuelCost': fuel,
+        'createdBy': UserSession.userId,
       };
 
       final result = await ApiService.addTransaction(payload);
 
       if (result != null) {
         final serverTx = result['transaction'] ?? result;
-        _savedEntryId = serverTx?['_id']?.toString() ??
+        _savedEntryId =
+            serverTx?['_id']?.toString() ??
             'VOICE-${DateTime.now().millisecondsSinceEpoch}';
-
-        // Update session memory
-        _sessionMemory['projectId'] = _data.projectId;
-        _sessionMemory['projectName'] = _data.projectName;
-        _sessionMemory['floor'] = _data.floor;
-        _sessionMemory['phase'] = _data.phase;
-        _sessionMemory['phaseId'] = _data.phaseId;
-        _sessionMemory['activity'] = _data.activity;
 
         // Refresh project data
         if (mounted) {
           await Provider.of<ProjectProvider>(context, listen: false).load();
         }
 
+        _isProcessing = false;
+        if (!mounted) return;
         setState(() {
           _status = VoiceStatus.completed;
-          _savedEntryId = serverTx?['_id']?.toString() ??
+          _savedEntryId =
+              serverTx?['_id']?.toString() ??
               'VOICE-${DateTime.now().millisecondsSinceEpoch}';
           _rebuildResponse();
         });
       } else {
+        _isProcessing = false;
+        if (!mounted) return;
         setState(() {
           _status = VoiceStatus.summary;
           _saveError = 'Failed to save. Please try again.';
@@ -1406,12 +1894,320 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     } catch (e) {
+      _isProcessing = false;
+      if (!mounted) return;
       setState(() {
         _status = VoiceStatus.summary;
         _saveError = 'Error: ${e.toString()}';
         _rebuildResponse();
       });
     }
+  }
+
+  // ─── Edit mode methods ──────────────────────────────────────────────────
+  void _enterEditMode() {
+    _savedEditFields = Map<String, dynamic>.from(_detectedFields);
+    _editError = null;
+    _editControllers.clear();
+
+    _editControllers['project'] = TextEditingController(
+      text: _data.projectName ?? _data.projectId ?? '',
+    );
+    _editControllers['floor'] = TextEditingController(text: _data.floor ?? '');
+    _editControllers['activity'] = TextEditingController(
+      text: _data.activity ?? '',
+    );
+
+    if (_entryType == 'material') {
+      _editControllers['phase'] = TextEditingController(
+        text: _data.phase ?? '',
+      );
+      _editControllers['material'] = TextEditingController(
+        text: _data.itemName ?? '',
+      );
+      _editControllers['quantity'] = TextEditingController(
+        text: _data.hasQuantity ? '${_data.quantity}' : '',
+      );
+      _editControllers['unit'] = TextEditingController(text: _data.unit ?? '');
+    } else if (_entryType == 'labour') {
+      _editControllers['labourType'] = TextEditingController(
+        text: _data.workType ?? _data.itemName ?? '',
+      );
+      _editControllers['workers'] = TextEditingController(
+        text: _data.hasWorkerCount ? '${_data.workerCount}' : '',
+      );
+      _editControllers['hours'] = TextEditingController(
+        text: _data.hasHours ? '${_data.hours}' : '',
+      );
+    } else {
+      _editControllers['equipment'] = TextEditingController(
+        text: _data.itemName ?? '',
+      );
+      _editControllers['hours'] = TextEditingController(
+        text: _data.hasQuantity ? '${_data.quantity}' : '',
+      );
+    }
+
+    _editControllers['rate'] = TextEditingController(
+      text: _data.hasRate ? '${_data.rate}' : '',
+    );
+
+    setState(() => _isEditing = true);
+  }
+
+  void _cancelEdit() {
+    if (_savedEditFields != null) {
+      _detectedFields.clear();
+      _detectedFields.addAll(_savedEditFields!);
+    }
+    _disposeEditControllers();
+    _savedEditFields = null;
+    _editError = null;
+    setState(() {
+      _isEditing = false;
+      _rebuildResponse();
+    });
+  }
+
+  void _disposeEditControllers() {
+    for (final ctrl in _editControllers.values) {
+      ctrl.dispose();
+    }
+    _editControllers.clear();
+  }
+
+  void _saveEditChanges() {
+    _editError = null;
+
+    if (!_isEditValid()) {
+      setState(() => _editError = 'Please complete all required fields.');
+      return;
+    }
+
+    _data.projectName = _editControllers['project']!.text.trim();
+    _data.projectId = _editControllers['project']!.text.trim();
+    _data.floor = _editControllers['floor']!.text.trim();
+    _data.activity = _editControllers['activity']!.text.trim();
+
+    if (_entryType == 'material') {
+      _data.phase = _editControllers['phase']!.text.trim();
+      _data.itemName = _editControllers['material']!.text.trim();
+      _data.quantity = double.tryParse(_editControllers['quantity']!.text) ?? 0;
+      _data.unit = _editControllers['unit']!.text.trim();
+    } else if (_entryType == 'labour') {
+      final labourType = _editControllers['labourType']!.text.trim();
+      _data.workType = labourType;
+      _data.itemName = labourType;
+      _data.workerCount = int.tryParse(_editControllers['workers']!.text) ?? 0;
+      _data.hours = double.tryParse(_editControllers['hours']!.text) ?? 0;
+    } else {
+      _data.itemName = _editControllers['equipment']!.text.trim();
+      final hrs = double.tryParse(_editControllers['hours']!.text) ?? 0;
+      _data.quantity = hrs;
+      _data.hours = hrs;
+    }
+
+    _data.rate = double.tryParse(_editControllers['rate']!.text) ?? 0;
+
+    _disposeEditControllers();
+    _savedEditFields = null;
+
+    setState(() {
+      _isEditing = false;
+      _rebuildResponse();
+    });
+  }
+
+  bool _isEditValid() {
+    if (_editControllers['project']?.text.trim().isEmpty ?? true) return false;
+
+    if (_entryType == 'material') {
+      if (_editControllers['material']?.text.trim().isEmpty ?? true) {
+        return false;
+      }
+      if ((double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0) <= 0) {
+        return false;
+      }
+      if (_editControllers['unit']?.text.trim().isEmpty ?? true) return false;
+    } else if (_entryType == 'labour') {
+      if (_editControllers['labourType']?.text.trim().isEmpty ?? true) {
+        return false;
+      }
+      if ((int.tryParse(_editControllers['workers']?.text ?? '') ?? 0) <= 0) {
+        return false;
+      }
+      if ((double.tryParse(_editControllers['hours']?.text ?? '') ?? 0) <= 0) {
+        return false;
+      }
+    } else {
+      if (_editControllers['equipment']?.text.trim().isEmpty ?? true) {
+        return false;
+      }
+      if ((double.tryParse(_editControllers['hours']?.text ?? '') ?? 0) <= 0) {
+        return false;
+      }
+    }
+
+    if ((double.tryParse(_editControllers['rate']?.text ?? '') ?? 0) <= 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  double _getLiveEditAmount() {
+    final rateText = _editControllers['rate']?.text ?? '';
+    final rate = double.tryParse(rateText) ?? 0;
+    if (_entryType == 'material') {
+      final qty =
+          double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0;
+      return qty * rate;
+    } else if (_entryType == 'labour') {
+      final workers =
+          double.tryParse(_editControllers['workers']?.text ?? '') ?? 0;
+      final hours = double.tryParse(_editControllers['hours']?.text ?? '') ?? 0;
+      return workers * hours * rate;
+    } else {
+      final hours = double.tryParse(_editControllers['hours']?.text ?? '') ?? 0;
+      return hours * rate;
+    }
+  }
+
+  Widget _buildEditField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textLight,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const Divider(height: 1, color: Color(0xFFF7F5FC)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditFormFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildEditField(
+          label: 'Project',
+          controller: _editControllers['project']!,
+        ),
+        if (_entryType == 'material') ...[
+          _buildEditField(
+            label: 'Material',
+            controller: _editControllers['material']!,
+          ),
+          _buildEditField(
+            label: 'Quantity',
+            controller: _editControllers['quantity']!,
+            keyboardType: TextInputType.number,
+          ),
+          _buildEditField(label: 'Unit', controller: _editControllers['unit']!),
+        ] else if (_entryType == 'labour') ...[
+          _buildEditField(
+            label: 'Labour Type',
+            controller: _editControllers['labourType']!,
+          ),
+          _buildEditField(
+            label: 'Workers Count',
+            controller: _editControllers['workers']!,
+            keyboardType: TextInputType.number,
+          ),
+          _buildEditField(
+            label: 'Hours Worked',
+            controller: _editControllers['hours']!,
+            keyboardType: TextInputType.number,
+          ),
+        ] else ...[
+          _buildEditField(
+            label: 'Equipment',
+            controller: _editControllers['equipment']!,
+          ),
+          _buildEditField(
+            label: 'Hours Used',
+            controller: _editControllers['hours']!,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+        _buildEditField(
+          label: 'Rate (₹)',
+          controller: _editControllers['rate']!,
+          keyboardType: TextInputType.number,
+        ),
+        _buildEditField(label: 'Floor', controller: _editControllers['floor']!),
+        if (_entryType == 'material')
+          _buildEditField(
+            label: 'Phase',
+            controller: _editControllers['phase']!,
+          ),
+        _buildEditField(
+          label: 'Activity',
+          controller: _editControllers['activity']!,
+        ),
+        if (_editError != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFEF4444),
+                  size: 14,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _editError!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   void _scrollToBottom() {
@@ -1427,64 +2223,129 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   }
 
   // ─── Field labels and required count helpers ─────────────────────────────────
+  // Priority order determines which question the AI asks next.
+  // Conversational flow: what → how many → what unit → what price → where.
   List<String> _getStillNeededFieldsFor(_ExtractedData d) {
     final list = <String>[];
-    if (!d.hasProject) list.add('Project');
-    if (_entryType == 'labour') {
+    if (_entryType == 'material') {
+      if (!d.hasItemName) list.add('Material');
+      if (!d.hasQuantity) list.add('Quantity');
+      if (!d.hasUnit) list.add('Unit');
+      if (!d.hasRate) list.add('Rate');
+    } else if (_entryType == 'labour') {
       if (!d.hasItemName) list.add('Labour Type');
       if (!d.hasWorkerCount) list.add('Worker Count');
       if (!d.hasHours) list.add('Hours');
-    }
-    if (_entryType == 'equipment') {
-      if (!d.hasItemName) list.add('Equipment');
+      if (!d.hasRate) list.add('Rate');
+    } else if (_entryType == 'equipment') {
+      if (!d.hasItemName) list.add('Equipment Name');
       if (!d.hasQuantity) list.add('Hours');
+      if (!d.hasRate) list.add('Rate');
     }
-    if (!d.hasFloor) list.add('Floor');
-    if (_entryType == 'material') {
-      if (!d.hasPhase) list.add('Phase');
-    }
-    if (!d.hasActivity) list.add('Activity');
-    if (_entryType == 'material') {
-      if (!d.hasQuantity) list.add('Quantity');
-      if (!d.hasUnit) list.add('Unit');
-    }
-    if (_entryType == 'equipment') {
-      if (!d.hasFuelCost) list.add('Fuel');
-    }
-    if (!d.hasRate) list.add('Rate');
     return list;
   }
 
   List<_DetectedField> _getDetectedFieldsWithLabels(_ExtractedData d) {
     final list = <_DetectedField>[];
-    if (d.hasProject) {
-      list.add(_DetectedField(label: 'Project', value: d.projectName ?? d.projectId!));
-    }
     if (_entryType == 'material') {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Material', value: d.itemName!));
-      if (d.hasBrand) list.add(_DetectedField(label: 'Brand', value: d.brand!));
-      if (d.hasQuantity) list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
-      if (d.hasUnit) list.add(_DetectedField(label: 'Unit', value: d.unit!));
+      if (d.hasItemName) {
+        list.add(_DetectedField(label: 'Material', value: d.itemName!));
+      }
+      if (d.hasQuantity) {
+        list.add(_DetectedField(label: 'Quantity', value: '${d.quantity}'));
+      }
+      if (d.hasUnit) {
+        list.add(_DetectedField(label: 'Unit', value: d.unit!));
+      }
+      if (d.hasRate) {
+        list.add(
+          _DetectedField(
+            label: 'Rate',
+            value: '₹ ${d.rate!.toStringAsFixed(0)}',
+          ),
+        );
+      }
     } else if (_entryType == 'labour') {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Labour Type', value: d.workType ?? d.itemName!));
-      if (d.hasWorkerCount) list.add(_DetectedField(label: 'Worker Count', value: '${d.workerCount}'));
-      if (d.hasHours) list.add(_DetectedField(label: 'Hours', value: '${d.hours}'));
+      if (d.hasItemName) {
+        list.add(
+          _DetectedField(
+            label: 'Labour Type',
+            value: d.workType ?? d.itemName!,
+          ),
+        );
+      }
+      if (d.hasWorkerCount) {
+        list.add(
+          _DetectedField(label: 'Worker Count', value: '${d.workerCount}'),
+        );
+      }
+      if (d.hasHours) {
+        list.add(_DetectedField(label: 'Hours', value: '${d.hours}'));
+      }
+      if (d.hasRate) {
+        list.add(
+          _DetectedField(
+            label: 'Rate',
+            value: '₹ ${d.rate!.toStringAsFixed(0)}',
+          ),
+        );
+      }
     } else {
-      if (d.hasItemName) list.add(_DetectedField(label: 'Equipment', value: d.itemName!));
-      if (d.hasQuantity) list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
-      if (d.hasFuelCost) list.add(_DetectedField(label: 'Fuel Cost', value: '₹ ${d.fuelCost!.toStringAsFixed(0)}'));
+      if (d.hasItemName) {
+        list.add(_DetectedField(label: 'Equipment Name', value: d.itemName!));
+      }
+      if (d.hasQuantity) {
+        list.add(_DetectedField(label: 'Hours', value: '${d.quantity}'));
+      }
+      if (d.hasRate) {
+        list.add(
+          _DetectedField(
+            label: 'Rate',
+            value: '₹ ${d.rate!.toStringAsFixed(0)}',
+          ),
+        );
+      }
     }
-    if (d.hasFloor) list.add(_DetectedField(label: 'Floor', value: d.floor!));
-    if (d.hasPhase) list.add(_DetectedField(label: 'Phase', value: d.phase!));
-    if (d.hasActivity) list.add(_DetectedField(label: 'Activity', value: d.activity!));
-    if (d.hasRate) list.add(_DetectedField(label: 'Rate', value: '₹ ${d.rate!.toStringAsFixed(0)}'));
     return list;
   }
 
-  int _getTotalFieldsCount() {
-    if (_entryType == 'material') return 8;
-    if (_entryType == 'labour') return 8;
-    return 7;
+  Map<String, dynamic> _getVoiceFields(String entryType, _ExtractedData d) {
+    if (entryType == 'material') {
+      return {
+        'Material': d.itemName,
+        'Quantity': d.quantity,
+        'Unit': d.unit,
+        'Rate': d.rate,
+      };
+    } else if (entryType == 'labour') {
+      return {
+        'Labour Type': d.workType ?? d.itemName,
+        'Worker Count': d.workerCount,
+        'Hours': d.hours,
+        'Rate': d.rate,
+      };
+    } else {
+      return {
+        'Equipment Name': d.itemName,
+        'Hours': d.quantity,
+        'Rate': d.rate,
+      };
+    }
+  }
+
+  bool _isVoiceFieldPresent(String key, dynamic val) {
+    if (val == null) return false;
+    if (val is String) return val.trim().isNotEmpty;
+    if (val is num) return val > 0;
+    return false;
+  }
+
+  bool get _isProjectContextSelected {
+    final hasProj = _data.projectId != null && _data.projectId!.isNotEmpty;
+    final hasFloor = _data.floor != null && _data.floor!.trim().isNotEmpty;
+    final hasPhase = _data.phase != null && _data.phase!.trim().isNotEmpty;
+    final hasAct = _data.activity != null && _data.activity!.trim().isNotEmpty;
+    return hasProj && hasFloor && hasPhase && hasAct;
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -1492,6 +2353,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ──────────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    // Listen reactively to ProjectProvider to rebuild this screen when Project Context changes
+    Provider.of<ProjectProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FC),
       body: SafeArea(
@@ -1527,7 +2391,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       case VoiceStatus.listening:
       case VoiceStatus.idle:
         title = 'BuildTrack AI';
-        final label = _entryType == 'material' ? 'Material' : _entryType == 'labour' ? 'Labour' : 'Equipment';
+        final label = _entryType == 'material'
+            ? 'Material'
+            : _entryType == 'labour'
+            ? 'Labour'
+            : 'Equipment';
         subtitle = 'AI Voice Entry • $label';
         break;
       case VoiceStatus.processing:
@@ -1574,7 +2442,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: const Color(0xFFF4F6FC),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back, size: 18, color: AppColors.textDark),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 18,
+                color: AppColors.textDark,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -1591,60 +2463,62 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     letterSpacing: 0.3,
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textLight),
-                    ),
-                  ],
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                  ),
                 ),
               ],
             ),
           ),
-          if (isListening && _step == _ConvStep.initialVoice)
-            _buildLiveChip(),
+          _buildStatusBadge(isListening),
         ],
       ),
     );
   }
 
-  Widget _buildLiveChip() {
-    return AnimatedBuilder(
-      animation: _micPulseCtrl,
-      builder: (_, __) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.1 + _micPulseCtrl.value * 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFEF4444),
-              ),
+  Widget _buildStatusBadge(bool isListening) {
+    final statusText = isListening ? 'Listening' : 'Ready';
+    final color = isListening ? const Color(0xFFEF4444) : AppColors.textLight;
+    final bgColor = isListening
+        ? const Color(0xFFFEF2F2)
+        : const Color(0xFFF1F5F9);
+    final borderColor = isListening
+        ? const Color(0xFFFCA5A5)
+        : const Color(0xFFE2E8F0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            statusText,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.2,
             ),
-            const SizedBox(width: 4),
-            const Text('LIVE',
-                style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFEF4444),
-                    letterSpacing: 0.5)),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Main Body Selector ───────────────────────────────────────────────────────
   Widget _buildMainBody() {
     Widget content;
     final curData = _currentData;
@@ -1667,17 +2541,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         content = _buildSummaryCard();
         break;
       default:
-        final isInitial = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAiStatusCard(),
-            if (isInitial || _voiceCtrl.isListening) ...[
-              _buildLiveTranscript(),
-            ],
+            if (_saveError != null) _buildErrorCard(),
+            _buildVoiceListeningCard(),
             _buildAiUnderstandingPanel(curData),
             _buildMissingInformationPanel(curData),
             _buildAiQuestionCard(),
+            _buildExampleHintCard(),
           ],
         );
         break;
@@ -1690,318 +2562,71 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 1: AI Status Banner ─────────────────────────────────────────────
-  Widget _buildAiStatusCard() {
+  Widget _buildVoiceListeningCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing = _response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking;
-    final isAsking = _response.status == VoiceStatus.waitingForUser;
-    final isSummary = _response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving;
-    final typeLabel = _entryType == 'material'
-        ? 'Material Entry'
-        : _entryType == 'labour'
-            ? 'Labour Entry'
-            : 'Equipment Entry';
+    if (!isListening) return const SizedBox.shrink();
 
-    Color dotColor;
-    String stateLabel;
-    Color stateLabelColor;
-
-    if (isListening) {
-      dotColor = const Color(0xFF22C55E);
-      stateLabel = 'Listening';
-      stateLabelColor = const Color(0xFF16A34A);
-    } else if (isProcessing) {
-      dotColor = AppColors.primaryPurple;
-      stateLabel = 'Understanding';
-      stateLabelColor = AppColors.primaryPurple;
-    } else if (isAsking) {
-      dotColor = AppColors.primary;
-      stateLabel = 'AI is Asking';
-      stateLabelColor = AppColors.primary;
-    } else if (isSummary) {
-      dotColor = const Color(0xFF22C55E);
-      stateLabel = 'Ready to Save';
-      stateLabelColor = const Color(0xFF16A34A);
-    } else {
-      dotColor = AppColors.textLight;
-      stateLabel = 'Ready';
-      stateLabelColor = AppColors.textLight;
-    }
+    final hasContent = _partialAnswer.isNotEmpty || _rawTranscript.isNotEmpty;
+    final displayText = hasContent
+        ? (_partialAnswer.isNotEmpty ? _partialAnswer : _rawTranscript)
+        : 'Listening for voice input...';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF173EEA).withValues(alpha: 0.06),
-            const Color(0xFFB137FF).withValues(alpha: 0.04),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFDDD8F5)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'BuildTrack AI',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryBlue,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          typeLabel.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (!isListening && !isProcessing && !isAsking && !isSummary) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _examplePhrase,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            AnimatedBuilder(
-              animation: _micPulseCtrl,
-              builder: (_, __) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: dotColor.withValues(
-                      alpha: isListening ? 0.10 + _micPulseCtrl.value * 0.06 : 0.08,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: dotColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: dotColor.withValues(
-                            alpha: isListening
-                                ? 0.6 + _micPulseCtrl.value * 0.4
-                                : 1.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        stateLabel,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: stateLabelColor,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Section 2 & 3: Live Transcript & Waveform Card ───────────────────────────
-  Widget _buildLiveTranscript() {
-    final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFDDD8F5)),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'YOU SAID',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textLight,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              if (isListening) _buildLiveTranscriptIndicator(),
-            ],
+          const Text(
+            'LIVE TRANSCRIPT',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+              letterSpacing: 0.8,
+            ),
           ),
           const SizedBox(height: 12),
-          if (isListening && _partialAnswer.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: AnimatedBuilder(
-                animation: _micPulseCtrl,
-                builder: (_, __) {
-                  final timer = _voiceCtrl.elapsedDisplay;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Listening',
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        timer,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary.withValues(alpha: 0.6),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ...List.generate(3, (i) {
-                        final phase = ((_micPulseCtrl.value * 3) - i).clamp(0.0, 1.0);
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 2),
-                          child: Opacity(
-                            opacity: 0.3 + phase * 0.7,
-                            child: const Text(
-                              '.',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.primary,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            )
-          else
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _partialAnswer.isNotEmpty
-                      ? _partialAnswer
-                      : (_rawTranscript.isNotEmpty ? _rawTranscript : 'Speak naturally...'),
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w600,
-                    color: _partialAnswer.isEmpty && _rawTranscript.isEmpty
-                        ? AppColors.textLight
-                        : AppColors.textDark,
-                    height: 1.4,
-                  ),
-                ),
-                if (isListening && _partialAnswer.isNotEmpty) ...[
-                  const SizedBox(width: 4),
-                  const _BlinkingCursor(),
-                ],
-              ],
-            ),
-          const SizedBox(height: 16),
           _buildLiveWaveform(),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Text(
+              displayText,
+              style: TextStyle(
+                fontSize: 13.5,
+                color: hasContent
+                    ? AppColors.textDark
+                    : AppColors.textLight.withValues(alpha: 0.7),
+                fontStyle: _partialAnswer.isNotEmpty
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+                height: 1.45,
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLiveTranscriptIndicator() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: _micPulseCtrl,
-          builder: (_, __) {
-            return Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF22C55E).withValues(alpha: 0.4 + _micPulseCtrl.value * 0.6),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF22C55E).withValues(alpha: 0.3),
-                    blurRadius: 5 * _micPulseCtrl.value,
-                    spreadRadius: 1,
-                  )
-                ],
-              ),
-            );
-          },
-        ),
-        const SizedBox(width: 6),
-        const Text(
-          'LIVE TRANSCRIPT',
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF22C55E),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
     );
   }
 
@@ -2014,22 +2639,25 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     return AnimatedBuilder(
       animation: _waveCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         return SizedBox(
-          height: 40,
+          height: 36,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(24, (i) {
               final phase = _waveCtrl.value * 2 * math.pi;
               final offset = i * (math.pi / 10);
-              final baseHeight = 5.0 + (math.sin(phase + offset).abs() * 16.0);
-              final randNoise = math.sin(phase * 4.0 + i).abs() * 5.0;
-              final finalHeight = ((baseHeight + randNoise) * vol).clamp(4.0, 36.0);
+              final baseHeight = 4.0 + (math.sin(phase + offset).abs() * 14.0);
+              final randNoise = math.sin(phase * 4.0 + i).abs() * 4.0;
+              final finalHeight = ((baseHeight + randNoise) * vol).clamp(
+                4.0,
+                32.0,
+              );
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
-                margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                width: 3.5,
+                margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                width: 3.0,
                 height: finalHeight,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -2047,13 +2675,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 4 & 6: AI Understanding Panel (Live Vertical List + Progress Bar) ──
   Widget _buildAiUnderstandingPanel(_ExtractedData currentData) {
-    final detected = _getDetectedFieldsWithLabels(currentData);
-    final count = _response.completedFields;
-    final total = _response.totalFields > 0 ? _response.totalFields : _getTotalFieldsCount();
-    final progress = total > 0 ? count / total : 0.0;
-    final isComplete = count >= total;
+    final voiceFields = _getVoiceFields(_entryType, currentData);
+    final total = voiceFields.length;
+    int completed = 0;
+    voiceFields.forEach((key, val) {
+      if (_isVoiceFieldPresent(key, val)) completed++;
+    });
+
+    final progress = total > 0 ? completed / total : 0.0;
+    final isComplete = completed >= total;
 
     return Container(
       width: double.infinity,
@@ -2068,7 +2699,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2077,26 +2708,33 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isComplete ? 'AI Understanding' : 'AI Understanding Entry...',
-                style: const TextStyle(
+              const Text(
+                'AI Understanding Entry',
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textDark,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3.5,
+                ),
                 decoration: BoxDecoration(
-                  color: isComplete ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+                  color: isComplete
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isComplete ? 'Complete' : '$count / $total',
+                  '$completed / $total',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: isComplete ? const Color(0xFF16A34A) : AppColors.primary,
+                    color: isComplete
+                        ? const Color(0xFF16A34A)
+                        : AppColors.primary,
                   ),
                 ),
               ),
@@ -2115,102 +2753,72 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             ),
           ),
           const SizedBox(height: 12),
-          if (detected.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Waiting for voice input...',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: AppColors.textLight,
-                  fontStyle: FontStyle.italic,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: voiceFields.entries.map((e) {
+              final isPresent = _isVoiceFieldPresent(e.key, e.value);
+              final displayVal = e.value is num
+                  ? (e.value as num).toStringAsFixed(e.value % 1 == 0 ? 0 : 2)
+                  : e.value?.toString() ?? '';
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-              ),
-            )
-          else
-            Column(
-              children: detected
-                  .map((field) => _buildDetectedFieldRow(field))
-                  .toList(),
-            ),
+                decoration: BoxDecoration(
+                  color: isPresent
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPresent
+                        ? const Color(0xFFBBF7D0)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPresent
+                          ? Icons.check_circle_outline
+                          : Icons.radio_button_unchecked,
+                      color: isPresent
+                          ? const Color(0xFF16A34A)
+                          : AppColors.textLight,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isPresent ? '${e.key}: $displayVal' : e.key,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isPresent
+                            ? const Color(0xFF16A34A)
+                            : AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetectedFieldRow(_DetectedField field) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 350),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, val, child) {
-        return Transform.translate(
-          offset: Offset(-10 * (1 - val), 0),
-          child: Opacity(opacity: val, child: child),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFDCFCE7),
-              ),
-              child: const Icon(Icons.check, size: 12, color: Color(0xFF16A34A)),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              '${field.label}:',
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textLight,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                field.value,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Section 5 & 7: Still Needed Panel (Active-Step Aware) ──────────────────
   Widget _buildMissingInformationPanel(_ExtractedData currentData) {
-    final needed = _getStillNeededFieldsFor(currentData);
-    if (needed.isEmpty) return const SizedBox.shrink();
+    final voiceFields = _getVoiceFields(_entryType, currentData);
+    final missing = voiceFields.entries
+        .where((e) => !_isVoiceFieldPresent(e.key, e.value))
+        .map((e) => e.key)
+        .toList();
 
-    // Map current step to the field name being collected
-    String? activeField;
-    switch (_step) {
-      case _ConvStep.askProject: activeField = 'Project'; break;
-      case _ConvStep.askFloor: activeField = 'Floor'; break;
-      case _ConvStep.askPhase: activeField = 'Phase'; break;
-      case _ConvStep.askActivity: activeField = 'Activity'; break;
-      case _ConvStep.askQuantity: activeField = 'Quantity'; break;
-      case _ConvStep.askUnit: activeField = 'Unit'; break;
-      case _ConvStep.askRate: activeField = 'Rate'; break;
-      case _ConvStep.askBrand: activeField = 'Brand'; break;
-      case _ConvStep.askLabourType: activeField = 'Labour Type'; break;
-      case _ConvStep.askWorkerCount: activeField = 'Worker Count'; break;
-      case _ConvStep.askHours: activeField = 'Hours'; break;
-      case _ConvStep.askEquipment: activeField = 'Equipment'; break;
-      case _ConvStep.askFuel: activeField = 'Fuel'; break;
-      default: activeField = null;
-    }
+    if (missing.isEmpty) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
@@ -2225,7 +2833,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2250,7 +2858,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Text(
-                  '${needed.length} field${needed.length == 1 ? '' : 's'}',
+                  '${missing.length} field${missing.length == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
@@ -2264,22 +2872,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           Wrap(
             spacing: 7,
             runSpacing: 7,
-            children: needed.map((field) {
-              final isActive = field == activeField;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            children: missing.map((field) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : const Color(0xFFFFFBEB),
+                  color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isActive
-                        ? AppColors.primary.withValues(alpha: 0.3)
-                        : const Color(0xFFFEF3C7),
-                    width: isActive ? 1.5 : 1,
-                  ),
+                  border: Border.all(color: const Color(0xFFFEF3C7)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -2289,9 +2891,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isActive ? AppColors.primary : Colors.transparent,
                         border: Border.all(
-                          color: isActive ? AppColors.primary : const Color(0xFFD97706),
+                          color: const Color(0xFFD97706),
                           width: 1.5,
                         ),
                       ),
@@ -2299,10 +2900,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     const SizedBox(width: 6),
                     Text(
                       field,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: isActive ? AppColors.primary : const Color(0xFFB45309),
+                        color: Color(0xFFB45309),
                       ),
                     ),
                   ],
@@ -2315,13 +2916,79 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
+  Widget _buildExampleHintCard() {
+    String example = "";
+    if (_entryType == 'material') {
+      example = '"20 bags of UltraTech cement at 420 rupees per bag"';
+    } else if (_entryType == 'labour') {
+      example = '"8 masons worked 9 hours at 850 rupees"';
+    } else {
+      example = '"JCB excavator worked 6 hours at 1200 rupees per hour"';
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F8FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEBE8FF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.lightbulb_outline_rounded,
+            color: AppColors.primary,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Example Phrase:',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  example,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textDark,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── Section 8: AI Question Card (Premium Gradient Chat Bubble) ─────────────
   Widget _buildAiQuestionCard() {
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
     if (!isAskingStep) return const SizedBox.shrink();
 
-    final question = _response.question ?? _questionFor(_step);
-    final suggestions = _backendSuggestions.isNotEmpty ? _backendSuggestions : _suggestionsForCurrentStep();
+    // Question derived from FIRST missing field — always field-driven, never step-driven
+    final field = _fieldToAsk();
+    final question = _response.question?.isNotEmpty == true
+        ? _response.question!
+        : (field != null ? _questionForField(field) : '');
+    final suggestions = _backendSuggestions.isNotEmpty
+        ? _backendSuggestions
+        : (field != null ? _suggestionsForField(field) : <String>[]);
+    debugPrint(
+      '[AI DEBUG] _buildAiQuestionCard: showing question="$question" for field=$field',
+    );
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
 
     return Container(
@@ -2377,30 +3044,32 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     ),
                   ),
                   const SizedBox(height: 5),
-                  ...confirmed.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          size: 13,
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${f.label}: ${f.value}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  ...confirmed.map(
+                    (f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${f.label}: ${f.value}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                 ],
               ),
             ),
@@ -2414,7 +3083,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
           // ── Question ──
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, suggestions.isEmpty ? 16 : 0),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              suggestions.isEmpty ? 16 : 0,
+            ),
             child: Text(
               question,
               style: const TextStyle(
@@ -2462,27 +3136,34 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: options.map((opt) => GestureDetector(
-        onTap: () => _handleTypedAnswer(opt),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.4),
+      children: options
+          .map(
+            (opt) => GestureDetector(
+              onTap: () => _handleTypedAnswer(opt),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  opt,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
-          ),
-          child: Text(
-            opt,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
@@ -2492,42 +3173,42 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final states = <bool>[];
 
     final hasMaterial = _data.hasItemName;
-    final hasBrand = _data.hasBrand;
     final hasQuantity = _data.hasQuantity;
-    final hasProject = _data.hasProject;
-    final hasFloor = _data.hasFloor;
-    final hasPhase = _data.hasPhase;
-    final hasActivity = _data.hasActivity;
+    final hasUnit = _data.hasUnit;
+    final hasRate = _data.hasRate;
 
     if (_entryType == 'material') {
       stages.add(hasMaterial ? 'Material identified' : 'Finding material');
       states.add(hasMaterial);
-      stages.add(hasBrand ? 'Brand identified' : 'Finding brand');
-      states.add(hasBrand);
       stages.add(hasQuantity ? 'Quantity detected' : 'Detecting quantity');
       states.add(hasQuantity);
+      stages.add(hasUnit ? 'Unit identified' : 'Finding unit');
+      states.add(hasUnit);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     } else if (_entryType == 'labour') {
-      stages.add(hasMaterial ? 'Labour type identified' : 'Finding labour type');
+      stages.add(
+        hasMaterial ? 'Labour type identified' : 'Finding labour type',
+      );
       states.add(hasMaterial);
-      stages.add(_data.hasWorkerCount ? 'Worker count detected' : 'Extracting worker count');
+      stages.add(
+        _data.hasWorkerCount
+            ? 'Worker count detected'
+            : 'Extracting worker count',
+      );
       states.add(_data.hasWorkerCount);
       stages.add(_data.hasHours ? 'Hours detected' : 'Extracting hours');
       states.add(_data.hasHours);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     } else {
       stages.add(hasMaterial ? 'Equipment identified' : 'Finding equipment');
       states.add(hasMaterial);
       stages.add(hasQuantity ? 'Hours detected' : 'Extracting hours');
       states.add(hasQuantity);
+      stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
+      states.add(hasRate);
     }
-
-    stages.add(hasFloor ? 'Floor detected' : 'Resolving floor');
-    states.add(hasFloor);
-    stages.add(hasProject ? 'Project matched' : 'Matching project');
-    states.add(hasProject);
-    stages.add(hasPhase ? 'Phase matched' : 'Finding phase');
-    states.add(hasPhase);
-    stages.add(hasActivity ? 'Activity matched' : 'Finding activity');
-    states.add(hasActivity);
 
     return Column(
       children: [
@@ -2542,7 +3223,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Row(
@@ -2553,7 +3234,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   color: Color(0xFFF0EDFF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.cloud_upload_outlined,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -2572,7 +3257,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -2591,7 +3279,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     const SizedBox(height: 4),
                     Text(
                       'Analyzing Entry...',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -2612,7 +3304,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -2638,11 +3330,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
                 if (isCompleted) {
                   if (states[i]) {
-                    indicator = const Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 18);
+                    indicator = const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF22C55E),
+                      size: 18,
+                    );
                     textColor = AppColors.textDark;
                     fontWeight = FontWeight.w600;
                   } else {
-                    indicator = const Icon(Icons.refresh_rounded, color: AppColors.primary, size: 18);
+                    indicator = const Icon(
+                      Icons.refresh_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    );
                     textColor = AppColors.textLight;
                     fontWeight = FontWeight.w500;
                   }
@@ -2652,7 +3352,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   );
                   textColor = AppColors.primary;
@@ -2663,7 +3365,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     height: 14,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.textLight.withValues(alpha: 0.5), width: 1.5),
+                      border: Border.all(
+                        color: AppColors.textLight.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
                     ),
                   );
                   textColor = AppColors.textLight;
@@ -2678,7 +3383,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                       const SizedBox(width: 12),
                       Text(
                         isCompleted
-                            ? (states[i] ? label : 'Finding ${stages[i].split(" ").last}...')
+                            ? (states[i]
+                                  ? label
+                                  : 'Finding ${stages[i].split(" ").last}...')
                             : (isCurrent ? '$label...' : label),
                         style: TextStyle(
                           fontSize: 13.5,
@@ -2703,12 +3410,20 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
           child: const Row(
             children: [
-              Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary, size: 18),
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                color: AppColors.primary,
+                size: 18,
+              ),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Tip: You can keep the app open. We\'ll notify you when ready.',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -2721,74 +3436,62 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   // ─── Section 14: Final Entry Summary ──────────────────────────────────────────
   Widget _buildSummaryCard() {
     final isSaving = _response.status == VoiceStatus.saving;
-    final amount = _data.getComputedAmount(_entryType);
+    final amount = _isEditing
+        ? _getLiveEditAmount()
+        : _data.getComputedAmount(_entryType);
 
     final details = <Map<String, String>>[
       {
         'label': 'Project',
         'value': _data.projectName ?? _data.projectId ?? '—',
       },
-      {
-        'label': 'Floor',
-        'value': _data.floor ?? '—',
-      },
-      if (_entryType == 'material') {
-        'label': 'Phase',
-        'value': _data.phase ?? '—',
-      },
-      {
-        'label': 'Activity',
-        'value': _data.activity ?? '—',
-      },
+      {'label': 'Floor', 'value': _data.floor ?? '—'},
+      if (_entryType == 'material')
+        {'label': 'Phase', 'value': _data.phase ?? '—'},
+      {'label': 'Activity', 'value': _data.activity ?? '—'},
       if (_entryType == 'material') ...[
-        {
-          'label': 'Material',
-          'value': _data.itemName ?? '—',
-        },
+        {'label': 'Material', 'value': _data.itemName ?? '—'},
         {
           'label': 'Quantity',
-          'value': _data.hasQuantity ? '${_data.quantity} ${_data.unit ?? ''}' : '—',
+          'value': _data.hasQuantity
+              ? '${_data.quantity} ${_data.unit ?? ''}'
+              : '—',
         },
       ] else if (_entryType == 'labour') ...[
-        {
-          'label': 'Labour Type',
-          'value': _data.workType ?? '—',
-        },
+        {'label': 'Labour Type', 'value': _data.workType ?? '—'},
         {
           'label': 'Worker Count',
           'value': _data.hasWorkerCount ? '${_data.workerCount}' : '—',
         },
         {
           'label': 'Hours',
-          'value': _data.hasHours ? '${_data.hours} ${_data.unit ?? 'Hours'}' : '—',
+          'value': _data.hasHours
+              ? '${_data.hours} ${_data.unit ?? 'Hours'}'
+              : '—',
         },
       ] else ...[
-        {
-          'label': 'Equipment',
-          'value': _data.itemName ?? '—',
-        },
+        {'label': 'Equipment', 'value': _data.itemName ?? '—'},
         {
           'label': 'Hours',
-          'value': _data.hasQuantity ? '${_data.quantity} ${_data.unit ?? 'Hours'}' : '—',
+          'value': _data.hasQuantity
+              ? '${_data.quantity} ${_data.unit ?? 'Hours'}'
+              : '—',
         },
       ],
       {
         'label': 'Rate',
         'value': _data.hasRate ? '₹ ${_data.rate!.toStringAsFixed(0)}' : '—',
       },
-      if (_entryType == 'equipment' && _data.hasFuelCost) {
-        'label': 'Fuel Cost',
-        'value': '₹ ${_data.fuelCost!.toStringAsFixed(0)}',
-      },
+      if (_entryType == 'equipment' && _data.hasFuelCost)
+        {
+          'label': 'Fuel Cost',
+          'value': '₹ ${_data.fuelCost!.toStringAsFixed(0)}',
+        },
       {
         'label': 'Amount',
         'value': amount > 0 ? '₹ ${amount.toStringAsFixed(0)}' : '—',
         'highlight': 'true',
       },
-      {
-        'label': 'Confidence',
-        'value': '98%',
-      }
     ];
 
     return Container(
@@ -2801,7 +3504,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -2828,7 +3531,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.receipt_long, color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.receipt_long,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     const Text(
@@ -2838,33 +3545,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                         letterSpacing: 1.0,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF22C55E).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFF22C55E).withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_rounded,
-                              color: Color(0xFF86EFAC), size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            '98% Confidence',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF86EFAC),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ],
@@ -2886,8 +3566,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         (_entryType == 'labour'
                             ? 'Labour Log'
                             : _entryType == 'equipment'
-                                ? 'Equipment Entry'
-                                : 'Material Entry'),
+                            ? 'Equipment Entry'
+                            : 'Material Entry'),
                     style: TextStyle(
                       fontSize: 12.5,
                       color: Colors.white.withValues(alpha: 0.75),
@@ -2901,102 +3581,193 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           const Divider(height: 1, color: Color(0xFFEEEBF8)),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              children: List.generate(details.length, (idx) {
-                final item = details[idx];
-                final isHighlight = item['highlight'] == 'true';
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['label']!.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textLight,
-                          letterSpacing: 0.5,
+            child: _isEditing
+                ? _buildEditFormFields()
+                : Column(
+                    children: List.generate(details.length, (idx) {
+                      final item = details[idx];
+                      final isHighlight = item['highlight'] == 'true';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['label']!.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textLight,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['value']!,
+                              style: TextStyle(
+                                fontSize: isHighlight ? 18 : 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: isHighlight
+                                    ? AppColors.primary
+                                    : AppColors.textDark,
+                              ),
+                            ),
+                            if (idx < details.length - 1) ...[
+                              const SizedBox(height: 10),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF7F5FC),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item['value']!,
-                        style: TextStyle(
-                          fontSize: isHighlight ? 18 : 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: isHighlight
-                              ? AppColors.primary
-                              : item['label'] == 'Confidence'
-                                  ? const Color(0xFF16A34A)
-                                  : AppColors.textDark,
-                        ),
-                      ),
-                      if (idx < details.length - 1) ...[
-                        const SizedBox(height: 10),
-                        const Divider(height: 1, color: Color(0xFFF7F5FC)),
-                      ],
-                    ],
+                      );
+                    }),
                   ),
-                );
-              }),
-            ),
           ),
+          if (!_isEditing) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F8FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFEBE8FF)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tip: You can keep the app open. We\'ll notify you when ready.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isSaving
-                        ? null
-                        : () {
-                            setState(() {
-                              _step = _ConvStep.askProject;
-                              _saveError = null;
-                            });
-                            _startAnswerListening();
-                          },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: Color(0xFFDDD8F5), width: 1.5),
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text(
-                      'Edit Details',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isSaving ? null : _saveEntry,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            child: _isEditing
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _cancelEdit,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(
+                              color: Color(0xFFFCA5A5),
+                              width: 1.5,
                             ),
-                          )
-                        : const Text(
-                            'Confirm & Save',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _saveEditChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isSaving ? null : _enterEditMode,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textDark,
+                            side: const BorderSide(
+                              color: Color(0xFFDDD8F5),
+                              width: 1.5,
+                            ),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Edit Details',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSaving ? null : _saveEntry,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Confirm & Save',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -3005,202 +3776,98 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   // ─── Dynamic Bottom Input Panel ───────────────────────────────────────────────
   Widget _buildBottomInputArea() {
-    if (_response.status == VoiceStatus.completed) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.summary || _response.status == VoiceStatus.saving) return const SizedBox.shrink();
-    if (_response.status == VoiceStatus.processing || _response.status == VoiceStatus.thinking) return const SizedBox.shrink();
+    if (_response.status == VoiceStatus.completed) {
+      return const SizedBox.shrink();
+    }
+    if (_response.status == VoiceStatus.summary ||
+        _response.status == VoiceStatus.saving) {
+      return const SizedBox.shrink();
+    }
+    if (_response.status == VoiceStatus.processing ||
+        _response.status == VoiceStatus.thinking) {
+      return const SizedBox.shrink();
+    }
 
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-    final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
-    final isInitialVoice = _response.status == VoiceStatus.listening || _response.status == VoiceStatus.idle;
+    final isInitialVoice =
+        _response.status == VoiceStatus.listening ||
+        _response.status == VoiceStatus.idle;
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: const Border(top: BorderSide(color: Color(0xFFEEEBF8))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: Color(0xFFEEEBF8))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black12,
             blurRadius: 16,
-            offset: const Offset(0, -4),
-          )
+            offset: Offset(0, -4),
+          ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isListening && _partialAnswer.isNotEmpty && isInitialVoice)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-                  ),
-                  child: Text(
-                    _partialAnswer,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textDark,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              if (isProcessing)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Processing speech...', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
-                    ],
-                  ),
-                ),
               if (isInitialVoice) ...[
-                if (_showAnalyzingLabel) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Analyzing voice entry...',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else if (isListening) ...[
-                  AnimatedBuilder(
-                    animation: _waveCtrl,
-                    builder: (_, __) {
-                      final timer = _voiceCtrl.elapsedDisplay;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ...List.generate(5, (i) {
-                            final h = 8.0 + math.sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3).abs() * 12.0;
-                            return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                              width: 3.5,
-                              height: h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            );
-                          }),
-                          const SizedBox(width: 10),
-                          Text(
-                            timer,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary.withValues(alpha: 0.6),
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Listening',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                if (isListening) ...[
+                  _buildSmallMicListening(),
                   const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _stopAndAnalyze,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFEF4444),
-                      side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Stop & Analyze', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ] else if (_rawTranscript.isNotEmpty) ...[
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _resetCurrentEntryData();
-                            _startInitialRecording();
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary, width: 1.5),
-                            minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Re-record', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
+                      Expanded(child: _buildCancelRecordingButton()),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _beginAiProcessing,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
+                      Expanded(child: _buildRedStopAnalyzeButton()),
                     ],
                   ),
                 ] else ...[
-                  _buildBigMicButton(false),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Speak naturally. I\'ll handle the rest.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textLight,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left: Recording Status
+                      Expanded(
+                        flex: 3,
+                        child: _buildRecordingStatusLeft(isListening),
+                      ),
+                      // Center: Large microphone button
+                      Expanded(
+                        flex: 2,
+                        child: _buildLargeMicButtonRedesigned(isListening),
+                      ),
+                      // Right: Stop & Analyze
+                      Expanded(
+                        flex: 3,
+                        child: _buildStopAnalyzeButtonRight(isListening),
+                      ),
+                    ],
                   ),
                 ],
-              ],
-              if (isAskingStep) ...[
+              ] else if (isAskingStep) ...[
                 if (isListening) ...[
                   _buildSmallMicListening(),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _stopAnswerListening,
                     icon: const Icon(Icons.stop_circle_outlined, size: 16),
-                    label: const Text('Done Answering', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Done Answering',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
+                      side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(double.infinity, 46),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ] else ...[
@@ -3209,7 +3876,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => setState(() => _showKeyboardInput = false),
+                          onTap: () =>
+                              setState(() => _showKeyboardInput = false),
                           child: Container(
                             width: 44,
                             height: 44,
@@ -3217,7 +3885,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.mic_rounded, color: AppColors.primary, size: 20),
+                            child: const Icon(
+                              Icons.mic_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -3226,7 +3898,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F6FC),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDDD8F5)),
+                              border: Border.all(
+                                color: const Color(0xFFDDD8F5),
+                              ),
                             ),
                             child: TextField(
                               controller: _textCtrl,
@@ -3234,9 +3908,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                               style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: _hintForCurrentStep,
-                                hintStyle: const TextStyle(color: AppColors.textLight, fontSize: 13),
+                                hintStyle: const TextStyle(
+                                  color: AppColors.textLight,
+                                  fontSize: 13,
+                                ),
                                 border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                               ),
                               onSubmitted: _handleTypedAnswer,
                             ),
@@ -3249,10 +3929,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFF173EEA), Color(0xFFB137FF)]),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                            child: const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ),
                       ],
@@ -3272,14 +3958,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F6FC),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDDD8F5)),
+                              border: Border.all(
+                                color: const Color(0xFFDDD8F5),
+                              ),
                             ),
-                            child: const Icon(Icons.keyboard_outlined, color: AppColors.textDark, size: 20),
+                            child: const Icon(
+                              Icons.keyboard_outlined,
+                              color: AppColors.textDark,
+                              size: 20,
+                            ),
                           ),
                         ),
-                        Expanded(
-                          child: _buildMicWithWaves(),
-                        ),
+                        Expanded(child: _buildMicWithWaves()),
                         const SizedBox(width: 44),
                       ],
                     ),
@@ -3293,62 +3983,215 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 9: Microphone Redesign (BuildTrack Gradient, pulsing, glow) ───────
-  Widget _buildBigMicButton(bool isListening) {
-    return Center(
-      child: GestureDetector(
-        onTap: isListening ? _stopInitialRecording : _startInitialRecording,
-        child: AnimatedBuilder(
-          animation: _micPulseCtrl,
-          builder: (_, child) {
-            final pulse = isListening ? _micPulseCtrl.value : 0.0;
-            return Stack(
-              alignment: Alignment.center,
+  Widget _buildRecordingStatusLeft(bool isListening) {
+    if (!_isProjectContextSelected) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Recording Status',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Context Locked',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (!isListening) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Recording Status',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textLight,
+            ),
+          ),
+          SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: Color(0xFF16A34A),
+                size: 14,
+              ),
+              SizedBox(width: 4),
+              Text(
+                'Ready To Record',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // Active recording
+    return AnimatedBuilder(
+      animation: _waveCtrl,
+      builder: (context, _) {
+        final timer = _voiceCtrl.elapsedDisplay;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Recording Status',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textLight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
               children: [
                 Container(
-                  width: 96 + pulse * 20,
-                  height: 96 + pulse * 20,
-                  decoration: BoxDecoration(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFB137FF).withValues(alpha: isListening ? 0.06 : 0.02),
+                    color: Color(0xFFEF4444),
                   ),
                 ),
-                Container(
-                  width: 84 + pulse * 10,
-                  height: 84 + pulse * 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF173EEA).withValues(alpha: isListening ? 0.10 : 0.04),
-                  ),
-                ),
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF173EEA), Color(0xFFB137FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFB137FF).withValues(alpha: 0.35),
-                        blurRadius: 18 + pulse * 10,
-                        spreadRadius: 2 + pulse * 4,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    isListening ? Icons.stop_rounded : Icons.mic_rounded,
-                    color: Colors.white,
-                    size: 32,
+                const SizedBox(width: 6),
+                Text(
+                  'Listening ($timer)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFEF4444),
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLargeMicButtonRedesigned(bool isListening) {
+    final isEnabled = _isProjectContextSelected;
+
+    return Center(
+      child: GestureDetector(
+        onTap: isEnabled
+            ? (isListening ? _stopInitialRecording : _startInitialRecording)
+            : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: !isEnabled
+                ? const Color(0xFFF1F5F9)
+                : (isListening ? const Color(0xFFEF4444) : AppColors.primary),
+            border: Border.all(
+              color: !isEnabled
+                  ? const Color(0xFFCBD5E1)
+                  : (isListening
+                        ? const Color(0xFFFCA5A5)
+                        : AppColors.primary.withValues(alpha: 0.2)),
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            isListening ? Icons.stop_rounded : Icons.mic_rounded,
+            color: !isEnabled ? const Color(0xFF94A3B8) : Colors.white,
+            size: 28,
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStopAnalyzeButtonRight(bool isListening) {
+    final isEnabled = isListening;
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        height: 40,
+        child: TextButton(
+          onPressed: isEnabled ? _stopAndAnalyze : null,
+          style: TextButton.styleFrom(
+            backgroundColor: isEnabled
+                ? AppColors.primary
+                : const Color(0xFFF1F5F9),
+            foregroundColor: isEnabled ? Colors.white : const Color(0xFF94A3B8),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color: isEnabled ? AppColors.primary : const Color(0xFFE2E8F0),
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: const Text(
+            'Stop & Analyze',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRedStopAnalyzeButton() {
+    return OutlinedButton(
+      onPressed: _stopAndAnalyze,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFEF4444),
+        side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: const Text(
+        'Stop & Analyze',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildCancelRecordingButton() {
+    return OutlinedButton(
+      onPressed: _cancelRecording,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF6B7280), // Neutral gray color
+        side: const BorderSide(
+          color: Color(0xFFD1D5DB), // Neutral gray outline
+          width: 1.5,
+        ),
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: const Text(
+        'Cancel',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -3358,7 +4201,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (isListening) _buildWaveSide(isLeft: true) else const SizedBox(width: 50),
+        if (isListening)
+          _buildWaveSide(isLeft: true)
+        else
+          const SizedBox(width: 50),
         const SizedBox(width: 14),
         GestureDetector(
           onTap: isListening ? _stopAnswerListening : _startAnswerListening,
@@ -3377,7 +4223,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   color: const Color(0xFFB137FF).withValues(alpha: 0.3),
                   blurRadius: 12,
                   spreadRadius: 2,
-                )
+                ),
               ],
             ),
             child: Icon(
@@ -3388,7 +4234,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           ),
         ),
         const SizedBox(width: 14),
-        if (isListening) _buildWaveSide(isLeft: false) else const SizedBox(width: 50),
+        if (isListening)
+          _buildWaveSide(isLeft: false)
+        else
+          const SizedBox(width: 50),
       ],
     );
   }
@@ -3396,7 +4245,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   Widget _buildWaveSide({required bool isLeft}) {
     return AnimatedBuilder(
       animation: _waveCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(4, (i) {
@@ -3420,40 +4269,31 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   Widget _buildSmallMicListening() {
     return AnimatedBuilder(
-      animation: _waveCtrl,
-      builder: (_, __) {
+      animation: _voiceCtrl,
+      builder: (_, _) {
         final timer = _voiceCtrl.elapsedDisplay;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.mic, color: AppColors.primary, size: 18),
-            const SizedBox(width: 8),
-            ...List.generate(5, (i) {
-              final height = 8.0 + math.sin(_waveCtrl.value * 2 * math.pi + i * math.pi / 3).abs() * 12.0;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2.2),
-                width: 3.5,
-                height: height,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              );
-            }),
-            const SizedBox(width: 8),
+            const Text('🎤', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
             Text(
               timer,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary.withValues(alpha: 0.6),
-                fontFeatures: const [FontFeature.tabularFigures()],
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             const Text(
               'Listening',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
           ],
         );
@@ -3484,7 +4324,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 color: const Color(0xFF16A34A).withValues(alpha: 0.05),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -3498,7 +4338,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                     colors: [Color(0xFF22C55E), Color(0xFF10B981)],
                   ),
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 36),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 18),
               const Text(
@@ -3513,7 +4357,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               Text(
                 'Your $_entryType entry has been saved and added to today\'s log.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppColors.textLight, height: 1.5),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textLight,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 20),
               Container(
@@ -3544,10 +4392,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             elevation: 0,
           ),
-          child: const Text('Add Another Entry', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Add Another Entry',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
@@ -3556,9 +4409,14 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary, width: 1.5),
             minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('View All Entries', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'View All Entries',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -3579,7 +4437,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(_saveError ?? '', style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+            child: Text(
+              _saveError ?? '',
+              style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
+            ),
           ),
         ],
       ),
@@ -3590,39 +4451,55 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textLight, fontWeight: FontWeight.w500)),
-        Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textLight,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
       ],
     );
   }
 
   String get _hintForCurrentStep {
-    switch (_step) {
-      case _ConvStep.askProject:
+    final field = _activeField;
+    if (field == null) return 'Type your answer...';
+    switch (field) {
+      case 'Project':
         return 'Type or say project name...';
-      case _ConvStep.askFloor:
+      case 'Floor':
         return 'e.g. Ground Floor, 1st Floor...';
-      case _ConvStep.askPhase:
+      case 'Phase':
         return 'e.g. Foundation Work...';
-      case _ConvStep.askActivity:
+      case 'Activity':
         return 'e.g. Column Casting, PCC...';
-      case _ConvStep.askLabourType:
+      case 'Labour Type':
         return 'e.g. Mason, Helper, Carpenter...';
-      case _ConvStep.askWorkerCount:
+      case 'Worker Count':
         return 'e.g. 5, 8, 12...';
-      case _ConvStep.askHours:
+      case 'Hours':
         return 'e.g. 6, 8, 10 hours...';
-      case _ConvStep.askEquipment:
+      case 'Equipment':
         return 'e.g. JCB Excavator, Crane...';
-      case _ConvStep.askFuel:
+      case 'Fuel':
         return 'e.g. 500, 1200 or 0 for none...';
-      case _ConvStep.askQuantity:
+      case 'Quantity':
         return 'Enter quantity...';
-      case _ConvStep.askUnit:
+      case 'Unit':
         return 'e.g. Bags, Kg, Hours...';
-      case _ConvStep.askRate:
+      case 'Rate':
         return 'Rate in ₹ per unit...';
-      case _ConvStep.askBrand:
+      case 'Brand':
         return 'e.g. UltraTech, Tata...';
       default:
         return 'Type your answer...';
@@ -3631,8 +4508,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
   String _monthName(int m) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[(m - 1).clamp(0, 11)];
   }

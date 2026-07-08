@@ -23,13 +23,17 @@ class ReportProvider extends ChangeNotifier {
   String? get error => _projectProvider?.error;
   bool get hasData => _projectProvider?.hasProjects ?? false;
   ReportModel get report => buildLiveReport();
-  
+
   String get currentPeriod {
     switch (_tabIndex) {
-      case 0: return 'month';
-      case 1: return 'quarter';
-      case 2: return 'year';
-      default: return 'month';
+      case 0:
+        return 'month';
+      case 1:
+        return 'quarter';
+      case 2:
+        return 'year';
+      default:
+        return 'month';
     }
   }
 
@@ -70,69 +74,77 @@ class ReportProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-ReportModel buildLiveReport() {
-  final provider = _projectProvider;
-  if (provider == null || provider.projects.isEmpty) {
-    return ReportModel.empty();
-  }
+  ReportModel buildLiveReport() {
+    final provider = _projectProvider;
+    if (provider == null || provider.projects.isEmpty) {
+      return ReportModel.empty();
+    }
 
-  final List<ProjectModel> targetProjects = _selectedProjectId == 'all'
-      ? provider.projects
-      : provider.projects.where((p) => p.id == _selectedProjectId).toList();
+    final List<ProjectModel> targetProjects = _selectedProjectId == 'all'
+        ? provider.projects
+        : provider.projects.where((p) => p.id == _selectedProjectId).toList();
 
-  if (targetProjects.isEmpty) return ReportModel.empty();
+    if (targetProjects.isEmpty) return ReportModel.empty();
 
-  double material = 0;
-  double labour = 0;
-  double equipment = 0;
+    double material = 0;
+    double labour = 0;
+    double equipment = 0;
 
-  for (final project in targetProjects) {
-    final entries = provider.entriesForProject(project.id);
-    // ✅ ONLY count entries — no spentAmount fallback
-    // Entries with pending payment have amount=0 so they won't affect chart
-    for (final entry in entries) {
-      switch (entry.type) {
-        case EntryType.material: material += entry.amount; break;
-        case EntryType.labour:   labour   += entry.amount; break;
-        case EntryType.equipment:equipment += entry.amount; break;
+    for (final project in targetProjects) {
+      final entries = provider.entriesForProject(project.id);
+      // ✅ ONLY count entries — no spentAmount fallback
+      // Entries with pending payment have amount=0 so they won't affect chart
+      for (final entry in entries) {
+        switch (entry.type) {
+          case EntryType.material:
+            material += entry.amount;
+            break;
+          case EntryType.labour:
+            labour += entry.amount;
+            break;
+          case EntryType.equipment:
+            equipment += entry.amount;
+            break;
+        }
       }
     }
+
+    double targetMaterial = 0,
+        targetLabour = 0,
+        targetEquipment = 0,
+        targetMisc = 0;
+    for (final project in targetProjects) {
+      targetMaterial += project.budgetMaterial ?? 0;
+      targetLabour += project.budgetLabour ?? 0;
+      targetEquipment += project.budgetEquipment ?? 0;
+      targetMisc += project.budgetMisc ?? 0;
+    }
+
+    final total = material + labour + equipment;
+    final totalTarget =
+        targetMaterial + targetLabour + targetEquipment + targetMisc;
+    final isOver = totalTarget > 0 && total > totalTarget;
+
+    return ReportModel(
+      totalCost: total,
+      materialCost: material,
+      labourCost: labour,
+      equipmentCost: equipment,
+      miscCost: 0,
+      categoryBudget: {
+        'Material': targetMaterial,
+        'Labour': targetLabour,
+        'Equipment': targetEquipment,
+      },
+      targetMaterial: targetMaterial,
+      targetLabour: targetLabour,
+      targetEquipment: targetEquipment,
+      targetMisc: targetMisc,
+      efficiencyNote: isOver
+          ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
+          : 'Project is within budget',
+    );
   }
-
-  double targetMaterial = 0, targetLabour = 0,
-         targetEquipment = 0, targetMisc = 0;
-  for (final project in targetProjects) {
-    targetMaterial  += project.budgetMaterial  ?? 0;
-    targetLabour    += project.budgetLabour    ?? 0;
-    targetEquipment += project.budgetEquipment ?? 0;
-    targetMisc      += project.budgetMisc      ?? 0;
-  }
-
-  final total = material + labour + equipment;
-  final totalTarget = targetMaterial + targetLabour +
-                      targetEquipment + targetMisc;
-  final isOver = totalTarget > 0 && total > totalTarget;
-
-  return ReportModel(
-    totalCost:    total,
-    materialCost: material,
-    labourCost:   labour,
-    equipmentCost:equipment,
-    miscCost:     0,
-    categoryBudget: {
-      'Material':  targetMaterial,
-      'Labour':    targetLabour,
-      'Equipment': targetEquipment,
-    },
-    targetMaterial:  targetMaterial,
-    targetLabour:    targetLabour,
-    targetEquipment: targetEquipment,
-    targetMisc:      targetMisc,
-    efficiencyNote: isOver
-        ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
-        : 'Project is within budget',
-  );
-}
 
   String _fmt(double v) {
     if (v >= 10000000) return '${(v / 10000000).toStringAsFixed(1)}Cr';

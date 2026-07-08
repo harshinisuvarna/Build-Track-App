@@ -1,4 +1,4 @@
-﻿import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 
@@ -7,12 +7,13 @@ class CementHistoryScreen extends StatefulWidget {
   @override
   State<CementHistoryScreen> createState() => _CementHistoryScreenState();
 }
+
 class _CementHistoryScreenState extends State<CementHistoryScreen> {
   static const primaryBlue = AppColors.primary;
-  static const purple      = AppColors.primary;
-  static const bgColor     = AppColors.gradientStart;
-  static const textDark    = AppColors.textDark;
-  static const textGray    = AppColors.textLight;
+  static const purple = AppColors.primary;
+  static const bgColor = AppColors.gradientStart;
+  static const textDark = AppColors.textDark;
+  static const textGray = AppColors.textLight;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,6 +107,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
+
   Widget _buildStockCard() {
     return Container(
       width: double.infinity,
@@ -168,6 +170,7 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
+
   Widget _stockBadge(IconData icon, String label) {
     return Row(
       children: [
@@ -185,7 +188,8 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-Widget _buildMovementHeader() {
+
+  Widget _buildMovementHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -233,6 +237,7 @@ Widget _buildMovementHeader() {
       ],
     );
   }
+
   Widget _movementItem({
     required IconData icon,
     required Color iconBg,
@@ -301,11 +306,7 @@ Widget _buildMovementHeader() {
               Text(
                 date,
                 textAlign: TextAlign.right,
-                style: TextStyle(
-                  color: textGray,
-                  fontSize: 10,
-                  height: 1.3,
-                ),
+                style: TextStyle(color: textGray, fontSize: 10, height: 1.3),
               ),
             ],
           ),

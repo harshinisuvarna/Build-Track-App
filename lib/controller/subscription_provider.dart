@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/services/billing_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── SubscriptionPlan enum ─────────────────────────────────────────────────────
 // Must match every plan used in subscription_screen.dart and subscription_card.dart
-enum SubscriptionPlan {
-  free,
-  starter,
-  growth,
-  pro,
-  business,
-  enterprise,
-}
+enum SubscriptionPlan { free, starter, growth, pro, business, enterprise }
 
 extension SubscriptionPlanX on SubscriptionPlan {
   String get label {
@@ -141,9 +135,23 @@ class SubscriptionProvider extends ChangeNotifier {
   // FETCH STATUS — call this on app start and after payment returns
   // =============================================================================
   Future<void> fetchStatus() async {
+    await _loadPersistedSubscription();
+    
+    // If we loaded cached subscription state, notify and launch background fetch
+    if (_currentPlan != SubscriptionPlan.free || _status != SubscriptionStatus.unknown) {
+      _isLoading = false;
+      notifyListeners();
+      _fetchStatusFromNetwork();
+      return;
+    }
+
     _isLoading = true;
     _error = '';
     notifyListeners();
+    await _fetchStatusFromNetwork();
+  }
+
+  Future<void> _fetchStatusFromNetwork() async {
     try {
       final data = await BillingService.fetchStatus();
       if (data != null && data['hasSubscription'] == true) {
@@ -161,7 +169,8 @@ class SubscriptionProvider extends ChangeNotifier {
         } else if (_expiryDate != null) {
           _status = SubscriptionStatus.expired;
         } else {
-          _status = SubscriptionStatus.active; // backend says active, no date given
+          _status =
+              SubscriptionStatus.active; // backend says active, no date given
         }
       } else {
         _currentPlan = SubscriptionPlan.free;
@@ -169,6 +178,7 @@ class SubscriptionProvider extends ChangeNotifier {
         _status = SubscriptionStatus.unknown;
       }
       _error = '';
+      await _persistSubscription();
     } catch (e) {
       _error = 'Could not fetch subscription status';
       _status = SubscriptionStatus.unknown;
@@ -257,5 +267,47 @@ class SubscriptionProvider extends ChangeNotifier {
     _error = '';
     _pendingPaymentParams = null;
     notifyListeners();
+  }
+
+  Future<void> _persistSubscription() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('buildtrack_subscription_plan', _currentPlan.name);
+      await prefs.setString('buildtrack_subscription_status', _status.name);
+      if (_expiryDate != null) {
+        await prefs.setString('buildtrack_subscription_expiry', _expiryDate!.toIso8601String());
+      } else {
+        await prefs.remove('buildtrack_subscription_expiry');
+      }
+    } catch (e) {
+      debugPrint('Persist subscription error: $e');
+    }
+  }
+
+  Future<void> _loadPersistedSubscription() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final planStr = prefs.getString('buildtrack_subscription_plan');
+      final statusStr = prefs.getString('buildtrack_subscription_status');
+      final expiryStr = prefs.getString('buildtrack_subscription_expiry');
+
+      if (planStr != null) {
+        _currentPlan = SubscriptionPlan.values.firstWhere(
+          (e) => e.name == planStr,
+          orElse: () => SubscriptionPlan.free,
+        );
+      }
+      if (statusStr != null) {
+        _status = SubscriptionStatus.values.firstWhere(
+          (e) => e.name == statusStr,
+          orElse: () => SubscriptionStatus.unknown,
+        );
+      }
+      if (expiryStr != null) {
+        _expiryDate = DateTime.tryParse(expiryStr);
+      }
+    } catch (e) {
+      debugPrint('Load persisted subscription error: $e');
+    }
   }
 }
