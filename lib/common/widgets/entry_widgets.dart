@@ -1683,6 +1683,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String selectedMethod = 'UPI';
   String? amountError;
   String? uploadedReceipt;
+String? uploadedReceiptDataUri;
   DateTime selectedPaymentDate = DateTime.now();
 
   const pMethods = [
@@ -2121,21 +2122,12 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final result = await FilePicker.platform
-                                      .pickFiles(
-                                        type: FileType.custom,
-                                        allowedExtensions: [
-                                          'jpg',
-                                          'png',
-                                          'pdf',
-                                        ],
-                                      );
-                                  if (result != null &&
-                                      result.files.isNotEmpty) {
-                                    ss(
-                                      () => uploadedReceipt =
-                                          result.files.first.name,
-                                    );
+                                  final attachment = await pickAttachmentDirect(ctx);
+                                  if (attachment != null) {
+                                    ss(() {
+                                      uploadedReceipt = attachment.name;
+                                      uploadedReceiptDataUri = attachment.dataUri;
+                                    });
                                   }
                                 },
                                 child: AnimatedContainer(
@@ -2179,9 +2171,10 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                             ),
                                             const SizedBox(width: 8),
                                             GestureDetector(
-                                              onTap: () => ss(
-                                                () => uploadedReceipt = null,
-                                              ),
+                                              onTap: () => ss(() {
+                                                uploadedReceipt = null;
+                                                uploadedReceiptDataUri = null;
+                                              }),
                                               child: const Icon(
                                                 Icons.close,
                                                 color: Color(0xFF6B7280),
@@ -2389,12 +2382,13 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? 0.0
                                       : (parseAmount(amountCtrl.text.trim()) ??
                                             0);
-                                  Navigator.pop(ctx, {
+                                    Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,
                                     'note': noteCtrl.text.trim(),
                                     'status': selectedStatus,
                                     'receipt': uploadedReceipt,
+                                    'receiptDataUri': uploadedReceiptDataUri,
                                     'paymentDate': selectedPaymentDate,
                                   });
                                 },
@@ -2681,10 +2675,11 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
+          final String receiptData = attachment != null ? attachment!.dataUri : name!;
           Navigator.pushNamed(
             context,
             '/receipt-viewer',
-            arguments: {'receipt': name},
+            arguments: {'receipt': receiptData},
           );
         }
       },
@@ -2712,7 +2707,23 @@ class InvoiceAttachmentCard extends StatelessWidget {
                 color: iconBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconData, color: iconColor, size: 22),
+              child: (attachment == null &&
+                      (name.startsWith('http://') || name.startsWith('https://')) &&
+                      (lowerName.contains('.jpg') ||
+                          lowerName.contains('.jpeg') ||
+                          lowerName.contains('.png')))
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        name,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(iconData, color: iconColor, size: 22),
+                      ),
+                    )
+                  : Icon(iconData, color: iconColor, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(

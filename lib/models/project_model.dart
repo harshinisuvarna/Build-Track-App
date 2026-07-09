@@ -101,28 +101,28 @@ class EntryModel {
   final String? rejectionReason;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'projectId': projectId,
-        'type': type.name,
-        'amount': amount,
-        'date': date.toIso8601String(),
-        'description': description,
-        'brand': brand,
-        'ratePerUnit': ratePerUnit,
-        'floor': floor,
-        'phase': phase?.name,
-        'phaseId': phaseId,
-        'activity': activity,
-        'activityId': activityId,
-        'unit': unit,
-        'createdBy': createdBy, // ADD
-        'approvalStatus': approvalStatus,
-        'paymentStatus': paymentStatus,
-        'approvedBy': approvedBy,
-        'approvedAt': approvedAt?.toIso8601String(),
-        'paymentDate': paymentDate?.toIso8601String(),
-        'rejectionReason': rejectionReason,
-      };
+    'id': id,
+    'projectId': projectId,
+    'type': type.name,
+    'amount': amount,
+    'date': date.toIso8601String(),
+    'description': description,
+    'brand': brand,
+    'ratePerUnit': ratePerUnit,
+    'floor': floor,
+    'phase': phase?.name,
+    'phaseId': phaseId,
+    'activity': activity,
+    'activityId': activityId,
+    'unit': unit,
+    'createdBy': createdBy, // ADD
+    'approvalStatus': approvalStatus,
+    'paymentStatus': paymentStatus,
+    'approvedBy': approvedBy,
+    'approvedAt': approvedAt?.toIso8601String(),
+    'paymentDate': paymentDate?.toIso8601String(),
+    'rejectionReason': rejectionReason,
+  };
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
     // ADD: read createdBy from persisted cache (stored by project_provider)
@@ -199,6 +199,16 @@ class ProjectActivity {
   final double? budgetMaterial;
   final double? budgetLabour;
   final double? budgetEquipment;
+  final ActivityBudget? budget;
+  final double? qty;
+  final String? unit;
+  final double? materialRate;
+  final double? materialAmount;
+  final double? labourRate;
+  final double? labourAmount;
+  final double? equipmentRate;
+  final double? equipmentAmount;
+  final double? totalAmount;
 
   ProjectActivity({
     required this.id,
@@ -212,10 +222,22 @@ class ProjectActivity {
     this.budgetMaterial,
     this.budgetLabour,
     this.budgetEquipment,
+    this.budget,
+    this.qty,
+    this.unit,
+    this.materialRate,
+    this.materialAmount,
+    this.labourRate,
+    this.labourAmount,
+    this.equipmentRate,
+    this.equipmentAmount,
+    this.totalAmount,
   });
 
   double get budgetTotal =>
-      (budgetMaterial ?? 0.0) + (budgetLabour ?? 0.0) + (budgetEquipment ?? 0.0);
+      (budgetMaterial ?? 0.0) +
+      (budgetLabour ?? 0.0) +
+      (budgetEquipment ?? 0.0);
 
   ProjectActivity copyWith({
     bool? completed,
@@ -229,56 +251,174 @@ class ProjectActivity {
     double? budgetMaterial,
     double? budgetLabour,
     double? budgetEquipment,
+    ActivityBudget? budget,
+    double? qty,
+    String? unit,
+    double? materialRate,
+    double? materialAmount,
+    double? labourRate,
+    double? labourAmount,
+    double? equipmentRate,
+    double? equipmentAmount,
+    double? totalAmount,
   }) {
     return ProjectActivity(
       id: id,
       name: name,
       isCustom: isCustom,
       completed: completed ?? this.completed,
-      completedAt: clearCompletedAt
-          ? null
-          : (completedAt ?? this.completedAt),
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       notes: notes ?? this.notes,
       photo: clearPhoto ? null : (photo ?? this.photo),
       photos: clearPhotos ? null : (photos ?? this.photos),
       budgetMaterial: budgetMaterial ?? this.budgetMaterial,
       budgetLabour: budgetLabour ?? this.budgetLabour,
       budgetEquipment: budgetEquipment ?? this.budgetEquipment,
+      budget: budget ?? this.budget,
+      qty: qty ?? this.qty,
+      unit: unit ?? this.unit,
+      materialRate: materialRate ?? this.materialRate,
+      materialAmount: materialAmount ?? this.materialAmount,
+      labourRate: labourRate ?? this.labourRate,
+      labourAmount: labourAmount ?? this.labourAmount,
+      equipmentRate: equipmentRate ?? this.equipmentRate,
+      equipmentAmount: equipmentAmount ?? this.equipmentAmount,
+      totalAmount: totalAmount ?? this.totalAmount,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'isCustom': isCustom,
-        'completed': completed,
-        if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
-        if (notes != null) 'notes': notes,
-        'photo': photo,
-        'photos': photos,
-        'budgetMaterial': budgetMaterial ?? 0.0,
-        'budgetLabour': budgetLabour ?? 0.0,
-        'budgetEquipment': budgetEquipment ?? 0.0,
-      };
+    'id': id,
+    'name': name,
+    'isCustom': isCustom,
+    'completed': completed,
+    if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
+    if (notes != null) 'notes': notes,
+    'photo': photo,
+    'photos': photos,
+    'budgetMaterial': budgetMaterial ?? 0.0,
+    'budgetLabour': budgetLabour ?? 0.0,
+    'budgetEquipment': budgetEquipment ?? 0.0,
+    if (qty != null) 'qty': qty,
+    if (unit != null) 'unit': unit,
+    if (materialRate != null) 'materialRate': materialRate,
+    if (materialAmount != null) 'materialAmount': materialAmount,
+    if (labourRate != null) 'labourRate': labourRate,
+    if (labourAmount != null) 'labourAmount': labourAmount,
+    if (equipmentRate != null) 'equipmentRate': equipmentRate,
+    if (equipmentAmount != null) 'equipmentAmount': equipmentAmount,
+    if (totalAmount != null) 'totalAmount': totalAmount,
+  };
 
-  factory ProjectActivity.fromJson(Map<String, dynamic> j) => ProjectActivity(
-        id: (j['id'] ?? j['_id'])?.toString() ?? '',
-        name: (j['name'] ?? '').toString(),
-        isCustom: (j['isCustom'] as bool?) ?? false,
-        completed: (j['completed'] as bool?) ?? false,
-        completedAt: j['completedAt'] != null
-            ? DateTime.tryParse(j['completedAt'].toString())
-            : null,
-        notes: j['notes']?.toString(),
-        photo: j['photo']?.toString(),
-        photos: j['photos'] != null
-            ? List<String>.from(j['photos'] as List)
-            : null,
-        budgetMaterial: (j['budgetMaterial'] as num?)?.toDouble() ?? 0.0,
-        budgetLabour: (j['budgetLabour'] as num?)?.toDouble() ?? 0.0,
-        budgetEquipment: (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0,
-      );
+  factory ProjectActivity.fromJson(Map<String, dynamic> j) {
+    final double mat = (j['budgetMaterial'] as num?)?.toDouble() ?? 0.0;
+    final double lab = (j['budgetLabour'] as num?)?.toDouble() ?? 0.0;
+    final double equ = (j['budgetEquipment'] as num?)?.toDouble() ?? 0.0;
+
+    return ProjectActivity(
+      id: (j['id'] ?? j['_id'])?.toString() ?? '',
+      name: (j['name'] ?? '').toString(),
+      isCustom: (j['isCustom'] as bool?) ?? false,
+      completed: (j['completed'] as bool?) ?? false,
+      completedAt: j['completedAt'] != null
+          ? DateTime.tryParse(j['completedAt'].toString())
+          : null,
+      notes: j['notes']?.toString(),
+      photo: j['photo']?.toString(),
+      photos: j['photos'] != null ? List<String>.from(j['photos'] as List) : null,
+      budgetMaterial: mat,
+      budgetLabour: lab,
+      budgetEquipment: equ,
+      budget: j['budget'] != null
+          ? ActivityBudget.fromJson(j['budget'] as Map<String, dynamic>)
+          : ActivityBudget.zero(mat, lab, equ),
+      qty: (j['qty'] as num?)?.toDouble(),
+      unit: j['unit']?.toString(),
+      materialRate: (j['materialRate'] as num?)?.toDouble(),
+      materialAmount: (j['materialAmount'] as num?)?.toDouble(),
+      labourRate: (j['labourRate'] as num?)?.toDouble(),
+      labourAmount: (j['labourAmount'] as num?)?.toDouble(),
+      equipmentRate: (j['equipmentRate'] as num?)?.toDouble(),
+      equipmentAmount: (j['equipmentAmount'] as num?)?.toDouble(),
+      totalAmount: (j['totalAmount'] as num?)?.toDouble(),
+    );
+  }
 }
+
+class ActivityBudget {
+  final ActivityBudgetCategory material;
+  final ActivityBudgetCategory labour;
+  final ActivityBudgetCategory equipment;
+  final ActivityBudgetCategory total;
+  final DateTime? budgetLastCalculatedAt;
+
+  ActivityBudget({
+    required this.material,
+    required this.labour,
+    required this.equipment,
+    required this.total,
+    this.budgetLastCalculatedAt,
+  });
+
+  factory ActivityBudget.fromJson(Map<String, dynamic> j) {
+    return ActivityBudget(
+      material: ActivityBudgetCategory.fromJson(j['material'] as Map<String, dynamic>? ?? {}),
+      labour: ActivityBudgetCategory.fromJson(j['labour'] as Map<String, dynamic>? ?? {}),
+      equipment: ActivityBudgetCategory.fromJson(j['equipment'] as Map<String, dynamic>? ?? {}),
+      total: ActivityBudgetCategory.fromJson(j['total'] as Map<String, dynamic>? ?? {}),
+      budgetLastCalculatedAt: j['budgetLastCalculatedAt'] != null
+          ? DateTime.tryParse(j['budgetLastCalculatedAt'].toString())
+          : null,
+    );
+  }
+
+  static ActivityBudget zero(double budgetMaterial, double budgetLabour, double budgetEquipment) {
+    final double total = budgetMaterial + budgetLabour + budgetEquipment;
+    return ActivityBudget(
+      material: ActivityBudgetCategory.zero(budgetMaterial),
+      labour: ActivityBudgetCategory.zero(budgetLabour),
+      equipment: ActivityBudgetCategory.zero(budgetEquipment),
+      total: ActivityBudgetCategory.zero(total),
+    );
+  }
+}
+
+class ActivityBudgetCategory {
+  final double allocated;
+  final double spent;
+  final double remaining;
+  final double utilization;
+  final double progress;
+
+  ActivityBudgetCategory({
+    required this.allocated,
+    required this.spent,
+    required this.remaining,
+    required this.utilization,
+    required this.progress,
+  });
+
+  factory ActivityBudgetCategory.fromJson(Map<String, dynamic> j) {
+    return ActivityBudgetCategory(
+      allocated: (j['allocated'] as num?)?.toDouble() ?? 0.0,
+      spent: (j['spent'] as num?)?.toDouble() ?? 0.0,
+      remaining: (j['remaining'] as num?)?.toDouble() ?? 0.0,
+      utilization: (j['utilization'] as num?)?.toDouble() ?? 0.0,
+      progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  factory ActivityBudgetCategory.zero(double allocated) {
+    return ActivityBudgetCategory(
+      allocated: allocated,
+      spent: 0.0,
+      remaining: allocated,
+      utilization: 0.0,
+      progress: 0.0,
+    );
+  }
+}
+
 class ProjectPhase {
   final String id;
   final String phaseName;
@@ -735,7 +875,8 @@ class ProjectModel {
       progress: (j['progress'] as num?)?.toDouble() ?? 0.0,
       spentAmount: (j['spentAmount'] as num?)?.toDouble() ?? 0.0,
       totalIncome: (j['totalIncome'] as num?)?.toDouble() ?? 0.0,
-      totalBudget: (j['totalBudget'] as num?)?.toDouble() ??
+      totalBudget:
+          (j['totalBudget'] as num?)?.toDouble() ??
           (budget?['total'] as num?)?.toDouble() ??
           0.0,
       startDate: parsedStartDate,

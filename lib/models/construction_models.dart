@@ -4,6 +4,15 @@ class ConstructionActivity {
   final bool isCustom;
   bool isSelected; // used in add_project for scope selection
 
+  double? qty;
+  String? unit;
+  double? materialRate;
+  double? materialAmount;
+  double? labourRate;
+  double? labourAmount;
+  double? equipmentRate;
+  double? equipmentAmount;
+
   double? budgetMaterial;
   double? budgetLabour;
   double? budgetEquipment;
@@ -13,6 +22,14 @@ class ConstructionActivity {
     required this.name,
     this.isCustom = false,
     this.isSelected = false,
+    this.qty,
+    this.unit,
+    this.materialRate,
+    this.materialAmount,
+    this.labourRate,
+    this.labourAmount,
+    this.equipmentRate,
+    this.equipmentAmount,
     this.budgetMaterial,
     this.budgetLabour,
     this.budgetEquipment,

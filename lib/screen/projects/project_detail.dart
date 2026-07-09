@@ -706,15 +706,12 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
   }
 
   Widget _buildBudgetSection(BuildContext context) {
-    final budgetMat = widget.activity.budgetMaterial ?? 0.0;
-    final budgetLab = widget.activity.budgetLabour ?? 0.0;
-    final budgetEqu = widget.activity.budgetEquipment ?? 0.0;
-    final budgetTot = widget.activity.budgetTotal;
+    final allocMat = widget.activity.budgetMaterial ?? 0.0;
+    final allocLab = widget.activity.budgetLabour ?? 0.0;
+    final allocEqu = widget.activity.budgetEquipment ?? 0.0;
 
-    final projMat = widget.project.budgetMaterial ?? 0.0;
-    final projLab = widget.project.budgetLabour ?? 0.0;
-    final projEqu = widget.project.budgetEquipment ?? 0.0;
-    final projTot = widget.project.totalBudget;
+    final budget = widget.activity.budget ??
+        ActivityBudget.zero(allocMat, allocLab, allocEqu);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -766,20 +763,48 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildBudgetItem('Materials', budgetMat, projMat, AppColors.primary),
+          _buildBudgetItem(
+            label: 'Materials',
+            category: budget.material,
+            color: AppColors.primary,
+          ),
           const SizedBox(height: 8),
-          _buildBudgetItem('Labour', budgetLab, projLab, const Color(0xFF10B981)),
+          _buildBudgetItem(
+            label: 'Labour',
+            category: budget.labour,
+            color: const Color(0xFF10B981),
+          ),
           const SizedBox(height: 8),
-          _buildBudgetItem('Equipment', budgetEqu, projEqu, const Color(0xFFF59E0B)),
+          _buildBudgetItem(
+            label: 'Equipment',
+            category: budget.equipment,
+            color: const Color(0xFFF59E0B),
+          ),
           const Divider(height: 16, color: Color(0xFFE5E7EB)),
-          _buildBudgetItem('Total Budget', budgetTot, projTot, const Color(0xFF7C3AED), isBold: true),
+          _buildBudgetItem(
+            label: 'Total Budget',
+            category: budget.total,
+            color: const Color(0xFF7C3AED),
+            isBold: true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBudgetItem(String label, double allocated, double total, Color color, {bool isBold = false}) {
-    final pct = total > 0 ? (allocated / total).clamp(0.0, 1.0) : 0.0;
+  Widget _buildBudgetItem({
+    required String label,
+    required ActivityBudgetCategory category,
+    required Color color,
+    bool isBold = false,
+  }) {
+    final spent = category.spent;
+    final allocated = category.allocated;
+    final remaining = category.remaining;
+    final pct = category.progress; // progress is clamped [0, 1] from backend
+    final isOver = spent > allocated && allocated > 0;
+    final barColor = isOver ? const Color(0xFFEF4444) : color;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -795,11 +820,13 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
               ),
             ),
             Text(
-              '${formatCurrency(allocated)} / ${formatCurrency(total)}',
+              '${formatCurrency(spent)} / ${formatCurrency(allocated)}',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
-                color: isBold ? const Color(0xFF1F2937) : const Color(0xFF374151),
+                color: isOver
+                    ? const Color(0xFFEF4444)
+                    : (isBold ? const Color(0xFF1F2937) : const Color(0xFF374151)),
               ),
             ),
           ],
@@ -811,9 +838,30 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
             value: pct,
             minHeight: 4,
             backgroundColor: const Color(0xFFE5E7EB),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+            valueColor: AlwaysStoppedAnimation<Color>(barColor),
           ),
         ),
+        if (isOver) ...[
+          const SizedBox(height: 3),
+          Text(
+            'Exceeded by ${formatCurrency(spent - allocated)}',
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFEF4444),
+            ),
+          ),
+        ] else if (allocated > 0 && spent > 0) ...[
+          const SizedBox(height: 3),
+          Text(
+            '${formatCurrency(remaining)} remaining',
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1513,6 +1561,8 @@ class _SummaryCard extends StatelessWidget {
     ],
   );
 }
+
+
 
 // ── Project Info Card ─────────────────────────────────────────────────────────
 class _ProjectInfoCard extends StatelessWidget {
@@ -2606,7 +2656,7 @@ class _RecentEntriesSection extends StatelessWidget {
     final filtered = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
-      if ((e.approvalStatus ?? '').toLowerCase().trim() != 'approved') return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
 
@@ -3086,7 +3136,7 @@ class _AllProjectEntriesScreen extends StatelessWidget {
     final entries = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
-      if ((e.approvalStatus ?? '').toLowerCase().trim() != 'approved') return false;
+      if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
 

@@ -207,14 +207,20 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> _saveActivityDetails(
-    String projectId, String activityId, {String? notes, String? photo, List<String>? photos}) async {
+    String projectId,
+    String activityId, {
+    String? notes,
+    String? photo,
+    List<String>? photos,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kActivityDetailsKey);
-      final Map<String, dynamic> existing =
-          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      final Map<String, dynamic> existing = raw != null && raw.isNotEmpty
+          ? json.decode(raw)
+          : {};
       existing['$projectId|$activityId'] = {
-        if (notes != null) 'notes': notes,
+        'notes': ?notes,
         'photo': photo,
         'photos': photos,
       };
@@ -224,7 +230,8 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, Map<String, dynamic>>> _loadPersistedActivityDetails() async {
+  Future<Map<String, Map<String, dynamic>>>
+  _loadPersistedActivityDetails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kActivityDetailsKey);
@@ -247,8 +254,9 @@ class ProjectProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kCompletedAtKey);
-      final Map<String, dynamic> existing =
-          raw != null && raw.isNotEmpty ? json.decode(raw) : {};
+      final Map<String, dynamic> existing = raw != null && raw.isNotEmpty
+          ? json.decode(raw)
+          : {};
       bool changed = false;
       for (final p in _projects) {
         for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
@@ -409,8 +417,9 @@ class ProjectProvider extends ChangeNotifier {
             json['name'] ??
             'Entry',
         brand: json['materialName'] ?? json['brand'] ?? json['name'],
-        ratePerUnit:
-            (json['rate'] is num) ? (json['rate'] as num).toDouble() : 0,
+        ratePerUnit: (json['rate'] is num)
+            ? (json['rate'] as num).toDouble()
+            : 0,
         floor: json['floor']?.toString(),
         phase: json['phase'] != null
             ? ProjectStage.values.firstWhere(
@@ -460,23 +469,30 @@ class ProjectProvider extends ChangeNotifier {
       }
     }
     if (_phases.isEmpty || _phases.length < 11) {
-      _phases = [
-        'Pre-Construction',
-        'Site Preparation',
-        'Foundation',
-        'Plinth',
-        'Superstructure',
-        'Masonry',
-        'MEP',
-        'Plastering',
-        'Finishing',
-        'Fixtures',
-        'Handover',
-      ].asMap().entries.map((e) => PhaseModel(
-        id: e.value.toLowerCase().replaceAll(' ', '_'),
-        name: e.value,
-        order: e.key,
-      )).toList();
+      _phases =
+          [
+                'Pre-Construction',
+                'Site Preparation',
+                'Foundation',
+                'Plinth',
+                'Superstructure',
+                'Masonry',
+                'MEP',
+                'Plastering',
+                'Finishing',
+                'Fixtures',
+                'Handover',
+              ]
+              .asMap()
+              .entries
+              .map(
+                (e) => PhaseModel(
+                  id: e.value.toLowerCase().replaceAll(' ', '_'),
+                  name: e.value,
+                  order: e.key,
+                ),
+              )
+              .toList();
       _savePhases();
     }
 
@@ -487,7 +503,9 @@ class ProjectProvider extends ChangeNotifier {
     bool loadedFromCache = false;
     if (cachedProjectsRaw != null && cachedProjectsRaw.isNotEmpty) {
       try {
-        final List<ProjectModel> decodedProjects = ProjectModel.decodeList(cachedProjectsRaw);
+        final List<ProjectModel> decodedProjects = ProjectModel.decodeList(
+          cachedProjectsRaw,
+        );
         _projects = _filterForCurrentUser(decodedProjects);
         loadedFromCache = true;
       } catch (e) {
@@ -503,13 +521,18 @@ class ProjectProvider extends ChangeNotifier {
       }
     }
 
-    final String? cachedProjId = prefs.getString('buildtrack_selected_project_id');
-    final String? initialProjId = cachedProjId ??
+    final String? cachedProjId = prefs.getString(
+      'buildtrack_selected_project_id',
+    );
+    final String? initialProjId =
+        cachedProjId ??
         (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
 
     if (loadedFromCache) {
       if (initialProjId != null) {
-        final existingIdx = _projects.indexWhere((p) => p.id.trim() == initialProjId.trim());
+        final existingIdx = _projects.indexWhere(
+          (p) => p.id.trim() == initialProjId.trim(),
+        );
         if (existingIdx != -1) {
           _selectedProject = _projects[existingIdx];
         } else if (_projects.isNotEmpty) {
@@ -527,7 +550,9 @@ class ProjectProvider extends ChangeNotifier {
           _selectedPhase = prefs.getString('buildtrack_selected_phase');
           _selectedPhaseId = prefs.getString('buildtrack_selected_phase_id');
           _selectedActivity = prefs.getString('buildtrack_selected_activity');
-          _selectedActivityId = prefs.getString('buildtrack_selected_activity_id');
+          _selectedActivityId = prefs.getString(
+            'buildtrack_selected_activity_id',
+          );
         }
       }
 
@@ -549,9 +574,11 @@ class ProjectProvider extends ChangeNotifier {
   Future<void> _fetchNetworkData(String? initialProjId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Determine initial project ID if not passed
-      final String? targetProjId = initialProjId ?? prefs.getString('buildtrack_selected_project_id') ??
+      final String? targetProjId =
+          initialProjId ??
+          prefs.getString('buildtrack_selected_project_id') ??
           (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
 
       final Map<String, DateTime> persistedDates =
@@ -598,7 +625,8 @@ class ProjectProvider extends ChangeNotifier {
 
       _projects = _projects.map((p) {
         final actDates = prevCompletedAt[p.id];
-        final List<ProjectPhase> mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
+        final List<ProjectPhase>
+        mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
           final mergedActivities = phase.activities.map((act) {
             var updatedAct = act;
 
@@ -620,7 +648,11 @@ class ProjectProvider extends ChangeNotifier {
               updatedAct = updatedAct.copyWith(
                 notes: updatedAct.notes ?? savedDetails['notes']?.toString(),
                 photo: updatedAct.photo ?? savedDetails['photo']?.toString(),
-                photos: updatedAct.photos ?? (savedDetails['photos'] as List?)?.map((x) => x.toString()).toList(),
+                photos:
+                    updatedAct.photos ??
+                    (savedDetails['photos'] as List?)
+                        ?.map((x) => x.toString())
+                        .toList(),
               );
             }
 
@@ -633,12 +665,15 @@ class ProjectProvider extends ChangeNotifier {
             ? ['Ground']
             : p.floors!;
 
-        final effectivePhases = mergedPhases ?? p.selectedPhases;
-        final totalActs =
-            effectivePhases?.fold<int>(0, (s, ph) => s + ph.totalCount) ?? 0;
-        final doneActs =
-            effectivePhases?.fold<int>(0, (s, ph) => s + ph.completedCount) ??
-            0;
+        final effectivePhases = mergedPhases;
+        final totalActs = effectivePhases.fold<int>(
+          0,
+          (s, ph) => s + ph.totalCount,
+        );
+        final doneActs = effectivePhases.fold<int>(
+          0,
+          (s, ph) => s + ph.completedCount,
+        );
         final computedProgress = totalActs > 0
             ? doneActs / totalActs
             : p.progress;
@@ -678,7 +713,7 @@ class ProjectProvider extends ChangeNotifier {
       } else {
         if (targetProjId != null) {
           final existingIdx = _projects.indexWhere(
-            (p) => p.id.trim() == targetProjId!.trim(),
+            (p) => p.id.trim() == targetProjId.trim(),
           );
           if (existingIdx != -1) {
             _selectedProject = _projects[existingIdx];
@@ -740,12 +775,16 @@ class ProjectProvider extends ChangeNotifier {
 
       await _backfillCompletedActivities();
       await _persistEntries();
-      
+
       _error = '';
       notifyListeners();
     } catch (e, st) {
       _error = 'Failed to load background network: $e';
-      dev.log('ProjectProvider._fetchNetworkData error', error: e, stackTrace: st);
+      dev.log(
+        'ProjectProvider._fetchNetworkData error',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -931,25 +970,36 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<bool> updateProjectProgress(String id, double progress) async {
-    print('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
+    debugPrint('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
     final idx = _projects.indexWhere((p) => p.id == id);
     if (idx == -1) {
-      print('[DEBUG] updateProjectProgress: project not found in list (idx == -1)');
+      debugPrint(
+        '[DEBUG] updateProjectProgress: project not found in list (idx == -1)',
+      );
       return false;
     }
-    _projects[idx] = _projects[idx].copyWith(progress: progress.clamp(0.0, 1.0));
+    _projects[idx] = _projects[idx].copyWith(
+      progress: progress.clamp(0.0, 1.0),
+    );
     if (_selectedProject?.id == id) _selectedProject = _projects[idx];
     try {
-      print('[DEBUG] updateProjectProgress: sending PUT to /projects/$id...');
-      final response = await ApiService.put('/projects/$id', _projects[idx].toJson());
-      print('[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}');
+      debugPrint(
+        '[DEBUG] updateProjectProgress: sending PUT to /projects/$id...',
+      );
+      final response = await ApiService.put(
+        '/projects/$id',
+        _projects[idx].toJson(),
+      );
+      debugPrint(
+        '[DEBUG] updateProjectProgress: PUT response status: ${response.statusCode}',
+      );
       if (response.statusCode == 200 || response.statusCode == 204) {
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
-      print('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] updateProjectProgress PERSISTENCE ERROR: $e');
       return false;
     }
   }
@@ -963,10 +1013,14 @@ class ProjectProvider extends ChangeNotifier {
     List<String>? photos,
     double? manualProgress,
   }) async {
-    print('[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}');
+    debugPrint(
+      '[DEBUG] toggleActivityCompletion: projectId=$projectId, activityId=$activityId, notes=${notes != null}, photo=${photo != null}, photos=${photos != null}',
+    );
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex == -1) {
-      print('[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)');
+      debugPrint(
+        '[DEBUG] toggleActivityCompletion: project not found in list (projectIndex == -1)',
+      );
       return false;
     }
 
@@ -987,7 +1041,11 @@ class ProjectProvider extends ChangeNotifier {
           completed: true,
           completedAt: stampedDate,
           notes: notes ?? current.notes,
-          photo: shouldClear ? null : ((photos != null && photos.isNotEmpty) ? photos.first : (photo ?? current.photo)),
+          photo: shouldClear
+              ? null
+              : ((photos != null && photos.isNotEmpty)
+                    ? photos.first
+                    : (photo ?? current.photo)),
           photos: shouldClear ? [] : (photos ?? current.photos),
           clearPhoto: shouldClear,
           clearPhotos: shouldClear,
@@ -999,7 +1057,9 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     if (!found) {
-      print('[DEBUG] toggleActivityCompletion: activity $activityId not found in phases');
+      debugPrint(
+        '[DEBUG] toggleActivityCompletion: activity $activityId not found in phases',
+      );
       return false;
     }
 
@@ -1007,7 +1067,8 @@ class ProjectProvider extends ChangeNotifier {
     final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
     final updated = project.copyWith(
       selectedPhases: phases,
-      progress: manualProgress ?? (total == 0 ? project.progress : done / total),
+      progress:
+          manualProgress ?? (total == 0 ? project.progress : done / total),
     );
 
     _projects[projectIndex] = updated;
@@ -1018,15 +1079,45 @@ class ProjectProvider extends ChangeNotifier {
       await _saveCompletedAt(projectId, activityId, stampedDate);
     }
     if (notes != null || photo != null || photos != null) {
-      final firstPhoto = (photos != null && photos.isNotEmpty) ? photos.first : photo;
-      await _saveActivityDetails(projectId, activityId, notes: notes, photo: firstPhoto, photos: photos);
+      final firstPhoto = (photos != null && photos.isNotEmpty)
+          ? photos.first
+          : photo;
+      await _saveActivityDetails(
+        projectId,
+        activityId,
+        notes: notes,
+        photo: firstPhoto,
+        photos: photos,
+      );
     }
 
     try {
-      print('[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...');
-      final response = await ApiService.put('/projects/$projectId', updated.toJson());
-      print('[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}');
+      debugPrint(
+        '[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...',
+      );
+      final response = await ApiService.put(
+        '/projects/$projectId',
+        updated.toJson(),
+      );
+      debugPrint(
+        '[DEBUG] toggleActivityCompletion: PUT response status: ${response.statusCode}',
+      );
       if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(response.body);
+            if (data['project'] != null) {
+              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              _projects[projectIndex] = newProject;
+              if (_selectedProject?.id == projectId) {
+                _selectedProject = newProject;
+              }
+              notifyListeners();
+            }
+          } catch (e) {
+            print('[DEBUG] toggleActivityCompletion parse error: $e');
+          }
+        }
         return true;
       } else {
         _projects[projectIndex] = project;
@@ -1035,7 +1126,7 @@ class ProjectProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
+      debugPrint('[DEBUG] toggleActivityCompletion PERSISTENCE ERROR: $e');
       _projects[projectIndex] = project;
       if (_selectedProject?.id == projectId) _selectedProject = project;
       notifyListeners();
@@ -1048,8 +1139,11 @@ class ProjectProvider extends ChangeNotifier {
     String activityId,
     DateTime completionDate,
   ) async {
-    return await toggleActivityCompletion(projectId, activityId,
-        completedAt: completionDate);
+    return await toggleActivityCompletion(
+      projectId,
+      activityId,
+      completedAt: completionDate,
+    );
   }
 
   Future<bool> updateActivityBudget(
@@ -1059,7 +1153,9 @@ class ProjectProvider extends ChangeNotifier {
     required double budgetLabour,
     required double budgetEquipment,
   }) async {
-    print('[DEBUG] updateActivityBudget: projectId=$projectId, activityId=$activityId');
+    print(
+      '[DEBUG] updateActivityBudget: projectId=$projectId, activityId=$activityId',
+    );
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex == -1) {
       print('[DEBUG] updateActivityBudget: project not found in list');
@@ -1088,7 +1184,9 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     if (!found) {
-      print('[DEBUG] updateActivityBudget: activity $activityId not found in phases');
+      print(
+        '[DEBUG] updateActivityBudget: activity $activityId not found in phases',
+      );
       return false;
     }
 
@@ -1098,10 +1196,32 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('[DEBUG] updateActivityBudget: sending PUT to /projects/$projectId...');
-      final response = await ApiService.put('/projects/$projectId', updated.toJson());
-      print('[DEBUG] updateActivityBudget: PUT response status: ${response.statusCode}');
+      print(
+        '[DEBUG] updateActivityBudget: sending PUT to /projects/$projectId...',
+      );
+      final response = await ApiService.put(
+        '/projects/$projectId',
+        updated.toJson(),
+      );
+      print(
+        '[DEBUG] updateActivityBudget: PUT response status: ${response.statusCode}',
+      );
       if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(response.body);
+            if (data['project'] != null) {
+              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              _projects[projectIndex] = newProject;
+              if (_selectedProject?.id == projectId) {
+                _selectedProject = newProject;
+              }
+              notifyListeners();
+            }
+          } catch (e) {
+            print('[DEBUG] updateActivityBudget parse error: $e');
+          }
+        }
         return true;
       } else {
         // revert on failure
@@ -1186,7 +1306,10 @@ class ProjectProvider extends ChangeNotifier {
   Future<void> _persistProjects() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('buildtrack_projects_v1', ProjectModel.encodeList(_projects));
+      await prefs.setString(
+        'buildtrack_projects_v1',
+        ProjectModel.encodeList(_projects),
+      );
     } catch (e) {
       dev.log('Persisting projects error: $e');
     }

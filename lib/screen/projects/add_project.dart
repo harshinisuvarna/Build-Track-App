@@ -235,6 +235,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     required DateTime initial,
     required ValueChanged<DateTime> onPicked,
   }) async {
+    final savedOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -243,7 +246,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
     if (picked != null && mounted) {
       setState(() => onPicked(picked));
-      FocusScope.of(context).unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(
+            savedOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+          );
+        }
+      });
     }
   }
 
@@ -453,6 +462,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         budgetMaterial: a.budgetMaterial,
                         budgetLabour: a.budgetLabour,
                         budgetEquipment: a.budgetEquipment,
+                        qty: a.qty,
+                        unit: a.unit,
+                        materialRate: a.materialRate,
+                        materialAmount: a.materialAmount,
+                        labourRate: a.labourRate,
+                        labourAmount: a.labourAmount,
+                        equipmentRate: a.equipmentRate,
+                        equipmentAmount: a.equipmentAmount,
                       ),
                     )
                     .toList(),
@@ -2631,6 +2648,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
       final qtyIdx = headers.indexOf('qty');
+      final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
       final matAmtIdx = headers.indexOf('material_amount');
       final labRateIdx = headers.indexOf('labour_rate');
@@ -2664,6 +2682,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
         final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+        final String unit = unitIdx != -1 && unitIdx < row.length ? row[unitIdx].toString().trim() : '';
 
         final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
         double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
@@ -2701,6 +2720,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           act.budgetMaterial = matAmt;
           act.budgetLabour = labAmt;
           act.budgetEquipment = eqAmt;
+          act.qty = qty;
+          act.unit = unit;
+          act.materialRate = matRate;
+          act.materialAmount = matAmt;
+          act.labourRate = labRate;
+          act.labourAmount = labAmt;
+          act.equipmentRate = eqRate;
+          act.equipmentAmount = eqAmt;
         } else {
           final newAct = ConstructionActivity(
             key: '$phaseName::Custom::$activityName',
@@ -2710,6 +2737,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             budgetMaterial: matAmt,
             budgetLabour: labAmt,
             budgetEquipment: eqAmt,
+            qty: qty,
+            unit: unit,
+            materialRate: matRate,
+            materialAmount: matAmt,
+            labourRate: labRate,
+            labourAmount: labAmt,
+            equipmentRate: eqRate,
+            equipmentAmount: eqAmt,
           );
           phase.activities.add(newAct);
         }

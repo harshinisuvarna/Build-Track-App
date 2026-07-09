@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
+import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
 class FulfillmentPaymentScreen extends StatefulWidget {
   const FulfillmentPaymentScreen({super.key});
 
@@ -38,6 +37,7 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   final _noteCtrl = TextEditingController();
   String? _amountError;
   String? _uploadedReceipt;
+  String? _newReceiptDataUri; // ADD THIS — holds the base64 dataUri of a freshly picked file
   DateTime _selectedPaymentDate = DateTime.now();
   bool _isSaving = false;
 
@@ -178,12 +178,13 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       }
 
       final payload = {
-        'paymentStatus': newStatusStr,
-        'paidAmount': totalPaid,
-        'paymentMode': apiPaymentMode,
-        'notes': _noteCtrl.text.trim(),
-        'paymentDate': _selectedPaymentDate.toIso8601String(),
-      };
+  'paymentStatus': newStatusStr,
+  'paidAmount': totalPaid,
+  'paymentMode': apiPaymentMode,
+  'notes': _noteCtrl.text.trim(),
+  'paymentDate': _selectedPaymentDate.toIso8601String(),
+  if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
+};
 
       final success = await ApiService.updateTransactionPayment(
         _entryId,
@@ -638,13 +639,11 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     const SizedBox(height: 8),
                     GestureDetector(
                       onTap: () async {
-                        final result = await FilePicker.platform.pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['jpg', 'png', 'pdf'],
-                        );
-                        if (result != null && result.files.isNotEmpty) {
+                        final attachment = await pickAttachmentDirect(context);
+                        if (attachment != null) {
                           setState(() {
-                            _uploadedReceipt = result.files.first.name;
+                            _uploadedReceipt = attachment.name;       // for display
+                            _newReceiptDataUri = attachment.dataUri;  // for upload
                           });
                         }
                       },
@@ -689,16 +688,14 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _uploadedReceipt = null),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Color(0xFF6B7280),
-                                      size: 16,
-                                    ),
+                                    onTap: () => setState(() {
+                                      _uploadedReceipt = null;
+                                      _newReceiptDataUri = null; // ADD THIS
+                                    }),
+                                    child: const Icon(Icons.close, color: Color(0xFF6B7280), size: 16),
                                   ),
                                 ],
-                              )
+                              ) 
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
