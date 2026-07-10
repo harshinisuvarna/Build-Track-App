@@ -5,7 +5,6 @@ import 'package:buildtrack_mobile/models/construction_models.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/models/phase_model.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
@@ -2675,7 +2674,7 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
-          final String receiptData = attachment != null ? attachment!.dataUri : name!;
+          final String receiptData = attachment != null ? attachment!.dataUri : name;
           Navigator.pushNamed(
             context,
             '/receipt-viewer',

@@ -62,135 +62,140 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.white,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            padding: const EdgeInsets.only(
-              top: 60,
-              bottom: 20,
-              left: 20,
-              right: 20,
+      clipBehavior: Clip.antiAlias,
+      child: MediaQuery.removePadding(
+        context: context,
+        removeTop: true,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              padding: const EdgeInsets.only(
+                top: 60,
+                bottom: 20,
+                left: 20,
+                right: 20,
+              ),
+              decoration: const BoxDecoration(color: AppColors.primary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'BuildTrack Menu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Role: ${UserSession.roleLabel}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
             ),
-            decoration: const BoxDecoration(color: AppColors.primary),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'BuildTrack Menu',
+            ListTile(
+              leading: const Icon(
+                Icons.supervisor_account_outlined,
+                color: AppColors.textDark,
+              ),
+              title: const Text(
+                'Team Overview',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () => Navigator.pushNamed(context, '/admin-overview'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person, color: AppColors.textDark),
+              title: const Text(
+                'Profile',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () => Navigator.pushNamed(context, '/profile'),
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+              title: const Text(
+                'Upgrade Plan',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: Consumer<SubscriptionProvider>(
+                builder: (context, sub, _) => Text(
+                  sub.currentPlan.label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ),
+              onTap: () => Navigator.pushNamed(context, '/subscription'),
+            ),
+            if (UserSession.isAdmin) ...[
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
+                child: Text(
+                  'Admin Controls',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
+                    color: AppColors.textLight,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Role: ${UserSession.roleLabel}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.workspaces_outline,
+                  color: AppColors.textDark,
                 ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.supervisor_account_outlined,
-              color: AppColors.textDark,
-            ),
-            title: const Text(
-              'Team Overview',
-              style: TextStyle(color: AppColors.textDark),
-            ),
-            onTap: () => Navigator.pushNamed(context, '/admin-overview'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.person, color: AppColors.textDark),
-            title: const Text(
-              'Profile',
-              style: TextStyle(color: AppColors.textDark),
-            ),
-            onTap: () => Navigator.pushNamed(context, '/profile'),
-          ),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4A6CF7), Color(0xFF7C3AED)],
+                title: const Text(
+                  'Create Workspace',
+                  style: TextStyle(color: AppColors.textDark),
                 ),
-                borderRadius: BorderRadius.circular(6),
+                onTap: () => Navigator.pushNamed(context, '/create-workspace'),
               ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.white,
-                size: 14,
-              ),
-            ),
-            title: const Text(
-              'Upgrade Plan',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: Consumer<SubscriptionProvider>(
-              builder: (context, sub, _) => Text(
-                sub.currentPlan.label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textLight,
+              ListTile(
+                leading: const Icon(
+                  Icons.manage_accounts_outlined,
+                  color: AppColors.textDark,
                 ),
-              ),
-            ),
-            onTap: () => Navigator.pushNamed(context, '/subscription'),
-          ),
-          if (UserSession.isAdmin) ...[
-            const Divider(),
-            const Padding(
-              padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
-              child: Text(
-                'Admin Controls',
-                style: TextStyle(
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.bold,
+                title: const Text(
+                  'Assign Roles',
+                  style: TextStyle(color: AppColors.textDark),
                 ),
+                onTap: () => Navigator.pushNamed(context, '/assign-role'),
               ),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.workspaces_outline,
-                color: AppColors.textDark,
+              ListTile(
+                leading: const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.textDark,
+                ),
+                title: const Text(
+                  'Transaction Logs',
+                  style: TextStyle(color: AppColors.textDark),
+                ),
+                onTap: () => Navigator.pushNamed(context, '/logs'),
               ),
-              title: const Text(
-                'Create Workspace',
-                style: TextStyle(color: AppColors.textDark),
-              ),
-              onTap: () => Navigator.pushNamed(context, '/create-workspace'),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.manage_accounts_outlined,
-                color: AppColors.textDark,
-              ),
-              title: const Text(
-                'Assign Roles',
-                style: TextStyle(color: AppColors.textDark),
-              ),
-              onTap: () => Navigator.pushNamed(context, '/assign-role'),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.receipt_long_outlined,
-                color: AppColors.textDark,
-              ),
-              title: const Text(
-                'Transaction Logs',
-                style: TextStyle(color: AppColors.textDark),
-              ),
-              onTap: () => Navigator.pushNamed(context, '/logs'),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -4317,23 +4322,26 @@ Widget build(BuildContext context) {
           Padding(
             padding:
                 const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.fact_check_outlined,
-                  size: 30,
-                  color: AppColors.textLight.withValues(alpha: 0.5),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'No approval requests yet',
-                  style: TextStyle(
-                    color: AppColors.textLight,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.fact_check_outlined,
+                    size: 30,
+                    color: AppColors.textLight.withValues(alpha: 0.5),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'No approval requests yet',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           )
         else
