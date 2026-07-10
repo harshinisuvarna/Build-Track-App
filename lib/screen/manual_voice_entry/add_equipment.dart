@@ -1988,13 +1988,12 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Execution Context (Edit mode only) ──────────────
                     // In Create mode the user already chose Project/Floor/
                     // Phase/Activity in ExecutionContextScreen before arriving
                     // here, so we intentionally hide this section.
-                    // In Edit mode there is no preceding context screen, so
+                    // In Edit or Duplicate/Repeat mode there is no preceding context screen, so
                     // we restore the card so users can change the context.
-                    if (_isEditing) ...[
+                    if (_isEditing || _isDuplicate) ...[
                       ExecutionContextCard(
                         selectedProjectId: _selectedProjectId,
                         selectedFloor: _selectedFloor,
@@ -2014,6 +2013,9 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                             _selectedActivity = null;
                             _selectedActivityId = null;
                             _projectError = null;
+                            _floorWarning = null;
+                            _phaseWarning = null;
+                            _activityWarning = null;
                           });
                           await _loadFloors(v);
                           setState(() {});
@@ -2027,6 +2029,9 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                             _selectedActivity = null;
                             _selectedActivityId = null;
                             _floorError = null;
+                            _floorWarning = null;
+                            _phaseWarning = null;
+                            _activityWarning = null;
                           });
                           await _loadPhases(v);
                           setState(() {});
@@ -2041,6 +2046,8 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                             _selectedActivity = null;
                             _selectedActivityId = null;
                             _phaseError = null;
+                            _phaseWarning = null;
+                            _activityWarning = null;
                           });
                           await _loadActivities(v);
                           setState(() {});
@@ -2053,6 +2060,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                                 ? _deriveActivityId(actName)
                                 : null;
                             _activityError = null;
+                            _activityWarning = null;
                           });
                         },
                       ),
