@@ -389,6 +389,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       }
 
       final totalRows = parsedCsv.length - 1;
+      List<Map<String, dynamic>> bulkPayloads = [];
       for (int i = 1; i < parsedCsv.length; i++) {
         final row = parsedCsv[i];
         if (row.isEmpty || row.every((element) => element == null || element.toString().trim().isEmpty)) {
@@ -410,11 +411,14 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           );
 
           if (matchedProject == null) {
+            if (csvProjName.isNotEmpty) {
+              throw Exception("Row $rowNum: No project found with the name '$csvProjName' in your account.");
+            }
             matchedProject = projectProvider.selectedProject;
           }
 
           if (matchedProject == null) {
-            throw Exception("Row $rowNum: Project '$csvProjName' not found, and no active project selected.");
+            throw Exception("Row $rowNum: No project provided in the CSV, and no active project selected in the app.");
           }
 
           final projectId = matchedProject.id;
@@ -576,7 +580,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   }
               });
 
-              final success = await ApiService.addMaterial(payload);
+              bulkPayloads.add(payload); final success = true;
               if (!success) throw Exception("Row $rowNum: Failed to create Material transaction on the server");
               materialCount++;
 
@@ -612,7 +616,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "worker": resolvedName,
               });
 
-              final success = await ApiService.addMaterial(payload);
+              bulkPayloads.add(payload); final success = true;
               if (!success) throw Exception("Row $rowNum: Failed to create Labour transaction on the server");
               labourCount++;
 
@@ -653,7 +657,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "paymentMode": "Cash",
               });
 
-              final success = await ApiService.addMaterial(payload);
+              bulkPayloads.add(payload); final success = true;
               if (!success) throw Exception("Row $rowNum: Failed to create Equipment transaction on the server");
               equipmentCount++;
             } else {
@@ -717,7 +721,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 }
             });
 
-            final success = await ApiService.addMaterial(payload);
+            bulkPayloads.add(payload); final success = true;
             if (!success) {
               throw Exception("Row $rowNum: Failed to create Material transaction on the server");
             }
@@ -763,7 +767,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "worker": name,
             });
 
-            final success = await ApiService.addMaterial(payload);
+            bulkPayloads.add(payload); final success = true;
             if (!success) {
               throw Exception("Row $rowNum: Failed to create Labour transaction on the server");
             }
@@ -816,17 +820,42 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "paymentMode": "Cash",
             });
 
-            final success = await ApiService.addMaterial(payload);
+            bulkPayloads.add(payload); final success = true;
             if (!success) {
               throw Exception("Row $rowNum: Failed to create Equipment transaction on the server");
             }
             equipmentCount++;
           }
-
-          successCount++;
         } catch (e) {
           failedCount++;
           errorMessages.add(e.toString());
+        }
+      }
+
+      if (bulkPayloads.isNotEmpty) {
+        // Reset local counts because the backend will provide the final success/fail count for the bulk batch.
+        successCount = 0;
+        failedCount = 0;
+        
+        updateProgress("Uploading ${bulkPayloads.length} entries in bulk...", 0.9);
+        try {
+          final bulkResponse = await ApiService.addTransactionsBulk(bulkPayloads);
+          if (bulkResponse != null && bulkResponse['results'] != null) {
+            final results = bulkResponse['results'];
+            successCount = results['successCount'] ?? 0;
+            failedCount = results['failedCount'] ?? 0;
+            if (results['failures'] != null) {
+              for (var f in results['failures']) {
+                errorMessages.add("Row ${f['index'] + 1} (${f['title']}): ${f['reason']}");
+              }
+            }
+          } else {
+            failedCount += bulkPayloads.length;
+            errorMessages.add("Bulk upload failed completely.");
+          }
+        } catch (e) {
+          failedCount += bulkPayloads.length;
+          errorMessages.add("Bulk upload error: $e");
         }
       }
 
@@ -875,7 +904,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       const Text('Details/Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       Container(
-                        constraints: const BoxConstraints(maxHeight: 150),
                         width: double.maxFinite,
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -883,13 +911,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[200]!),
                         ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: errorMessages.length,
-                          itemBuilder: (c, idx) => Padding(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: errorMessages.map((msg) => Padding(
                             padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(errorMessages[idx], style: TextStyle(color: Colors.red[800], fontSize: 12)),
-                          ),
+                            child: Text(msg, style: TextStyle(color: Colors.red[800], fontSize: 12)),
+                          )).toList(),
                         ),
                       ),
                     ],
@@ -1036,6 +1063,15 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             ],
           ),
           const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Rule: If you skip an optional column in a row, use "###" instead of leaving it completely blank to ensure strict format parsing.',
+              style: TextStyle(fontSize: 12, color: AppColors.textLight, fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(

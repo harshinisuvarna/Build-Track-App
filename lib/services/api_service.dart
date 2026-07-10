@@ -241,6 +241,29 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> addTransactionsBulk(List<Map<String, dynamic>> payloads) async {
+    try {
+      final response = await post('/transactions/bulk', {'transactions': payloads});
+
+      if (kDebugMode) {
+        debugPrint('=== BULK UPLOAD SERVER RESPONSE ===');
+        debugPrint('Status Code: ${response.statusCode}');
+        debugPrint('Response Body: ${response.body}');
+        debugPrint('===================================');
+      }
+
+      if (response.statusCode == 207 || response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('BULK POST Error: $e');
+      }
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>?> addTransaction(
     Map<String, dynamic> payload,
   ) async {
