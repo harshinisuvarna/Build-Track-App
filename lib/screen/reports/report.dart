@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/reports/report_export_helper.dart';
+import 'package:buildtrack_mobile/screen/reports/csv_import_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -55,6 +56,8 @@ class _ReportsViewState extends State<_ReportsView> {
   DateTime? _endDate;
   String _datePreset = 'All Time'; // All Time, Today, This Week, This Month, Last 30 Days, This Year, Custom
 
+  bool _isImportingCsv = false;
+
   // Sorting & Pagination State
   String _sortColumn = 'date'; // date, amount, project
   bool _sortAscending = false;
@@ -62,10 +65,10 @@ class _ReportsViewState extends State<_ReportsView> {
   int _rowsPerPage = 10;
 
   // Columns customization lists for each tab
-  List<String> _activeColumnsAll = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Payment Date'];
-  List<String> _activeColumnsMaterials = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount', 'Payment Date'];
-  List<String> _activeColumnsLabour = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount', 'Payment Date'];
-  List<String> _activeColumnsEquipment = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount', 'Payment Date'];
+  List<String> _activeColumnsAll = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+  List<String> _activeColumnsMaterials = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+  List<String> _activeColumnsLabour = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+  List<String> _activeColumnsEquipment = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
 
   @override
   void didChangeDependencies() {
@@ -85,13 +88,13 @@ class _ReportsViewState extends State<_ReportsView> {
 
   List<String> _getAllColumnsForTab(String tabName) {
     if (tabName == 'Materials') {
-      return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+      return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
     } else if (tabName == 'Labour') {
-      return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+      return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
     } else if (tabName == 'Equipment') {
-      return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Payment Date'];
+      return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
     } else {
-      return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Payment Date'];
+      return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
     }
   }
 
@@ -477,6 +480,233 @@ class _ReportsViewState extends State<_ReportsView> {
     }
   }
 
+  Future<void> _handleDownloadImportTemplate(String quickCategoryTab, List<String> activeCols) async {
+    try {
+      await CsvImportHelper.downloadTemplate(
+        quickCategoryTab: quickCategoryTab,
+        activeColumns: activeCols,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Import template downloaded!'), backgroundColor: Color(0xFF15803D)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Template download failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleUploadCsv() async {
+    final projectProvider = context.read<ProjectProvider>();
+    if (projectProvider.projects.isEmpty) {
+      await projectProvider.load();
+    }
+
+    setState(() => _isImportingCsv = true);
+
+    try {
+      final result = await CsvImportHelper.importCsv(
+        projects: projectProvider.projects,
+        selectedProjectId: _selectedProjectId == 'all' ? null : _selectedProjectId,
+      );
+
+      if (!mounted) return;
+
+      // Refresh data
+      final activeProjId = projectProvider.selectedProject?.id;
+      if (activeProjId != null) {
+        // ignore: use_build_context_synchronously
+        context.read<ProjectProvider>().load();
+      }
+
+      // Show results dialog
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Import Results', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total rows processed: ${result.totalRows}'),
+                const SizedBox(height: 8),
+                Text('Successfully imported: ${result.successCount}',
+                    style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• Materials: ${result.materialCount}'),
+                      Text('• Labour: ${result.labourCount}'),
+                      Text('• Equipment: ${result.equipmentCount}'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('Failed: ${result.failedCount}',
+                    style: TextStyle(
+                        color: result.failedCount > 0 ? Colors.red : Colors.grey,
+                        fontWeight: FontWeight.bold)),
+                if (result.errors.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text('Details/Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    width: double.maxFinite,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: result.errors.length,
+                      itemBuilder: (c, idx) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(result.errors[idx], style: TextStyle(color: Colors.red[800], fontSize: 12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isImportingCsv = false);
+    }
+  }
+
+  Widget _buildCsvImportCard(String quickCategoryTab, List<String> activeCols) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF173EEA).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.upload_file_rounded, color: Color(0xFF173EEA), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CSV Import',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Download template, customize columns, then upload',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isImportingCsv ? null : () => _handleDownloadImportTemplate(quickCategoryTab, activeCols),
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Download Template', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isImportingCsv ? null : () => _showCustomizeColumnsDialog(context, quickCategoryTab),
+                  icon: const Icon(Icons.edit_note, size: 16),
+                  label: const Text('Customize Columns', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isImportingCsv ? null : _handleUploadCsv,
+              icon: _isImportingCsv
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.upload_file_rounded, size: 16),
+              label: Text(_isImportingCsv ? 'Importing...' : 'Upload CSV File',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
@@ -627,9 +857,11 @@ class _ReportsViewState extends State<_ReportsView> {
     double labourTotal = 0;
     double equipmentTotal = 0;
     double grandTotal = 0;
+    double grandPaid = 0;
 
     for (final entry in filtered) {
       grandTotal += entry.amount;
+      grandPaid += entry.paidAmount;
       switch (entry.type) {
         case EntryType.material:
           materialTotal += entry.amount;
@@ -642,6 +874,7 @@ class _ReportsViewState extends State<_ReportsView> {
           break;
       }
     }
+    final grandRemaining = (grandTotal - grandPaid).clamp(0.0, double.infinity);
 
     // Pagination Calculations
     final totalCount = filtered.length;
@@ -692,6 +925,16 @@ class _ReportsViewState extends State<_ReportsView> {
       } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate' || colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
         return DataColumn(
           label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          numeric: true,
+        );
+      } else if (colName == 'Paid') {
+        return DataColumn(
+          label: const Text('Paid (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          numeric: true,
+        );
+      } else if (colName == 'Remaining') {
+        return DataColumn(
+          label: const Text('Remaining (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           numeric: true,
         );
       } else if (colName == 'Add More' || colName == 'Record Payment' || colName == 'Edit Entry') {
@@ -748,18 +991,30 @@ class _ReportsViewState extends State<_ReportsView> {
                       const SizedBox(height: 10),
 
                       GridView.count(
-                        crossAxisCount: 2,
+                        crossAxisCount: 3,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.9,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.35,
                         children: [
                           _buildCostCard(
-                            title: 'Total Cost',
+                            title: 'Total Billed',
                             value: grandTotal,
                             isFeatured: true,
                             icon: Icons.account_balance_wallet_outlined,
+                          ),
+                          _buildCostCard(
+                            title: 'Paid',
+                            value: grandPaid,
+                            color: const Color(0xFF15803D),
+                            icon: Icons.check_circle_outline,
+                          ),
+                          _buildCostCard(
+                            title: 'Remaining',
+                            value: grandRemaining,
+                            color: grandRemaining > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D),
+                            icon: Icons.pending_outlined,
                           ),
                           _buildCostCard(
                             title: 'Material',
@@ -1184,6 +1439,10 @@ class _ReportsViewState extends State<_ReportsView> {
                             ],
                           ),
                         ),
+
+                    const SizedBox(height: 20),
+                    _buildCsvImportCard(quickCategoryTab, activeCols),
+                    const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -1252,13 +1511,19 @@ class _ReportsViewState extends State<_ReportsView> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                currencyStr,
-                style: TextStyle(
-                  color: isFeatured ? Colors.white : AppColors.textPrimary,
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  currencyStr,
+                  style: TextStyle(
+                    color: isFeatured ? Colors.white : AppColors.textPrimary,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                  maxLines: 1,
+                  softWrap: false,
                 ),
               ),
             ],
@@ -2050,6 +2315,8 @@ class _ReportsViewState extends State<_ReportsView> {
                   _buildDetailRow('Type', entry.type.name.toUpperCase()),
                   _buildDetailRow('Date', _formatDateLong(entry.date)),
                   _buildDetailRow('Amount', _formatIndianCurrency(entry.amount)),
+                  _buildDetailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
+                  _buildDetailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
                   _buildDetailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
                   if (entry.description.isNotEmpty) _buildDetailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) _buildDetailRow('Brand', entry.brand!),
@@ -2175,6 +2442,11 @@ class _ReportsViewState extends State<_ReportsView> {
         return DataCell(_buildStatusBadge(entry.paymentStatus));
       } else if (colName == 'Amount') {
         return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+      } else if (colName == 'Paid') {
+        return DataCell(Text(_formatIndianCurrency(entry.paidAmount), style: TextStyle(fontSize: 12, color: entry.paidAmount > 0 ? const Color(0xFF15803D) : AppColors.textSecondary)));
+      } else if (colName == 'Remaining') {
+        final rem = entry.remainingAmount;
+        return DataCell(Text(_formatIndianCurrency(rem), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rem > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D))));
       } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
         final rate = entry.ratePerUnit ?? 0.0;
         return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));
@@ -2575,6 +2847,8 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   detailRow('Type', entry.type.name.toUpperCase()),
                   detailRow('Date', formatDateLong(entry.date)),
                   detailRow('Amount', _formatIndianCurrency(entry.amount)),
+                  detailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
+                  detailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
                   detailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
                   if (entry.description.isNotEmpty) detailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) detailRow('Brand', entry.brand!),
@@ -2730,6 +3004,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   return DataCell(_buildStatusBadge(entry.paymentStatus));
                 } else if (colName == 'Amount') {
                   return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+                } else if (colName == 'Paid') {
+                  return DataCell(Text(_formatIndianCurrency(entry.paidAmount), style: TextStyle(fontSize: 12, color: entry.paidAmount > 0 ? const Color(0xFF15803D) : AppColors.textSecondary)));
+                } else if (colName == 'Remaining') {
+                  final rem = entry.remainingAmount;
+                  return DataCell(Text(_formatIndianCurrency(rem), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rem > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D))));
                 } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
                   final rate = entry.ratePerUnit ?? 0.0;
                   return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));

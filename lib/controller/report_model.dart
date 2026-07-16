@@ -13,6 +13,8 @@ class ReportModel {
     required this.targetLabour,
     required this.targetEquipment,
     required this.targetMisc,
+    this.totalPaid = 0.0,
+    this.totalRemaining = 0.0,
   });
 
   final double totalCost;
@@ -26,11 +28,18 @@ class ReportModel {
   final double targetEquipment;
   final double targetMisc;
   final String efficiencyNote;
+  final double totalPaid;
+  final double totalRemaining;
 
   String get formattedTotal => formatCurrency(totalCost);
   String get formattedMaterial => formatCurrency(materialCost);
   String get formattedLabour => formatCurrency(labourCost);
   String get formattedEquipment => formatCurrency(equipmentCost);
+  String get formattedPaid => formatCurrency(totalPaid);
+  String get formattedRemaining => formatCurrency(totalRemaining);
+
+  double get paymentRatio =>
+      totalCost > 0 ? (totalPaid / totalCost).clamp(0.0, 1.0) : 0.0;
 
   bool get isBudgetExceeded {
     final totalTarget =
@@ -50,5 +59,7 @@ class ReportModel {
     targetLabour: 0,
     targetEquipment: 0,
     targetMisc: 0,
+    totalPaid: 0,
+    totalRemaining: 0,
   );
 }

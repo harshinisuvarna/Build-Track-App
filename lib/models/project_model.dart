@@ -69,13 +69,15 @@ class EntryModel {
     this.activity,
     this.activityId,
     this.unit,
-    this.createdBy, // ADD: ID of the user who created this entry
+    this.createdBy,
     this.approvalStatus = 'Pending',
     this.paymentStatus = 'Pending',
     this.approvedBy,
     this.approvedAt,
     this.paymentDate,
     this.rejectionReason,
+    this.paidAmount = 0.0,
+    this.paymentHistory = const [],
   });
 
   final String id;
@@ -92,13 +94,17 @@ class EntryModel {
   final String? activity;
   final String? activityId;
   final String? unit;
-  final String? createdBy; // ADD: nullable — older entries won't have this
+  final String? createdBy;
   final String approvalStatus;
   final String paymentStatus;
   final String? approvedBy;
   final DateTime? approvedAt;
   final DateTime? paymentDate;
   final String? rejectionReason;
+  final double paidAmount;
+  final List<Map<String, dynamic>> paymentHistory;
+
+  double get remainingAmount => (amount - paidAmount).clamp(0.0, double.infinity);
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -115,13 +121,15 @@ class EntryModel {
     'activity': activity,
     'activityId': activityId,
     'unit': unit,
-    'createdBy': createdBy, // ADD
+    'createdBy': createdBy,
     'approvalStatus': approvalStatus,
     'paymentStatus': paymentStatus,
     'approvedBy': approvedBy,
     'approvedAt': approvedAt?.toIso8601String(),
     'paymentDate': paymentDate?.toIso8601String(),
     'rejectionReason': rejectionReason,
+    'paidAmount': paidAmount,
+    'paymentHistory': paymentHistory,
   };
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
@@ -173,6 +181,12 @@ class EntryModel {
           ? DateTime.tryParse(j['paymentDate'].toString())
           : null,
       rejectionReason: j['rejectionReason']?.toString(),
+      paidAmount: (j['paidAmount'] as num?)?.toDouble() ?? 0.0,
+      paymentHistory: j['paymentHistory'] != null
+          ? List<Map<String, dynamic>>.from(
+              (j['paymentHistory'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            )
+          : const [],
     );
   }
 

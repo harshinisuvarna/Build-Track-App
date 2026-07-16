@@ -183,6 +183,13 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   'paymentMode': apiPaymentMode,
   'notes': _noteCtrl.text.trim(),
   'paymentDate': _selectedPaymentDate.toIso8601String(),
+  if (amount > 0)
+    'paymentEntry': {
+      'amount': amount,
+      'method': apiPaymentMode,
+      'date': _selectedPaymentDate.toIso8601String(),
+      'notes': _noteCtrl.text.trim(),
+    },
   if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
 };
 

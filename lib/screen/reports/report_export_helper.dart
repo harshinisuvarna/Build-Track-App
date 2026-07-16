@@ -57,6 +57,27 @@ class ReportExportHelper {
     return 'Rs. $formattedRemaining,$lastThree.$decimal';
   }
 
+  /// Returns the display header list for a given tab/column selection.
+  /// Used by both CSV export and CSV import template so they stay in sync.
+  static List<String> getExportHeaders({
+    required String quickCategoryTab,
+    List<String>? activeColumns,
+  }) {
+    if (activeColumns != null) {
+      return activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
+    }
+    switch (quickCategoryTab) {
+      case 'Materials':
+        return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+      case 'Labour':
+        return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
+      case 'Equipment':
+        return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
+      default:
+        return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+    }
+  }
+
   /// Export entries as a CSV file and open share sheet / download
   static Future<void> exportToCsv({
     required List<EntryModel> entries,

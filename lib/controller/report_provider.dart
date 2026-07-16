@@ -89,11 +89,10 @@ class ReportProvider extends ChangeNotifier {
     double material = 0;
     double labour = 0;
     double equipment = 0;
+    double totalPaid = 0;
 
     for (final project in targetProjects) {
       final entries = provider.entriesForProject(project.id);
-      // ✅ ONLY count entries — no spentAmount fallback
-      // Entries with pending payment have amount=0 so they won't affect chart
       for (final entry in entries) {
         switch (entry.type) {
           case EntryType.material:
@@ -106,6 +105,7 @@ class ReportProvider extends ChangeNotifier {
             equipment += entry.amount;
             break;
         }
+        totalPaid += entry.paidAmount;
       }
     }
 
@@ -140,6 +140,8 @@ class ReportProvider extends ChangeNotifier {
       targetLabour: targetLabour,
       targetEquipment: targetEquipment,
       targetMisc: targetMisc,
+      totalPaid: totalPaid,
+      totalRemaining: (total - totalPaid).clamp(0.0, double.infinity),
       efficiencyNote: isOver
           ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
           : 'Project is within budget',
