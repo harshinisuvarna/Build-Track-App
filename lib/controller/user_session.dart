@@ -21,6 +21,7 @@ class UserSession extends ChangeNotifier {
 
   // FIX 1: Store the raw display name from backend (e.g. "Contractor", "Site Manager")
   static String _rawRoleName = '';
+  static List<String> _overseesRoles = [];
 
   // ✅ PRIMARY: list of assigned project IDs
   static List<String> _projectIds = [];
@@ -46,6 +47,7 @@ class UserSession extends ChangeNotifier {
   static String get userId => _userId;
   static UserRole get role => _role;
   static List<String> get projectIds => List.unmodifiable(_projectIds);
+  static List<String> get overseesRoles => List.unmodifiable(_overseesRoles);
   static List<String> get permissions => List.unmodifiable(_permissions);
   static bool get isInitialized => _initialized;
   static String? get profilePhoto => _profilePhoto;
@@ -103,7 +105,18 @@ class UserSession extends ChangeNotifier {
     }
 
     final raw = user['permissions'];
-    _permissions = raw is List ? raw.map((e) => e.toString()).toList() : [];
+    if (raw is List) {
+      _permissions = raw.map((e) => e.toString()).toList();
+    } else {
+      _permissions = [];
+    }
+
+    final rawOversees = user['overseesRoles'];
+    if (rawOversees is List) {
+      _overseesRoles = rawOversees.map((e) => e.toString()).toList();
+    } else {
+      _overseesRoles = [];
+    }
 
     _profilePhoto = user['profilePhoto']?.toString();
 
@@ -135,26 +148,31 @@ class UserSession extends ChangeNotifier {
       _profilePhoto = data['profilePhoto']?.toString();
 
       // FIX 1: Restore raw role name from persisted prefs
-      final rawRoleStr = data['role']?.toString() ?? '';
-      _rawRoleName =
-          data['rawRoleName']?.toString() ?? _toDisplayName(rawRoleStr);
-      _role = _parseRole(rawRoleStr);
+      _role = _parseRole(data['role']?.toString());
+      // FIX 1: load raw name or fallback
+      _rawRoleName = data['rawRoleName']?.toString() ?? _enumToDisplay(_role);
 
-      final savedIds = data['projectIds'];
-      if (savedIds is List) {
-        _projectIds = savedIds
-            .where((e) => e != null && e.toString().isNotEmpty)
-            .map((e) => e.toString())
-            .toList();
+      final rawProj = data['projectIds'];
+      if (rawProj is List) {
+        _projectIds = rawProj.map((e) => e.toString()).toList();
       } else {
         final legacyId = data['projectId']?.toString() ?? '';
         _projectIds = legacyId.isNotEmpty ? [legacyId] : [];
       }
 
-      final perms = data['permissions'];
-      _permissions = perms is List
-          ? perms.map((e) => e.toString()).toList()
-          : [];
+      final rawPerms = data['permissions'];
+      if (rawPerms is List) {
+        _permissions = rawPerms.map((e) => e.toString()).toList();
+      } else {
+        _permissions = [];
+      }
+
+      final rawOversees = data['overseesRoles'];
+      if (rawOversees is List) {
+        _overseesRoles = rawOversees.map((e) => e.toString()).toList();
+      } else {
+        _overseesRoles = [];
+      }
 
       _initialized = true;
       _instance.notifyListeners();
@@ -176,6 +194,7 @@ class UserSession extends ChangeNotifier {
     _role = UserRole.mason;
     _rawRoleName = '';
     _projectIds = [];
+    _overseesRoles = [];
     _permissions = [];
     _profilePhoto = null;
     _initialized = false;
@@ -192,6 +211,7 @@ class UserSession extends ChangeNotifier {
     required String userId,
     required UserRole role,
     List<String> projectIds = const [],
+    List<String> overseesRoles = const [],
     String projectId = '',
     List<String> permissions = const [],
     String rawRoleName = '',
@@ -207,6 +227,7 @@ class UserSession extends ChangeNotifier {
       merged.insert(0, projectId);
     }
     _projectIds = merged;
+    _overseesRoles = List<String>.from(overseesRoles);
     _permissions = List<String>.from(permissions);
     _initialized = true;
     _instance.notifyListeners();
@@ -280,6 +301,7 @@ class UserSession extends ChangeNotifier {
           'projectIds': _projectIds,
           'projectId': projectId,
           'permissions': _permissions,
+          'overseesRoles': _overseesRoles,
           'profilePhoto': _profilePhoto,
         }),
       );

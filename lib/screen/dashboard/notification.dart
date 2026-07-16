@@ -6,6 +6,9 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:buildtrack_mobile/models/task_model.dart';
+import 'package:buildtrack_mobile/services/task_service.dart';
+
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
   @override
@@ -17,6 +20,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
+
+  List<TaskModel> _tasks = [];
+  bool _isLoadingTasks = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTasks();
+  }
+
+  Future<void> _fetchTasks() async {
+    try {
+      final tasks = await TaskService.getDailyTasks();
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _isLoadingTasks = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingTasks = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +185,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Tasks Updates',
+                          style: AppTheme.heading2.copyWith(color: textDark),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (_isLoadingTasks)
+                      const Center(child: CircularProgressIndicator(color: primaryBlue))
+                    else if (_tasks.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          "No task updates for today.",
+                          style: TextStyle(color: textGray, fontSize: 14),
+                        ),
+                      )
+                    else
+                      ..._tasks.map(
+                        (task) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _dynamicTaskWarningCard(
+                            title: 'Task: ${task.title}',
+                            body: 'Status: ${task.status}',
+                            isCompleted: task.status == 'Completed',
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -230,6 +292,95 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   'INVENTORY WARNING',
                   style: AppTheme.label.copyWith(
                     color: Colors.orange,
+                    fontSize: 10,
+                    letterSpacing: 0.9,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              title,
+              style: AppTheme.heading3.copyWith(color: textDark, fontSize: 18),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              body,
+              style: AppTheme.body.copyWith(color: textGray, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dynamicTaskWarningCard({
+    required String title,
+    required String body,
+    required bool isCompleted,
+    VoidCallback? onTap,
+  }) {
+    final color = isCompleted ? Colors.green : primaryBlue;
+    final icon = isCompleted ? Icons.check_circle : Icons.assignment;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border(
+            left: BorderSide(color: color, width: 4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.06),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 20,
+                  ),
+                ),
+                Text(
+                  'Today',
+                  style: AppTheme.caption.copyWith(color: textGray),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'TASK UPDATE',
+                  style: AppTheme.label.copyWith(
+                    color: color,
                     fontSize: 10,
                     letterSpacing: 0.9,
                   ),

@@ -2554,16 +2554,16 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     final List<List<dynamic>> csvRows = [
       [
         'Phase',
-        'Sl No',
+        'Sl.No',
         'Particular',
-        'Qty',
+        'Total_Qty',
         'Unit',
         'Material_Rate',
-        'Material_Amount',
+        'Budget_Material_Amount',
         'Labour_Rate',
-        'Labour_Amount',
+        'Budget_Labour_Amount',
         'Equipment_Rate',
-        'Equipment_Amount',
+        'Budget_Equipment_Amount',
         'Total_Amount'
       ]
     ];
@@ -2576,14 +2576,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           phase.name,
           slNo++,
           act.name,
-          '', // Qty
+          '', // Total_Qty
           '', // Unit
           '', // Material_Rate
-          '', // Material_Amount
+          '', // Budget_Material_Amount
           '', // Labour_Rate
-          '', // Labour_Amount
+          '', // Budget_Labour_Amount
           '', // Equipment_Rate
-          '', // Equipment_Amount
+          '', // Budget_Equipment_Amount
           '', // Total_Amount
         ]);
       }
@@ -2647,24 +2647,37 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
-      final qtyIdx = headers.indexOf('qty');
+      
+      int qtyIdx = headers.indexOf('total_qty');
+      if (qtyIdx == -1) qtyIdx = headers.indexOf('qty');
+      
       final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
-      final matAmtIdx = headers.indexOf('material_amount');
+      
+      int matAmtIdx = headers.indexOf('budget_material_amount');
+      if (matAmtIdx == -1) matAmtIdx = headers.indexOf('material_amount');
+      
       final labRateIdx = headers.indexOf('labour_rate');
-      final labAmtIdx = headers.indexOf('labour_amount');
+      
+      int labAmtIdx = headers.indexOf('budget_labour_amount');
+      if (labAmtIdx == -1) labAmtIdx = headers.indexOf('labour_amount');
+      
       final eqRateIdx = headers.indexOf('equipment_rate');
-      final eqAmtIdx = headers.indexOf('equipment_amount');
+      
+      int eqAmtIdx = headers.indexOf('budget_equipment_amount');
+      if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
 
       if (phaseIdx == -1 || particularIdx == -1) {
         throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
       }
 
-      double parseVal(dynamic v) {
-        if (v == null) return 0.0;
+      double? parseVal(dynamic v) {
+        if (v == null) return null;
         if (v is num) return v.toDouble();
-        final clean = v.toString().trim().replaceAll(RegExp(r'[^\d\.]'), '');
-        return double.tryParse(clean) ?? 0.0;
+        final str = v.toString().trim();
+        if (str.isEmpty) return null;
+        final clean = str.replaceAll(RegExp(r'[^\d\.]'), '');
+        return double.tryParse(clean);
       }
 
       int updatedCount = 0;
@@ -2681,20 +2694,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
-        final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+        final double? qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : null;
         final String unit = unitIdx != -1 && unitIdx < row.length ? row[unitIdx].toString().trim() : '';
 
-        final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
-        double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
-        if (matAmt == 0.0 && matRate > 0.0) matAmt = qty * matRate;
+        final double? matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : null;
+        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : null;
 
-        final double labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : 0.0;
-        double labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : 0.0;
-        if (labAmt == 0.0 && labRate > 0.0) labAmt = qty * labRate;
+        final double? labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : null;
+        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : null;
 
-        final double eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : 0.0;
-        double eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : 0.0;
-        if (eqAmt == 0.0 && eqRate > 0.0) eqAmt = qty * eqRate;
+        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : null;
+        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : null;
 
         int phaseIndex = _phases.indexWhere((p) => p.name.trim().toLowerCase() == phaseName.toLowerCase());
         if (phaseIndex == -1) {
@@ -2717,23 +2727,26 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         if (actIndex != -1) {
           final act = phase.allActivities[actIndex];
           act.isSelected = true;
-          act.budgetMaterial = matAmt;
-          act.budgetLabour = labAmt;
-          act.budgetEquipment = eqAmt;
-          act.qty = qty;
-          act.unit = unit;
-          act.materialRate = matRate;
-          act.materialAmount = matAmt;
-          act.labourRate = labRate;
-          act.labourAmount = labAmt;
-          act.equipmentRate = eqRate;
-          act.equipmentAmount = eqAmt;
+          if (matAmt != null) act.budgetMaterial = matAmt;
+          if (labAmt != null) act.budgetLabour = labAmt;
+          if (eqAmt != null) act.budgetEquipment = eqAmt;
+          if (qty != null) act.qty = qty;
+          if (unit.isNotEmpty) act.unit = unit;
+          if (matRate != null) act.materialRate = matRate;
+          if (matAmt != null) act.materialAmount = matAmt;
+          if (labRate != null) act.labourRate = labRate;
+          if (labAmt != null) act.labourAmount = labAmt;
+          if (eqRate != null) act.equipmentRate = eqRate;
+          if (eqAmt != null) act.equipmentAmount = eqAmt;
+          updatedCount++;
+          materialSum += matAmt ?? 0.0;
+          labourSum += labAmt ?? 0.0;
+          equipmentSum += eqAmt ?? 0.0;
         } else {
           final newAct = ConstructionActivity(
-            key: '$phaseName::Custom::$activityName',
+            key: '${phaseName.trim().toLowerCase()}::${activityName.trim().toLowerCase()}',
             name: activityName,
             isCustom: true,
-            isSelected: true,
             budgetMaterial: matAmt,
             budgetLabour: labAmt,
             budgetEquipment: eqAmt,
@@ -2746,13 +2759,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             equipmentRate: eqRate,
             equipmentAmount: eqAmt,
           );
+          newAct.isSelected = true;
           phase.activities.add(newAct);
+          updatedCount++;
+          materialSum += matAmt ?? 0.0;
+          labourSum += labAmt ?? 0.0;
+          equipmentSum += eqAmt ?? 0.0;
         }
-
-        materialSum += matAmt;
-        labourSum += labAmt;
-        equipmentSum += eqAmt;
-        updatedCount++;
       }
 
       _budgetMaterialCtrl.text = materialSum > 0 ? materialSum.toStringAsFixed(0) : '';

@@ -94,6 +94,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
+              rightWidget: RoleManager.canAssignTasks
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.assignment_turned_in,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () => Navigator.pushNamed(context, '/assign-task'),
+                    )
+                  : null,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -3334,55 +3343,82 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
     final List<List<dynamic>> csvRows = [
       [
         'Phase',
-        'Sl No',
+        'Sl.No',
         'Particular',
-        'Qty',
+        'Total_Qty',
         'Unit',
         'Material_Rate',
-        'Material_Amount',
+        'Budget_Material_Amount',
         'Labour_Rate',
-        'Labour_Amount',
+        'Budget_Labour_Amount',
         'Equipment_Rate',
-        'Equipment_Amount',
+        'Budget_Equipment_Amount',
         'Total_Amount'
       ]
     ];
 
-    final defaultPhases = buildDefaultPhases();
-    final Map<String, ProjectActivity> existingActivities = {};
-    if (widget.project.selectedPhases != null) {
+    if (widget.project.selectedPhases != null && widget.project.selectedPhases!.isNotEmpty) {
       for (final phase in widget.project.selectedPhases!) {
+        int slNo = 1;
         for (final act in phase.activities) {
-          existingActivities['${phase.phaseName.trim().toLowerCase()}::${act.name.trim().toLowerCase()}'] = act;
+          final double matAmt = act.budgetMaterial ?? 0.0;
+          final double labAmt = act.budgetLabour ?? 0.0;
+          final double eqAmt = act.budgetEquipment ?? 0.0;
+          final double totAmt = matAmt + labAmt + eqAmt;
+
+          final double qty = act.qty ?? 1.0;
+          final String unit = act.unit ?? '';
+          final double matRate = act.materialRate ?? 0.0;
+          final double labRate = act.labourRate ?? 0.0;
+          final double eqRate = act.equipmentRate ?? 0.0;
+
+          csvRows.add([
+            phase.phaseName,
+            slNo++,
+            act.name,
+            qty > 0 ? qty.toStringAsFixed(2) : '',
+            unit,
+            matRate > 0 ? matRate.toStringAsFixed(2) : '',
+            matAmt > 0 ? matAmt.toStringAsFixed(2) : '',
+            labRate > 0 ? labRate.toStringAsFixed(2) : '',
+            labAmt > 0 ? labAmt.toStringAsFixed(2) : '',
+            eqRate > 0 ? eqRate.toStringAsFixed(2) : '',
+            eqAmt > 0 ? eqAmt.toStringAsFixed(2) : '',
+            totAmt > 0 ? totAmt.toStringAsFixed(2) : '',
+          ]);
         }
       }
-    }
+    } else {
+      final defaultPhases = buildDefaultPhases();
+      for (final phase in defaultPhases) {
+        int slNo = 1;
+        for (final act in phase.allActivities) {
+          final double matAmt = act.budgetMaterial ?? 0.0;
+          final double labAmt = act.budgetLabour ?? 0.0;
+          final double eqAmt = act.budgetEquipment ?? 0.0;
+          final double totAmt = matAmt + labAmt + eqAmt;
 
-    for (final phase in defaultPhases) {
-      int slNo = 1;
-      for (final act in phase.allActivities) {
-        final key = '${phase.name.trim().toLowerCase()}::${act.name.trim().toLowerCase()}';
-        final existingAct = existingActivities[key];
+          final double qty = act.qty ?? 1.0;
+          final String unit = act.unit ?? '';
+          final double matRate = act.materialRate ?? 0.0;
+          final double labRate = act.labourRate ?? 0.0;
+          final double eqRate = act.equipmentRate ?? 0.0;
 
-        final double matAmt = existingAct?.budgetMaterial ?? 0.0;
-        final double labAmt = existingAct?.budgetLabour ?? 0.0;
-        final double eqAmt = existingAct?.budgetEquipment ?? 0.0;
-        final double totAmt = matAmt + labAmt + eqAmt;
-
-        csvRows.add([
-          phase.name,
-          slNo++,
-          act.name,
-          '', // Qty
-          '', // Unit
-          '', // Material_Rate
-          matAmt > 0 ? matAmt.toStringAsFixed(0) : '',
-          '', // Labour_Rate
-          labAmt > 0 ? labAmt.toStringAsFixed(0) : '',
-          '', // Equipment_Rate
-          eqAmt > 0 ? eqAmt.toStringAsFixed(0) : '',
-          totAmt > 0 ? totAmt.toStringAsFixed(0) : '',
-        ]);
+          csvRows.add([
+            phase.name,
+            slNo++,
+            act.name,
+            qty > 0 ? qty.toStringAsFixed(2) : '',
+            unit,
+            matRate > 0 ? matRate.toStringAsFixed(2) : '',
+            matAmt > 0 ? matAmt.toStringAsFixed(2) : '',
+            labRate > 0 ? labRate.toStringAsFixed(2) : '',
+            labAmt > 0 ? labAmt.toStringAsFixed(2) : '',
+            eqRate > 0 ? eqRate.toStringAsFixed(2) : '',
+            eqAmt > 0 ? eqAmt.toStringAsFixed(2) : '',
+            totAmt > 0 ? totAmt.toStringAsFixed(2) : '',
+          ]);
+        }
       }
     }
 
@@ -3393,12 +3429,12 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       await saveAndShareCsv(
         csvContent: csvContent,
         filename: filename,
-        shareText: 'Exported phase template for ${widget.project.name}',
+        shareText: 'Exported phase CSV for ${widget.project.name}',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Template downloaded successfully!'),
+            content: Text('CSV exported successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -3407,7 +3443,7 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to download template: $e'),
+            content: Text('Failed to export CSV: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -3444,23 +3480,29 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
-      final qtyIdx = headers.indexOf('qty');
+      int qtyIdx = headers.indexOf('total_qty');
+      if (qtyIdx == -1) qtyIdx = headers.indexOf('qty');
       final matRateIdx = headers.indexOf('material_rate');
-      final matAmtIdx = headers.indexOf('material_amount');
+      int matAmtIdx = headers.indexOf('budget_material_amount');
+      if (matAmtIdx == -1) matAmtIdx = headers.indexOf('material_amount');
       final labRateIdx = headers.indexOf('labour_rate');
-      final labAmtIdx = headers.indexOf('labour_amount');
+      int labAmtIdx = headers.indexOf('budget_labour_amount');
+      if (labAmtIdx == -1) labAmtIdx = headers.indexOf('labour_amount');
       final eqRateIdx = headers.indexOf('equipment_rate');
-      final eqAmtIdx = headers.indexOf('equipment_amount');
+      int eqAmtIdx = headers.indexOf('budget_equipment_amount');
+      if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
 
       if (phaseIdx == -1 || particularIdx == -1) {
         throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
       }
 
-      double parseVal(dynamic v) {
-        if (v == null) return 0.0;
+      double? parseVal(dynamic v) {
+        if (v == null) return null;
         if (v is num) return v.toDouble();
-        final clean = v.toString().trim().replaceAll(RegExp(r'[^\d\.]'), '');
-        return double.tryParse(clean) ?? 0.0;
+        final str = v.toString().trim();
+        if (str.isEmpty) return null;
+        final clean = str.replaceAll(RegExp(r'[^\d\.]'), '');
+        return double.tryParse(clean);
       }
 
       List<ProjectPhase> updatedPhases = [];
@@ -3498,19 +3540,19 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
-        final double qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : 1.0;
+        final double? qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : null;
 
-        final double matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : 0.0;
-        double matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : 0.0;
-        if (matAmt == 0.0 && matRate > 0.0) matAmt = qty * matRate;
+        final double? matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : null;
+        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : null;
+        if (matAmt == null && matRate != null && qty != null) matAmt = qty * matRate;
 
-        final double labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : 0.0;
-        double labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : 0.0;
-        if (labAmt == 0.0 && labRate > 0.0) labAmt = qty * labRate;
+        final double? labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : null;
+        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : null;
+        if (labAmt == null && labRate != null && qty != null) labAmt = qty * labRate;
 
-        final double eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : 0.0;
-        double eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : 0.0;
-        if (eqAmt == 0.0 && eqRate > 0.0) eqAmt = qty * eqRate;
+        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : null;
+        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : null;
+        if (eqAmt == null && eqRate != null && qty != null) eqAmt = qty * eqRate;
 
         int phaseIndex = updatedPhases.indexWhere((p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase());
         if (phaseIndex == -1) {
@@ -3529,19 +3571,29 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         final actIndex = activities.indexWhere((a) => a.name.trim().toLowerCase() == activityName.toLowerCase());
 
         if (actIndex != -1) {
-          activities[actIndex] = activities[actIndex].copyWith(
-            budgetMaterial: matAmt,
-            budgetLabour: labAmt,
-            budgetEquipment: eqAmt,
+          final currentAct = activities[actIndex];
+          activities[actIndex] = currentAct.copyWith(
+            budgetMaterial: matAmt ?? currentAct.budgetMaterial,
+            budgetLabour: labAmt ?? currentAct.budgetLabour,
+            budgetEquipment: eqAmt ?? currentAct.budgetEquipment,
+            qty: qty ?? currentAct.qty,
+            materialRate: matRate ?? currentAct.materialRate,
+            labourRate: labRate ?? currentAct.labourRate,
+            equipmentRate: eqRate ?? currentAct.equipmentRate,
           );
         } else {
           final newAct = ProjectActivity(
-            id: '$phaseName::Custom::$activityName',
+            id: 'act_${activityName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
             name: activityName,
             isCustom: true,
-            budgetMaterial: matAmt,
-            budgetLabour: labAmt,
-            budgetEquipment: eqAmt,
+            completed: false,
+            budgetMaterial: matAmt ?? 0.0,
+            budgetLabour: labAmt ?? 0.0,
+            budgetEquipment: eqAmt ?? 0.0,
+            qty: qty,
+            materialRate: matRate,
+            labourRate: labRate,
+            equipmentRate: eqRate,
           );
           activities.add(newAct);
         }
@@ -3650,7 +3702,7 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
                 child: OutlinedButton.icon(
                   onPressed: _downloadTemplate,
                   icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('Template'),
+                  label: const Text('Export CSV'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     side: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),

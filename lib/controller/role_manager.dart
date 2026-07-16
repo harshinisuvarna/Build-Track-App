@@ -75,6 +75,9 @@ class RoleManager {
   static bool get canAssignProject =>
       isAdmin || UserSession.hasPermission('assign_project');
 
+  static bool get canAssignTasks =>
+      isAdmin || isSupervisor || UserSession.hasPermission('assign_tasks');
+
   // Legacy alias used in home_screen.dart drawer
   static bool get canAssignRole => canAssignRoles;
 

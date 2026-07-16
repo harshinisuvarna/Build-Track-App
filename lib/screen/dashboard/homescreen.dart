@@ -1,4 +1,7 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/models/task_model.dart';
+import 'package:buildtrack_mobile/services/task_service.dart';
+import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
@@ -264,6 +267,210 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
+}
+class _TaskCard extends StatelessWidget {
+  final TaskModel task;
+  final VoidCallback? onEdit;
+  const _TaskCard({required this.task, this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    // Dynamically calculate status if possible
+    String displayStatus = task.status;
+    Color statusColor = AppColors.primary;
+    Color statusBg = AppColors.primary.withValues(alpha: 0.1);
+
+    try {
+      final projects = context.read<ProjectProvider>().projects;
+      final proj = projects.firstWhere(
+        (p) => p.id == task.project,
+        orElse: () => null as dynamic, // returning null safely
+      );
+      if (proj != null && task.activityName != null) {
+        final phases = proj.selectedPhases ?? [];
+        for (var phase in phases) {
+          for (var act in phase.activities) {
+            if (act.name == task.activityName) {
+              if (act.completed) {
+                displayStatus = 'Completed';
+              } else if (proj.progress > 0) {
+                displayStatus = 'Work in Progress';
+              } else {
+                displayStatus = 'Not Started';
+              }
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error calculating task status: $e');
+    }
+
+    if (displayStatus == 'Completed') {
+      statusColor = Colors.green;
+      statusBg = Colors.green.withValues(alpha: 0.1);
+    } else if (displayStatus == 'Work in Progress') {
+      statusColor = Colors.orange;
+      statusBg = Colors.orange.withValues(alpha: 0.1);
+    }
+
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  displayStatus,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+              if (displayStatus != 'Completed' && onEdit != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onEdit,
+                  child: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (task.description.isNotEmpty) ...[
+            Text(
+              task.description,
+              style: const TextStyle(fontSize: 13, color: AppColors.textLight),
+            ),
+            const SizedBox(height: 6),
+          ],
+          Row(
+            children: [
+              const Icon(Icons.person_outline, size: 14, color: AppColors.textLight),
+              const SizedBox(width: 4),
+              Text(
+                'Assigned to: ${task.assignee ?? "Unassigned"}',
+                style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textLight),
+              const SizedBox(width: 4),
+              Text(
+                task.floorName ?? 'On Site',
+                style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showEditTaskDialog(BuildContext context, TaskModel task, VoidCallback onSave) async {
+  String? updatedStatus = task.status;
+  final TextEditingController titleCtrl = TextEditingController(text: task.title);
+  final TextEditingController descCtrl = TextEditingController(text: task.description);
+  bool saving = false;
+
+  await showDialog(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: const Text('Edit Task'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Title', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Description', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: descCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Status', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  const SizedBox(height: 4),
+                  DropdownButtonFormField<String>(
+                    value: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
+                    items: ['Not Started', 'In Progress', 'Completed'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (v) {
+                      setDialogState(() {
+                        updatedStatus = v;
+                      });
+                    },
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        setDialogState(() => saving = true);
+                        try {
+                          await TaskService.updateTask(task.id, {
+                            'title': titleCtrl.text,
+                            'description': descCtrl.text,
+                            'status': updatedStatus,
+                          });
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            onSave();
+                          }
+                        } catch (e) {
+                          setDialogState(() => saving = false);
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      },
+                child: saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 class _AdminDashboard extends StatefulWidget {
@@ -2792,6 +2999,7 @@ class _SupervisorDashboard extends StatefulWidget {
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   List<dynamic> _pendingTransactions = [];
   List<dynamic> _historyTransactions = [];
+  List<TaskModel> _tasks = [];
   bool _isLoading = true;
   String? _error;
 
@@ -2814,16 +3022,19 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     final results = await Future.wait([
       ApiService.fetchPendingApprovals(),
       ApiService.fetchApprovalsHistory(),
+      TaskService.getDailyTasks(),
     ]);
 
     if (!mounted) return;
 
-    final pendingData = results[0];
-    final historyData = results[1];
+    final pendingData = results[0] as Map<String, dynamic>?;
+    final historyData = results[1] as Map<String, dynamic>?;
+    final tasksData = results[2] as List<TaskModel>;
 
     setState(() {
       _pendingTransactions = (pendingData?['transactions'] as List?) ?? [];
       _historyTransactions = (historyData?['transactions'] as List?) ?? [];
+      _tasks = tasksData;
       _isLoading = false;
       if (pendingData == null && historyData == null) {
         _error = 'Failed to load data';
@@ -2915,33 +3126,91 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
         // ── Refresh button row ─────────────────────────────────────────
         Align(
           alignment: Alignment.centerRight,
-          child: GestureDetector(
-            onTap: _loadAll,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.refresh, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Refresh',
-                    style: TextStyle(
-                      fontSize: 12,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (RoleManager.canAssignTasks) ...[
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/assign-task'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
                       color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.assignment_turned_in, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Assign Task',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(width: 12),
+              ],
+              GestureDetector(
+                onTap: _loadAll,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Refresh',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // ── Tasks Assigned Section ─────────────────────────────────────
+        const Text(
+          'Tasks Assigned',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 12),
+        if (_tasks.isEmpty)
+          const AppEmptyState(
+            icon: Icons.task_alt,
+            message: 'No tasks currently active.',
+          )
+        else
+          ..._tasks.map((task) => _TaskCard(
+            task: task,
+            onEdit: () => _showEditTaskDialog(context, task, () {
+              if (context.mounted) _loadAll();
+            }),
+          )),
+
+        const SizedBox(height: 24),
 
         // ── Content ────────────────────────────────────────────────────
         if (_isLoading)
@@ -3702,17 +3971,32 @@ class _MasonDashboard extends StatefulWidget {
 
 class _MasonDashboardState extends State<_MasonDashboard> {
   late Future<List<dynamic>> _recentEntriesFuture;
+  List<TaskModel> _tasks = [];
+  bool _isLoadingTasks = true;
 
   @override
   void initState() {
     super.initState();
-    // Recent entries belonging to the currently logged-in mason only.
-    // FIX: also scope by the currently selected project, mirroring the
-    // Admin dashboard fix. Without this, a mason switching projects would
-    // still see entries from every project they've ever touched.
     final projectId = context.read<ProjectProvider>().selectedProject?.id;
     _recentEntriesFuture =
         ApiService.fetchMyRecentEntries(projectId: projectId);
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    try {
+      final tasks = await TaskService.getDailyTasks();
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _isLoadingTasks = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTasks = false);
+      }
+    }
   }
 
   @override
@@ -3764,6 +4048,38 @@ class _MasonDashboardState extends State<_MasonDashboard> {
           onPressed: () => widget.onEntryTap(context, 'material'),
         ),
         const SizedBox(height: 16),
+
+        // ── Tasks Assigned Section ─────────────────────────────────────
+        const Text(
+          'Tasks Assigned',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_isLoadingTasks)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          )
+        else if (_tasks.isEmpty)
+          const AppEmptyState(
+            icon: Icons.task_alt,
+            message: 'No tasks currently active.',
+          )
+        else
+          ..._tasks.map((task) => _TaskCard(
+            task: task,
+            onEdit: task.status != 'Completed' ? () => _showEditTaskDialog(context, task, () {
+              if (context.mounted) _loadTasks();
+            }) : null,
+          )),
+
+        const SizedBox(height: 24),
 
         // Recent Entries — this mason's own entries only.
         AppSectionHeader(
