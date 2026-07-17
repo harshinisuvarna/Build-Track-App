@@ -89,7 +89,7 @@ class EntryModel {
   final String? brand;
   final double? ratePerUnit;
   final String? floor;
-  final ProjectStage? phase;
+  final String? phase;
   final String? phaseId;
   final String? activity;
   final String? activityId;
@@ -116,7 +116,7 @@ class EntryModel {
     'brand': brand,
     'ratePerUnit': ratePerUnit,
     'floor': floor,
-    'phase': phase?.name,
+    'phase': phase,
     'phaseId': phaseId,
     'activity': activity,
     'activityId': activityId,
@@ -155,12 +155,7 @@ class EntryModel {
       brand: j['brand']?.toString(),
       ratePerUnit: (j['ratePerUnit'] as num?)?.toDouble(),
       floor: j['floor']?.toString(),
-      phase: j['phase'] != null
-          ? ProjectStage.values.firstWhere(
-              (e) => e.name == j['phase'],
-              orElse: () => ProjectStage.preConstruction,
-            )
-          : null,
+      phase: j['phase']?.toString(),
       phaseId: j['phaseId']?.toString(),
       activity: j['activity']?.toString(),
       activityId: j['activityId']?.toString(),

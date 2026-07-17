@@ -132,7 +132,7 @@ class ReportExportHelper {
           } else if (col == 'Floor') {
             rowValues.add(entry.floor ?? '—');
           } else if (col == 'Phase') {
-            rowValues.add(entry.phase?.name ?? '—');
+            rowValues.add(entry.phase ?? '—');
           } else if (col == 'Activity') {
             rowValues.add(entry.activity ?? '—');
           } else if (col == 'Unit') {
@@ -199,7 +199,7 @@ class ReportExportHelper {
           entry.description.isEmpty ? '—' : entry.description,
           entry.brand ?? '—',
           entry.floor ?? '—',
-          entry.phase?.name ?? '—',
+          entry.phase ?? '—',
           entry.activity ?? '—',
           entry.unit ?? '—',
           status,
@@ -293,7 +293,7 @@ class ReportExportHelper {
           } else if (col == 'Floor') {
             rowValues.add(e.floor ?? '—');
           } else if (col == 'Phase') {
-            rowValues.add(e.phase?.name ?? '—');
+            rowValues.add(e.phase ?? '—');
           } else if (col == 'Activity') {
             rowValues.add(e.activity ?? '—');
           } else if (col == 'Unit') {
@@ -428,7 +428,7 @@ class ReportExportHelper {
           e.description.isEmpty ? '—' : e.description,
           e.brand ?? '—',
           e.floor ?? '—',
-          e.phase?.name ?? '—',
+          e.phase ?? '—',
           e.activity ?? '—',
           e.unit ?? '—',
           _getPaymentStatusLabel(e.paymentStatus),
