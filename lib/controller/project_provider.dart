@@ -1097,7 +1097,7 @@ class ProjectProvider extends ChangeNotifier {
               notifyListeners();
             }
           } catch (e) {
-            print('[DEBUG] toggleActivityCompletion parse error: $e');
+            dev.log('[DEBUG] toggleActivityCompletion parse error: $e');
           }
         }
         return true;
@@ -1135,12 +1135,12 @@ class ProjectProvider extends ChangeNotifier {
     required double budgetLabour,
     required double budgetEquipment,
   }) async {
-    print(
+    dev.log(
       '[DEBUG] updateActivityBudget: projectId=$projectId, activityId=$activityId',
     );
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex == -1) {
-      print('[DEBUG] updateActivityBudget: project not found in list');
+      dev.log('[DEBUG] updateActivityBudget: project not found in list');
       return false;
     }
 
@@ -1166,7 +1166,7 @@ class ProjectProvider extends ChangeNotifier {
     }
 
     if (!found) {
-      print(
+      dev.log(
         '[DEBUG] updateActivityBudget: activity $activityId not found in phases',
       );
       return false;
@@ -1178,14 +1178,14 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print(
+      dev.log(
         '[DEBUG] updateActivityBudget: sending PUT to /projects/$projectId...',
       );
       final response = await ApiService.put(
         '/projects/$projectId',
         updated.toJson(),
       );
-      print(
+      dev.log(
         '[DEBUG] updateActivityBudget: PUT response status: ${response.statusCode}',
       );
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -1201,7 +1201,7 @@ class ProjectProvider extends ChangeNotifier {
               notifyListeners();
             }
           } catch (e) {
-            print('[DEBUG] updateActivityBudget parse error: $e');
+            dev.log('[DEBUG] updateActivityBudget parse error: $e');
           }
         }
         return true;
@@ -1213,7 +1213,7 @@ class ProjectProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('[DEBUG] updateActivityBudget PERSISTENCE ERROR: $e');
+      dev.log('[DEBUG] updateActivityBudget PERSISTENCE ERROR: $e');
       _projects[projectIndex] = project;
       if (_selectedProject?.id == projectId) _selectedProject = project;
       notifyListeners();

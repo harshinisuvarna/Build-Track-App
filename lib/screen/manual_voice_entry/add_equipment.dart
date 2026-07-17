@@ -74,7 +74,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
-  DateTime _paymentDate = DateTime.now();
+  final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
   // ── Missing master data warnings ────────────────────────────────────────
@@ -1243,7 +1243,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       "project": _selectedProjectId,
       "date": _selectedDate.toUtc().toIso8601String(),
       "floor": _selectedFloor,
-      if (_selectedFloorId != null) "floorId": _selectedFloorId,
+      "floorId": ?_selectedFloorId,
       "phase": _selectedPhase,
       "phaseId":
           _selectedPhaseId ??

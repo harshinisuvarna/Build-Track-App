@@ -2718,7 +2718,7 @@ class InvoiceAttachmentCard extends StatelessWidget {
                         width: 44,
                         height: 44,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             Icon(iconData, color: iconColor, size: 22),
                       ),
                     )

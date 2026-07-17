@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/task_model.dart';
-import 'package:http/http.dart' as http;
 
 class TaskService {
   static Future<List<TaskModel>> getDailyTasks() async {

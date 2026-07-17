@@ -305,7 +305,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                                 const Text('Assign To', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textLight)),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<String>(
-                                  value: _selectedUserId,
+                                  initialValue: _selectedUserId,
                                   decoration: const InputDecoration(
                                     border: OutlineInputBorder(), 
                                     hintText: 'Select a user',

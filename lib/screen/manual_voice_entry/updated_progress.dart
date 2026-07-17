@@ -49,7 +49,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   // ── Tasks assigned to user ──────────────────────────────────────────────
   List<TaskModel> _dailyTasks = [];
   bool _isLoadingTasks = true;
-  Set<String> _completedTaskIds = {};
+  final Set<String> _completedTaskIds = {};
 
   static const _months = [
     'January',
@@ -127,7 +127,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     const Text('Status', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
+                    initialValue: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
                       items: ['Not Started', 'In Progress', 'Completed'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                       onChanged: (v) {
                         setDialogState(() {

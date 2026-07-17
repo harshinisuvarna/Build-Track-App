@@ -251,9 +251,12 @@ class AiChatReportProvider extends ChangeNotifier {
       final file = File(path);
       await file.writeAsString(csvString);
 
-      await Share.shareXFiles([
-        XFile(path),
-      ], text: 'BuildTrack Analytics Export\n\n${_result!.summary}');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(path)],
+          text: 'BuildTrack Analytics Export\n\n${_result!.summary}',
+        ),
+      );
     } catch (e) {
       debugPrint('Export Error: $e');
     }

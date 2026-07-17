@@ -445,9 +445,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 phaseId = phaseMatch.id;
               }
             }
-            if (phaseName == null) {
-              phaseName = csvPhase;
-            }
+            phaseName ??= csvPhase;
           }
 
           final csvActivity = activityIdx != -1 && activityIdx < row.length ? parseString(row[activityIdx]) : '';
@@ -474,9 +472,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 }
               }
             }
-            if (activityName == null) {
-              activityName = csvActivity;
-            }
+            activityName ??= csvActivity;
           }
 
           final Map<String, dynamic> payload = {};
@@ -559,10 +555,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "notes": notes,
                 "date": date.toIso8601String(),
                 "floor": resolvedFloor,
-                if (phaseName != null) "phase": phaseName,
-                if (phaseId != null) "phaseId": phaseId,
-                if (activityName != null) "activity": activityName,
-                if (activityId != null) "activityId": activityId,
+                "phase": ?phaseName,
+                "phaseId": ?phaseId,
+                "activity": ?activityName,
+                "activityId": ?activityId,
                 "gst": gstPercentage,
                 "isWithGst": isWithGst,
                 "amount": finalAmount,
@@ -572,16 +568,15 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 if (resolvedFloor != null || phaseName != null || activityName != null)
                   "executionContext": {
                     "project": projectId,
-                    if (resolvedFloor != null) "floor": resolvedFloor,
-                    if (phaseName != null) "phase": phaseName,
-                    if (phaseId != null) "phaseId": phaseId,
-                    if (activityName != null) "activity": activityName,
-                    if (activityId != null) "activityId": activityId,
+                    "floor": ?resolvedFloor,
+                    "phase": ?phaseName,
+                    "phaseId": ?phaseId,
+                    "activity": ?activityName,
+                    "activityId": ?activityId,
                   }
               });
 
-              bulkPayloads.add(payload); final success = true;
-              if (!success) throw Exception("Row $rowNum: Failed to create Material transaction on the server");
+              bulkPayloads.add(payload);
               materialCount++;
 
             } else if (resolvedRowType == 'labour' || resolvedRowType == 'wages') {
@@ -602,10 +597,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "project": projectId,
                 "date": date.toIso8601String(),
                 "floor": resolvedFloor,
-                if (phaseName != null) "phase": phaseName,
-                if (phaseId != null) "phaseId": phaseId,
-                if (activityName != null) "activity": activityName,
-                if (activityId != null) "activityId": activityId,
+                "phase": ?phaseName,
+                "phaseId": ?phaseId,
+                "activity": ?activityName,
+                "activityId": ?activityId,
                 "amount": finalAmount,
                 "overtime": overtime,
                 "remarks": notes,
@@ -616,8 +611,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "worker": resolvedName,
               });
 
-              bulkPayloads.add(payload); final success = true;
-              if (!success) throw Exception("Row $rowNum: Failed to create Labour transaction on the server");
+              bulkPayloads.add(payload);
               labourCount++;
 
             } else if (resolvedRowType == 'equipment' || resolvedRowType == 'expense') {
@@ -640,10 +634,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "project": projectId,
                 "date": date.toIso8601String(),
                 "floor": resolvedFloor,
-                if (phaseName != null) "phase": phaseName,
-                if (phaseId != null) "phaseId": phaseId,
-                if (activityName != null) "activity": activityName,
-                if (activityId != null) "activityId": activityId,
+                "phase": ?phaseName,
+                "phaseId": ?phaseId,
+                "activity": ?activityName,
+                "activityId": ?activityId,
                 "gst": gstPercentage,
                 "isWithGst": isWithGst,
                 "gstPercentage": isWithGst ? gstPercentage : 0,
@@ -657,8 +651,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "paymentMode": "Cash",
               });
 
-              bulkPayloads.add(payload); final success = true;
-              if (!success) throw Exception("Row $rowNum: Failed to create Equipment transaction on the server");
+              bulkPayloads.add(payload);
               equipmentCount++;
             } else {
               throw Exception("Row $rowNum: Unknown entry type '$resolvedRowType'. Must be Material, Labour, or Equipment.");
@@ -701,10 +694,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "notes": notes,
               "date": date.toIso8601String(),
               "floor": resolvedFloor,
-              if (phaseName != null) "phase": phaseName,
-              if (phaseId != null) "phaseId": phaseId,
-              if (activityName != null) "activity": activityName,
-              if (activityId != null) "activityId": activityId,
+              "phase": ?phaseName,
+              "phaseId": ?phaseId,
+              "activity": ?activityName,
+              "activityId": ?activityId,
               "gst": gstPercentage,
               "isWithGst": isWithGst,
               "amount": finalAmount,
@@ -713,18 +706,15 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               if (resolvedFloor != null || phaseName != null || activityName != null)
                 "executionContext": {
                   "project": projectId,
-                  if (resolvedFloor != null) "floor": resolvedFloor,
-                  if (phaseName != null) "phase": phaseName,
-                  if (phaseId != null) "phaseId": phaseId,
-                  if (activityName != null) "activity": activityName,
-                  if (activityId != null) "activityId": activityId,
+                  "floor": ?resolvedFloor,
+                  "phase": ?phaseName,
+                  "phaseId": ?phaseId,
+                  "activity": ?activityName,
+                  "activityId": ?activityId,
                 }
             });
 
-            bulkPayloads.add(payload); final success = true;
-            if (!success) {
-              throw Exception("Row $rowNum: Failed to create Material transaction on the server");
-            }
+            bulkPayloads.add(payload);
             materialCount++;
 
           } else if (detectedType == 'labour') {
@@ -754,10 +744,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "project": projectId,
               "date": date.toIso8601String(),
               "floor": resolvedFloor,
-              if (phaseName != null) "phase": phaseName,
-              if (phaseId != null) "phaseId": phaseId,
-              if (activityName != null) "activity": activityName,
-              if (activityId != null) "activityId": activityId,
+              "phase": ?phaseName,
+              "phaseId": ?phaseId,
+              "activity": ?activityName,
+              "activityId": ?activityId,
               "amount": finalAmount,
               "overtime": overtime,
               "remarks": contractor.isNotEmpty ? contractor : notes,
@@ -767,10 +757,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "worker": name,
             });
 
-            bulkPayloads.add(payload); final success = true;
-            if (!success) {
-              throw Exception("Row $rowNum: Failed to create Labour transaction on the server");
-            }
+            bulkPayloads.add(payload);
             labourCount++;
 
           } else if (detectedType == 'equipment') {
@@ -804,10 +791,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "project": projectId,
               "date": date.toIso8601String(),
               "floor": resolvedFloor,
-              if (phaseName != null) "phase": phaseName,
-              if (phaseId != null) "phaseId": phaseId,
-              if (activityName != null) "activity": activityName,
-              if (activityId != null) "activityId": activityId,
+              "phase": ?phaseName,
+              "phaseId": ?phaseId,
+              "activity": ?activityName,
+              "activityId": ?activityId,
               "gst": gstPercentage,
               "isWithGst": isWithGst,
               "gstPercentage": isWithGst ? gstPercentage : 0,
@@ -820,10 +807,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "paymentMode": "Cash",
             });
 
-            bulkPayloads.add(payload); final success = true;
-            if (!success) {
-              throw Exception("Row $rowNum: Failed to create Equipment transaction on the server");
-            }
+            bulkPayloads.add(payload);
             equipmentCount++;
           }
         } catch (e) {

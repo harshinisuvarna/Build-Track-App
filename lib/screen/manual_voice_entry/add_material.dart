@@ -77,7 +77,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
-  DateTime _paymentDate = DateTime.now();
+  final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
   // ── Scroll ────────────────────────────────────────────────────────────────
@@ -1225,13 +1225,13 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           (_selectedActivity != null && _selectedActivity!.isNotEmpty))
         "executionContext": {
           "project": _selectedProjectId,
-          if (_selectedFloor != null) "floor": _selectedFloor,
-          if (_selectedFloorId != null) "floorId": _selectedFloorId,
-          if (_selectedPhase != null) "phase": _selectedPhase,
-          if (_selectedPhaseId != null) "phaseId": _selectedPhaseId,
+          "floor": ?_selectedFloor,
+          "floorId": ?_selectedFloorId,
+          "phase": ?_selectedPhase,
+          "phaseId": ?_selectedPhaseId,
           if (_selectedActivity != null && _selectedActivity!.isNotEmpty)
             "activity": _selectedActivity,
-          if (_selectedActivityId != null) "activityId": _selectedActivityId,
+          "activityId": ?_selectedActivityId,
         },
     };
 

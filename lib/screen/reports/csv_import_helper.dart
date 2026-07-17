@@ -161,7 +161,7 @@ class CsvImportHelper {
           (p) => p?.name.trim().toLowerCase() == csvProjName.trim().toLowerCase() || p?.id == csvProjName,
           orElse: () => null,
         );
-        if (matchedProject == null) matchedProject = defaultProject;
+        matchedProject ??= defaultProject;
         if (matchedProject == null) throw Exception('Row $rowNum: Project "$csvProjName" not found');
         final projectId = matchedProject.id;
 
@@ -212,7 +212,7 @@ class CsvImportHelper {
               break;
             }
           }
-          if (activityName == null) activityName = csvActivity;
+          activityName ??= csvActivity;
         }
 
         // ── Name / description ──
@@ -272,10 +272,10 @@ class CsvImportHelper {
             'project': projectId,
             'date': date.toIso8601String(),
             'floor': resolvedFloor,
-            if (phaseName != null) 'phase': phaseName,
-            if (phaseId != null) 'phaseId': phaseId,
-            if (activityName != null) 'activity': activityName,
-            if (activityId != null) 'activityId': activityId,
+            'phase': ?phaseName,
+            'phaseId': ?phaseId,
+            'activity': ?activityName,
+            'activityId': ?activityId,
             'amount': finalAmount,
             'remarks': notes,
             'notes': notes,
@@ -301,10 +301,10 @@ class CsvImportHelper {
             'project': projectId,
             'date': date.toIso8601String(),
             'floor': resolvedFloor,
-            if (phaseName != null) 'phase': phaseName,
-            if (phaseId != null) 'phaseId': phaseId,
-            if (activityName != null) 'activity': activityName,
-            if (activityId != null) 'activityId': activityId,
+            'phase': ?phaseName,
+            'phaseId': ?phaseId,
+            'activity': ?activityName,
+            'activityId': ?activityId,
             'amount': finalAmount,
             'totalAmount': finalAmount,
             'brand': brand,
@@ -335,10 +335,10 @@ class CsvImportHelper {
             'notes': notes,
             'date': date.toIso8601String(),
             'floor': resolvedFloor,
-            if (phaseName != null) 'phase': phaseName,
-            if (phaseId != null) 'phaseId': phaseId,
-            if (activityName != null) 'activity': activityName,
-            if (activityId != null) 'activityId': activityId,
+            'phase': ?phaseName,
+            'phaseId': ?phaseId,
+            'activity': ?activityName,
+            'activityId': ?activityId,
             'amount': finalAmount,
             'paymentStatus': resolvedStatus,
             'paidAmount': paidAmt,
@@ -346,11 +346,11 @@ class CsvImportHelper {
             if (resolvedFloor != null || phaseName != null || activityName != null)
               'executionContext': {
                 'project': projectId,
-                if (resolvedFloor != null) 'floor': resolvedFloor,
-                if (phaseName != null) 'phase': phaseName,
-                if (phaseId != null) 'phaseId': phaseId,
-                if (activityName != null) 'activity': activityName,
-                if (activityId != null) 'activityId': activityId,
+                'floor': ?resolvedFloor,
+                'phase': ?phaseName,
+                'phaseId': ?phaseId,
+                'activity': ?activityName,
+                'activityId': ?activityId,
               },
           });
           materialCount++;

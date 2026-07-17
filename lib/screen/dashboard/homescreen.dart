@@ -282,9 +282,9 @@ class _TaskCard extends StatelessWidget {
 
     try {
       final projects = context.read<ProjectProvider>().projects;
-      final proj = projects.firstWhere(
+      final proj = projects.cast<dynamic>().firstWhere(
         (p) => p.id == task.project,
-        orElse: () => null as dynamic, // returning null safely
+        orElse: () => null,
       );
       if (proj != null && task.activityName != null) {
         final phases = proj.selectedPhases ?? [];
@@ -424,7 +424,7 @@ Future<void> _showEditTaskDialog(BuildContext context, TaskModel task, VoidCallb
                   const Text('Status', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
-                    value: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
+                  initialValue: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
                     items: ['Not Started', 'In Progress', 'Completed'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                     onChanged: (v) {
                       setDialogState(() {
