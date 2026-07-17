@@ -2326,6 +2326,11 @@ class _ReportsViewState extends State<_ReportsView> {
                   _buildDetailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
                   _buildDetailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
                   _buildDetailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
+                  _PaymentHistorySection(
+                    entry: entry,
+                    formatCurrency: _formatIndianCurrency,
+                    formatDate: _formatDateLong,
+                  ),
                   if (entry.description.isNotEmpty) _buildDetailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) _buildDetailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) _buildDetailRow('Floor', entry.floor!),
@@ -2858,6 +2863,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   detailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
                   detailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
                   detailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
+                  _PaymentHistorySection(
+                    entry: entry,
+                    formatCurrency: _formatIndianCurrency,
+                    formatDate: formatDateLong,
+                  ),
                   if (entry.description.isNotEmpty) detailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) detailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) detailRow('Floor', entry.floor!),
@@ -3328,5 +3338,206 @@ class _ReportActions {
         }
       });
     }
+  }
+}
+
+class _PaymentHistorySection extends StatefulWidget {
+  final EntryModel entry;
+  final String Function(double) formatCurrency;
+  final String Function(DateTime) formatDate;
+
+  const _PaymentHistorySection({
+    Key? key,
+    required this.entry,
+    required this.formatCurrency,
+    required this.formatDate,
+  }) : super(key: key);
+
+  @override
+  State<_PaymentHistorySection> createState() => _PaymentHistorySectionState();
+}
+
+class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
+  bool _viewAll = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final history = widget.entry.paymentHistory;
+
+    // Header
+    Widget header = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'PAYMENT HISTORY',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (history.length > 1)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _viewAll = !_viewAll;
+              });
+            },
+            child: Text(
+              _viewAll ? 'View Less' : 'View All (${history.length})',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    Widget content;
+    if (history.isEmpty) {
+      if (widget.entry.paidAmount > 0) {
+        content = const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'Detailed payment history is unavailable for payments recorded before transaction tracking was introduced.',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        );
+      } else {
+        content = const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'No payments recorded yet.',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        );
+      }
+    } else {
+      final displayedList = List.from(history.reversed);
+      final itemsToShow = _viewAll ? displayedList : [displayedList.first];
+
+      Widget list = ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemsToShow.length,
+        separatorBuilder: (_, __) => const Divider(height: 12, color: Color(0xFFF0F0F8)),
+        itemBuilder: (context, idx) {
+          final item = itemsToShow[idx];
+          final amt = (item['amount'] as num?)?.toDouble() ?? 0.0;
+          final rawDate = item['date'] ?? item['paymentDate'];
+          DateTime? dt;
+          if (rawDate is String) {
+            dt = DateTime.tryParse(rawDate);
+          } else if (rawDate is DateTime) {
+            dt = rawDate;
+          }
+          final dateStr = dt != null ? widget.formatDate(dt) : '—';
+          final method = item['method'] as String? ?? 'Cash';
+          final note = item['note'] as String? ?? '';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.badgeInfoBg,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              method.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.badgeInfoText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      widget.formatCurrency(amt),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.badgeSuccessText,
+                      ),
+                    ),
+                  ],
+                ),
+                if (note.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Note: $note',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      );
+
+      if (_viewAll && displayedList.length > 3) {
+        content = Container(
+          constraints: const BoxConstraints(maxHeight: 180),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              child: list,
+            ),
+          ),
+        );
+      } else {
+        content = list;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 16),
+          header,
+          const SizedBox(height: 8),
+          content,
+          const Divider(height: 16),
+        ],
+      ),
+    );
   }
 }
