@@ -337,43 +337,23 @@ class ProjectProvider extends ChangeNotifier {
       if (entryProjectId.isEmpty) entryProjectId = 'p1';
 
       double amount = 0;
-      final paymentStatus = (json['paymentStatus'] ?? '')
-          .toString()
-          .toLowerCase()
-          .trim();
-      final paidAmount = json['paidAmount'];
-
-      if (paymentStatus == 'paid') {
-        if (paidAmount != null && paidAmount is num && paidAmount > 0) {
-          amount = paidAmount.toDouble();
-        } else {
-          final v = json['amount'];
-          if (v != null && v is num && v > 0) {
-            amount = v.toDouble();
-          } else {
-            final qty = json['quantity'];
-            final rate = json['rate'];
-            if (qty is num && rate is num && qty > 0 && rate > 0) {
-              amount = (qty * rate).toDouble();
-            }
-          }
-        }
-      } else if (paymentStatus == 'partial') {
-        if (paidAmount != null && paidAmount is num && paidAmount > 0) {
-          amount = paidAmount.toDouble();
-        }
-      } else if (paymentStatus != 'paid') {
-        final v = json['amount'];
-        if (v != null && v is num && v > 0) {
-          amount = v.toDouble();
-        } else {
-          final qty = json['quantity'];
-          final rate = json['rate'];
-          if (qty is num && rate is num && qty > 0 && rate > 0) {
-            amount = (qty * rate).toDouble();
-          }
+      final v = json['amount'];
+      if (v != null && v is num && v > 0) {
+        amount = v.toDouble();
+      } else {
+        final qty = json['quantity'];
+        final rate = json['rate'];
+        if (qty is num && rate is num && qty > 0 && rate > 0) {
+          amount = (qty * rate).toDouble();
         }
       }
+
+      final parsedPaidAmount = (json['paidAmount'] as num?)?.toDouble() ?? 0.0;
+      final parsedPaymentHistory = json['paymentHistory'] != null
+          ? List<Map<String, dynamic>>.from(
+              (json['paymentHistory'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            )
+          : <Map<String, dynamic>>[];
 
       String? createdBy;
       final createdByRaw =
@@ -433,8 +413,10 @@ class ProjectProvider extends ChangeNotifier {
         unit: json['unit']?.toString(),
         createdBy: createdBy,
         approvalStatus: approvalStatusRaw,
-        paymentStatus: paymentStatusRaw, // MERGE FIX 2
-        paymentDate: paymentDateRaw, // MERGE FIX 2
+        paymentStatus: paymentStatusRaw,
+        paymentDate: paymentDateRaw,
+        paidAmount: parsedPaidAmount,
+        paymentHistory: parsedPaymentHistory,
       );
     }).toList();
   }
