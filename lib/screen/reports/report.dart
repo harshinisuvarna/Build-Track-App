@@ -1493,14 +1493,22 @@ class _ReportsViewState extends State<_ReportsView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: isFeatured ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: isFeatured ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
               Icon(
                 icon,
                 color: isFeatured ? Colors.white : (color ?? AppColors.primary),
