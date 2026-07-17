@@ -401,12 +401,7 @@ class ProjectProvider extends ChangeNotifier {
             ? (json['rate'] as num).toDouble()
             : 0,
         floor: json['floor']?.toString(),
-        phase: json['phase'] != null
-            ? ProjectStage.values.firstWhere(
-                (e) => e.name == json['phase'],
-                orElse: () => ProjectStage.preConstruction,
-              )
-            : null,
+        phase: json['phase']?.toString(),
         phaseId: json['phaseId']?.toString(),
         activity: json['activity']?.toString(),
         activityId: json['activityId']?.toString(),
@@ -1226,7 +1221,7 @@ class ProjectProvider extends ChangeNotifier {
     String? brand,
     double? ratePerUnit,
     String? floor,
-    ProjectStage? phase,
+    String? phase,
   }) async {
     String rawType = 'Materials';
     if (entry.type == EntryType.labour) rawType = 'Wages';

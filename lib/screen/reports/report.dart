@@ -759,7 +759,7 @@ class _ReportsViewState extends State<_ReportsView> {
               ?.phaseName;
 
           if (entry.phaseId != _selectedPhaseId &&
-              (phaseName == null || entry.phase?.name != phaseName)) {
+              (phaseName == null || entry.phase != phaseName)) {
             return false;
           }
         }
@@ -797,7 +797,7 @@ class _ReportsViewState extends State<_ReportsView> {
         final brandMatch = (entry.brand ?? '').toLowerCase().contains(query);
         final projectMatch = projectName.contains(query);
         final floorMatch = (entry.floor ?? '').toLowerCase().contains(query);
-        final phaseMatch = (entry.phase?.name ?? '').toLowerCase().contains(query);
+        final phaseMatch = (entry.phase ?? '').toLowerCase().contains(query);
         final activityMatch = (entry.activity ?? '').toLowerCase().contains(query);
         final amountMatch = entry.amount.toString().contains(query);
         final typeMatch = entry.type.name.toLowerCase().contains(query);
@@ -2329,7 +2329,7 @@ class _ReportsViewState extends State<_ReportsView> {
                   if (entry.description.isNotEmpty) _buildDetailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) _buildDetailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) _buildDetailRow('Floor', entry.floor!),
-                  if (entry.phase != null) _buildDetailRow('Phase', entry.phase!.name),
+                  if (entry.phase != null && entry.phase!.isNotEmpty) _buildDetailRow('Phase', entry.phase!),
                   if (entry.unit != null && entry.unit!.isNotEmpty) _buildDetailRow('Unit', entry.unit!),
                   if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
                     _buildDetailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
@@ -2441,7 +2441,7 @@ class _ReportsViewState extends State<_ReportsView> {
       } else if (colName == 'Floor') {
         return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
       } else if (colName == 'Phase') {
-        return DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(Text(entry.phase ?? '—', style: const TextStyle(fontSize: 12)));
       } else if (colName == 'Activity') {
         return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
       } else if (colName == 'Unit') {
@@ -2861,7 +2861,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   if (entry.description.isNotEmpty) detailRow('Description', entry.description),
                   if (entry.brand != null && entry.brand!.isNotEmpty) detailRow('Brand', entry.brand!),
                   if (entry.floor != null && entry.floor!.isNotEmpty) detailRow('Floor', entry.floor!),
-                  if (entry.phase != null) detailRow('Phase', entry.phase!.name),
+                  if (entry.phase != null && entry.phase!.isNotEmpty) detailRow('Phase', entry.phase!),
                   if (entry.unit != null && entry.unit!.isNotEmpty) detailRow('Unit', entry.unit!),
                   if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
                     detailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
@@ -3003,7 +3003,7 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                 } else if (colName == 'Floor') {
                   return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
                 } else if (colName == 'Phase') {
-                  return DataCell(Text(entry.phase?.name ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(Text(entry.phase ?? '—', style: const TextStyle(fontSize: 12)));
                 } else if (colName == 'Activity') {
                   return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
                 } else if (colName == 'Unit') {
