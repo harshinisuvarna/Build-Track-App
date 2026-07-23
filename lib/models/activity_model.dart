@@ -4,7 +4,7 @@ class ActivityModel {
   final String id;
   final String name;
   final String phaseId;
-  final String unit; // Sqft, Cum, Nos, Rft
+  final String unit;
   final bool requiresPhoto;
   final bool requiresVideo;
   final bool requiresApproval;

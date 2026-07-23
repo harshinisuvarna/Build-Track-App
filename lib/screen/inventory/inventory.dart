@@ -11,10 +11,6 @@ import 'package:buildtrack_mobile/models/inventory_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INVENTORY SCREEN
-// ═══════════════════════════════════════════════════════════════════════════
-
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
   @override
@@ -22,20 +18,17 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  // ── Design tokens ──────────────────────────────────────────────────────────
   static const Color _blue = AppColors.primary;
   static const Color _bg = AppColors.gradientStart;
   static const Color _dark = AppColors.textDark;
   static const Color _gray = AppColors.textLight;
 
-  // ── Page state ─────────────────────────────────────────────────────────────
   final _pageController = PageController();
   int _tabIndex = 0;
   final _searchCtrl = TextEditingController();
   String? _selectedProjectId;
   Timer? _debounce;
 
-  // ── Per-tab category + date filters ───────────────────────────────────────
   String _matCategory = 'All';
   String _labCategory = 'All';
   String _eqpCategory = 'All';
@@ -62,11 +55,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.dispose();
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // DATA PIPELINE HELPERS
-  // ════════════════════════════════════════════════════════════════════════════
-
-  /// Flattens all transactions from all [InventoryItem]s into flat [_PurchaseRecord]s.
   List<_PurchaseRecord> _flatten(List<InventoryItem> items) {
     final records = <_PurchaseRecord>[];
 
@@ -77,7 +65,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           continue;
         }
 
-        // ── Only show Approved entries in inventory ─────────────────
         final approvalStatus = (tx['approvalStatus'] ?? '')
             .toString()
             .toLowerCase()
@@ -86,7 +73,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           continue;
         }
 
-        // ── Parse date ──────────────────────────────────────────────────────
         DateTime date = DateTime.now();
         for (final key in ['date', 'createdAt', 'purchaseDate', 'updatedAt']) {
           final val = tx[key];
@@ -98,7 +84,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           }
         }
 
-        // ── Vendor / Worker / Operator ─────────────────────────────────────
         String vendor;
         if (item.category == 'labour') {
           vendor =
@@ -122,28 +107,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
           vendor = (tx['supplier'] ?? tx['vendor'] ?? '').toString().trim();
         }
 
-        // ── Quantity ────────────────────────────────────────────────────────
         final qty =
             (tx['quantity'] as num?)?.toDouble() ??
             (tx['days'] as num?)?.toDouble() ??
             (tx['hours'] as num?)?.toDouble() ??
             0.0;
 
-        // ── Rate ────────────────────────────────────────────────────────────
         final rate =
             (tx['rate'] as num?)?.toDouble() ??
             (tx['dailyWage'] as num?)?.toDouble() ??
             (tx['hourlyRate'] as num?)?.toDouble() ??
             0.0;
 
-        // ── Bill amount ─────────────────────────────────────────────────────
         double bill = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         if (bill == 0 && qty > 0 && rate > 0) {
           bill = qty * rate;
         }
         final paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-        // ── Payment status ──────────────────────────────────────────────────
         final sStr = (tx['paymentStatus'] ?? '')
             .toString()
             .toLowerCase()
@@ -159,7 +140,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           payStatus = PaymentStatus.pending;
         }
 
-        // ── Category name ───────────────────────────────────────────────────
         const skipCats = {
           'unknown',
           'material',
@@ -454,10 +434,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   static String _fmtNum(double q) =>
       q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PROJECT SELECTOR
-  // ════════════════════════════════════════════════════════════════════════════
-
   void _showProjectSelector(BuildContext ctx) {
     final projects = ctx.read<ProjectProvider>().projects;
     final allItems = ['All Active Projects', ...projects.map((p) => p.name)];
@@ -478,10 +454,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // BUILD
-  // ════════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -535,8 +507,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
-  // ── Project selector widget ───────────────────────────────────────────────
 
   Widget _buildProjectSelector() {
     final projects = context.watch<ProjectProvider>().projects;
@@ -612,8 +582,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  // ── Search bar ────────────────────────────────────────────────────────────
-
   String get _searchHint {
     switch (_tabIndex) {
       case 1:
@@ -675,8 +643,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
-  // ── Tab switcher ──────────────────────────────────────────────────────────
 
   Widget _buildTabBar() {
     const icons = [
@@ -741,10 +707,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // TAB BUILDERS  (all three share the same _TimelineTabContent engine)
-  // ════════════════════════════════════════════════════════════════════════════
 
   Widget _buildMaterialsTab(BuildContext ctx) {
     final provider = ctx.watch<InventoryProvider>();
@@ -858,25 +820,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DATA MODELS
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _PurchaseRecord {
   final String itemId;
   final String itemName;
   final String txId;
   final DateTime date;
   final String brand;
-  final String vendor; // supplier / worker / operator
-  final double quantity; // bags / days-worked / hours-used
+  final String vendor;
+  final double quantity;
   final String unit;
   final double rate;
   final double billAmount;
   final double paidAmount;
   final PaymentStatus payStatus;
   final String categoryName;
-  final String type; // 'material' | 'labour' | 'equipment'
+  final String type;
   final Map<String, dynamic> rawTx;
 
   _PurchaseRecord({
@@ -918,10 +876,6 @@ class _KpiData {
     this.isAlert = false,
   });
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TIMELINE TAB CONTENT  –  single engine for all three tabs
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _TimelineTabContent extends StatefulWidget {
   final List<_DateGroup> groups;
@@ -974,7 +928,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
 
   List<Widget> _buildSlivers() {
     final slivers = <Widget>[
-      // ── KPI Strip ──────────────────────────────────────────────────────
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
@@ -982,7 +935,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
         ),
       ),
 
-      // ── Filter row ─────────────────────────────────────────────────────
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1013,7 +965,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
       for (final group in widget.groups) {
         final isCollapsed = _collapsed[group.label] ?? false;
 
-        // Sticky date header
         slivers.add(
           SliverPersistentHeader(
             pinned: true,
@@ -1028,7 +979,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
           ),
         );
 
-        // Cards for this group
         if (!isCollapsed) {
           slivers.add(
             SliverPadding(
@@ -1051,7 +1001,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
         }
       }
 
-      // Bottom padding so last card isn't hidden behind nav bar
       slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 120)));
     }
 
@@ -1066,10 +1015,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DATE GROUP HEADER  (sticky sliver)
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _DateGroupHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String label;
@@ -1158,10 +1103,6 @@ class _DateGroupHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PURCHASE CARD  –  adapts to material / labour / equipment
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _PurchaseCard extends StatelessWidget {
   final _PurchaseRecord record;
   final String? selectedProjectId;
@@ -1172,8 +1113,6 @@ class _PurchaseCard extends StatelessWidget {
     required this.selectedProjectId,
     required this.onNavigate,
   });
-
-  // ── Type-specific labels ──────────────────────────────────────────────────
 
   String get _qtyLabel {
     switch (record.type) {
@@ -1207,8 +1146,6 @@ class _PurchaseCard extends StatelessWidget {
         return '/add-material';
     }
   }
-
-  // ── Category-aware icon & colour ─────────────────────────────────────────
 
   IconData get _icon {
     if (record.type == 'labour') {
@@ -1373,7 +1310,6 @@ class _PurchaseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Row 1: Icon · Title · Status + Menu ──────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1482,7 +1418,6 @@ class _PurchaseCard extends StatelessWidget {
                   ],
                 ),
 
-                // ── Partial payment breakdown ─────────────────────────────
                 if (record.payStatus == PaymentStatus.partial) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -1532,7 +1467,6 @@ class _PurchaseCard extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                // ── Metrics row: Qty | Rate | Total ──────────────────────
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1568,7 +1502,6 @@ class _PurchaseCard extends StatelessWidget {
                 const Divider(height: 1, color: Color(0xFFF0EEF8)),
                 const SizedBox(height: 10),
 
-                // ── Action buttons ───────────────────────────────────────
                 Row(
                   children: [
                     Expanded(
@@ -1699,8 +1632,6 @@ class _PurchaseCard extends StatelessWidget {
   );
 }
 
-// ─── Metric cell (Qty / Rate / Total) ─────────────────────────────────────
-
 class _MetricCell extends StatelessWidget {
   final String label, value;
   final bool highlight;
@@ -1736,8 +1667,6 @@ class _MetricCell extends StatelessWidget {
     );
   }
 }
-
-// ─── Action button ─────────────────────────────────────────────────────────
 
 enum _ActionStyle { primary, secondary, tertiary }
 
@@ -1818,10 +1747,6 @@ class _PurchaseActionBtn extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FILTERS ROW  –  category chips + date range pill
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _FiltersRow extends StatelessWidget {
   final List<String> chips;
   final String activeChip;
@@ -1842,7 +1767,6 @@ class _FiltersRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category chips
         if (chips.length > 1)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1896,7 +1820,6 @@ class _FiltersRow extends StatelessWidget {
             ),
           ),
 
-        // Date filter pill
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -1968,10 +1891,6 @@ class _FiltersRow extends StatelessWidget {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DATE RANGE SHEET
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _DateRangeSheet extends StatelessWidget {
   final String activeFilter;
@@ -2129,10 +2048,6 @@ class _DateRangeSheet extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// KPI STRIP  –  2 × 2 grid
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _KpiStrip extends StatelessWidget {
   final List<_KpiData> kpis;
   const _KpiStrip({required this.kpis});
@@ -2236,10 +2151,6 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// EMPTY STATE
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _EmptyState extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
@@ -2331,10 +2242,6 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PROJECT SELECTOR SHEET
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _ProjectSelectorSheet extends StatelessWidget {
   final List<String> allItems;

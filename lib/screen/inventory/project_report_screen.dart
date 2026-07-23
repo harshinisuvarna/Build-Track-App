@@ -173,7 +173,6 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Project name + stage badge
           Row(
             children: [
               Expanded(
@@ -298,7 +297,6 @@ class _FinancialSnapshot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Use actual paid entry amounts instead of spentAmount
     final provider = context.read<ProjectProvider>();
     final paidTotal = provider.totalSpentForProject(project.id);
     final budget = project.totalBudget;
@@ -322,16 +320,14 @@ class _FinancialSnapshot extends StatelessWidget {
         const SizedBox(width: 8),
         _StatChip(
           label: 'Spent',
-          value: formatCurrency(paidTotal), // ✅ paid only
+          value: formatCurrency(paidTotal),
           icon: Icons.payments_outlined,
           color: AppColors.primary,
         ),
         const SizedBox(width: 8),
         _StatChip(
           label: 'Remaining',
-          value: formatCurrency(
-            remaining < 0 ? 0 : remaining,
-          ), // ✅ based on paid
+          value: formatCurrency(remaining < 0 ? 0 : remaining),
           icon: Icons.savings_outlined,
           color: statusColor,
         ),
@@ -433,7 +429,6 @@ class _EntrySection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header row: total entries + total amount
           Row(
             children: [
               Container(
@@ -558,7 +553,6 @@ class _ActivityTimeline extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Timeline spine
                 SizedBox(
                   width: 32,
                   child: Column(

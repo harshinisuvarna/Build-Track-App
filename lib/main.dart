@@ -52,17 +52,14 @@ void main() {
       WidgetsFlutterBinding.ensureInitialized();
       debugPrint('Flutter Initialized');
 
-      // Load session first so UserSession singleton is populated
       await UserSession.loadFromPrefs();
 
-      // Check if already logged in
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final isLoggedIn = token != null && token.isNotEmpty;
 
       final projectProvider = ProjectProvider();
 
-      // Only load projects if already logged in (token exists)
       if (isLoggedIn) {
         debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
         await projectProvider.load().timeout(
@@ -82,10 +79,6 @@ void main() {
       runApp(
         MultiProvider(
           providers: [
-            // ✅ KEY FIX: Register UserSession as a ChangeNotifierProvider
-            // so context.watch<UserSession>() works throughout the app.
-            // Using .value because UserSession is a singleton — we pass the
-            // same instance that loadFromPrefs() already called notifyListeners() on.
             ChangeNotifierProvider<UserSession>.value(value: UserSession()),
 
             ChangeNotifierProvider(create: (_) => NavController()),
@@ -114,7 +107,7 @@ class MyApp extends StatelessWidget {
       title: 'BuildTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      // Go to home if already logged in, login otherwise
+
       initialRoute: isLoggedIn ? '/home' : '/',
       onGenerateInitialRoutes: (initialRouteName) {
         debugPrint('Navigation Started');

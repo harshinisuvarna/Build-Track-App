@@ -41,11 +41,14 @@ class TaskModel {
       title: j['title']?.toString() ?? '',
       description: j['description']?.toString() ?? '',
       project: j['project']?.toString() ?? '',
-      createdBy: j['createdBy'] is Map 
-          ? j['createdBy']['name']?.toString() ?? j['createdBy']['_id']?.toString() 
+      createdBy: j['createdBy'] is Map
+          ? j['createdBy']['name']?.toString() ??
+                j['createdBy']['_id']?.toString()
           : j['createdBy']?.toString(),
       assignee: j['assignee']?.toString(),
-      assignedTo: j['assignedTo'] is Map<String, dynamic> ? j['assignedTo'] : null,
+      assignedTo: j['assignedTo'] is Map<String, dynamic>
+          ? j['assignedTo']
+          : null,
       floorId: j['floorId']?.toString(),
       floorName: j['floorName']?.toString(),
       phaseId: j['phaseId']?.toString(),
@@ -79,6 +82,8 @@ class TaskModel {
 
   static List<TaskModel> decodeList(String raw) {
     final decoded = jsonDecode(raw) as List<dynamic>;
-    return decoded.map((e) => TaskModel.fromJson(e as Map<String, dynamic>)).toList();
+    return decoded
+        .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

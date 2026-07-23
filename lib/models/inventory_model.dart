@@ -6,8 +6,8 @@ class InventoryItem {
   final double closingStock;
   final double threshold;
   final String unit;
-  final String category; // 'material' | 'labour' | 'equipment'
-  final List<dynamic> transactions; // Individual transactions
+  final String category;
+  final List<dynamic> transactions;
 
   InventoryItem({
     required this.id,

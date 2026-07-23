@@ -1,13 +1,6 @@
-// ignore_for_file: avoid_print
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// A text-field widget that renders a floating suggestion dropdown based on
-/// historical transaction data fetched via [ApiService.fetchSuggestions].
-///
-/// Pass the pre-loaded [suggestions] list (from the parent screen state).
-/// The widget filters locally on every keystroke — no extra network calls.
 class AutocompleteNameField extends StatefulWidget {
   const AutocompleteNameField({
     super.key,
@@ -22,7 +15,6 @@ class AutocompleteNameField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
 
-  /// Pre-loaded, ranked suggestion records from [ApiService.fetchSuggestions].
   final List<Map<String, dynamic>> suggestions;
 
   final ValueChanged<String> onChanged;
@@ -36,7 +28,6 @@ class AutocompleteNameField extends StatefulWidget {
 class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
   final _focusNode = FocusNode();
 
-  // Current filtered list — read by the inline builder closure
   List<Map<String, dynamic>> _filtered = [];
   bool _showSuggestions = false;
 
@@ -61,7 +52,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
         '[AutocompleteNameField] suggestions updated: '
         '${widget.suggestions.length} records',
       );
-      // Re-filter immediately with the new pool
+
       if (widget.controller.text.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -80,8 +71,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     super.dispose();
   }
 
-  // ── Listeners ─────────────────────────────────────────────────────────────
-
   void _onTextChanged() {
     final text = widget.controller.text;
     debugPrint(
@@ -96,7 +85,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       debugPrint(
         '[AutocompleteNameField] focus lost — scheduling suggestion collapse',
       );
-      // Small delay so a row tap fires before the suggestion collapses
+
       Future.delayed(const Duration(milliseconds: 180), () {
         if (mounted && !_focusNode.hasFocus) {
           setState(() {
@@ -111,8 +100,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       }
     }
   }
-
-  // ── Filtering ─────────────────────────────────────────────────────────────
 
   void _computeFiltered(String query) {
     final q = query.trim().toLowerCase();
@@ -158,7 +145,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     setState(() {
       _showSuggestions = false;
     });
-    // Update controller without triggering _onTextChanged again
+
     widget.controller.removeListener(_onTextChanged);
     final name = (tx['title'] ?? tx['name'] ?? '').toString().trim();
     widget.controller.text = name;
@@ -167,8 +154,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     debugPrint('[AutocompleteNameField] selected: "$name"');
     widget.onSuggestionSelected(tx);
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +188,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
             controller: widget.controller,
             focusNode: _focusNode,
             onChanged: (v) {
-              // Forward to parent; _onTextChanged listener handles filtering
               widget.onChanged(v);
             },
             decoration: InputDecoration(
@@ -214,7 +198,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
               hintStyle: const TextStyle(color: AppColors.textLight),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
               isDense: true,
-              // Spark icon when suggestions are loaded — gives user a visual cue
+
               suffixIcon: widget.suggestions.isNotEmpty
                   ? const Padding(
                       padding: EdgeInsets.only(right: 2),
@@ -268,8 +252,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
   }
 }
 
-// ── Suggestion Dropdown ─────────────────────────────────────────────────────
-
 class _SuggestionDropdown extends StatelessWidget {
   const _SuggestionDropdown({
     required this.items,
@@ -284,8 +266,6 @@ class _SuggestionDropdown extends StatelessWidget {
   final bool showAddNew;
   final void Function(Map<String, dynamic>) onSelect;
   final VoidCallback onAddNew;
-
-  // ── Helpers ────────────────────────────────────────────────────────────
 
   static String _relativeDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '';
@@ -325,7 +305,6 @@ class _SuggestionDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // No explicit width — parent Positioned constrains us to field width
       constraints: const BoxConstraints(maxHeight: 360),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -344,7 +323,6 @@ class _SuggestionDropdown extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Header ─────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: const BoxDecoration(
@@ -383,7 +361,6 @@ class _SuggestionDropdown extends StatelessWidget {
               ),
             ),
 
-            // ── Rows ───────────────────────────────────────────────────
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
@@ -426,8 +403,6 @@ class _SuggestionDropdown extends StatelessWidget {
   }
 }
 
-// ── Individual Row ─────────────────────────────────────────────────────────
-
 class _SuggestionRow extends StatelessWidget {
   const _SuggestionRow({
     required this.title,
@@ -454,7 +429,6 @@ class _SuggestionRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Left icon
             Container(
               width: 36,
               height: 36,
@@ -476,7 +450,6 @@ class _SuggestionRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
 
-            // Title + rate + date
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,7 +503,6 @@ class _SuggestionRow extends StatelessWidget {
               ),
             ),
 
-            // Unit badge
             if (unit.isNotEmpty && unit != 'unit' && unit != 'units') ...[
               const SizedBox(width: 8),
               Container(
@@ -555,8 +527,6 @@ class _SuggestionRow extends StatelessWidget {
     );
   }
 }
-
-// ── "Add as new" Row ──────────────────────────────────────────────────────
 
 class _AddNewRow extends StatelessWidget {
   const _AddNewRow({required this.query, required this.onTap});

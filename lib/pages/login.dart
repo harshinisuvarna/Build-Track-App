@@ -175,17 +175,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     try {
-      // AuthService.login() handles:
-      //   1. POST /auth/login
-      //   2. Saving token to SharedPreferences
-      //   3. Calling UserSession.fromLoginResponse() — stores role,
-      //      permissions, projectId in memory AND SharedPreferences
       final data = await AuthService.login(email, password);
 
       if (data != null) {
         if (mounted) {
-          // Trigger fetchStatus and load in the background without awaiting them,
-          // so the app transitions to the home page completely instantly!
           context.read<SubscriptionProvider>().fetchStatus();
           context.read<ProjectProvider>().load();
           Navigator.pushReplacementNamed(context, '/home');

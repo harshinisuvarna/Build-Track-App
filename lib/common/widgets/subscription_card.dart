@@ -7,8 +7,6 @@ import 'package:provider/provider.dart';
 class SubscriptionCard extends StatelessWidget {
   const SubscriptionCard({super.key, this.showUpgradeButton = true});
 
-  /// Set to false to show plan info only (no upgrade/manage button).
-  /// Used when displaying plan to provisioned users.
   final bool showUpgradeButton;
 
   @override
@@ -123,7 +121,6 @@ class SubscriptionCard extends StatelessWidget {
                   ],
                 ),
 
-                // Limits row
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -276,7 +273,6 @@ class SubscriptionCard extends StatelessWidget {
   }
 }
 
-// ── Limit chip ──────────────────────────────────────────────────────────────
 class _LimitChip extends StatelessWidget {
   const _LimitChip({required this.icon, required this.label});
   final IconData icon;
@@ -309,7 +305,6 @@ class _LimitChip extends StatelessWidget {
   }
 }
 
-// ── Status badge ────────────────────────────────────────────────────────────
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
   final SubscriptionStatus status;

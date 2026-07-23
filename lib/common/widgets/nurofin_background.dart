@@ -12,16 +12,15 @@ class NurofinBackgroundPainter extends CustomPainter {
       rect.topLeft,
       rect.bottomRight,
       [
-        AppColors.bgBase1, // #D8D4F0
-        AppColors.bgBase2, // #CAC3ED
-        AppColors.bgBase3, // #D2CBF0
-        AppColors.bgBase4, // #E8E4F8
+        AppColors.bgBase1,
+        AppColors.bgBase2,
+        AppColors.bgBase3,
+        AppColors.bgBase4,
       ],
       [0.0, 0.3, 0.65, 1.0],
     );
     canvas.drawRect(rect, Paint()..shader = baseGradient);
 
-    // Alignment(0.55, -0.3) → pixel center
     final center2 = Offset(
       size.width * (0.55 + 1) / 2,
       size.height * (-0.3 + 1) / 2,
@@ -31,7 +30,7 @@ class NurofinBackgroundPainter extends CustomPainter {
       center2,
       radius2,
       [
-        AppColors.bgGlow1.withValues(alpha: 0.55), // #FFFFFF @ 0.55
+        AppColors.bgGlow1.withValues(alpha: 0.55),
         const Color(0xFFEEEAFF).withValues(alpha: 0.30),
         const Color(0xFFD8D0F5).withValues(alpha: 0.0),
       ],
@@ -39,7 +38,6 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow2);
 
-    // Alignment(-0.9, -0.85)
     final center3 = Offset(
       size.width * (-0.9 + 1) / 2,
       size.height * (-0.85 + 1) / 2,
@@ -49,7 +47,7 @@ class NurofinBackgroundPainter extends CustomPainter {
       center3,
       radius3,
       [
-        AppColors.bgGlow2.withValues(alpha: 0.45), // #9B8FE8 @ 0.45
+        AppColors.bgGlow2.withValues(alpha: 0.45),
         const Color(0xFFB5AAEE).withValues(alpha: 0.20),
         const Color(0xFFD0CAF5).withValues(alpha: 0.0),
       ],
@@ -57,7 +55,6 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow3);
 
-    // Alignment(0.85, 0.9)
     final center4 = Offset(
       size.width * (0.85 + 1) / 2,
       size.height * (0.9 + 1) / 2,
@@ -67,7 +64,7 @@ class NurofinBackgroundPainter extends CustomPainter {
       center4,
       radius4,
       [
-        AppColors.bgGlow3.withValues(alpha: 0.40), // #CFB8F0 @ 0.40
+        AppColors.bgGlow3.withValues(alpha: 0.40),
         const Color(0xFFDDD0F5).withValues(alpha: 0.15),
         const Color(0xFFEDE8FF).withValues(alpha: 0.0),
       ],

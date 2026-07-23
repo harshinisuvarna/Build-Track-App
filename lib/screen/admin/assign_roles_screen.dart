@@ -23,16 +23,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   final _passCtrl = TextEditingController();
   final _customRoleCtrl = TextEditingController();
 
-  // ── Permission model: each feature has up to 3 axes ───────────────────
-  // key → { 'view': bool, 'edit': bool, 'delete': bool }
-  // For toggle-only rows (no view/edit/delete columns), we use 'enabled'.
-  // The backend still receives the flat permission key strings.
-
-  // ── Table rows definition ──────────────────────────────────────────────
-  // type: 'table'  → renders View / Edit / Delete columns
-  // type: 'toggle' → renders a single on/off switch
   static const List<Map<String, dynamic>> _featureRows = [
-    // ── Project ────────────────────────────────────────────────────────
     {'section': 'Project'},
     {
       'type': 'table',
@@ -40,18 +31,17 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'desc': 'View progress, budget, and project details',
       'view': 'view_assigned_project',
       'edit': 'edit_project',
-      'delete': null, // delete project is admin-only, not shown
+      'delete': null,
     },
     {
       'type': 'table',
       'label': 'Activities & Entries',
       'desc': 'View, edit or delete material/labour/equipment entries',
-      'view': 'view_assigned_project', // reuses same view flag
+      'view': 'view_assigned_project',
       'edit': 'manage_expenses',
       'delete': 'delete_entry',
     },
 
-    // ── Daily Work ──────────────────────────────────────────────────────
     {'section': 'Daily Work'},
     {
       'type': 'toggle',
@@ -72,7 +62,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'key': 'submit_daily_update',
     },
 
-    // ── Approvals & Payments ────────────────────────────────────────────
     {'section': 'Approvals & Payments'},
     {
       'type': 'toggle',
@@ -87,7 +76,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'key': 'approve_updates',
     },
 
-    // ── Visibility ──────────────────────────────────────────────────────
     {'section': 'Visibility'},
     {
       'type': 'table',
@@ -106,7 +94,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'delete': null,
     },
 
-    // ── Administration ──────────────────────────────────────────────────
     {'section': 'Administration'},
     {
       'type': 'table',
@@ -118,8 +105,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     },
   ];
 
-  // ── Flat permission map (sent to backend) ──────────────────────────────
-  // Only the keys that actually appear in _featureRows
   final Map<String, bool> _permissions = {
     'view_assigned_project': false,
     'edit_project': false,
@@ -138,7 +123,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   String? _selectedRole;
   bool _isLoading = false;
 
-  // ── Edit mode ────────────────────────────────────────────────────────────
   bool _isEditMode = false;
   String? _editingUserId;
 
@@ -158,13 +142,12 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   void initState() {
     super.initState();
     _fetchProjects();
-    // Edit mode is set up in didChangeDependencies after context is available
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_editingUserId != null) return; // already initialised
+    if (_editingUserId != null) return;
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map && args.containsKey('editUser')) {
       _prefillFromExistingUser(
@@ -179,7 +162,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
 
     _nameCtrl.text = userData['name']?.toString() ?? '';
     _emailCtrl.text = userData['email']?.toString() ?? '';
-    // Password not pre-filled in edit mode — leave blank to keep existing
 
     final role = userData['role']?.toString() ?? '';
     final isKnownRole = _roles.contains(role);
@@ -190,20 +172,17 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       _customRoleCtrl.text = role;
     }
 
-    // Pre-fill permissions
     final perms = (userData['permissions'] as List?)?.cast<String>() ?? [];
     for (final key in _permissions.keys) {
       _permissions[key] = perms.contains(key);
     }
 
-    // Pre-fill overseesRoles
     final overseesRoles =
         (userData['overseesRoles'] as List?)?.cast<String>() ?? [];
     _selectedOverseesRoles
       ..clear()
       ..addAll(overseesRoles);
 
-    // Pre-fill projectIds
     final projectIds = (userData['projectIds'] as List?)?.cast<String>() ?? [];
     _selectedProjectIds
       ..clear()
@@ -334,7 +313,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       );
       return;
     }
-    // In create mode password is required; in edit mode it's optional
+
     if (!_isEditMode && pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a temporary password.')),
@@ -353,7 +332,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
         .map((e) => e.key)
         .toList();
 
-    // ── Subscription limit check (create mode only) ──────────────────
     if (!_isEditMode) {
       final subProvider = context.read<SubscriptionProvider>();
       final response = await ApiService.get('/auth/users');
@@ -381,7 +359,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
 
     try {
       if (_isEditMode && _editingUserId != null) {
-        // ── UPDATE existing user ─────────────────────────────────────────
         final payload = <String, dynamic>{
           'name': name,
           'email': email,
@@ -389,7 +366,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           'permissions': selectedPermissions,
           if (_selectedProjectIds.isNotEmpty)
             'projectIds': _selectedProjectIds.toList(),
-          // Always send overseesRoles in edit mode (even if empty, to clear it)
+
           'overseesRoles': _selectedOverseesRoles.toList(),
           if (pass.isNotEmpty) 'password': pass,
         };
@@ -417,7 +394,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           );
         }
       } else {
-        // ── CREATE new user ──────────────────────────────────────────────
         final payload = <String, dynamic>{
           'name': name,
           'email': email,
@@ -537,7 +513,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     );
   }
 
-  // REPLACE with:
   Widget _subscriptionWarning(SubscriptionPlan plan) {
     final limitStr = plan == SubscriptionPlan.enterprise
         ? 'Unlimited'
@@ -679,7 +654,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           _roleHints(),
           const SizedBox(height: AppTheme.spacingMd),
 
-          // ── Permissions table ──────────────────────────────────────
           Text(
             'Permissions',
             style: AppTheme.heading3.copyWith(
@@ -696,14 +670,12 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           _buildPermissionsTable(isAdmin),
           const SizedBox(height: AppTheme.spacingMd),
 
-          // ── Project access ─────────────────────────────────────────
           _buildProjectMultiSelect(isAdmin),
         ],
       ),
     );
   }
 
-  // ── Permissions table ──────────────────────────────────────────────────
   Widget _buildPermissionsTable(bool isAdmin) {
     return Container(
       decoration: BoxDecoration(
@@ -717,7 +689,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Column header row ──────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: BoxDecoration(
@@ -747,12 +718,10 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
             ),
           ),
 
-          // ── Feature rows ───────────────────────────────────────────
           ..._featureRows.asMap().entries.map((entry) {
             final idx = entry.key;
             final row = entry.value;
 
-            // Section header
             if (row.containsKey('section')) {
               return _sectionDivider(row['section'] as String);
             }
@@ -776,7 +745,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
                 isAdmin: isAdmin,
               );
             } else {
-              // toggle row
               final key = row['key'] as String;
               return _toggleRow(
                 label: label,
@@ -841,7 +809,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Label + desc
               Expanded(
                 flex: 5,
                 child: Column(
@@ -867,11 +834,11 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
                   ],
                 ),
               ),
-              // View checkbox
+
               _permCheckbox(viewKey, isAdmin),
-              // Edit checkbox
+
               _permCheckbox(editKey, isAdmin),
-              // Delete checkbox
+
               _permCheckbox(deleteKey, isAdmin),
             ],
           ),
@@ -937,7 +904,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   }
 
   Widget _permCheckbox(String? key, bool isAdmin) {
-    // If this column doesn't apply to the row, show a dash
     if (key == null) {
       return const SizedBox(
         width: 52,
@@ -967,7 +933,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     );
   }
 
-  // ── Project multi-select ───────────────────────────────────────────────
   Widget _buildProjectMultiSelect(bool isAdmin) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1337,7 +1302,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   }
 
   Widget _buildOverseesRolesSelector() {
-    // Fixed roles + any custom roles the admin has already added, de-duplicated.
     final customAdded = _selectedOverseesRoles
         .where((r) => !_availableRolesToOversee.contains(r))
         .toList();
@@ -1428,7 +1392,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
   void _addCustomOverseesRole() {
     final value = _customOverseesRoleCtrl.text.trim();
     if (value.isEmpty) return;
-    // Avoid case-duplicate entries (matches the backend's case-insensitive comparison)
+
     final alreadyExists = _selectedOverseesRoles.any(
       (r) => r.toLowerCase() == value.toLowerCase(),
     );

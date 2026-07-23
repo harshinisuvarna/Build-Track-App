@@ -1,5 +1,3 @@
-// lib/controller/ai_chat_report_provider.dart
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -112,7 +110,6 @@ class AiChatReportProvider extends ChangeNotifier {
   String _currentQuery = '';
   String get currentQuery => _currentQuery;
 
-  // Recent searches for quick prompts
   final List<String> _recentSearches = [
     'Show material usage',
     'Low stock materials',
@@ -126,7 +123,6 @@ class AiChatReportProvider extends ChangeNotifier {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
 
-    // Update recent searches
     if (!_recentSearches.contains(trimmed)) {
       _recentSearches.insert(0, trimmed);
       if (_recentSearches.length > 5) {
@@ -219,7 +215,6 @@ class AiChatReportProvider extends ChangeNotifier {
     try {
       List<List<dynamic>> csvData = [];
 
-      // Header
       if (_result!.tableType == 'inventory') {
         csvData.add(['Material', 'Quantity', 'Unit', 'Status']);
         for (var row in _result!.tableRows) {
@@ -231,7 +226,6 @@ class AiChatReportProvider extends ChangeNotifier {
           ]);
         }
       } else {
-        // Dynamic export based on requested columns
         final headers = ['#', ..._result!.columns];
         csvData.add(headers);
         for (var row in _result!.tableRows) {

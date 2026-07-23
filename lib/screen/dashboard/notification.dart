@@ -50,7 +50,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the entire provider to access both alerts and loading state
     final inventoryProvider = context.watch<InventoryProvider>();
     final alerts = inventoryProvider.lowStockAlerts;
     final isLoading = inventoryProvider.isLoading;
@@ -106,7 +105,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // --- Dynamic UI Alert Generation with Loading State ---
                     if (isLoading)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 30),
@@ -197,7 +195,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     const SizedBox(height: 14),
                     if (_isLoadingTasks)
-                      const Center(child: CircularProgressIndicator(color: primaryBlue))
+                      const Center(
+                        child: CircularProgressIndicator(color: primaryBlue),
+                      )
                     else if (_tasks.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
@@ -330,14 +330,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border(
-            left: BorderSide(color: color, width: 4),
-          ),
+          border: Border(left: BorderSide(color: color, width: 4)),
           boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.06),
-              blurRadius: 12,
-            ),
+            BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 12),
           ],
         ),
         child: Column(
@@ -353,11 +348,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 20,
-                  ),
+                  child: Icon(icon, color: color, size: 20),
                 ),
                 Text(
                   'Today',

@@ -14,10 +14,8 @@ class ExecutionContextScreen extends StatefulWidget {
 }
 
 class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
-  // ── Entry type from args ───────────────────────────────────────────────────
   String _entryType = 'material';
 
-  // ── Selected context fields ────────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -26,13 +24,11 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
   String? _selectedActivity;
   String? _selectedActivityId;
 
-  // ── Validation errors ─────────────────────────────────────────────────────
   String? _projectError;
   String? _floorError;
   String? _phaseError;
   String? _activityError;
 
-  // ── Lifecycle ────────────────────────────────────────────────────────────
   bool _argsLoaded = false;
 
   @override
@@ -56,7 +52,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     _selectedActivityId = provider.selectedActivityId;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
   bool get _canContinue =>
       _selectedProjectId != null &&
       _selectedProjectId!.isNotEmpty &&
@@ -103,7 +98,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     return null;
   }
 
-  // ── Navigation ───────────────────────────────────────────────────────────
   void _onContinue() {
     bool valid = true;
     setState(() {
@@ -132,12 +126,10 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
 
     if (!valid) return;
 
-    // Derive IDs if not already set
     final phaseId = _selectedPhaseId ?? _derivePhaseId(_selectedPhase);
     final activityId =
         _selectedActivityId ?? _deriveActivityId(_selectedActivity);
 
-    // Save context to ProjectProvider
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     if (_selectedProjectId != provider.selectedProject?.id) {
       final project = provider.projects.firstWhere(
@@ -165,7 +157,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     );
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────
   String get _entryTypeLabel {
     switch (_entryType) {
       case 'labour':
@@ -198,7 +189,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Entry type badge ──────────────────────────────────
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -237,7 +227,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── Step heading ──────────────────────────────────────
                     const Text(
                       'Where is this\nwork happening?',
                       style: TextStyle(
@@ -259,11 +248,9 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Step indicator ────────────────────────────────────
                     _buildStepIndicator(),
                     const SizedBox(height: 24),
 
-                    // ── Execution context card ────────────────────────────
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
                       selectedFloor: _selectedFloor,
@@ -348,7 +335,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
               ),
             ),
 
-            // ── Bottom Continue button ─────────────────────────────────────
             _buildBottomBar(),
           ],
         ),
@@ -456,7 +442,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Completion status
             if (_canContinue)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -481,7 +466,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                 ),
               ),
 
-            // Continue button
             SizedBox(
               width: double.infinity,
               height: 52,

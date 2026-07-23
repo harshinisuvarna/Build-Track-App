@@ -50,7 +50,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     'IsWithGst',
     'GstPercentage',
     'Payment Status',
-    'Notes'
+    'Notes',
   ];
 
   late Map<String, bool> _columnVisibility;
@@ -126,7 +126,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'Supplier',
         'IsWithGst',
         'GstPercentage',
-        'Notes'
+        'Notes',
       ]);
       filename = 'material_entries_template.csv';
       shareText = 'Download Material Entries CSV Template';
@@ -144,7 +144,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'Trade / Work Type',
         'Contractor / Team',
         'Overtime Amount',
-        'Notes'
+        'Notes',
       ]);
       filename = 'labour_entries_template.csv';
       shareText = 'Download Labour Entries CSV Template';
@@ -163,12 +163,14 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'Operator / Vendor',
         'IsWithGst',
         'GstPercentage',
-        'Notes'
+        'Notes',
       ]);
       filename = 'equipment_entries_template.csv';
       shareText = 'Download Equipment Entries CSV Template';
     } else if (type == 'all') {
-      final activeHeaders = _customColumns.where((c) => _columnVisibility[c] ?? true).toList();
+      final activeHeaders = _customColumns
+          .where((c) => _columnVisibility[c] ?? true)
+          .toList();
       csvRows.add(activeHeaders);
       filename = 'all_entries_template.csv';
       shareText = 'Download Consolidated All Entries CSV Template';
@@ -184,7 +186,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${type == "all" ? "All" : type[0].toUpperCase() + type.substring(1)} template downloaded successfully!'),
+            content: Text(
+              '${type == "all" ? "All" : type[0].toUpperCase() + type.substring(1)} template downloaded successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -221,25 +225,34 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       }
 
       final csvString = utf8.decode(fileBytes);
-      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
+        csvString,
+      );
 
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
 
-      final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
+      final headers = parsedCsv.first
+          .map((h) => h.toString().trim().toLowerCase())
+          .toList();
 
       String detectedType = '';
       if (headers.contains('type')) {
         detectedType = 'all';
-      } else if (headers.contains('material / item') || headers.contains('material_item')) {
+      } else if (headers.contains('material / item') ||
+          headers.contains('material_item')) {
         detectedType = 'material';
-      } else if (headers.contains('labour type') || headers.contains('labour_type')) {
+      } else if (headers.contains('labour type') ||
+          headers.contains('labour_type')) {
         detectedType = 'labour';
-      } else if (headers.contains('equipment name') || headers.contains('equipment_name')) {
+      } else if (headers.contains('equipment name') ||
+          headers.contains('equipment_name')) {
         detectedType = 'equipment';
       } else {
-        throw Exception("Could not detect entry type. CSV headers must contain 'Type', 'Material / Item', 'Labour Type', or 'Equipment Name'.");
+        throw Exception(
+          "Could not detect entry type. CSV headers must contain 'Type', 'Material / Item', 'Labour Type', or 'Equipment Name'.",
+        );
       }
 
       final dateIdx = headers.indexOf('date');
@@ -249,23 +262,29 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       final activityIdx = headers.indexOf('activity');
       final notesIdx = headers.indexOf('notes');
 
-      // Consolidated "All" columns
       final typeIdx = headers.indexOf('type');
       final nameIdx = headers.indexOf('name');
-      final catOrTradeIdx = headers.contains('category / trade') ? headers.indexOf('category / trade') : headers.indexOf('category_or_trade');
+      final catOrTradeIdx = headers.contains('category / trade')
+          ? headers.indexOf('category / trade')
+          : headers.indexOf('category_or_trade');
       final subtypeIdx = headers.indexOf('subtype');
       final brandIdx = headers.indexOf('brand');
-      final supplierOrOperatorIdx = headers.contains('supplier / operator') ? headers.indexOf('supplier / operator') : headers.indexOf('supplier_or_operator');
+      final supplierOrOperatorIdx = headers.contains('supplier / operator')
+          ? headers.indexOf('supplier / operator')
+          : headers.indexOf('supplier_or_operator');
       final qtyIdx = headers.indexOf('quantity');
       final unitIdx = headers.indexOf('unit');
       final rateIdx = headers.indexOf('rate');
       final otIdx = headers.indexOf('overtime');
       final isWithGstIdx = headers.indexOf('iswithgst');
       final gstPctIdx = headers.indexOf('gstpercentage');
-      final paymentStatusIdx = headers.contains('payment status') ? headers.indexOf('payment status') : headers.indexOf('payment_status');
+      final paymentStatusIdx = headers.contains('payment status')
+          ? headers.indexOf('payment status')
+          : headers.indexOf('payment_status');
 
-      // Specific columns
-      final materialItemIdx = headers.contains('material / item') ? headers.indexOf('material / item') : headers.indexOf('material_item');
+      final materialItemIdx = headers.contains('material / item')
+          ? headers.indexOf('material / item')
+          : headers.indexOf('material_item');
       final matUnitIdx = headers.indexOf('unit');
       final matQtyIdx = headers.indexOf('quantity');
       final matRateIdx = headers.indexOf('rate');
@@ -275,25 +294,41 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       final matIsWithGstIdx = headers.indexOf('iswithgst');
       final matGstPctIdx = headers.indexOf('gstpercentage');
 
-      final labourTypeIdx = headers.contains('labour type') ? headers.indexOf('labour type') : headers.indexOf('labour_type');
+      final labourTypeIdx = headers.contains('labour type')
+          ? headers.indexOf('labour type')
+          : headers.indexOf('labour_type');
       final labUnitIdx = headers.indexOf('unit');
       final labQtyIdx = headers.indexOf('quantity');
       final labRateIdx = headers.indexOf('rate');
-      final labTradeIdx = headers.contains('trade / work type') ? headers.indexOf('trade / work type') : headers.indexOf('trade_work_type');
-      final labContractorIdx = headers.contains('contractor / team') ? headers.indexOf('contractor / team') : headers.indexOf('contractor_team');
-      final labOvertimeIdx = headers.contains('overtime amount') ? headers.indexOf('overtime amount') : headers.indexOf('overtime_amount');
+      final labTradeIdx = headers.contains('trade / work type')
+          ? headers.indexOf('trade / work type')
+          : headers.indexOf('trade_work_type');
+      final labContractorIdx = headers.contains('contractor / team')
+          ? headers.indexOf('contractor / team')
+          : headers.indexOf('contractor_team');
+      final labOvertimeIdx = headers.contains('overtime amount')
+          ? headers.indexOf('overtime amount')
+          : headers.indexOf('overtime_amount');
 
-      final eqNameIdx = headers.contains('equipment name') ? headers.indexOf('equipment name') : headers.indexOf('equipment_name');
+      final eqNameIdx = headers.contains('equipment name')
+          ? headers.indexOf('equipment name')
+          : headers.indexOf('equipment_name');
       final eqUnitIdx = headers.indexOf('unit');
       final eqQtyIdx = headers.indexOf('quantity');
       final eqRateIdx = headers.indexOf('rate');
-      final eqSubclassIdx = headers.contains('machinery sub-class / model') ? headers.indexOf('machinery sub-class / model') : headers.indexOf('machinery_subclass_model');
-      final eqOperatorIdx = headers.contains('operator / vendor') ? headers.indexOf('operator / vendor') : headers.indexOf('operator_vendor');
+      final eqSubclassIdx = headers.contains('machinery sub-class / model')
+          ? headers.indexOf('machinery sub-class / model')
+          : headers.indexOf('machinery_subclass_model');
+      final eqOperatorIdx = headers.contains('operator / vendor')
+          ? headers.indexOf('operator / vendor')
+          : headers.indexOf('operator_vendor');
       final eqIsWithGstIdx = headers.indexOf('iswithgst');
       final eqGstPctIdx = headers.indexOf('gstpercentage');
 
       if (detectedType == 'all' && (typeIdx == -1 || nameIdx == -1)) {
-        throw Exception("CSV missing required 'Type' or 'Name' columns for consolidated import");
+        throw Exception(
+          "CSV missing required 'Type' or 'Name' columns for consolidated import",
+        );
       }
       if (detectedType == 'material' && materialItemIdx == -1) {
         throw Exception("CSV missing required 'Material / Item' column");
@@ -305,7 +340,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         throw Exception("CSV missing required 'Equipment Name' column");
       }
 
-      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+      final projectProvider = Provider.of<ProjectProvider>(
+        context,
+        listen: false,
+      );
       if (projectProvider.projects.isEmpty) {
         await projectProvider.load();
       }
@@ -350,14 +388,19 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             builder: (context, setDlgState) {
               dialogSetState = setDlgState;
               return AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 title: const Row(
                   children: [
                     CircularProgressIndicator(strokeWidth: 3),
                     SizedBox(width: 16),
                     Text(
                       'Importing Entries',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -370,7 +413,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     LinearProgressIndicator(
                       value: progressValue,
                       backgroundColor: Colors.grey[200],
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -392,7 +437,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       List<Map<String, dynamic>> bulkPayloads = [];
       for (int i = 1; i < parsedCsv.length; i++) {
         final row = parsedCsv[i];
-        if (row.isEmpty || row.every((element) => element == null || element.toString().trim().isEmpty)) {
+        if (row.isEmpty ||
+            row.every(
+              (element) => element == null || element.toString().trim().isEmpty,
+            )) {
           continue;
         }
 
@@ -400,46 +448,70 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         updateProgress("Processing row $i of $totalRows...", i / totalRows);
 
         try {
-          final dateStr = dateIdx != -1 && dateIdx < row.length ? parseString(row[dateIdx]) : '';
-          final date = dateStr.isNotEmpty ? (DateTime.tryParse(dateStr) ?? DateTime.now()) : DateTime.now();
-          final notes = notesIdx != -1 && notesIdx < row.length ? parseString(row[notesIdx]) : '';
+          final dateStr = dateIdx != -1 && dateIdx < row.length
+              ? parseString(row[dateIdx])
+              : '';
+          final date = dateStr.isNotEmpty
+              ? (DateTime.tryParse(dateStr) ?? DateTime.now())
+              : DateTime.now();
+          final notes = notesIdx != -1 && notesIdx < row.length
+              ? parseString(row[notesIdx])
+              : '';
 
-          final csvProjName = projIdx != -1 && projIdx < row.length ? parseString(row[projIdx]) : '';
+          final csvProjName = projIdx != -1 && projIdx < row.length
+              ? parseString(row[projIdx])
+              : '';
           var matchedProject = projects.cast<ProjectModel?>().firstWhere(
-            (p) => p?.name.trim().toLowerCase() == csvProjName.trim().toLowerCase() || p?.id == csvProjName,
+            (p) =>
+                p?.name.trim().toLowerCase() ==
+                    csvProjName.trim().toLowerCase() ||
+                p?.id == csvProjName,
             orElse: () => null,
           );
 
           if (matchedProject == null) {
             if (csvProjName.isNotEmpty) {
-              throw Exception("Row $rowNum: No project found with the name '$csvProjName' in your account.");
+              throw Exception(
+                "Row $rowNum: No project found with the name '$csvProjName' in your account.",
+              );
             }
             matchedProject = projectProvider.selectedProject;
           }
 
           if (matchedProject == null) {
-            throw Exception("Row $rowNum: No project provided in the CSV, and no active project selected in the app.");
+            throw Exception(
+              "Row $rowNum: No project provided in the CSV, and no active project selected in the app.",
+            );
           }
 
           final projectId = matchedProject.id;
 
-          final csvFloor = floorIdx != -1 && floorIdx < row.length ? parseString(row[floorIdx]) : '';
+          final csvFloor = floorIdx != -1 && floorIdx < row.length
+              ? parseString(row[floorIdx])
+              : '';
           String? resolvedFloor;
           if (csvFloor.isNotEmpty) {
             resolvedFloor = csvFloor;
-          } else if (matchedProject.floors != null && matchedProject.floors!.isNotEmpty) {
+          } else if (matchedProject.floors != null &&
+              matchedProject.floors!.isNotEmpty) {
             resolvedFloor = matchedProject.floors!.first;
           }
 
-          final csvPhase = phaseIdx != -1 && phaseIdx < row.length ? parseString(row[phaseIdx]) : '';
+          final csvPhase = phaseIdx != -1 && phaseIdx < row.length
+              ? parseString(row[phaseIdx])
+              : '';
           String? phaseName;
           String? phaseId;
           if (csvPhase.isNotEmpty) {
             if (matchedProject.selectedPhases != null) {
-              final phaseMatch = matchedProject.selectedPhases!.cast<ProjectPhase?>().firstWhere(
-                (p) => p?.phaseName.trim().toLowerCase() == csvPhase.trim().toLowerCase(),
-                orElse: () => null,
-              );
+              final phaseMatch = matchedProject.selectedPhases!
+                  .cast<ProjectPhase?>()
+                  .firstWhere(
+                    (p) =>
+                        p?.phaseName.trim().toLowerCase() ==
+                        csvPhase.trim().toLowerCase(),
+                    orElse: () => null,
+                  );
               if (phaseMatch != null) {
                 phaseName = phaseMatch.phaseName;
                 phaseId = phaseMatch.id;
@@ -448,19 +520,27 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             phaseName ??= csvPhase;
           }
 
-          final csvActivity = activityIdx != -1 && activityIdx < row.length ? parseString(row[activityIdx]) : '';
+          final csvActivity = activityIdx != -1 && activityIdx < row.length
+              ? parseString(row[activityIdx])
+              : '';
           String? activityName;
           String? activityId;
           if (csvActivity.isNotEmpty) {
             if (matchedProject.selectedPhases != null) {
               for (final phase in matchedProject.selectedPhases!) {
-                if (phaseName != null && phase.phaseName.trim().toLowerCase() != phaseName.trim().toLowerCase()) {
+                if (phaseName != null &&
+                    phase.phaseName.trim().toLowerCase() !=
+                        phaseName.trim().toLowerCase()) {
                   continue;
                 }
-                final actMatch = phase.activities.cast<ProjectActivity?>().firstWhere(
-                  (a) => a?.name.trim().toLowerCase() == csvActivity.trim().toLowerCase(),
-                  orElse: () => null,
-                );
+                final actMatch = phase.activities
+                    .cast<ProjectActivity?>()
+                    .firstWhere(
+                      (a) =>
+                          a?.name.trim().toLowerCase() ==
+                          csvActivity.trim().toLowerCase(),
+                      orElse: () => null,
+                    );
                 if (actMatch != null) {
                   activityName = actMatch.name;
                   activityId = actMatch.id;
@@ -478,14 +558,27 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           final Map<String, dynamic> payload = {};
 
           if (detectedType == 'all') {
-            final rowType = typeIdx != -1 && typeIdx < row.length ? parseString(row[typeIdx]).toLowerCase() : '';
-            final name = nameIdx != -1 && nameIdx < row.length ? parseString(row[nameIdx]) : '';
+            final rowType = typeIdx != -1 && typeIdx < row.length
+                ? parseString(row[typeIdx]).toLowerCase()
+                : '';
+            final name = nameIdx != -1 && nameIdx < row.length
+                ? parseString(row[nameIdx])
+                : '';
 
             var resolvedRowType = rowType;
             if (resolvedRowType.isEmpty) {
-              final hasSubtype = subtypeIdx != -1 && subtypeIdx < row.length && parseString(row[subtypeIdx]).isNotEmpty;
-              final hasOvertime = otIdx != -1 && otIdx < row.length && parseDouble(row[otIdx]) > 0;
-              final hasOperator = supplierOrOperatorIdx != -1 && supplierOrOperatorIdx < row.length && parseString(row[supplierOrOperatorIdx]).isNotEmpty;
+              final hasSubtype =
+                  subtypeIdx != -1 &&
+                  subtypeIdx < row.length &&
+                  parseString(row[subtypeIdx]).isNotEmpty;
+              final hasOvertime =
+                  otIdx != -1 &&
+                  otIdx < row.length &&
+                  parseDouble(row[otIdx]) > 0;
+              final hasOperator =
+                  supplierOrOperatorIdx != -1 &&
+                  supplierOrOperatorIdx < row.length &&
+                  parseString(row[supplierOrOperatorIdx]).isNotEmpty;
 
               if (hasSubtype) {
                 resolvedRowType = 'material';
@@ -500,45 +593,92 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
             var resolvedName = name;
             if (resolvedName.isEmpty) {
-              resolvedName = resolvedRowType == 'labour' || resolvedRowType == 'wages' ? 'Labour Entry' : (resolvedRowType == 'equipment' || resolvedRowType == 'expense' ? 'Equipment Entry' : 'Material Entry');
+              resolvedName =
+                  resolvedRowType == 'labour' || resolvedRowType == 'wages'
+                  ? 'Labour Entry'
+                  : (resolvedRowType == 'equipment' ||
+                            resolvedRowType == 'expense'
+                        ? 'Equipment Entry'
+                        : 'Material Entry');
             }
 
-            final unit = unitIdx != -1 && unitIdx < row.length ? parseString(row[unitIdx]).toLowerCase() : 'unit';
-            final qty = qtyIdx != -1 && qtyIdx < row.length ? parseDouble(row[qtyIdx]) : 1.0;
-            final rate = rateIdx != -1 && rateIdx < row.length ? parseDouble(row[rateIdx]) : 0.0;
-            final brand = brandIdx != -1 && brandIdx < row.length ? parseString(row[brandIdx]) : '';
-            final category = catOrTradeIdx != -1 && catOrTradeIdx < row.length ? parseString(row[catOrTradeIdx]) : '';
-            final supplier = supplierOrOperatorIdx != -1 && supplierOrOperatorIdx < row.length ? parseString(row[supplierOrOperatorIdx]) : '';
-            final isWithGst = isWithGstIdx != -1 && isWithGstIdx < row.length ? parseBool(row[isWithGstIdx]) : false;
-            final gstPercentage = gstPctIdx != -1 && gstPctIdx < row.length ? parseDouble(row[gstPctIdx]) : 0.0;
-            final overtime = otIdx != -1 && otIdx < row.length ? parseDouble(row[otIdx]) : 0.0;
+            final unit = unitIdx != -1 && unitIdx < row.length
+                ? parseString(row[unitIdx]).toLowerCase()
+                : 'unit';
+            final qty = qtyIdx != -1 && qtyIdx < row.length
+                ? parseDouble(row[qtyIdx])
+                : 1.0;
+            final rate = rateIdx != -1 && rateIdx < row.length
+                ? parseDouble(row[rateIdx])
+                : 0.0;
+            final brand = brandIdx != -1 && brandIdx < row.length
+                ? parseString(row[brandIdx])
+                : '';
+            final category = catOrTradeIdx != -1 && catOrTradeIdx < row.length
+                ? parseString(row[catOrTradeIdx])
+                : '';
+            final supplier =
+                supplierOrOperatorIdx != -1 &&
+                    supplierOrOperatorIdx < row.length
+                ? parseString(row[supplierOrOperatorIdx])
+                : '';
+            final isWithGst = isWithGstIdx != -1 && isWithGstIdx < row.length
+                ? parseBool(row[isWithGstIdx])
+                : false;
+            final gstPercentage = gstPctIdx != -1 && gstPctIdx < row.length
+                ? parseDouble(row[gstPctIdx])
+                : 0.0;
+            final overtime = otIdx != -1 && otIdx < row.length
+                ? parseDouble(row[otIdx])
+                : 0.0;
 
             String resolvedStatus = 'Pending';
             if (paymentStatusIdx != -1 && paymentStatusIdx < row.length) {
-              final statusStr = parseString(row[paymentStatusIdx]).trim().toLowerCase();
+              final statusStr = parseString(
+                row[paymentStatusIdx],
+              ).trim().toLowerCase();
               if (statusStr == 'fully paid' || statusStr == 'paid') {
                 resolvedStatus = 'Paid';
-              } else if (statusStr == 'partial' || statusStr == 'partially paid') {
+              } else if (statusStr == 'partial' ||
+                  statusStr == 'partially paid') {
                 resolvedStatus = 'Partial';
-              } else if (statusStr == 'not paid' || statusStr == 'unpaid' || statusStr == 'pending') {
+              } else if (statusStr == 'not paid' ||
+                  statusStr == 'unpaid' ||
+                  statusStr == 'pending') {
                 resolvedStatus = 'Pending';
               }
             }
 
-            if (resolvedRowType == 'material' || resolvedRowType == 'materials') {
-              final subtypeVal = subtypeIdx != -1 && subtypeIdx < row.length ? parseString(row[subtypeIdx]) : 'Purchase';
-              final normalizedSubtype = subtypeVal.trim().toLowerCase() == 'consumption' ? 'Consumption' : 'Purchase';
-              final materialTypeVal = normalizedSubtype == 'Consumption' ? 'usage' : 'purchase';
-              final normalizedUnit = (unit == 'bags' || unit == 'bag') ? 'bag'
-                  : (unit == 'sq.ft' || unit == 'sqft') ? 'sqft'
-                  : (unit == 'ton' || unit == 'tons') ? 'ton'
-                  : (unit == 'kg' || unit == 'kgs') ? 'kg'
+            if (resolvedRowType == 'material' ||
+                resolvedRowType == 'materials') {
+              final subtypeVal = subtypeIdx != -1 && subtypeIdx < row.length
+                  ? parseString(row[subtypeIdx])
+                  : 'Purchase';
+              final normalizedSubtype =
+                  subtypeVal.trim().toLowerCase() == 'consumption'
+                  ? 'Consumption'
+                  : 'Purchase';
+              final materialTypeVal = normalizedSubtype == 'Consumption'
+                  ? 'usage'
+                  : 'purchase';
+              final normalizedUnit = (unit == 'bags' || unit == 'bag')
+                  ? 'bag'
+                  : (unit == 'sq.ft' || unit == 'sqft')
+                  ? 'sqft'
+                  : (unit == 'ton' || unit == 'tons')
+                  ? 'ton'
+                  : (unit == 'kg' || unit == 'kgs')
+                  ? 'kg'
                   : 'unit';
 
               final double subtotal = qty * rate;
-              final double gstAmount = isWithGst ? (subtotal * gstPercentage / 100) : 0.0;
+              final double gstAmount = isWithGst
+                  ? (subtotal * gstPercentage / 100)
+                  : 0.0;
               final double finalAmount = subtotal + gstAmount;
-              final double paidAmt = resolvedStatus == 'Paid' ? finalAmount : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
+              final double paidAmt = resolvedStatus == 'Paid'
+                  ? finalAmount
+                  : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
 
               payload.addAll({
                 "title": resolvedName,
@@ -565,7 +705,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "paymentStatus": resolvedStatus,
                 "paidAmount": paidAmt,
                 "paymentMode": "Cash",
-                if (resolvedFloor != null || phaseName != null || activityName != null)
+                if (resolvedFloor != null ||
+                    phaseName != null ||
+                    activityName != null)
                   "executionContext": {
                     "project": projectId,
                     "floor": ?resolvedFloor,
@@ -573,19 +715,24 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     "phaseId": ?phaseId,
                     "activity": ?activityName,
                     "activityId": ?activityId,
-                  }
+                  },
               });
 
               bulkPayloads.add(payload);
               materialCount++;
-
-            } else if (resolvedRowType == 'labour' || resolvedRowType == 'wages') {
-              final normalizedUnit = (unit == 'day' || unit == 'days') ? 'day'
-                  : (unit == 'hour' || unit == 'hours') ? 'hour'
-                  : (unit == 'sqft' || unit == 'sq.ft') ? 'sqft'
+            } else if (resolvedRowType == 'labour' ||
+                resolvedRowType == 'wages') {
+              final normalizedUnit = (unit == 'day' || unit == 'days')
+                  ? 'day'
+                  : (unit == 'hour' || unit == 'hours')
+                  ? 'hour'
+                  : (unit == 'sqft' || unit == 'sq.ft')
+                  ? 'sqft'
                   : 'unit';
               final double finalAmount = (qty * rate) + overtime;
-              final double paidAmt = resolvedStatus == 'Paid' ? finalAmount : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
+              final double paidAmt = resolvedStatus == 'Paid'
+                  ? finalAmount
+                  : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
 
               payload.addAll({
                 "title": resolvedName,
@@ -613,16 +760,26 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
               bulkPayloads.add(payload);
               labourCount++;
-
-            } else if (resolvedRowType == 'equipment' || resolvedRowType == 'expense') {
-              final normalizedUnit = (unit == 'day') ? 'day'
-                  : (unit == 'hour') ? 'hour'
-                  : (unit == 'trip' || unit == 'load' || unit == 'shift' || unit == 'truck') ? 'truck'
+            } else if (resolvedRowType == 'equipment' ||
+                resolvedRowType == 'expense') {
+              final normalizedUnit = (unit == 'day')
+                  ? 'day'
+                  : (unit == 'hour')
+                  ? 'hour'
+                  : (unit == 'trip' ||
+                        unit == 'load' ||
+                        unit == 'shift' ||
+                        unit == 'truck')
+                  ? 'truck'
                   : 'unit';
               final double subtotal = qty * rate;
-              final double gstAmount = isWithGst ? (subtotal * gstPercentage / 100) : 0.0;
+              final double gstAmount = isWithGst
+                  ? (subtotal * gstPercentage / 100)
+                  : 0.0;
               final double finalAmount = subtotal + gstAmount;
-              final double paidAmt = resolvedStatus == 'Paid' ? finalAmount : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
+              final double paidAmt = resolvedStatus == 'Paid'
+                  ? finalAmount
+                  : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
 
               payload.addAll({
                 "title": resolvedName,
@@ -654,29 +811,56 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               bulkPayloads.add(payload);
               equipmentCount++;
             } else {
-              throw Exception("Row $rowNum: Unknown entry type '$resolvedRowType'. Must be Material, Labour, or Equipment.");
+              throw Exception(
+                "Row $rowNum: Unknown entry type '$resolvedRowType'. Must be Material, Labour, or Equipment.",
+              );
             }
           } else if (detectedType == 'material') {
             final name = parseString(row[materialItemIdx]);
-            if (name.isEmpty) throw Exception("Row $rowNum: Material / Item name is empty");
+            if (name.isEmpty)
+              throw Exception("Row $rowNum: Material / Item name is empty");
 
-            final unit = matUnitIdx != -1 && matUnitIdx < row.length ? parseString(row[matUnitIdx]).toLowerCase() : 'unit';
-            final normalizedUnit = (unit == 'bags' || unit == 'bag') ? 'bag'
-                : (unit == 'sq.ft' || unit == 'sqft') ? 'sqft'
-                : (unit == 'ton' || unit == 'tons') ? 'ton'
-                : (unit == 'kg' || unit == 'kgs') ? 'kg'
+            final unit = matUnitIdx != -1 && matUnitIdx < row.length
+                ? parseString(row[matUnitIdx]).toLowerCase()
+                : 'unit';
+            final normalizedUnit = (unit == 'bags' || unit == 'bag')
+                ? 'bag'
+                : (unit == 'sq.ft' || unit == 'sqft')
+                ? 'sqft'
+                : (unit == 'ton' || unit == 'tons')
+                ? 'ton'
+                : (unit == 'kg' || unit == 'kgs')
+                ? 'kg'
                 : 'unit';
 
-            final qty = matQtyIdx != -1 && matQtyIdx < row.length ? parseDouble(row[matQtyIdx]) : 1.0;
-            final rate = matRateIdx != -1 && matRateIdx < row.length ? parseDouble(row[matRateIdx]) : 0.0;
-            final brand = matBrandIdx != -1 && matBrandIdx < row.length ? parseString(row[matBrandIdx]) : '';
-            final category = matCatIdx != -1 && matCatIdx < row.length ? parseString(row[matCatIdx]) : '';
-            final supplier = matSupplierIdx != -1 && matSupplierIdx < row.length ? parseString(row[matSupplierIdx]) : '';
-            final isWithGst = matIsWithGstIdx != -1 && matIsWithGstIdx < row.length ? parseBool(row[matIsWithGstIdx]) : false;
-            final gstPercentage = matGstPctIdx != -1 && matGstPctIdx < row.length ? parseDouble(row[matGstPctIdx]) : 0.0;
+            final qty = matQtyIdx != -1 && matQtyIdx < row.length
+                ? parseDouble(row[matQtyIdx])
+                : 1.0;
+            final rate = matRateIdx != -1 && matRateIdx < row.length
+                ? parseDouble(row[matRateIdx])
+                : 0.0;
+            final brand = matBrandIdx != -1 && matBrandIdx < row.length
+                ? parseString(row[matBrandIdx])
+                : '';
+            final category = matCatIdx != -1 && matCatIdx < row.length
+                ? parseString(row[matCatIdx])
+                : '';
+            final supplier = matSupplierIdx != -1 && matSupplierIdx < row.length
+                ? parseString(row[matSupplierIdx])
+                : '';
+            final isWithGst =
+                matIsWithGstIdx != -1 && matIsWithGstIdx < row.length
+                ? parseBool(row[matIsWithGstIdx])
+                : false;
+            final gstPercentage =
+                matGstPctIdx != -1 && matGstPctIdx < row.length
+                ? parseDouble(row[matGstPctIdx])
+                : 0.0;
 
             final double subtotal = qty * rate;
-            final double gstAmount = isWithGst ? (subtotal * gstPercentage / 100) : 0.0;
+            final double gstAmount = isWithGst
+                ? (subtotal * gstPercentage / 100)
+                : 0.0;
             final double finalAmount = subtotal + gstAmount;
 
             payload.addAll({
@@ -703,7 +887,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "amount": finalAmount,
               "paymentStatus": "Pending",
               "paymentMode": "Cash",
-              if (resolvedFloor != null || phaseName != null || activityName != null)
+              if (resolvedFloor != null ||
+                  phaseName != null ||
+                  activityName != null)
                 "executionContext": {
                   "project": projectId,
                   "floor": ?resolvedFloor,
@@ -711,27 +897,43 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   "phaseId": ?phaseId,
                   "activity": ?activityName,
                   "activityId": ?activityId,
-                }
+                },
             });
 
             bulkPayloads.add(payload);
             materialCount++;
-
           } else if (detectedType == 'labour') {
             final name = parseString(row[labourTypeIdx]);
-            if (name.isEmpty) throw Exception("Row $rowNum: Labour Type (name) is empty");
+            if (name.isEmpty)
+              throw Exception("Row $rowNum: Labour Type (name) is empty");
 
-            final unit = labUnitIdx != -1 && labUnitIdx < row.length ? parseString(row[labUnitIdx]).toLowerCase() : 'hour';
-            final normalizedUnit = (unit == 'day' || unit == 'days') ? 'day'
-                : (unit == 'hour' || unit == 'hours') ? 'hour'
-                : (unit == 'sqft' || unit == 'sq.ft') ? 'sqft'
+            final unit = labUnitIdx != -1 && labUnitIdx < row.length
+                ? parseString(row[labUnitIdx]).toLowerCase()
+                : 'hour';
+            final normalizedUnit = (unit == 'day' || unit == 'days')
+                ? 'day'
+                : (unit == 'hour' || unit == 'hours')
+                ? 'hour'
+                : (unit == 'sqft' || unit == 'sq.ft')
+                ? 'sqft'
                 : 'unit';
 
-            final qty = labQtyIdx != -1 && labQtyIdx < row.length ? parseDouble(row[labQtyIdx]) : 1.0;
-            final rate = labRateIdx != -1 && labRateIdx < row.length ? parseDouble(row[labRateIdx]) : 0.0;
-            final trade = labTradeIdx != -1 && labTradeIdx < row.length ? parseString(row[labTradeIdx]) : 'General Labor';
-            final contractor = labContractorIdx != -1 && labContractorIdx < row.length ? parseString(row[labContractorIdx]) : '';
-            final overtime = labOvertimeIdx != -1 && labOvertimeIdx < row.length ? parseDouble(row[labOvertimeIdx]) : 0.0;
+            final qty = labQtyIdx != -1 && labQtyIdx < row.length
+                ? parseDouble(row[labQtyIdx])
+                : 1.0;
+            final rate = labRateIdx != -1 && labRateIdx < row.length
+                ? parseDouble(row[labRateIdx])
+                : 0.0;
+            final trade = labTradeIdx != -1 && labTradeIdx < row.length
+                ? parseString(row[labTradeIdx])
+                : 'General Labor';
+            final contractor =
+                labContractorIdx != -1 && labContractorIdx < row.length
+                ? parseString(row[labContractorIdx])
+                : '';
+            final overtime = labOvertimeIdx != -1 && labOvertimeIdx < row.length
+                ? parseDouble(row[labOvertimeIdx])
+                : 0.0;
             final double finalAmount = (qty * rate) + overtime;
 
             payload.addAll({
@@ -759,26 +961,50 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
 
             bulkPayloads.add(payload);
             labourCount++;
-
           } else if (detectedType == 'equipment') {
             final name = parseString(row[eqNameIdx]);
-            if (name.isEmpty) throw Exception("Row $rowNum: Equipment Name is empty");
+            if (name.isEmpty)
+              throw Exception("Row $rowNum: Equipment Name is empty");
 
-            final unit = eqUnitIdx != -1 && eqUnitIdx < row.length ? parseString(row[eqUnitIdx]).toLowerCase() : 'hour';
-            final normalizedUnit = (unit == 'day') ? 'day'
-                : (unit == 'hour') ? 'hour'
-                : (unit == 'trip' || unit == 'load' || unit == 'shift' || unit == 'truck') ? 'truck'
+            final unit = eqUnitIdx != -1 && eqUnitIdx < row.length
+                ? parseString(row[eqUnitIdx]).toLowerCase()
+                : 'hour';
+            final normalizedUnit = (unit == 'day')
+                ? 'day'
+                : (unit == 'hour')
+                ? 'hour'
+                : (unit == 'trip' ||
+                      unit == 'load' ||
+                      unit == 'shift' ||
+                      unit == 'truck')
+                ? 'truck'
                 : 'unit';
 
-            final qty = eqQtyIdx != -1 && eqQtyIdx < row.length ? parseDouble(row[eqQtyIdx]) : 1.0;
-            final rate = eqRateIdx != -1 && eqRateIdx < row.length ? parseDouble(row[eqRateIdx]) : 0.0;
-            final subclass = eqSubclassIdx != -1 && eqSubclassIdx < row.length ? parseString(row[eqSubclassIdx]) : '';
-            final operatorVal = eqOperatorIdx != -1 && eqOperatorIdx < row.length ? parseString(row[eqOperatorIdx]) : '';
-            final isWithGst = eqIsWithGstIdx != -1 && eqIsWithGstIdx < row.length ? parseBool(row[eqIsWithGstIdx]) : false;
-            final gstPercentage = eqGstPctIdx != -1 && eqGstPctIdx < row.length ? parseDouble(row[eqGstPctIdx]) : 0.0;
+            final qty = eqQtyIdx != -1 && eqQtyIdx < row.length
+                ? parseDouble(row[eqQtyIdx])
+                : 1.0;
+            final rate = eqRateIdx != -1 && eqRateIdx < row.length
+                ? parseDouble(row[eqRateIdx])
+                : 0.0;
+            final subclass = eqSubclassIdx != -1 && eqSubclassIdx < row.length
+                ? parseString(row[eqSubclassIdx])
+                : '';
+            final operatorVal =
+                eqOperatorIdx != -1 && eqOperatorIdx < row.length
+                ? parseString(row[eqOperatorIdx])
+                : '';
+            final isWithGst =
+                eqIsWithGstIdx != -1 && eqIsWithGstIdx < row.length
+                ? parseBool(row[eqIsWithGstIdx])
+                : false;
+            final gstPercentage = eqGstPctIdx != -1 && eqGstPctIdx < row.length
+                ? parseDouble(row[eqGstPctIdx])
+                : 0.0;
 
             final double subtotal = qty * rate;
-            final double gstAmount = isWithGst ? (subtotal * gstPercentage / 100) : 0.0;
+            final double gstAmount = isWithGst
+                ? (subtotal * gstPercentage / 100)
+                : 0.0;
             final double finalAmount = subtotal + gstAmount;
 
             payload.addAll({
@@ -817,20 +1043,26 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       }
 
       if (bulkPayloads.isNotEmpty) {
-        // Reset local counts because the backend will provide the final success/fail count for the bulk batch.
         successCount = 0;
         failedCount = 0;
-        
-        updateProgress("Uploading ${bulkPayloads.length} entries in bulk...", 0.9);
+
+        updateProgress(
+          "Uploading ${bulkPayloads.length} entries in bulk...",
+          0.9,
+        );
         try {
-          final bulkResponse = await ApiService.addTransactionsBulk(bulkPayloads);
+          final bulkResponse = await ApiService.addTransactionsBulk(
+            bulkPayloads,
+          );
           if (bulkResponse != null && bulkResponse['results'] != null) {
             final results = bulkResponse['results'];
             successCount = results['successCount'] ?? 0;
             failedCount = results['failedCount'] ?? 0;
             if (results['failures'] != null) {
               for (var f in results['failures']) {
-                errorMessages.add("Row ${f['index'] + 1} (${f['title']}): ${f['reason']}");
+                errorMessages.add(
+                  "Row ${f['index'] + 1} (${f['title']}): ${f['reason']}",
+                );
               }
             }
           } else {
@@ -860,8 +1092,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           context: context,
           builder: (ctx) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Import Results', style: TextStyle(fontWeight: FontWeight.bold)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Import Results',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -869,7 +1106,13 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   children: [
                     Text('Total rows processed: ${successCount + failedCount}'),
                     const SizedBox(height: 8),
-                    Text('Successfully imported: $successCount', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Successfully imported: $successCount',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(left: 16, top: 4),
                       child: Column(
@@ -882,10 +1125,19 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Failed: $failedCount', style: TextStyle(color: failedCount > 0 ? Colors.red : Colors.grey, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Failed: $failedCount',
+                      style: TextStyle(
+                        color: failedCount > 0 ? Colors.red : Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     if (errorMessages.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const Text('Details/Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Details/Errors:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 6),
                       Container(
                         width: double.maxFinite,
@@ -897,10 +1149,20 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: errorMessages.map((msg) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(msg, style: TextStyle(color: Colors.red[800], fontSize: 12)),
-                          )).toList(),
+                          children: errorMessages
+                              .map(
+                                (msg) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    msg,
+                                    style: TextStyle(
+                                      color: Colors.red[800],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                     ],
@@ -910,14 +1172,16 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
           },
         );
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -945,10 +1209,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1009,12 +1270,17 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _isUploadingCsv ? null : () => _downloadCsvTemplate('all'),
+                  onPressed: _isUploadingCsv
+                      ? null
+                      : () => _downloadCsvTemplate('all'),
                   icon: const Icon(Icons.download_rounded, size: 18),
                   label: const Text('Download Template'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    side: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1051,7 +1317,11 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Rule: If you skip an optional column in a row, use "###" instead of leaving it completely blank to ensure strict format parsing.',
-              style: TextStyle(fontSize: 12, color: AppColors.textLight, fontStyle: FontStyle.italic),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textLight,
+                fontStyle: FontStyle.italic,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1127,7 +1397,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Entry Type Cards ────────────────────────────────────
                     const AppSectionHeader(title: 'Entry Type'),
                     ...List.generate(
                       _entries.length,
@@ -1135,7 +1404,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Bulk Upload Section ──────────────────────────────────
                     _buildCsvImportCard(context),
                   ],
                 ),
@@ -1328,7 +1596,10 @@ class _CustomizeTemplateSheetState extends State<CustomizeTemplateSheet> {
                   final isVisible = _visibility[col] ?? true;
                   return ListTile(
                     key: ValueKey(col),
-                    leading: const Icon(Icons.drag_indicator, color: Colors.grey),
+                    leading: const Icon(
+                      Icons.drag_indicator,
+                      color: Colors.grey,
+                    ),
                     title: Text(
                       col,
                       style: TextStyle(
@@ -1377,7 +1648,7 @@ class _CustomizeTemplateSheetState extends State<CustomizeTemplateSheet> {
                       'IsWithGst',
                       'GstPercentage',
                       'Payment Status',
-                      'Notes'
+                      'Notes',
                     ];
                     _visibility = {for (var c in _columns) c: true};
                   });
@@ -1392,7 +1663,10 @@ class _CustomizeTemplateSheetState extends State<CustomizeTemplateSheet> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

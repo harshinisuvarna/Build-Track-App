@@ -87,12 +87,9 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // â”€â”€ Image preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _imagePreview() {
     final provider = attachment!.imageProvider;
 
-    // If no provider (shouldn't happen), fall back to file card
     if (provider == null) return _filePreview();
 
     return Stack(
@@ -108,7 +105,7 @@ class UploadBox extends StatelessWidget {
             errorBuilder: (_, _, _) => _fileFallback(),
           ),
         ),
-        // Gradient overlay
+
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -124,7 +121,7 @@ class UploadBox extends StatelessWidget {
             ),
           ),
         ),
-        // Filename at bottom
+
         Positioned(
           bottom: 10,
           left: 12,
@@ -139,13 +136,11 @@ class UploadBox extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        // Remove button
+
         Positioned(top: 8, right: 8, child: _removeButton()),
       ],
     );
   }
-
-  // â”€â”€ Document / file preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _filePreview() {
     return Container(
@@ -205,8 +200,6 @@ class UploadBox extends StatelessWidget {
     );
   }
 
-  // â”€â”€ Fallback when image can't be decoded â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _fileFallback() {
     return Container(
       width: double.infinity,
@@ -225,8 +218,6 @@ class UploadBox extends StatelessWidget {
       ),
     );
   }
-
-  // â”€â”€ Shared remove button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _removeButton({bool dark = true}) {
     return GestureDetector(

@@ -11,14 +11,12 @@ class InventoryProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
 
-  // TASK 2 LOGIC: Dynamically filters items below their threshold!
   List<InventoryItem> get lowStockAlerts {
     return _inventory
         .where((item) => item.closingStock < item.threshold)
         .toList();
   }
 
-  // Filtered getters for each tab in InventoryScreen
   List<InventoryItem> get materialInventory =>
       _inventory.where((item) => item.category == 'material').toList();
 
@@ -28,13 +26,12 @@ class InventoryProvider extends ChangeNotifier {
   List<InventoryItem> get equipmentInventory =>
       _inventory.where((item) => item.category == 'equipment').toList();
 
-  // Call this after saving a new entry to push it to the backend & refresh
   Future<void> addToInventory({
     required String materialName,
     required double quantity,
     required String unit,
     required String projectId,
-    required String category, // 'material' | 'labour' | 'equipment'
+    required String category,
     double threshold = 10,
   }) async {
     try {
@@ -46,7 +43,7 @@ class InventoryProvider extends ChangeNotifier {
         category: category,
         threshold: threshold,
       );
-      // Refresh the list so the UI updates
+
       await loadInventory(projectId);
     } catch (e) {
       _error = 'Could not add to inventory: $e';
@@ -68,11 +65,10 @@ class InventoryProvider extends ChangeNotifier {
       _error = 'Could not fetch inventory: $e';
     } finally {
       _isLoading = false;
-      notifyListeners(); // Tells the UI to rebuild!
+      notifyListeners();
     }
   }
 
-  // New method for Server-Side Search
   Future<void> performSearch(
     String query,
     String category, {
@@ -83,7 +79,6 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Hits the new backend-connected search method
       final rawData = await ApiService.searchMaterials(
         query: query,
         category: category,

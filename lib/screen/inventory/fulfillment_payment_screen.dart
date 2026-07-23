@@ -6,6 +6,7 @@ import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
+
 class FulfillmentPaymentScreen extends StatefulWidget {
   const FulfillmentPaymentScreen({super.key});
 
@@ -17,12 +18,11 @@ class FulfillmentPaymentScreen extends StatefulWidget {
 class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   bool _argsLoaded = false;
 
-  // Passed arguments mapped to local state variables
   late String _entryId;
   late String _projectId;
   late String _projectName;
   late String _itemName;
-  late String _itemType; // 'material' | 'labour' | 'equipment'
+  late String _itemType;
   late double _quantity;
   late double _rate;
   late double _totalAmount;
@@ -30,14 +30,13 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   late double _outstanding;
   late String? _existingReceipt;
 
-  // Payment Form States
   late PaymentStatus _selectedStatus;
   String _selectedMethod = 'UPI';
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   String? _amountError;
   String? _uploadedReceipt;
-  String? _newReceiptDataUri; // ADD THIS — holds the base64 dataUri of a freshly picked file
+  String? _newReceiptDataUri;
   DateTime _selectedPaymentDate = DateTime.now();
   bool _isSaving = false;
 
@@ -84,7 +83,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         (_totalAmount - _alreadyPaid).clamp(0.0, double.infinity);
     _existingReceipt = args['receipt'] as String?;
 
-    // Initialize fields
     _selectedStatus = _outstanding > 0
         ? (_alreadyPaid > 0 ? PaymentStatus.partial : PaymentStatus.pending)
         : PaymentStatus.paid;
@@ -165,7 +163,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       final totalPaid = _alreadyPaid + amount;
       final newStatusVal = _selectedStatus;
 
-      // Convert enum to Mongoose capitalized string
       final String newStatusStr = newStatusVal == PaymentStatus.paid
           ? 'Paid'
           : newStatusVal == PaymentStatus.partial
@@ -178,20 +175,20 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       }
 
       final payload = {
-  'paymentStatus': newStatusStr,
-  'paidAmount': totalPaid,
-  'paymentMode': apiPaymentMode,
-  'notes': _noteCtrl.text.trim(),
-  'paymentDate': _selectedPaymentDate.toIso8601String(),
-  if (amount > 0)
-    'paymentEntry': {
-      'amount': amount,
-      'method': apiPaymentMode,
-      'date': _selectedPaymentDate.toIso8601String(),
-      'notes': _noteCtrl.text.trim(),
-    },
-  if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
-};
+        'paymentStatus': newStatusStr,
+        'paidAmount': totalPaid,
+        'paymentMode': apiPaymentMode,
+        'notes': _noteCtrl.text.trim(),
+        'paymentDate': _selectedPaymentDate.toIso8601String(),
+        if (amount > 0)
+          'paymentEntry': {
+            'amount': amount,
+            'method': apiPaymentMode,
+            'date': _selectedPaymentDate.toIso8601String(),
+            'notes': _noteCtrl.text.trim(),
+          },
+        if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
+      };
 
       final success = await ApiService.updateTransactionPayment(
         _entryId,
@@ -199,10 +196,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       );
 
       if (success) {
-        // Trigger loaders to sync state locally
         if (mounted) {
           context.read<ProjectProvider>().load();
-          // Also reload inventory under the current project context
+
           context.read<InventoryProvider>().loadInventory(_projectId);
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -274,9 +270,7 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     }
 
     final double parentW = MediaQuery.of(context).size.width;
-    final double chipW =
-        (parentW - 40) /
-        2; // Subtract horizontal padding (16*2=32) and spacing (8)
+    final double chipW = (parentW - 40) / 2;
     final double fullW = parentW - 32;
 
     return Scaffold(
@@ -284,7 +278,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── NAV ROW / TOP BAR ───────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Row(
@@ -321,7 +314,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
               ),
             ),
 
-            // ── SCROLLABLE BODY ─────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -332,7 +324,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // GRADIENT HEADER CARD
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
@@ -436,7 +427,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PAYMENT STATUS
                     const Text(
                       'PAYMENT STATUS',
                       style: TextStyle(
@@ -492,7 +482,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PAYMENT METHOD
                     const Text(
                       'PAYMENT METHOD',
                       style: TextStyle(
@@ -529,7 +518,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // AMOUNT FIELD
                     const Text(
                       'ACTUAL AMOUNT PAID (₹)',
                       style: TextStyle(
@@ -633,7 +621,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PAYMENT RECEIPT UPLOAD
                     const Text(
                       'PAYMENT RECEIPT',
                       style: TextStyle(
@@ -649,8 +636,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                         final attachment = await pickAttachmentDirect(context);
                         if (attachment != null) {
                           setState(() {
-                            _uploadedReceipt = attachment.name;       // for display
-                            _newReceiptDataUri = attachment.dataUri;  // for upload
+                            _uploadedReceipt = attachment.name;
+                            _newReceiptDataUri = attachment.dataUri;
                           });
                         }
                       },
@@ -697,12 +684,16 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                                   GestureDetector(
                                     onTap: () => setState(() {
                                       _uploadedReceipt = null;
-                                      _newReceiptDataUri = null; // ADD THIS
+                                      _newReceiptDataUri = null;
                                     }),
-                                    child: const Icon(Icons.close, color: Color(0xFF6B7280), size: 16),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Color(0xFF6B7280),
+                                      size: 16,
+                                    ),
                                   ),
                                 ],
-                              ) 
+                              )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -749,7 +740,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PAYMENT DATE
                     const Text(
                       'PAYMENT DATE',
                       style: TextStyle(
@@ -818,7 +808,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // REMARKS
                     const Text(
                       'REMARKS / REFERENCE NUMBER',
                       style: TextStyle(
@@ -839,7 +828,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
               ),
             ),
 
-            // ── STICKY BOTTOM BUTTONS ───────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: const BoxDecoration(

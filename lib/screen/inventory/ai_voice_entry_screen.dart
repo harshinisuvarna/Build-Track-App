@@ -9,13 +9,9 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ─── Backend response model ────────────────────────────────────────────────────
-// All UI renders from this model. Backend integration just replaces the
-// population layer — the rendering pipeline stays identical.
 class VoiceResponseModel {
-  final String
-  status; // idle | listening | processing | thinking | extracting |
-  // waiting_for_user | summary | saving | completed | error
+  final String status;
+
   final String? entryType;
   final String? transcript;
   final String? partialTranscript;
@@ -82,9 +78,6 @@ class VoiceResponseModel {
       '${detectedFields[key]}'.trim().isNotEmpty;
 }
 
-// ─── Status constants (replaces _ConvStep enum) ───────────────────────────────
-// These replace the hardcoded step enums. The backend returns a status string
-// and the UI derives which view to show from it.
 abstract final class VoiceStatus {
   static const String idle = 'idle';
   static const String listening = 'listening';
@@ -98,8 +91,6 @@ abstract final class VoiceStatus {
   static const String error = 'error';
 }
 
-// ─── ExtractedData wrapper for backward-compat accessor convenience ──────────
-// Thin wrapper over Map<String, dynamic> so all existing `_data.xxx` calls work.
 class _ExtractedData {
   final Map<String, dynamic> _map;
   final ProjectProvider? _projectProvider;
@@ -190,7 +181,6 @@ class _ExtractedData {
   bool get hasFuelCost => fuelCost != null;
 }
 
-// ─── Blinking Cursor Widget ───────────────────────────────────────────────────
 class _BlinkingCursor extends StatefulWidget {
   const _BlinkingCursor();
 
@@ -226,14 +216,12 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
   }
 }
 
-// ─── Detected Field Label Model ───────────────────────────────────────────────
 class _DetectedField {
   final String label;
   final String value;
   _DetectedField({required this.label, required this.value});
 }
 
-// ─── Main screen widget ────────────────────────────────────────────────────────
 class AiVoiceEntryScreen extends StatefulWidget {
   const AiVoiceEntryScreen({super.key});
 
@@ -243,33 +231,20 @@ class AiVoiceEntryScreen extends StatefulWidget {
 
 class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     with TickerProviderStateMixin {
-  // ── Entry type ───────────────────────────────────────────────────────────────
-  late String _entryType; // 'material' | 'labour' | 'equipment'
+  late String _entryType;
 
-  // ── Backend-driven model state ────────────────────────────────────────────────
-  // _response holds the current view state. Every UI element renders from it.
-  // The local-parsing methods (_parseTranscriptInto etc.) populate this model.
-  // When the real backend is connected, only the population layer changes.
   VoiceResponseModel _response = const VoiceResponseModel();
 
-  // ── Detected fields (replaces _ExtractedData's individual fields) ─────────────
   final Map<String, dynamic> _detectedFields = {};
 
-  // ── Data wrappers ─────────────────────────────────────────────────────────────
   _ExtractedData get _data => _ExtractedData(
     _detectedFields,
     Provider.of<ProjectProvider>(context, listen: false),
   );
   String _rawTranscript = '';
 
-  // ── Session phase (single source of truth state machine) ──────────────────────
-  // idle → listening → processing → waitingForUser → listening → ... → summary → saving → completed
   String _status = VoiceStatus.idle;
 
-  // The field name currently being asked (derived from first missing field).
-  // Only meaningful when _status == VoiceStatus.waitingForUser — null otherwise.
-  // This is the single function that decides which question to ask next.
-  // It reads fresh missing fields every time — never stale state.
   String? _fieldToAsk() {
     final missing = _getStillNeededFieldsFor(_data);
     debugPrint('[AI DEBUG] _fieldToAsk: missingFields=$missing');
@@ -285,39 +260,31 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   String? _saveError;
   String? _savedEntryId;
 
-  // ── Edit mode state ──────────────────────────────────────────────────
   bool _isEditing = false;
   final Map<String, TextEditingController> _editControllers = {};
   Map<String, dynamic>? _savedEditFields;
   String? _editError;
 
-  // ── Backend-driven question & suggestions ─────────────────────────────────────
   String _backendQuestion = '';
   List<String> _backendSuggestions = const [];
 
-  // ── Duplicate processing guard ──────────────────────────────────────────────────
   bool _isProcessing = false;
 
-  // ── Voice engine ──────────────────────────────────────────────────────────────
   late final VoiceRecordingController _voiceCtrl;
   bool _isListeningForAnswer = false;
   String _partialAnswer = '';
 
-  // ── Text input toggle & controllers ───────────────────────────────────────────
   bool _showKeyboardInput = false;
   final _textCtrl = TextEditingController();
   final _focusNode = FocusNode();
 
-  // ── Scroll ────────────────────────────────────────────────────────────────────
   final _scrollCtrl = ScrollController();
 
-  // ── Animations ────────────────────────────────────────────────────────────────
   late final AnimationController _micPulseCtrl;
   late final AnimationController _bubbleCtrl;
   late final AnimationController _micOrbCtrl;
   late final AnimationController _waveCtrl;
 
-  // ── Projects ──────────────────────────────────────────────────────────────────
   List<ProjectModel> get _projects {
     final projects = Provider.of<ProjectProvider>(
       context,
@@ -331,7 +298,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return projects;
   }
 
-  // ── Processing stages ─────────────────────────────────────────────────────────
   int _processingStage = 0;
   Timer? _processingTimer;
   Timer? _answerTimeoutTimer;
@@ -362,8 +328,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
 
     _voiceCtrl = VoiceRecordingController();
     _voiceCtrl.addListener(_onVoiceChanged);
-    _voiceCtrl
-        .preInitialize(); // Pre-initialize STT so it starts instantly on tap
+    _voiceCtrl.preInitialize();
   }
 
   @override
@@ -373,7 +338,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _entryType = (args?['type'] as String?) ?? 'material';
 
-    // Build initial response model
     _rebuildResponse();
   }
 
@@ -394,7 +358,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     super.dispose();
   }
 
-  // ─── Cancel all orphanable timers ──────────────────────────────────────────────
   void _cancelAllTimers() {
     _processingTimer?.cancel();
     _processingTimer = null;
@@ -402,7 +365,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _answerTimeoutTimer = null;
   }
 
-  // ─── 30-second answer timeout ───────────────────────────────────────────────
   void _startAnswerTimeout() {
     _answerTimeoutTimer?.cancel();
     _answerTimeoutTimer = Timer(const Duration(seconds: 30), () {
@@ -413,7 +375,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
-  // ─── Speech failed — recover without losing detected fields ─────────────────
   void _speechFailed() {
     if (!mounted) return;
     _cancelAllTimers();
@@ -426,7 +387,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
-  // ─── Voice engine listener ─────────────────────────────────────────────────────
   void _onVoiceChanged() {
     if (!mounted) return;
 
@@ -436,7 +396,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         : _voiceCtrl.partialTranscript.trim();
     final partial = _voiceCtrl.partialTranscript;
 
-    // Always sync partial transcript for live preview
     if (_partialAnswer != partial) {
       setState(() => _partialAnswer = partial);
       debugPrint('[VOICE] Partial: "$partial"');
@@ -446,11 +405,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       '[UI LISTENING STATE CHANGES] onVoiceChanged: EngineState=$state, STT.isListening=${_voiceCtrl.isListening}, UIStatus=$_status, isListeningForAnswer=$_isListeningForAnswer',
     );
 
-    // ─── PARSED: Engine has finalized speech ─────────────────────────────────────
     if (state == VoiceEngineState.parsed) {
       debugPrint('[VOICE] Parsed: finalTranscript="$text"');
 
-      // Initial voice recording (first utterance from user)
       if (_status == VoiceStatus.listening && _rawTranscript.isEmpty) {
         if (text.isNotEmpty) {
           debugPrint('[VOICE] Setting rawTranscript from parsed: "$text"');
@@ -463,7 +420,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return;
       }
 
-      // Answer listening (user responding to an AI question)
       if (_isListeningForAnswer) {
         if (_isProcessing) {
           debugPrint('[VOICE] Parsed while processing — ignoring');
@@ -481,12 +437,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return;
       }
 
-      // Unexpected parsed — just update display
       setState(() => _rebuildResponse());
       return;
     }
 
-    // ─── IDLE / ERROR: Engine stopped unexpectedly ───────────────────────────────
     if (state == VoiceEngineState.error) {
       debugPrint('[VOICE ERROR] Engine error: ${_voiceCtrl.errorMessage}');
       if (mounted) {
@@ -520,7 +474,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ─── PROCESSING: Engine is analyzing ─────────────────────────────────────────
     if (state == VoiceEngineState.processing &&
         text.isNotEmpty &&
         _rawTranscript.isEmpty) {
@@ -532,7 +485,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // BUG 3 FIX: Force-reset the listening UI without losing detected fields
   void _unstickListening() {
     if (!mounted) return;
     setState(() {
@@ -549,7 +501,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
-  // ─── Recording control helpers ────────────────────────────────────────────────
   Future<void> _startInitialRecording() async {
     if (_isProcessing || _voiceCtrl.engineState == VoiceEngineState.listening) {
       debugPrint(
@@ -583,9 +534,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     await _voiceCtrl.stopListening();
   }
 
-  // ─── Stop & Analyze ───────────────────────────────────────────────────────────
-  // Single-button flow: stops recording, immediately captures the transcript,
-  // then triggers AI processing. No busy-wait, no second click.
   Future<void> _stopAndAnalyze() async {
     if (_isProcessing) {
       debugPrint(
@@ -594,14 +542,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return;
     }
 
-    // Step 1 — stop the microphone
     debugPrint('[VOICE] Stop & Analyze pressed');
     await _voiceCtrl.stopListening();
-    // Allow the speech engine a small moment to flush the final recognized words
+
     await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
 
-    // Step 2 — capture transcript directly (before any reset)
     final transcript = _voiceCtrl.finalTranscript.trim().isNotEmpty
         ? _voiceCtrl.finalTranscript.trim()
         : _voiceCtrl.partialTranscript.trim();
@@ -612,7 +558,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rawTranscript = transcript;
     }
 
-    // Step 3 — fire the AI chain immediately if we have speech
     if (mounted && _rawTranscript.isNotEmpty) {
       _beginAiProcessing();
     } else if (mounted) {
@@ -622,7 +567,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Reset Data ────────────────────────────────────────────────────────────────
   void _resetCurrentEntryData() {
     setState(() {
       _data.itemName = null;
@@ -654,20 +598,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       );
       return;
     }
-    // Stop recording and discard recognition sessions/timers
+
     await _voiceCtrl.cancelListening();
 
-    // Clear transcripts, parsed values, progress, and AI checklist
     _resetCurrentEntryData();
 
-    // Return screen to fresh recording mode (idle status)
     setState(() {
       _status = VoiceStatus.idle;
       _rebuildResponse();
     });
   }
 
-  // ─── AI Processing transition ──────────────────────────────────────────────────
   void _beginAiProcessing() {
     if (_isProcessing) {
       debugPrint('[AI] Already processing — ignoring duplicate request');
@@ -688,7 +629,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
 
-    // Animated stage progression (visual only)
     _processingTimer = Timer.periodic(const Duration(milliseconds: 600), (t) {
       if (!mounted) {
         t.cancel();
@@ -710,7 +650,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
 
-    // 5-second processing timeout safeguard
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted || _status != VoiceStatus.processing) return;
       debugPrint('[AI] Processing timeout (5s) — forcing extraction');
@@ -766,7 +705,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _advanceToNextMissingField();
   }
 
-  // ─── Live Extraction logic ─────────────────────────────────────────────────────
   _ExtractedData get _currentData {
     if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) &&
         _voiceCtrl.isListening &&
@@ -795,7 +733,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
   void _parseTranscriptInto(_ExtractedData data, String text) {
     final t = text.toLowerCase().trim();
 
-    // ── Auto-detect entry type from conversation ──────────────────────────────
     if (_entryType == 'material') {
       const labourKeywords = [
         'mason',
@@ -861,13 +798,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Quantity ─────────────────────────────────────────────────────────────
     final numMatch = RegExp(r'(\d+\.?\d*)').firstMatch(t);
     if (numMatch != null) {
       data.quantity = double.tryParse(numMatch.group(0) ?? '');
     }
 
-    // ── Unit ─────────────────────────────────────────────────────────────────
     const unitMap = {
       'bag': 'Bags',
       'bags': 'Bags',
@@ -909,7 +844,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Rate ─────────────────────────────────────────────────────────────────
     final rateMatch = RegExp(
       r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
     ).firstMatch(t);
@@ -924,7 +858,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Brand ─────────────────────────────────────────────────────────────────
     const brands = [
       'ultratech',
       'ambuja',
@@ -956,7 +889,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Material name ─────────────────────────────────────────────────────────
     if (_entryType == 'material') {
       const materials = {
         'cement': 'Cement',
@@ -992,7 +924,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Labour details ───────────────────────────────────────────────────────
     if (_entryType == 'labour') {
       const trades = {
         'masonry': 'Masonry',
@@ -1048,7 +979,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Equipment details ────────────────────────────────────────────────────
     if (_entryType == 'equipment') {
       const equipment = {
         'jcb': 'JCB Excavator',
@@ -1096,7 +1026,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Floor ─────────────────────────────────────────────────────────────────
     if (data.floor == null || data.floor!.trim().isEmpty) {
       if (t.contains('basement')) {
         data.floor = 'Basement';
@@ -1113,7 +1042,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Phase / Activity ──────────────────────────────────────────────────────
     if (data.phase == null || data.phase!.trim().isEmpty) {
       const phaseKeywords = [
         'foundation',
@@ -1158,7 +1086,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
 
-    // ── Project matching ──────────────────────────────────────────────────────
     if (!data.hasProject) {
       for (final proj in _projects) {
         if (t.contains(proj.name.toLowerCase())) {
@@ -1170,8 +1097,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Conversation field navigation ─────────────────────────────────────────────
-  // Always re-derive from missing fields (single source of truth) — never from stale state.
   void _advanceToNextMissingField() {
     if (_isProcessing) {
       debugPrint('[AI] Already processing — not advancing');
@@ -1179,7 +1104,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     _isProcessing = true;
 
-    // Get fresh missing fields (single source of truth)
     final missing = _getStillNeededFieldsFor(_data);
     debugPrint('[AI] _advanceToNextMissingField: missingFields=$missing');
     debugPrint('[AI] Detected: $_detectedFields');
@@ -1198,7 +1122,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return;
     }
 
-    // Derive question from the first missing field — no step enum, no hardcoded mapping
     final field = _fieldToAsk();
     final question = field != null ? _questionForField(field) : '';
     debugPrint('[AI] Next question: "$question" (field=$field)');
@@ -1213,19 +1136,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _scrollToBottom();
   }
 
-  // ─── Rebuild _response model from internal state ──────────────────────────────
-  // BUG 4 FIX: Single source of truth — _getStillNeededFieldsFor() drives everything.
-  // _response.missingFields and the "Still Needed" panel always match.
   void _rebuildResponse() {
-    // Always derive missing from the single authoritative function
     final missing = _getStillNeededFieldsFor(_data);
 
-    // Total = all fields for this entry type (from _getStillNeededFieldsFor when nothing detected)
     final allFields = _getAllFieldsFor();
     final total = allFields.length;
     final completed = total - missing.length;
 
-    // Question derived from FIRST missing field — always field-driven, never step-driven
     String? question;
     List<String> suggestions = [];
     if (_status == VoiceStatus.waitingForUser && missing.isNotEmpty) {
@@ -1272,8 +1189,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // Returns the full list of field labels for this entry type (used for total count)
-  // Must match _getStillNeededFieldsFor priority order.
   List<String> _getAllFieldsFor() {
     if (_entryType == 'material') {
       return ['Material', 'Quantity', 'Unit', 'Rate'];
@@ -1284,7 +1199,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Question generation (field-name-driven, no _ConvStep) ────────────────────
   String _questionForField(String field) {
     switch (field) {
       case 'Project':
@@ -1322,7 +1236,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Suggestions generation (field-name-driven, no _ConvStep) ──────────────────
   List<String> _suggestionsForField(String field) {
     switch (field) {
       case 'Project':
@@ -1385,7 +1298,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Answer voice listener ────────────────────────────────────────────────────
   Future<void> _startAnswerListening() async {
     if (_isProcessing) {
       debugPrint('[VOICE] Processing in progress — not starting listening');
@@ -1398,7 +1310,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     debugPrint('[VOICE] _startAnswerListening: started, status=$_status');
   }
 
-  // "Done Answering" — fully stops listening and refreshes all state
   Future<void> _stopAnswerListening() async {
     debugPrint('[VOICE] _stopAnswerListening tapped');
 
@@ -1411,30 +1322,26 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     debugPrint('[VOICE] _stopAnswerListening: LOCKED processing');
 
     try {
-      // 1. Stop the microphone (transitions state to processing)
       await _voiceCtrl.stopListening();
       debugPrint('[VOICE] _stopAnswerListening: mic stopped');
-      // Allow the speech engine a small moment to flush the final recognized words
+
       await Future.delayed(const Duration(milliseconds: 250));
       if (!mounted) {
         _isProcessing = false;
         return;
       }
 
-      // 2. Capture answer transcript FIRST before resetting the engine!
       final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
           ? _voiceCtrl.finalTranscript.trim()
           : _voiceCtrl.partialTranscript.trim();
       debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
 
-      // 3. Reset STT engine for next listen (cancel() without changing state)
       await _voiceCtrl.resetEngine();
       debugPrint('[VOICE] _stopAnswerListening: engine reset');
 
       _isListeningForAnswer = false;
       _cancelAllTimers();
 
-      // 4. If we have a transcript, merge it into detected data
       if (answer.isNotEmpty) {
         final field = _activeField;
         if (field != null) {
@@ -1449,7 +1356,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         );
       }
 
-      // 5. Recalculate everything and refresh UI
       if (!mounted) {
         _isProcessing = false;
         return;
@@ -1464,7 +1370,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         '[VOICE] After answer: detected=$_detectedFields, missing=$missing',
       );
 
-      // 6. Advance conversation or show review
       Future.delayed(const Duration(milliseconds: 300), () {
         _isProcessing = false;
         debugPrint('[VOICE] _stopAnswerListening: releasing processing lock');
@@ -1713,8 +1618,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       default:
         break;
     }
-    // Extract fields from answer text into a temp object, then merge only NEW keys
-    // (never overwrite existing detected fields)
+
     if (text.isNotEmpty) {
       final tempFields = <String, dynamic>{};
       final tempData = _ExtractedData(tempFields);
@@ -1727,7 +1631,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Go to summary ────────────────────────────────────────────────────────────
   void _goToSummary() {
     if (!mounted) return;
     _cancelAllTimers();
@@ -1740,7 +1643,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _scrollToBottom();
   }
 
-  // ─── Database helpers ─────────────────────────────────────────────────────────
   String? _derivePhaseId(String? phaseName) {
     if (phaseName == null || phaseName.isEmpty || _data.projectId == null) {
       return null;
@@ -1775,7 +1677,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return null;
   }
 
-  // ─── Save entry ───────────────────────────────────────────────────────────────
   String _mapUnitToBackend(String? rawUnit) {
     if (rawUnit == null || rawUnit.isEmpty) return 'unit';
     final lower = rawUnit.toLowerCase();
@@ -1784,7 +1685,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
     if (lower.contains('ton')) return 'ton';
     if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
-    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) {
+    if (lower.contains('sqm') ||
+        lower.contains('cum') ||
+        lower.contains('cft')) {
       return 'sqm';
     }
     if (lower.contains('day')) return 'day';
@@ -1870,7 +1773,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
             serverTx?['_id']?.toString() ??
             'VOICE-${DateTime.now().millisecondsSinceEpoch}';
 
-        // Refresh project data
         if (mounted) {
           await Provider.of<ProjectProvider>(context, listen: false).load();
         }
@@ -1904,7 +1806,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
   }
 
-  // ─── Edit mode methods ──────────────────────────────────────────────────
   void _enterEditMode() {
     _savedEditFields = Map<String, dynamic>.from(_detectedFields);
     _editError = null;
@@ -2025,7 +1926,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       if (_editControllers['material']?.text.trim().isEmpty ?? true) {
         return false;
       }
-      if ((double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0) <= 0) {
+      if ((double.tryParse(_editControllers['quantity']?.text ?? '') ?? 0) <=
+          0) {
         return false;
       }
       if (_editControllers['unit']?.text.trim().isEmpty ?? true) return false;
@@ -2222,9 +2124,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
   }
 
-  // ─── Field labels and required count helpers ─────────────────────────────────
-  // Priority order determines which question the AI asks next.
-  // Conversational flow: what → how many → what unit → what price → where.
   List<String> _getStillNeededFieldsFor(_ExtractedData d) {
     final list = <String>[];
     if (_entryType == 'material') {
@@ -2348,12 +2247,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     return hasProj && hasFloor && hasPhase && hasAct;
   }
 
-  // ──────────────────────────────────────────────────────────────────────────────
-  // BUILD
-  // ──────────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    // Listen reactively to ProjectProvider to rebuild this screen when Project Context changes
     Provider.of<ProjectProvider>(context);
 
     return Scaffold(
@@ -2382,7 +2277,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Top Bar ──────────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
     String title = 'BuildTrack AI';
     String subtitle = 'AI Voice Entry';
@@ -2973,12 +2867,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 8: AI Question Card (Premium Gradient Chat Bubble) ─────────────
   Widget _buildAiQuestionCard() {
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
     if (!isAskingStep) return const SizedBox.shrink();
 
-    // Question derived from FIRST missing field — always field-driven, never step-driven
     final field = _fieldToAsk();
     final question = _response.question?.isNotEmpty == true
         ? _response.question!
@@ -3012,7 +2904,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
@@ -3028,7 +2919,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ],
             ),
           ),
-          // ── Confirmed context ──
+
           if (confirmed.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -3073,7 +2964,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 ],
               ),
             ),
-          // ── Divider ──
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Divider(
@@ -3081,7 +2972,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               height: 1,
             ),
           ),
-          // ── Question ──
+
           Padding(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -3099,7 +2990,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ),
             ),
           ),
-          // ── Quick replies ──
+
           if (suggestions.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 10),
@@ -3167,7 +3058,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 10 & 11: AI Thinking State Card (Checklist checking off) ─────────
   Widget _buildProcessingCard() {
     final stages = <String>[];
     final states = <bool>[];
@@ -3433,7 +3323,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Section 14: Final Entry Summary ──────────────────────────────────────────
   Widget _buildSummaryCard() {
     final isSaving = _response.status == VoiceStatus.saving;
     final amount = _isEditing
@@ -3774,7 +3663,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Dynamic Bottom Input Panel ───────────────────────────────────────────────
   Widget _buildBottomInputArea() {
     if (_response.status == VoiceStatus.completed) {
       return const SizedBox.shrink();
@@ -3829,17 +3717,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Left: Recording Status
                       Expanded(
                         flex: 3,
                         child: _buildRecordingStatusLeft(isListening),
                       ),
-                      // Center: Large microphone button
+
                       Expanded(
                         flex: 2,
                         child: _buildLargeMicButtonRedesigned(isListening),
                       ),
-                      // Right: Stop & Analyze
+
                       Expanded(
                         flex: 3,
                         child: _buildStopAnalyzeButtonRight(isListening),
@@ -4046,7 +3933,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       );
     }
 
-    // Active recording
     return AnimatedBuilder(
       animation: _waveCtrl,
       builder: (context, _) {
@@ -4181,11 +4067,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       onPressed: _cancelRecording,
       style: OutlinedButton.styleFrom(
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF6B7280), // Neutral gray color
-        side: const BorderSide(
-          color: Color(0xFFD1D5DB), // Neutral gray outline
-          width: 1.5,
-        ),
+        foregroundColor: const Color(0xFF6B7280),
+        side: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -4301,7 +4184,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Success screen ──────────────────────────────────────────────────────────
   Widget _buildSuccessCard() {
     final now = DateTime.now();
     final dateStr =
@@ -4422,7 +4304,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     );
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────────
   Widget _buildErrorCard() {
     return Container(
       margin: const EdgeInsets.only(top: 14),

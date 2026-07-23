@@ -18,7 +18,8 @@ class ReceiptViewerScreen extends StatefulWidget {
 
 class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
   bool _isDownloading = false;
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   TapDownDetails? _doubleTapDetails;
 
   static const primaryBlue = AppColors.primary;
@@ -73,7 +74,11 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     return path.split('/').last;
   }
 
-  Future<void> _downloadAndOpenFile(String url, {bool open = true, bool share = false}) async {
+  Future<void> _downloadAndOpenFile(
+    String url, {
+    bool open = true,
+    bool share = false,
+  }) async {
     if (_isDownloading) return;
 
     setState(() {
@@ -81,7 +86,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     });
 
     try {
-      final String actionText = share ? 'Sharing' : (open ? 'Opening' : 'Downloading');
+      final String actionText = share
+          ? 'Sharing'
+          : (open ? 'Opening' : 'Downloading');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$actionText receipt...'),
@@ -91,10 +98,13 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
 
       File file;
       final normalizedUrl = _normalizeUrl(url);
-      if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+      if (normalizedUrl.startsWith('http://') ||
+          normalizedUrl.startsWith('https://')) {
         final response = await http.get(Uri.parse(normalizedUrl));
         if (response.statusCode != 200) {
-          throw HttpException('Failed to download file (Status: ${response.statusCode})');
+          throw HttpException(
+            'Failed to download file (Status: ${response.statusCode})',
+          );
         }
 
         final tempDir = await getTemporaryDirectory();
@@ -120,10 +130,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       if (share) {
         final xFile = XFile(file.path);
         await SharePlus.instance.share(
-          ShareParams(
-            files: [xFile],
-            text: 'Receipt Proof',
-          ),
+          ShareParams(files: [xFile], text: 'Receipt Proof'),
         );
       } else if (open) {
         final result = await OpenFilex.open(file.path);
@@ -141,7 +148,8 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       if (mounted) {
         String message = e.toString();
         if (message.contains('MissingPluginException')) {
-          message = 'Plugin not loaded. Please stop the app and rebuild/run it again from scratch.';
+          message =
+              'Plugin not loaded. Please stop the app and rebuild/run it again from scratch.';
         } else {
           message = 'Error: $e';
         }
@@ -163,15 +171,14 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
 
   Widget _buildImageWidget(String receipt) {
     final normalizedReceipt = _normalizeUrl(receipt);
-    if (normalizedReceipt.startsWith('http://') || normalizedReceipt.startsWith('https://')) {
+    if (normalizedReceipt.startsWith('http://') ||
+        normalizedReceipt.startsWith('https://')) {
       return Image.network(
         normalizedReceipt,
         fit: BoxFit.contain,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         },
         errorBuilder: (context, error, stackTrace) {
           return const Center(
@@ -182,7 +189,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                 SizedBox(height: 12),
                 Text(
                   'Failed to load image from network',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -192,22 +202,14 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     } else if (normalizedReceipt.startsWith('data:image/')) {
       try {
         final base64String = normalizedReceipt.split(',').last;
-        return Image.memory(
-          base64Decode(base64String),
-          fit: BoxFit.contain,
-        );
+        return Image.memory(base64Decode(base64String), fit: BoxFit.contain);
       } catch (e) {
-        return const Center(
-          child: Icon(Icons.broken_image, color: Colors.red),
-        );
+        return const Center(child: Icon(Icons.broken_image, color: Colors.red));
       }
     } else {
       final file = File(normalizedReceipt);
       if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.contain,
-        );
+        return Image.file(file, fit: BoxFit.contain);
       } else {
         return const Center(
           child: Column(
@@ -217,7 +219,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
               SizedBox(height: 12),
               Text(
                 'Local file not found',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -277,7 +282,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // File info banner
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -356,7 +360,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Main View (Image zoomable container or PDF banner)
           Expanded(
             child: Container(
               width: double.infinity,
@@ -377,19 +380,28 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                         children: [
                           Center(
                             child: GestureDetector(
-                              onDoubleTapDown: (details) => _doubleTapDetails = details,
+                              onDoubleTapDown: (details) =>
+                                  _doubleTapDetails = details,
                               onDoubleTap: () {
-                                if (_transformationController.value != Matrix4.identity()) {
-                                  _transformationController.value = Matrix4.identity();
+                                if (_transformationController.value !=
+                                    Matrix4.identity()) {
+                                  _transformationController.value =
+                                      Matrix4.identity();
                                 } else {
-                                  final position = _doubleTapDetails!.localPosition;
-                                   _transformationController.value =
-                                       Matrix4.translationValues(-position.dx, -position.dy, 0.0) *
-                                       Matrix4.diagonal3Values(2.0, 2.0, 1.0);
+                                  final position =
+                                      _doubleTapDetails!.localPosition;
+                                  _transformationController.value =
+                                      Matrix4.translationValues(
+                                        -position.dx,
+                                        -position.dy,
+                                        0.0,
+                                      ) *
+                                      Matrix4.diagonal3Values(2.0, 2.0, 1.0);
                                 }
                               },
                               child: InteractiveViewer(
-                                transformationController: _transformationController,
+                                transformationController:
+                                    _transformationController,
                                 boundaryMargin: const EdgeInsets.all(20),
                                 minScale: 0.5,
                                 maxScale: 4.0,
@@ -397,7 +409,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                               ),
                             ),
                           ),
-                          // Floating Zoom Controls Overlay
+
                           Positioned(
                             bottom: 16,
                             right: 16,
@@ -410,33 +422,54 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.zoom_out, color: Colors.white, size: 20),
+                                    icon: const Icon(
+                                      Icons.zoom_out,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
                                     onPressed: () {
-                                      _transformationController.value = Matrix4.identity();
+                                      _transformationController.value =
+                                          Matrix4.identity();
                                     },
                                   ),
                                   const Text(
                                     'Reset',
-                                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
+                                    icon: const Icon(
+                                      Icons.zoom_in,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
                                     onPressed: () {
-                                       _transformationController.value = Matrix4.diagonal3Values(2.0, 2.0, 1.0);
+                                      _transformationController.value =
+                                          Matrix4.diagonal3Values(
+                                            2.0,
+                                            2.0,
+                                            1.0,
+                                          );
                                     },
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          // Helper tooltip at the top center of the viewer
+
                           Positioned(
                             top: 12,
                             left: 0,
                             right: 0,
                             child: Center(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(12),
@@ -444,11 +477,19 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.pinch_sharp, color: Colors.white, size: 14),
+                                    Icon(
+                                      Icons.pinch_sharp,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
                                     SizedBox(width: 6),
                                     Text(
                                       'Pinch to zoom / Drag to pan',
-                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -538,7 +579,9 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                                       ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  _isDownloading ? 'Opening...' : 'Open Full View',
+                                  _isDownloading
+                                      ? 'Opening...'
+                                      : 'Open Full View',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,

@@ -24,29 +24,23 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
 
-  // ── Selection state ─────────────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedPhaseName;
   String? _selectedActivityName;
 
-  // ── Pre-fill from route args (activity row deep-link) ────────────────────
-  String? _prefillActivityId; // used to toggle completion on submit
+  String? _prefillActivityId;
   bool _argsLoaded = false;
-  bool _launchedFromTracker =
-      false; // hides project / phase dropdowns when pre-filled
+  bool _launchedFromTracker = false;
 
-  // ── Form state ──────────────────────────────────────────────────────────
   final TextEditingController _notesCtrl = TextEditingController();
   late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
   DateTime? _completionDate;
   List<PhotoAttachment> _attachments = [];
 
-  // ── Full phase catalogue ─────────────────────────────────────────────────
   late final List<ConstructionPhase> _catalogue;
 
-  // ── Tasks assigned to user ──────────────────────────────────────────────
   List<TaskModel> _dailyTasks = [];
   bool _isLoadingTasks = true;
   final Set<String> _completedTaskIds = {};
@@ -81,7 +75,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       final tasks = await TaskService.getDailyTasks();
       if (mounted) {
         setState(() {
-          // Filter out completed tasks so they do not show in the checklist
           _dailyTasks = tasks.where((t) => t.status != 'Completed').toList();
           _isLoadingTasks = false;
         });
@@ -91,10 +84,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     }
   }
 
-  Future<void> _showEditTaskDialog(BuildContext context, TaskModel task, VoidCallback onSave) async {
+  Future<void> _showEditTaskDialog(
+    BuildContext context,
+    TaskModel task,
+    VoidCallback onSave,
+  ) async {
     String? updatedStatus = task.status;
-    final TextEditingController titleCtrl = TextEditingController(text: task.title);
-    final TextEditingController descCtrl = TextEditingController(text: task.description);
+    final TextEditingController titleCtrl = TextEditingController(
+      text: task.title,
+    );
+    final TextEditingController descCtrl = TextEditingController(
+      text: task.description,
+    );
     bool saving = false;
 
     await showDialog(
@@ -109,32 +110,70 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Title', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                    const Text(
+                      'Title',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     TextField(
                       controller: titleCtrl,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    const Text('Description', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                    const Text(
+                      'Description',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     TextField(
                       controller: descCtrl,
                       maxLines: 3,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    const Text('Status', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                    const Text(
+                      'Status',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                    initialValue: ['Not Started', 'In Progress', 'Completed'].contains(updatedStatus) ? updatedStatus : 'Not Started',
-                      items: ['Not Started', 'In Progress', 'Completed'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      initialValue:
+                          [
+                            'Not Started',
+                            'In Progress',
+                            'Completed',
+                          ].contains(updatedStatus)
+                          ? updatedStatus
+                          : 'Not Started',
+                      items: ['Not Started', 'In Progress', 'Completed']
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
                       onChanged: (v) {
                         setDialogState(() {
                           updatedStatus = v;
                         });
                       },
-                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ],
                 ),
@@ -145,21 +184,29 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: saving ? null : () async {
-                    setDialogState(() => saving = true);
-                    try {
-                      await TaskService.updateTask(task.id, {
-                        'title': titleCtrl.text,
-                        'description': descCtrl.text,
-                        'status': updatedStatus,
-                      });
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      onSave();
-                    } catch (e) {
-                      setDialogState(() => saving = false);
-                    }
-                  },
-                  child: saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setDialogState(() => saving = true);
+                          try {
+                            await TaskService.updateTask(task.id, {
+                              'title': titleCtrl.text,
+                              'description': descCtrl.text,
+                              'status': updatedStatus,
+                            });
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            onSave();
+                          } catch (e) {
+                            setDialogState(() => saving = false);
+                          }
+                        },
+                  child: saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
                 ),
               ],
             );
@@ -169,22 +216,27 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-
   void _loadActivityDetails() {
     if (_selectedProjectId == null || _selectedActivityName == null) return;
-    
+
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
       orElse: () => null,
     );
-    
+
     if (project != null) {
       final matchedAct = project.selectedPhases
           ?.expand((ph) => ph.activities)
           .cast<ProjectActivity?>()
-          .firstWhere((act) => (_prefillActivityId != null && act?.id == _prefillActivityId) || (_selectedActivityName != null && act?.name == _selectedActivityName), orElse: () => null);
-          
+          .firstWhere(
+            (act) =>
+                (_prefillActivityId != null && act?.id == _prefillActivityId) ||
+                (_selectedActivityName != null &&
+                    act?.name == _selectedActivityName),
+            orElse: () => null,
+          );
+
       if (matchedAct != null) {
         setState(() {
           if (matchedAct.notes != null && matchedAct.notes!.trim().isNotEmpty) {
@@ -198,7 +250,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             _selectedDate = DateTime.now();
           }
           if (matchedAct.photos != null && matchedAct.photos!.isNotEmpty) {
-            _attachments = matchedAct.photos!.map((url) => PhotoAttachment.remote(url)).toList();
+            _attachments = matchedAct.photos!
+                .map((url) => PhotoAttachment.remote(url))
+                .toList();
           } else if (matchedAct.photo != null && matchedAct.photo!.isNotEmpty) {
             _attachments = [PhotoAttachment.remote(matchedAct.photo!)];
           } else {
@@ -217,7 +271,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
-      // Pre-fill from execution tracker activity row
       final projectId = args['projectId'] as String?;
       final phaseName = args['phaseName'] as String?;
       final activityName = args['activityName'] as String?;
@@ -232,14 +285,12 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         _selectedActivityName = activityName;
         _prefillActivityId = activityId;
 
-        // Default to first project floor or the passed floor
         if (floor != null && floor.isNotEmpty) {
           _selectedFloor = floor;
         } else if (floors != null && floors.isNotEmpty) {
           _selectedFloor = floors.first;
         }
 
-        // Sync progress & pre-fill completed details from provider
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           final provider = context.read<ProjectProvider>();
@@ -250,8 +301,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           if (project != null) {
             setState(() {
               _completionProgress = project.progress;
-              
-              // Find matching activity and pre-fill details
+
               _loadActivityDetails();
             });
           }
@@ -420,15 +470,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── If launched from tracker: show a context banner ─
                         if (_launchedFromTracker) ...[
                           _buildTrackerContextBanner(),
                           const SizedBox(height: 16),
                         ],
 
-                        // ── EXECUTION CONTEXT CARD ─────────────────────────
-                        // Show full card normally; when pre-filled from tracker
-                        // only show the floor dropdown (others are locked).
                         _buildContextCard(
                           projects: projects,
                           floors: floors,
@@ -437,34 +483,27 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // ── ACTIVE STAGE SUMMARY ───────────────────────────
                         if (_selectedPhaseName != null &&
                             _selectedFloor != null) ...[
                           _buildStageSummaryCard(),
                           const SizedBox(height: 20),
                         ],
 
-                        // ── TASKS ────────────────────────────────────────────────────────
                         _buildTaskChecklist(),
                         const SizedBox(height: 20),
 
-                        // ── EXECUTION NOTES ──────────────────────────────────────────────────────
                         _buildExecutionNotes(),
                         const SizedBox(height: 20),
 
-                        // ── UPDATE DATE ────────────────────────────────────
                         _buildDateField(),
                         const SizedBox(height: 20),
 
-                        // ── PROGRESS PHOTOS ────────────────────────────────
                         _buildPhotoUpload(),
                         const SizedBox(height: 20),
 
-                        // ── MATERIAL CONSUMPTION ───────────────────────────
                         _buildMaterialConsumption(context, provider),
                         const SizedBox(height: 32),
 
-                        // ── SUBMIT CTA ─────────────────────────────────────
                         _buildSaveButton(context, provider),
                         const SizedBox(height: 16),
                       ],
@@ -479,7 +518,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── Tracker context banner ──────────────────────────────────────────────
   Widget _buildTrackerContextBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -537,7 +575,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── EXECUTION CONTEXT CARD ───────────────────────────────────────────────
   Widget _buildContextCard({
     required List<ProjectModel> projects,
     required List<String> floors,
@@ -589,7 +626,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 1. Project — locked when launched from tracker
           _sectionLabel('Project'),
           _launchedFromTracker
               ? _lockedField(
@@ -627,7 +663,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 ),
           const SizedBox(height: 16),
 
-          // 2. Floor / Zone — always editable
           _sectionLabel('Floor / Zone'),
           _dropdownCard<String>(
             value: _selectedFloor,
@@ -650,7 +685,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 3. Phase — locked when launched from tracker
           _sectionLabel('Phase'),
           _launchedFromTracker
               ? _lockedField(_selectedPhaseName ?? 'Phase')
@@ -675,7 +709,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 ),
           const SizedBox(height: 16),
 
-          // 4. Activity — locked when launched from tracker
           _sectionLabel('Activity'),
           _launchedFromTracker
               ? _lockedField(_selectedActivityName ?? 'Activity')
@@ -711,7 +744,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  /// Read-only display field for locked dropdowns when pre-filled from tracker.
   Widget _lockedField(String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -741,7 +773,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── ACTIVE STAGE SUMMARY ─────────────────────────────────────────────────
   Widget _buildStageSummaryCard() {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -855,7 +886,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── TASK CHECKLIST ───────────────────────────────────────────────────────
   Widget _buildTaskChecklist() {
     if (_isLoadingTasks) {
       return const Padding(
@@ -863,18 +893,22 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         child: Center(child: CircularProgressIndicator(color: primaryBlue)),
       );
     }
-    
-    // Filter tasks relevant to current execution context, or show all if none selected
+
     final relevantTasks = _dailyTasks.where((task) {
-      if (_selectedProjectId != null && task.project != _selectedProjectId) return false;
-      if (_selectedFloor != null && task.floorName != _selectedFloor) return false;
-      if (_selectedPhaseName != null && task.phaseName != _selectedPhaseName) return false;
-      if (_selectedActivityName != null && task.activityName != _selectedActivityName) return false;
+      if (_selectedProjectId != null && task.project != _selectedProjectId)
+        return false;
+      if (_selectedFloor != null && task.floorName != _selectedFloor)
+        return false;
+      if (_selectedPhaseName != null && task.phaseName != _selectedPhaseName)
+        return false;
+      if (_selectedActivityName != null &&
+          task.activityName != _selectedActivityName)
+        return false;
       return true;
     }).toList();
 
     if (relevantTasks.isEmpty) {
-      return const SizedBox.shrink(); // Hide if no relevant tasks
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -898,12 +932,14 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               final isCompleted = _completedTaskIds.contains(task.id);
               return CheckboxListTile(
                 value: isCompleted,
-                secondary: task.status != 'Completed' ? IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () => _showEditTaskDialog(context, task, () {
-                    if (context.mounted) _fetchDailyTasks();
-                  }),
-                ) : null,
+                secondary: task.status != 'Completed'
+                    ? IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _showEditTaskDialog(context, task, () {
+                          if (context.mounted) _fetchDailyTasks();
+                        }),
+                      )
+                    : null,
                 onChanged: (val) {
                   setState(() {
                     if (val == true) {
@@ -911,13 +947,16 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       if (task.project.isNotEmpty) {
                         _selectedProjectId = task.project;
                       }
-                      if (task.floorName != null && task.floorName!.isNotEmpty) {
+                      if (task.floorName != null &&
+                          task.floorName!.isNotEmpty) {
                         _selectedFloor = task.floorName;
                       }
-                      if (task.phaseName != null && task.phaseName!.isNotEmpty) {
+                      if (task.phaseName != null &&
+                          task.phaseName!.isNotEmpty) {
                         _selectedPhaseName = task.phaseName;
                       }
-                      if (task.activityName != null && task.activityName!.isNotEmpty) {
+                      if (task.activityName != null &&
+                          task.activityName!.isNotEmpty) {
                         _selectedActivityName = task.activityName;
                       }
                     } else {
@@ -934,12 +973,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                subtitle: task.description.isNotEmpty 
-                  ? Text(task.description, style: const TextStyle(fontSize: 12)) 
-                  : null,
+                subtitle: task.description.isNotEmpty
+                    ? Text(
+                        task.description,
+                        style: const TextStyle(fontSize: 12),
+                      )
+                    : null,
                 activeColor: primaryBlue,
                 controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
               );
             }).toList(),
           ),
@@ -948,7 +993,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── EXECUTION NOTES ──────────────────────────────────────────────────────
   Widget _buildExecutionNotes() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -982,7 +1026,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── UPDATE DATE ──────────────────────────────────────────────────────────
   Widget _buildDateField() {
     final updateDateStr =
         '${_months[_selectedDate.month - 1]} ${_selectedDate.day}, ${_selectedDate.year}';
@@ -1017,15 +1060,25 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFE0E5FF),
+                      width: 1.5,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_month_outlined, color: primaryBlue, size: 19),
+                      const Icon(
+                        Icons.calendar_month_outlined,
+                        color: primaryBlue,
+                        size: 19,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1072,15 +1125,25 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   if (picked != null) setState(() => _completionDate = picked);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE0E5FF), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFE0E5FF),
+                      width: 1.5,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.event_available, color: primaryBlue, size: 19),
+                      const Icon(
+                        Icons.event_available,
+                        color: primaryBlue,
+                        size: 19,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1088,7 +1151,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
-                            color: _completionDate != null ? textDark : textGray,
+                            color: _completionDate != null
+                                ? textDark
+                                : textGray,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1104,7 +1169,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── PROGRESS PHOTOS ──────────────────────────────────────────────────────
   Widget _buildPhotoUpload() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1126,10 +1190,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F9FF),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFCCCFE8),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFFCCCFE8), width: 1.5),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1184,7 +1245,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       height: 90,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEEF0FF), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFFEEF0FF),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.04),
@@ -1205,7 +1269,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                             : Container(
                                 color: att.iconBg,
                                 child: Center(
-                                  child: Icon(att.icon, color: att.iconColor, size: 28),
+                                  child: Icon(
+                                    att.icon,
+                                    color: att.iconColor,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                       ),
@@ -1272,7 +1340,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── MATERIAL CONSUMPTION ─────────────────────────────────────────────────
   Widget _buildMaterialConsumption(
     BuildContext context,
     ProjectProvider provider,
@@ -1400,10 +1467,10 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 
-  // ── SUBMIT CTA ───────────────────────────────────────────────────────────
   Widget _buildSaveButton(BuildContext context, ProjectProvider provider) {
-    // Label changes based on whether there's an activity to mark done
-    final label = (_launchedFromTracker && _prefillActivityId != null) || _selectedActivityName != null
+    final label =
+        (_launchedFromTracker && _prefillActivityId != null) ||
+            _selectedActivityName != null
         ? 'Mark as Done & Submit'
         : 'Submit Progress Update';
 
@@ -1416,13 +1483,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               orElse: () => null,
             );
 
-        // 1. Identify target activity and toggle completion + details
         String? targetActivityId = _prefillActivityId;
-        if (targetActivityId == null && _selectedActivityName != null && project != null) {
+        if (targetActivityId == null &&
+            _selectedActivityName != null &&
+            project != null) {
           final matchedAct = project.selectedPhases
               ?.expand((ph) => ph.activities)
               .cast<ProjectActivity?>()
-              .firstWhere((act) => act?.name == _selectedActivityName, orElse: () => null);
+              .firstWhere(
+                (act) => act?.name == _selectedActivityName,
+                orElse: () => null,
+              );
           if (matchedAct != null) {
             targetActivityId = matchedAct.id;
           }
@@ -1430,14 +1501,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
         final targetProjectId = _selectedProjectId ?? project?.id;
         bool success = false;
-        
-        // If pre-filled activity is used, mark it as completed
+
         if (_prefillActivityId != null) {
           await provider.markActivityComplete(
-              _selectedProjectId!, _prefillActivityId!, _selectedDate);
+            _selectedProjectId!,
+            _prefillActivityId!,
+            _selectedDate,
+          );
         }
 
-        // Mark selected tasks as completed
         for (final taskId in _completedTaskIds) {
           try {
             await TaskService.updateTaskStatus(taskId, 'Completed');
@@ -1452,23 +1524,36 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           success = await provider.toggleActivityCompletion(
             targetProjectId,
             targetActivityId,
-            completedAt: _completionDate ?? _selectedDate, // pass date from the form
-            notes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+            completedAt: _completionDate ?? _selectedDate,
+            notes: _notesCtrl.text.trim().isNotEmpty
+                ? _notesCtrl.text.trim()
+                : null,
             photo: _attachments.isNotEmpty ? _attachments.first.dataUri : null,
             photos: _attachments.map((a) => a.dataUri).toList(),
             manualProgress: _completionProgress,
           );
         } else if (targetProjectId != null) {
           success = await provider.updateProjectProgress(
-              targetProjectId, _completionProgress);
+            targetProjectId,
+            _completionProgress,
+          );
         }
 
         if (context.mounted) {
           if (success) {
-            // Show success snackbar with the completion date
             final months = [
-              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+              'Jan',
+              'Feb',
+              'Mar',
+              'Apr',
+              'May',
+              'Jun',
+              'Jul',
+              'Aug',
+              'Sep',
+              'Oct',
+              'Nov',
+              'Dec',
             ];
             final dateLabel =
                 '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
@@ -1477,17 +1562,18 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded,
-                        color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _launchedFromTracker &&
-                                _selectedActivityName != null
+                        _launchedFromTracker && _selectedActivityName != null
                             ? '${_selectedActivityName!} marked done · $dateLabel'
                             : 'Progress updated · $dateLabel',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
@@ -1500,13 +1586,15 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
 
             Navigator.maybePop(context);
           } else {
-            // Show error snackbar
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded,
-                        color: Colors.white, size: 18),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(

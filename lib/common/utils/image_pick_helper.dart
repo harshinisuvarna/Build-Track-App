@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
-// ── PickedImage ───────────────────────────────────────────────────────────────
-// Used by profile.dart — works on both web and mobile without dart:io File.
 class PickedImage {
   final String path;
   final Future<Uint8List> Function() _readBytes;
@@ -38,10 +36,6 @@ Future<PickedImage?> pickImageFromGallery(BuildContext context) async {
   }
 }
 
-// ── PickedAttachment ──────────────────────────────────────────────────────────
-// Used by upload_box.dart, add_material, add_labour, add_equipment,
-// review_material, review_labour, review_equipment, updated_progress,
-// entry_details, entry_widgets.
 class PickedAttachment {
   final String name;
   final Uint8List bytes;
@@ -60,10 +54,8 @@ class PickedAttachment {
       name.toLowerCase().endsWith('.png') ||
       name.toLowerCase().endsWith('.webp');
 
-  // ImageProvider for showing image previews in UploadBox
   ImageProvider? get imageProvider => isImage ? MemoryImage(bytes) : null;
 
-  // Icon and colour helpers used by UploadBox file preview
   IconData get icon {
     final ext = name.split('.').last.toLowerCase();
     if (ext == 'pdf') return Icons.picture_as_pdf_outlined;
@@ -82,11 +74,9 @@ class PickedAttachment {
 
   Color get iconBg => iconColor.withValues(alpha: 0.10);
 
-  // Convert to base64 data URI for backend upload
   String get dataUri => 'data:$mimeType;base64,${_base64Encode(bytes)}';
 
   static String _base64Encode(Uint8List bytes) {
-    // dart:convert is not imported here — use the chunk approach
     const chars =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     final output = StringBuffer();
@@ -104,12 +94,9 @@ class PickedAttachment {
   }
 }
 
-// Picks any file (image, pdf, doc, xlsx) — used by UploadBox and entry screens
 Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
   try {
-    // Try image picker first for camera/gallery on mobile
     if (!kIsWeb) {
-      // On mobile show a choice dialog
       final choice = await showModalBottomSheet<String>(
         context: context,
         shape: const RoundedRectangleBorder(
@@ -161,7 +148,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
       }
     }
 
-    // Web or 'file' choice — use file_picker
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: [
@@ -175,7 +161,7 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
         'xls',
         'xlsx',
       ],
-      withData: true, // required on web to get bytes
+      withData: true,
     );
     if (result == null || result.files.isEmpty) return null;
     final f = result.files.first;

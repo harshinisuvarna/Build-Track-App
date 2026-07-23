@@ -1,77 +1,3 @@
-// ════════════════════════════════════════════════════════════════════════════
-// MERGE RESOLUTION — two conflicting versions combined, both sides kept.
-// Search "MERGE FIX" to find every spot touched during this merge.
-//
-//  MERGE FIX 1  Entry fetching/scoping (from "current" / FIX 4):
-//                 - _fetchEntriesForProject() helper scopes /transactions to
-//                   a single project and strips Rejected entries at the source
-//                 - loadEntriesForProject() lets the Home screen re-fetch
-//                   entries whenever the selected project changes
-//                 - entriesLoading flag for a scoped spinner
-//                 - addProject() / selectProject() call loadEntriesForProject()
-//                   so entries always match whichever project is selected
-//
-//  MERGE FIX 2  Extra EntryModel fields (from "incoming" / FIX 3):
-//                 - paymentStatus and paymentDate are now read from the API
-//                   JSON in _fetchEntriesForProject() and attached to every
-//                   EntryModel, in addition to approvalStatus (which FIX 4
-//                   already handled).
-//                 - addEntry() now also stamps paymentStatus/paymentDate on
-//                   freshly created entries (defaulted to 'Pending' / null,
-//                   matching the payload sent to the backend for a new,
-//                   unpaid entry — NOT copied from the input `entry`, since
-//                   that's just the local draft before the server assigns
-//                   real payment state).
-//
-//  REQUIRES: EntryModel (in project_model.dart) must already define
-//  `paymentStatus` (String) and `paymentDate` (DateTime?) fields, the same
-//  way `approvalStatus` was added previously. If those fields don't exist
-//  yet on EntryModel, add them first or this file will fail to compile.
-// ════════════════════════════════════════════════════════════════════════════
-//
-// ── EntryModel PATCH (in project_model.dart) ──────────────────────────────
-//
-//   class EntryModel {
-//     final String id;
-//     final String projectId;
-//     final EntryType type;
-//     final double amount;
-//     final DateTime date;
-//     final String description;
-//     final String? brand;
-//     final double? ratePerUnit;
-//     final String? unit;
-//     final String? floor;
-//     final ProjectStage? phase;
-//     final String? createdBy;
-//     final String? approvalStatus;
-//     final String? paymentStatus;     // <-- REQUIRED FOR THIS MERGE
-//     final DateTime? paymentDate;     // <-- REQUIRED FOR THIS MERGE
-//
-//     EntryModel({
-//       required this.id,
-//       required this.projectId,
-//       required this.type,
-//       required this.amount,
-//       required this.date,
-//       required this.description,
-//       this.brand,
-//       this.ratePerUnit,
-//       this.unit,
-//       this.floor,
-//       this.phase,
-//       this.createdBy,
-//       this.approvalStatus,
-//       this.paymentStatus,
-//       this.paymentDate,
-//     });
-//   }
-//
-// Also include paymentStatus / paymentDate in EntryModel.copyWith /
-// encodeList / decodeList if you have them, the same way approvalStatus
-// and createdBy were wired up.
-// ════════════════════════════════════════════════════════════════════════════
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
@@ -99,9 +25,6 @@ class ProjectProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _error = '';
 
-  // Track entries-loading separately from the big project load, so the
-  // Home screen can show a small spinner just for the entries list when
-  // switching projects, without re-triggering the whole page load.
   bool _entriesLoading = false;
   bool get entriesLoading => _entriesLoading;
 
@@ -135,7 +58,6 @@ class ProjectProvider extends ChangeNotifier {
     return stockMap;
   }
 
-  // Scoped correctly by projectId — kept as-is from both versions.
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
 
@@ -286,10 +208,6 @@ class ProjectProvider extends ChangeNotifier {
     return all.where((p) => assignedIds.contains(p.id.trim())).toList();
   }
 
-  // MERGE FIX 1 + MERGE FIX 2: "fetch + map raw JSON -> EntryModel" helper,
-  // reused by both load() and loadEntriesForProject(). Always scoped to a
-  // single project; always strips Rejected entries at the source; now also
-  // carries paymentStatus + paymentDate onto every EntryModel.
   Future<List<EntryModel>> _fetchEntriesForProject(String? projectId) async {
     final apiMaterials = await ApiService.fetchMaterials(projectId: projectId);
     debugPrint(
@@ -300,8 +218,6 @@ class ProjectProvider extends ChangeNotifier {
       final rawType = (json['type'] ?? '').toString().toLowerCase();
       if (rawType == 'income' || rawType == 'revenue') return false;
 
-      // Drop rejected entries here, at the source, so no screen downstream
-      // can ever accidentally show one again.
       final approvalStatus = (json['approvalStatus'] ?? '')
           .toString()
           .toLowerCase()
@@ -351,7 +267,9 @@ class ProjectProvider extends ChangeNotifier {
       final parsedPaidAmount = (json['paidAmount'] as num?)?.toDouble() ?? 0.0;
       final parsedPaymentHistory = json['paymentHistory'] != null
           ? List<Map<String, dynamic>>.from(
-              (json['paymentHistory'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+              (json['paymentHistory'] as List).map(
+                (e) => Map<String, dynamic>.from(e as Map),
+              ),
             )
           : <Map<String, dynamic>>[];
 
@@ -369,12 +287,8 @@ class ProjectProvider extends ChangeNotifier {
         createdBy = createdByRaw.toString();
       }
 
-      // approvalStatus: preserve original casing (UI code compares against
-      // 'Rejected', 'Approved', etc. with capital letters in a few places).
       final approvalStatusRaw = json['approvalStatus']?.toString() ?? 'Pending';
 
-      // MERGE FIX 2: paymentStatus / paymentDate, pulled straight from the
-      // raw API JSON, same as the "incoming" version did inline in load().
       final paymentStatusRaw = json['paymentStatus']?.toString() ?? 'Pending';
       final paymentDateRaw = json['paymentDate'] != null
           ? DateTime.tryParse(json['paymentDate'].toString())
@@ -416,8 +330,6 @@ class ProjectProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // Call this whenever the selected project changes — entries get the same
-  // re-fetch-on-switch treatment as revenue/inventory already get on Home.
   Future<void> loadEntriesForProject(String projectId) async {
     _entriesLoading = true;
     notifyListeners();
@@ -436,7 +348,6 @@ class ProjectProvider extends ChangeNotifier {
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Try to load phases from cache
     final phaseRaw = prefs.getString('phases');
     if (phaseRaw != null && phaseRaw.isNotEmpty) {
       try {
@@ -473,7 +384,6 @@ class ProjectProvider extends ChangeNotifier {
       _savePhases();
     }
 
-    // 2. Try to load projects and entries from cache
     final cachedProjectsRaw = prefs.getString('buildtrack_projects_v1');
     final cachedEntriesRaw = prefs.getString(_kEntriesKey);
 
@@ -533,16 +443,13 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      // Notify UI instantly with cached data
       _isLoading = false;
       notifyListeners();
 
-      // Trigger background network fetch asynchronously without awaiting it here
       _fetchNetworkData(initialProjId);
       return;
     }
 
-    // 3. If there is no cache, perform a blocking network load
     _setLoading(true);
     await _fetchNetworkData(initialProjId);
     _setLoading(false);
@@ -552,7 +459,6 @@ class ProjectProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Determine initial project ID if not passed
       final String? targetProjId =
           initialProjId ??
           prefs.getString('buildtrack_selected_project_id') ??
@@ -586,7 +492,6 @@ class ProjectProvider extends ChangeNotifier {
         }
       }
 
-      // Fetch projects AND entries concurrently
       final results = await Future.wait([
         ApiService.fetchProjects(),
         if (targetProjId != null)
@@ -671,9 +576,6 @@ class ProjectProvider extends ChangeNotifier {
 
       await _persistProjects();
 
-      // Save in-memory progress before we overwrite _selectedProject below,
-      // so we don't lose optimistic updates from toggleActivityCompletion
-      // or updateProjectProgress when the API returns stale data.
       final double? prevProgress = _selectedProject?.progress;
 
       if (_selectedProject != null) {
@@ -712,7 +614,6 @@ class ProjectProvider extends ChangeNotifier {
         UserSession.projectId = _selectedProject!.id;
       }
 
-      // Reuse freshEntries if selected project matches targetProjId, otherwise fetch
       if (_selectedProject != null) {
         if (_selectedProject!.id == targetProjId) {
           _entries = freshEntries;
@@ -723,8 +624,6 @@ class ProjectProvider extends ChangeNotifier {
         _entries = [];
       }
 
-      // Override spentAmount with locally computed total from entries,
-      // keeping the API value only when higher (e.g. includes external costs).
       _projects = _projects.map((p) {
         final localTotal = totalSpentForProject(p.id);
         if (localTotal > 0 && localTotal > p.spentAmount) {
@@ -822,8 +721,7 @@ class ProjectProvider extends ChangeNotifier {
     _selectedProject = saved;
     UserSession.projectId = saved.id;
     notifyListeners();
-    // New project has no entries yet, but keep this consistent — load its
-    // (empty) scoped entries so the old project's entries don't linger.
+
     unawaited(loadEntriesForProject(saved.id));
   }
 
@@ -903,10 +801,6 @@ class ProjectProvider extends ChangeNotifier {
     }
   }
 
-  // Selecting a project also re-fetches entries scoped to it, exactly the
-  // way InventoryProvider.loadInventory is already called whenever the
-  // project changes — entries are refetched fresh, scoped to the new
-  // project, every time you switch.
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     UserSession.projectId = project.id;
@@ -1084,7 +978,9 @@ class ProjectProvider extends ChangeNotifier {
           try {
             final data = jsonDecode(response.body);
             if (data['project'] != null) {
-              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              final newProject = ProjectModel.fromJson(
+                data['project'] as Map<String, dynamic>,
+              );
               _projects[projectIndex] = newProject;
               if (_selectedProject?.id == projectId) {
                 _selectedProject = newProject;
@@ -1188,7 +1084,9 @@ class ProjectProvider extends ChangeNotifier {
           try {
             final data = jsonDecode(response.body);
             if (data['project'] != null) {
-              final newProject = ProjectModel.fromJson(data['project'] as Map<String, dynamic>);
+              final newProject = ProjectModel.fromJson(
+                data['project'] as Map<String, dynamic>,
+              );
               _projects[projectIndex] = newProject;
               if (_selectedProject?.id == projectId) {
                 _selectedProject = newProject;
@@ -1201,7 +1099,6 @@ class ProjectProvider extends ChangeNotifier {
         }
         return true;
       } else {
-        // revert on failure
         _projects[projectIndex] = project;
         if (_selectedProject?.id == projectId) _selectedProject = project;
         notifyListeners();
@@ -1262,12 +1159,10 @@ class ProjectProvider extends ChangeNotifier {
       activity: entry.activity,
       activityId: entry.activityId,
       createdBy: UserSession.userId,
-      // New entries start life pending approval and unpaid — mirrors the
-      // payload sent to the backend above, NOT copied from the local draft
-      // `entry`, since the server hasn't assigned real state yet.
+
       approvalStatus: 'Pending',
-      paymentStatus: 'Pending', // MERGE FIX 2
-      paymentDate: null, // MERGE FIX 2
+      paymentStatus: 'Pending',
+      paymentDate: null,
     );
 
     _entries.add(updatedEntry);

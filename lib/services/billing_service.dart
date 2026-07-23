@@ -1,16 +1,12 @@
 import 'dart:convert';
 import 'package:buildtrack_mobile/services/api_service.dart';
 
-// ── AirPay Product ID constants ───────────────────────────────────────────────
-// These are the plan identifiers sent to your backend
-// Replace with real AirPay product IDs when your teammate provides them
 const String kStarterMonthlyId = 'buildtrack_starter_monthly';
 const String kGrowthMonthlyId = 'buildtrack_growth_monthly';
 const String kProMonthlyId = 'buildtrack_pro_monthly';
 const String kBusinessMonthlyId = 'buildtrack_business_monthly';
 const String kEnterpriseMonthlyId = 'buildtrack_enterprise_monthly';
 
-// ── Plan amount map (in INR) ──────────────────────────────────────────────────
 const Map<String, double> kPlanAmounts = {
   kStarterMonthlyId: 498,
   kGrowthMonthlyId: 999,
@@ -19,7 +15,6 @@ const Map<String, double> kPlanAmounts = {
   kEnterpriseMonthlyId: 4999,
 };
 
-// ── Plan name map ─────────────────────────────────────────────────────────────
 const Map<String, String> kPlanNames = {
   kStarterMonthlyId: 'starter',
   kGrowthMonthlyId: 'growth',
@@ -28,11 +23,7 @@ const Map<String, String> kPlanNames = {
   kEnterpriseMonthlyId: 'enterprise',
 };
 
-// ── BillingService ────────────────────────────────────────────────────────────
-// Handles all communication with your Node.js backend for payments
 class BillingService {
-  // Calls POST /api/subscriptions/initiate
-  // Returns the paymentParams map needed to build the AirPay WebView form
   static Future<Map<String, dynamic>?> initiatePayment(String productId) async {
     try {
       final planName = kPlanNames[productId];
@@ -55,8 +46,6 @@ class BillingService {
     }
   }
 
-  // Calls GET /api/subscriptions/status
-  // Returns the subscription status map from your backend
   static Future<Map<String, dynamic>?> fetchStatus() async {
     try {
       final response = await ApiService.get('/subscriptions/status');

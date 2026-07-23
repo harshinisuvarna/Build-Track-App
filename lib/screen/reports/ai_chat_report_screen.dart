@@ -1,5 +1,3 @@
-// lib/screen/reports/ai_chat_report_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,8 +8,6 @@ import '../../controller/ai_chat_report_provider.dart';
 import '../../controller/project_provider.dart';
 import '../../services/auth_service.dart';
 import '../../config/api_config.dart';
-
-// ─── Entry point ──────────────────────────────────────────────────────────────
 
 class AiChatReportScreen extends StatefulWidget {
   const AiChatReportScreen({super.key});
@@ -92,8 +88,6 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
   }
 }
 
-// ─── Dashboard view ────────────────────────────────────────────────────────────
-
 class _AiDashboardView extends StatefulWidget {
   const _AiDashboardView();
 
@@ -126,7 +120,6 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
         bottom: false,
         child: Column(
           children: [
-            // Top Bar
             AppTopBar(
               title: 'Construction Intelligence',
               isSubScreen: true,
@@ -146,7 +139,6 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
                   : null,
             ),
 
-            // Persistent Search Bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Container(
@@ -182,9 +174,7 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
                             ),
                             onPressed: () {
                               _searchController.clear();
-                              setState(
-                                () {},
-                              ); // Trigger rebuild to hide clear icon
+                              setState(() {});
                             },
                           )
                         : null,
@@ -199,7 +189,6 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
               ),
             ),
 
-            // Main Content Area based on state
             Expanded(child: _buildContent(provider)),
           ],
         ),
@@ -234,8 +223,6 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
     }
   }
 }
-
-// ─── Initial State ─────────────────────────────────────────────────────────────
 
 class _InitialState extends StatelessWidget {
   const _InitialState({required this.onPromptSelected});
@@ -333,8 +320,6 @@ class _PromptCard extends StatelessWidget {
   }
 }
 
-// ─── Loading State ─────────────────────────────────────────────────────────────
-
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
 
@@ -386,8 +371,6 @@ class _LoadingState extends StatelessWidget {
   }
 }
 
-// ─── Error State ─────────────────────────────────────────────────────────────
-
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.error, required this.onRetry});
   final String error;
@@ -430,8 +413,6 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-// ─── Results State ─────────────────────────────────────────────────────────────
-
 class _ResultsState extends StatefulWidget {
   const _ResultsState({required this.result, required this.onActionTap});
   final AiReportResult result;
@@ -468,7 +449,9 @@ class _ResultsStateState extends State<_ResultsState> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               backgroundColor: Colors.white,
               child: Container(
                 width: 320,
@@ -536,7 +519,10 @@ class _ResultsStateState extends State<_ResultsState> {
                             dense: true,
                             title: Text(
                               col,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             leading: Checkbox(
                               activeColor: AppColors.primary,
@@ -556,9 +542,13 @@ class _ResultsStateState extends State<_ResultsState> {
                                     if (tempActive.length > 1) {
                                       tempActive.remove(col);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('At least one column must be visible.'),
+                                          content: Text(
+                                            'At least one column must be visible.',
+                                          ),
                                           duration: Duration(seconds: 1),
                                         ),
                                       );
@@ -567,7 +557,11 @@ class _ResultsStateState extends State<_ResultsState> {
                                 });
                               },
                             ),
-                            trailing: const Icon(Icons.drag_handle, size: 20, color: Colors.grey),
+                            trailing: const Icon(
+                              Icons.drag_handle,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
                           );
                         },
                       ),
@@ -583,14 +577,19 @@ class _ResultsStateState extends State<_ResultsState> {
                               tempAll = List.from(widget.result.columns);
                             });
                           },
-                          child: const Text('Reset', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           onPressed: () {
                             setState(() {
@@ -598,7 +597,13 @@ class _ResultsStateState extends State<_ResultsState> {
                             });
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -620,7 +625,6 @@ class _ResultsStateState extends State<_ResultsState> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        // Alerts Section
         if (result.alerts.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -668,7 +672,6 @@ class _ResultsStateState extends State<_ResultsState> {
             ),
           ),
 
-        // Executive Summary
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
@@ -725,7 +728,6 @@ class _ResultsStateState extends State<_ResultsState> {
 
         const SizedBox(height: 16),
 
-        // Action Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -750,7 +752,6 @@ class _ResultsStateState extends State<_ResultsState> {
           ),
         ),
 
-        // Metrics Grid (Collapsible/Dynamic based on what's available)
         if (result.totalAmount != null || result.rowCount != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -782,7 +783,6 @@ class _ResultsStateState extends State<_ResultsState> {
 
         const SizedBox(height: 24),
 
-        // Project Breakdown
         if (result.projectBreakdown.length > 1)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -804,7 +804,7 @@ class _ResultsStateState extends State<_ResultsState> {
                     ) {
                       final item = result.projectBreakdown[index];
                       final isTop = index == 0;
-                      // Fallback to quantity if amount is 0 (for inventory queries)
+
                       final val =
                           (item['totalAmount'] as num?)?.toDouble() ?? 0;
                       final valStr = val > 0
@@ -853,7 +853,6 @@ class _ResultsStateState extends State<_ResultsState> {
             ),
           ),
 
-        // Data Table
         if (result.tableRows.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -902,7 +901,6 @@ class _ResultsStateState extends State<_ResultsState> {
 
         const SizedBox(height: 32),
 
-        // Suggested Actions
         if (result.actions.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -947,23 +945,29 @@ class _ResultsStateState extends State<_ResultsState> {
 
   Widget _buildTransactionTable() {
     final result = widget.result;
-    
-    // ── Calculate grand total from rows ────────────────────────────
+
     double grandTotal = 0;
     for (final r in result.tableRows) {
-      final p = r['Amount (INR)'] ?? r['price']; // Fallback for backwards compatibility if needed
-      grandTotal += (p is num) ? p.toDouble() : (double.tryParse(p?.toString() ?? '') ?? 0);
+      final p = r['Amount (INR)'] ?? r['price'];
+      grandTotal += (p is num)
+          ? p.toDouble()
+          : (double.tryParse(p?.toString() ?? '') ?? 0);
     }
 
-    // ── Dynamic column widths ────────────────────────────────────────
     const double colHash = 36;
     const double rowPadH = 16;
-    
+
     double getColWidth(String colName) {
       if (colName == 'Amount (INR)') return 104;
-      if (colName == 'Description' || colName == 'Project' || colName == 'Material') return 160;
-      if (colName == 'Purchased Date' || colName == 'Payment Date' || colName == 'Qty') return 96;
-      return 120; // Default for others (Brand, Activity, Status, etc)
+      if (colName == 'Description' ||
+          colName == 'Project' ||
+          colName == 'Material')
+        return 160;
+      if (colName == 'Purchased Date' ||
+          colName == 'Payment Date' ||
+          colName == 'Qty')
+        return 96;
+      return 120;
     }
 
     double tableWidth = colHash + (rowPadH * 2);
@@ -971,7 +975,6 @@ class _ResultsStateState extends State<_ResultsState> {
       tableWidth += getColWidth(col);
     }
 
-    // ── Styles ────────────────────────────────────────────────────
     const headerBg = Color(0xFFF1F3F8);
     const headerTextStyle = TextStyle(
       fontSize: 11,
@@ -993,7 +996,6 @@ class _ResultsStateState extends State<_ResultsState> {
         width: tableWidth,
         child: Column(
           children: [
-            // ── Header Row ───────────────────────────────────────────
             Container(
               decoration: const BoxDecoration(
                 color: headerBg,
@@ -1001,19 +1003,37 @@ class _ResultsStateState extends State<_ResultsState> {
                   bottom: BorderSide(color: dividerColor, width: 1),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: rowPadH,
+                vertical: 12,
+              ),
               child: Row(
                 children: [
-                  SizedBox(width: colHash, child: const Text('#', style: headerTextStyle, softWrap: false, maxLines: 1)),
+                  SizedBox(
+                    width: colHash,
+                    child: const Text(
+                      '#',
+                      style: headerTextStyle,
+                      softWrap: false,
+                      maxLines: 1,
+                    ),
+                  ),
                   ..._visibleColumns.map((colName) {
                     final isAmount = colName == 'Amount (INR)';
                     final width = getColWidth(colName);
-                    
+
                     return SizedBox(
                       width: width,
                       child: Align(
-                        alignment: isAmount ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Text(colName.toUpperCase(), style: headerTextStyle, softWrap: false, maxLines: 1),
+                        alignment: isAmount
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Text(
+                          colName.toUpperCase(),
+                          style: headerTextStyle,
+                          softWrap: false,
+                          maxLines: 1,
+                        ),
                       ),
                     );
                   }),
@@ -1021,7 +1041,6 @@ class _ResultsStateState extends State<_ResultsState> {
               ),
             ),
 
-            // ── Data Rows ────────────────────────────────────────────
             ...List.generate(result.tableRows.length, (index) {
               final r = result.tableRows[index];
               final isEven = index.isEven;
@@ -1033,14 +1052,20 @@ class _ResultsStateState extends State<_ResultsState> {
                     bottom: BorderSide(color: dividerColor, width: 0.5),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: rowPadH,
+                  vertical: 11,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: colHash,
                       child: Text(
                         (r['number'] ?? (index + 1)).toString(),
-                        style: cellTextStyle.copyWith(color: const Color(0xFF94A3B8), fontSize: 12),
+                        style: cellTextStyle.copyWith(
+                          color: const Color(0xFF94A3B8),
+                          fontSize: 12,
+                        ),
                         softWrap: false,
                         maxLines: 1,
                       ),
@@ -1049,27 +1074,36 @@ class _ResultsStateState extends State<_ResultsState> {
                       final isAmount = colName == 'Amount (INR)';
                       final width = getColWidth(colName);
                       final val = r[colName];
-                      
+
                       String displayVal;
                       TextStyle style = cellTextStyle;
-                      
+
                       if (isAmount) {
-                        final parsed = (val is num) ? val.toDouble() : (double.tryParse(val?.toString() ?? '') ?? 0);
+                        final parsed = (val is num)
+                            ? val.toDouble()
+                            : (double.tryParse(val?.toString() ?? '') ?? 0);
                         displayVal = _formatCurrency(parsed);
-                        style = style.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E293B));
+                        style = style.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        );
                       } else {
                         displayVal = (val ?? '-').toString();
                         if (colName == 'Description' || colName == 'Project') {
                           style = style.copyWith(fontWeight: FontWeight.w500);
                         } else if (colName == 'Brand' || colName == 'Type') {
-                          style = style.copyWith(color: const Color(0xFF475569));
+                          style = style.copyWith(
+                            color: const Color(0xFF475569),
+                          );
                         }
                       }
 
                       return SizedBox(
                         width: width,
                         child: Align(
-                          alignment: isAmount ? Alignment.centerRight : Alignment.centerLeft,
+                          alignment: isAmount
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
                           child: Text(
                             displayVal,
                             style: style,
@@ -1085,7 +1119,6 @@ class _ResultsStateState extends State<_ResultsState> {
               );
             }),
 
-            // ── Total Footer Row ─────────────────────────────────────
             Container(
               decoration: const BoxDecoration(
                 color: Color(0xFFF1F3F8),
@@ -1097,61 +1130,66 @@ class _ResultsStateState extends State<_ResultsState> {
                   bottomRight: Radius.circular(15),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: rowPadH, vertical: 14),
+              padding: const EdgeInsets.symmetric(
+                horizontal: rowPadH,
+                vertical: 14,
+              ),
               child: Row(
                 children: [
                   SizedBox(width: colHash),
-                  // The text should span all columns up to Amount (INR)
-                  Builder(builder: (context) {
-                    double spanWidth = 0;
-                    double amountWidth = 0;
-                    bool hasAmount = false;
-                    
-                    for (final col in _visibleColumns) {
-                      if (col == 'Amount (INR)') {
-                        hasAmount = true;
-                        amountWidth = getColWidth(col);
-                      } else {
-                        spanWidth += getColWidth(col);
+
+                  Builder(
+                    builder: (context) {
+                      double spanWidth = 0;
+                      double amountWidth = 0;
+                      bool hasAmount = false;
+
+                      for (final col in _visibleColumns) {
+                        if (col == 'Amount (INR)') {
+                          hasAmount = true;
+                          amountWidth = getColWidth(col);
+                        } else {
+                          spanWidth += getColWidth(col);
+                        }
                       }
-                    }
-                    
-                    return Row(
-                      children: [
-                        SizedBox(
-                          width: spanWidth,
-                          child: Text(
-                            'TOTAL (${result.tableRows.length} entries)',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155),
-                              letterSpacing: 0.3,
-                            ),
-                            softWrap: false,
-                            maxLines: 1,
-                          ),
-                        ),
-                        if (hasAmount)
+
+                      return Row(
+                        children: [
                           SizedBox(
-                            width: amountWidth,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                _formatCurrency(grandTotal),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF173EEA),
+                            width: spanWidth,
+                            child: Text(
+                              'TOTAL (${result.tableRows.length} entries)',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF334155),
+                                letterSpacing: 0.3,
+                              ),
+                              softWrap: false,
+                              maxLines: 1,
+                            ),
+                          ),
+                          if (hasAmount)
+                            SizedBox(
+                              width: amountWidth,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _formatCurrency(grandTotal),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF173EEA),
+                                  ),
+                                  softWrap: false,
+                                  maxLines: 1,
                                 ),
-                                softWrap: false,
-                                maxLines: 1,
                               ),
                             ),
-                          ),
-                      ],
-                    );
-                  }),
+                        ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

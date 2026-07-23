@@ -14,11 +14,10 @@ import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
 import 'package:provider/provider.dart';
-// UserRole enum is defined in user_session.dart — already imported above
+
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
-// ── Live user data model ──────────────────────────────────────────────────────
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
@@ -41,7 +40,6 @@ class ProfileUserData {
     );
   }
 
-  /// Fallback when API fails — still uses session for role label
   static ProfileUserData get sessionFallback => ProfileUserData(
     name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
     email: '${UserSession.userId}@buildtrack.app',
@@ -49,7 +47,6 @@ class ProfileUserData {
   );
 }
 
-// ── Screen ────────────────────────────────────────────────────────────────────
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -81,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        // API returns { user: { ... } }
+
         final userJson = decoded['user'] ?? decoded;
         final data = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
 
@@ -228,7 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // Refresh profile so the new photo persists across navigation
+
         await _fetchProfile();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -237,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.red,
           ),
         );
-        // Revert local preview if upload failed
+
         if (mounted) {
           setState(() {
             _avatarBytes = null;
@@ -272,7 +269,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             )
           : Column(
               children: [
-                // Error banner if API failed but we have fallback data
                 if (_profileError != null) ...[
                   _ErrorBanner(message: _profileError!),
                   const SizedBox(height: 12),
@@ -304,7 +300,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Profile header card ────────────────────────────────────────────────────
   Widget _buildProfileCard(ProfileUserData user) {
     return Container(
       width: double.infinity,
@@ -418,7 +413,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Settings card ──────────────────────────────────────────────────────────
   Widget _buildSettingsCard() {
     return AppCard(
       padding: EdgeInsets.zero,
@@ -438,7 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '/edit-profile',
                 arguments: _user,
               );
-              // Refresh profile after returning from edit
+
               _fetchProfile();
             },
             showDivider: true,
@@ -525,7 +519,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Logout ─────────────────────────────────────────────────────────────────
   Widget _buildActions() {
     return AppButton(
       label: 'Logout',
@@ -545,7 +538,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ── Team access section ────────────────────────────────────────────────────
   Widget _buildTeamAccessSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -772,7 +764,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Small error banner ────────────────────────────────────────────────────────
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
   final String message;

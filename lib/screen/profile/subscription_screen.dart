@@ -8,7 +8,6 @@ import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ── Plan metadata ────────────────────────────────────────────────────────────
 class _PlanInfo {
   const _PlanInfo({
     required this.plan,
@@ -149,7 +148,6 @@ const _plans = [
   ),
 ];
 
-// ── Screen ────────────────────────────────────────────────────────────────────
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
 
@@ -298,29 +296,20 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  // ── _onUpgrade ───────────────────────────────────────────────────────────────
-  // 1. Calls backend to get AirPay payment params
-  // 2. Opens PaymentWebViewScreen with those params
-  // 3. Waits for result (true = success, false = failure)
-  // 4. Shows success dialog or error banner
   Future<void> _onUpgrade(
     BuildContext context,
     SubscriptionProvider sub,
     _PlanInfo plan,
   ) async {
-    // Free plan or already on this plan — do nothing
     if (plan.productId == null) return;
     if (sub.currentPlan == plan.plan) return;
 
-    // Step 1: call backend to initiate payment and get AirPay params
     final params = await sub.purchase(plan.productId!);
 
     if (!context.mounted) return;
 
-    // If initiation failed, error is already set in provider — banner shows
     if (params == null) return;
 
-    // Step 2: open WebView with AirPay payment form
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -330,15 +319,9 @@ class SubscriptionScreen extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    // Step 3: handle result
-    // result == true  → payment success
-    // result == false or null → payment cancelled or failed
     if (result == true) {
       _showSuccessDialog(context, plan);
-    } else {
-      // Provider already set error via handlePaymentResult(false)
-      // The error banner in the screen body will show automatically
-    }
+    } else {}
   }
 
   Future<void> _onRestore(
@@ -419,8 +402,8 @@ class SubscriptionScreen extends StatelessWidget {
               label: 'Start Building',
               isFullWidth: true,
               onTap: () {
-                Navigator.of(context).pop(); // close dialog
-                Navigator.of(context).pop(); // close subscription screen
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -430,7 +413,6 @@ class SubscriptionScreen extends StatelessWidget {
   }
 }
 
-// ── Plan card ─────────────────────────────────────────────────────────────────
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.info,
@@ -691,7 +673,6 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 class _LimitPill extends StatelessWidget {
   const _LimitPill({required this.icon, required this.label});
   final IconData icon;

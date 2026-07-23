@@ -33,7 +33,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   String? _filterProjectId;
   bool _hasPassedProject = false;
 
-  // ── Date-group collapse state (Today expanded by default, rest collapsed) ──
   final Map<String, bool> _collapsedGroups = {};
 
   Color _getCategoryColor(String category) {
@@ -59,7 +58,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredLogs {
-    // Role-based visibility filter
     final visible = EntryPermissions.filterMaps(_allLogs);
     switch (_filterIndex) {
       case 1:
@@ -116,7 +114,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
   String get _unitLabel {
     if (_allLogs.isNotEmpty) {
-      final String rawUnit = (_allLogs.first['unit'] ?? '').toString().toLowerCase();
+      final String rawUnit = (_allLogs.first['unit'] ?? '')
+          .toString()
+          .toLowerCase();
       if (rawUnit.isNotEmpty) {
         if (rawUnit == 'hour' || rawUnit == 'hours') return 'hours';
         if (rawUnit == 'day' || rawUnit == 'days') return 'days';
@@ -167,11 +167,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     }
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  // SMART DATE GROUPING
-  // ════════════════════════════════════════════════════════════════════════
-
-  /// Parse already-formatted date strings like "May 15, 2026" back to DateTime.
   DateTime? _parseFormattedDate(String s) {
     const months = {
       'Jan': 1,
@@ -194,7 +189,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       final y = int.tryParse(parts[2]);
       if (m != null && d != null && y != null) return DateTime(y, m, d);
     }
-    // Fallback: try ISO parse
+
     return DateTime.tryParse(s);
   }
 
@@ -233,7 +228,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     }
   }
 
-  /// Returns an ordered map: Today → Yesterday → This Week → Older.
   Map<String, List<Map<String, dynamic>>> _groupByDate(
     List<Map<String, dynamic>> logs,
   ) {
@@ -547,8 +541,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     );
   }
 
-  // ── Date-grouped log list ─────────────────────────────────────────────────
-
   Widget _buildDateGroupedLogs(BuildContext context) {
     final groups = _groupByDate(_filteredLogs);
     final widgets = <Widget>[];
@@ -559,7 +551,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       final collapsed = _collapsedGroups[groupLabel] ?? (groupLabel != 'Today');
 
       widgets.add(
-        // ── Date group header ──────────────────────────────────────────────
         InkWell(
           onTap: () =>
               setState(() => _collapsedGroups[groupLabel] = !collapsed),
@@ -735,7 +726,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         ),
       ],
     );
-  } // ─── Payment Status Strip ──────────────────────────────────────────────────
+  }
 
   Widget _buildPaymentStatusStrip() {
     int fullyPaid = 0, partial = 0, notPaid = 0;
@@ -1034,7 +1025,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     final String rawUnit = (log['unit'] ?? '').toString().trim().toLowerCase();
     final String logCategory = log['category'] as String? ?? _itemType;
 
-    // Safety check: Filter out legacy invalid weight/material units for Labour/Equipment
     final bool isInvalidUnit = const [
       'kg',
       'bag',
@@ -1073,7 +1063,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       }
       return '$sign$qtyFormatted $unitLabel';
     } else {
-      // Material
       if (parsedUnit.isEmpty || parsedUnit == 'unit' || parsedUnit == 'units') {
         return '$sign$qtyFormatted units';
       }
@@ -1134,13 +1123,17 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                 'createdBy': log['createdBy'] ?? '',
                 'projectId': log['projectId'] ?? '',
                 'status': log['status'] ?? 'pending',
-                // payment lifecycle fields
+
                 'paymentStatus': payStatus,
                 'billAmount': billAmt,
                 'paidAmount': paidAmt,
                 'supplier': log['supplier'] ?? '',
                 'paymentMethod': log['method'] ?? '',
-                'lastUpdated': log['rawLastUpdated'] ?? log['lastUpdated'] ?? log['date'] ?? '',
+                'lastUpdated':
+                    log['rawLastUpdated'] ??
+                    log['lastUpdated'] ??
+                    log['date'] ??
+                    '',
                 'paymentHistory': log['paymentHistory'],
               },
             ).then((_) {
@@ -1193,7 +1186,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                           '$_itemName • ${log['ref'] ?? ''}',
                           style: AppTheme.caption.copyWith(color: textGray),
                         ),
-                        // ── Vendor / Supplier ────────────────────────────────
+
                         if ((log['supplier'] as String? ?? '').isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Row(
@@ -1230,10 +1223,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                         style: TextStyle(
                           color: isPositive
                               ? primaryBlue
-                              : const Color(0xFF9C6AAB), // Muted purple
-                          fontWeight: FontWeight.w600, // Semi-bold
+                              : const Color(0xFF9C6AAB),
+                          fontWeight: FontWeight.w600,
                           fontSize: 15,
-                        ), // Smaller size
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -1253,7 +1246,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   ),
                 ],
               ),
-              // ── Payment footer row ─────────────────────────────────────────
+
               const SizedBox(height: 10),
               const Divider(height: 1, color: Color(0xFFF0EEF8)),
               const SizedBox(height: 8),

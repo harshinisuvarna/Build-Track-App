@@ -51,11 +51,10 @@ const _entryTypes = [
   ),
 ];
 
-// â”€â”€â”€ Public helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 void showAddEntryPopup(BuildContext context) {
   showModalBottomSheet(
     context: context,
-    isScrollControlled: true, // lets us size to 75 % of screen
+    isScrollControlled: true,
     backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -80,7 +79,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 75 % of screen height, minus keyboard inset
     final maxH = MediaQuery.of(context).size.height * 0.75;
 
     return SafeArea(
@@ -93,7 +91,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // â”€â”€ Drag indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Center(
                 child: Container(
                   width: 40,
@@ -131,7 +128,6 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
                     type: type,
                     isSelected: _selectedId == type.id,
                     onTap: () {
-                      // Brief visual selection feedback, then navigate
                       setState(() => _selectedId = type.id);
                       Future.delayed(const Duration(milliseconds: 150), () {
                         if (!mounted) return;
@@ -196,7 +192,6 @@ class _EntryCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Icon box
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 52,
@@ -211,7 +206,6 @@ class _EntryCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Text
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

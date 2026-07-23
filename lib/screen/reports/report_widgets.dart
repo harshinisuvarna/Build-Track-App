@@ -263,11 +263,9 @@ class ChartSection extends StatelessWidget {
     final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
     final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
 
-    // Pick a "nice" interval so we always get ~4-5 evenly spaced labels,
-    // never more — this is what prevents the vertical overlap.
     double niceInterval(double max) {
       if (max <= 0) return 1;
-      final raw = max / 4; // aim for ~4 divisions
+      final raw = max / 4;
       final magnitude = math.pow(10, (math.log(raw) / math.ln10).floor());
       final residual = raw / magnitude;
       double niceResidual;
@@ -285,13 +283,8 @@ class ChartSection extends StatelessWidget {
 
     final leftInterval = niceInterval(maxY);
 
-    // IMPORTANT: round the chart ceiling itself UP to a clean multiple of
-    // leftInterval. Without this, maxY (e.g. 6.3L) doesn't line up with the
-    // last interval tick (e.g. 6L), and fl_chart renders a label at both —
-    // that's what causes the two close labels to visually collide.
     final roundedMaxY = (maxY / leftInterval).ceil() * leftInterval;
 
-    // Format compactly, used both for the label and to size reservedSize
     String formatY(double value) {
       if (value >= 100000) {
         return '₹${(value / 100000).toStringAsFixed(value % 100000 == 0 ? 0 : 1)}L';
@@ -301,8 +294,6 @@ class ChartSection extends StatelessWidget {
       return '₹${value.toInt()}';
     }
 
-    // Size reservedSize off the widest label we'll actually show,
-    // so labels never get clipped or visually collide with the chart area.
     final widestLabelLength = formatY(roundedMaxY).length;
     final dynamicReservedSize = (widestLabelLength * 7.0 + 14).clamp(
       44.0,
@@ -501,7 +492,6 @@ class _ProjectPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIX: constrain the sheet to 60% of screen height so it never overflows
     final maxSheetHeight = MediaQuery.of(context).size.height * 0.60;
 
     return SafeArea(
@@ -513,11 +503,9 @@ class _ProjectPickerSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
               Text('Select Project', style: AppTheme.heading3),
               const SizedBox(height: 8),
 
-              // All Active Projects option
               ListTile(
                 title: const Text('All Active Projects'),
                 leading: const Icon(Icons.grid_view),
@@ -531,7 +519,6 @@ class _ProjectPickerSheet extends StatelessWidget {
               const Divider(height: 1),
               const SizedBox(height: 8),
 
-              // ✅ FIX: Scrollable list so overflow never happens
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
@@ -608,8 +595,6 @@ class CategoryBudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Using context.watch registers this const widget to rebuild
-    // whenever ReportProvider calls notifyListeners().
     final report = context.watch<ReportProvider>().report;
 
     final items = [

@@ -2,15 +2,8 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 
-// ── CtaVariant ────────────────────────────────────────────────────────────────
-enum CtaVariant {
-  primary, // gradient background — used for highlighted Pro plan / main CTA
-  secondary, // translucent white — used for "Restore" on dark gradient cards
-  outline, // white with border — used for other plans
-}
+enum CtaVariant { primary, secondary, outline }
 
-// ── PremiumCtaButton ──────────────────────────────────────────────────────────
-// Used by subscription_screen.dart and subscription_card.dart for CTA buttons
 class PremiumCtaButton extends StatelessWidget {
   const PremiumCtaButton({
     super.key,
@@ -31,12 +24,9 @@ class PremiumCtaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: was incorrectly using `widget.variant` (StatefulWidget syntax)
-    // This is a StatelessWidget — fields are accessed directly via `variant`
     final isPrimary = variant == CtaVariant.primary;
     final isSecondary = variant == CtaVariant.secondary;
 
-    // ── Background decoration per variant ─────────────────────────────────
     BoxDecoration decoration;
     Color textColor;
     Color spinnerColor;
@@ -56,8 +46,6 @@ class PremiumCtaButton extends StatelessWidget {
       textColor = Colors.white;
       spinnerColor = Colors.white;
     } else if (isSecondary) {
-      // Translucent white — designed to sit on top of colorful gradient cards
-      // (e.g. the "Restore" button inside SubscriptionCard)
       decoration = BoxDecoration(
         color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(16),
@@ -69,7 +57,6 @@ class PremiumCtaButton extends StatelessWidget {
       textColor = Colors.white;
       spinnerColor = Colors.white;
     } else {
-      // outline
       decoration = BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

@@ -40,7 +40,7 @@ class AppTopBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(24),
                       onTap: onLeftTap,
                       child: Padding(
-                        padding: const EdgeInsets.all(10), // 44px total target
+                        padding: const EdgeInsets.all(10),
                         child: Icon(leftIcon, color: _textDark, size: 24),
                       ),
                     ),

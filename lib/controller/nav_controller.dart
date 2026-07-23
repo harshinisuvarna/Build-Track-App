@@ -40,7 +40,6 @@ class NavController extends ChangeNotifier {
     Navigator.pushNamedAndRemoveUntil(context, route, (r) => false);
   }
 
-  // Keeping routes getter for backward compatibility
   List<String> get routes {
     final items = <String>['/home'];
     if (RoleManager.canViewProjects) items.add('/projects');
@@ -50,7 +49,6 @@ class NavController extends ChangeNotifier {
     return items;
   }
 
-  // Keeping setIndex for backward compatibility
   void setIndex(int newIndex, BuildContext context) {
     final routeMap = {
       0: '/home',

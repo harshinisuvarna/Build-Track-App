@@ -1,4 +1,3 @@
-// voice_review_widgets.dart — Shared Voice UX layer for all 3 review screens
 import 'dart:async';
 import 'dart:math';
 import 'package:buildtrack_mobile/common/controllers/voice_recording_controller.dart';
@@ -6,14 +5,11 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
 
-// Re-export so screens only need one import
 export 'package:buildtrack_mobile/common/controllers/voice_recording_controller.dart'
     show VoiceEngineState, VoiceRecordingController;
 
-// ─── LEGACY ALIAS — keeps old VoiceEntryState references compiling ────────────
 typedef VoiceEntryState = VoiceEngineState;
 
-// ─── DATA MODEL ───────────────────────────────────────────────────────────────
 class ExtractedField {
   const ExtractedField({
     required this.icon,
@@ -31,7 +27,6 @@ class ExtractedField {
   final double confidence;
 }
 
-// ─── VOICE MIC BUTTON ─────────────────────────────────────────────────────────
 class VoiceMicButton extends StatefulWidget {
   const VoiceMicButton({
     super.key,
@@ -172,7 +167,6 @@ class _VoiceMicButtonState extends State<VoiceMicButton>
   }
 }
 
-// ─── VOICE STATUS HEADER ──────────────────────────────────────────────────────
 class VoiceStatusHeader extends StatelessWidget {
   const VoiceStatusHeader({
     super.key,
@@ -181,7 +175,7 @@ class VoiceStatusHeader extends StatelessWidget {
     this.confidence = 98.4,
     this.timestamp,
     this.onMicTap,
-    // Live listening props
+
     this.partialTranscript = '',
     this.elapsedDisplay = '00:00',
     this.onStop,
@@ -194,7 +188,6 @@ class VoiceStatusHeader extends StatelessWidget {
   final String? timestamp;
   final VoidCallback? onMicTap;
 
-  // Populated by the real engine during listening
   final String partialTranscript;
   final String elapsedDisplay;
   final VoidCallback? onStop;
@@ -268,7 +261,6 @@ class VoiceStatusHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Top row ────────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
             child: Row(
@@ -419,7 +411,6 @@ class VoiceStatusHeader extends StatelessWidget {
             ),
           ),
 
-          // ── Live partial transcript (listening only) ────────────────────────
           if (isActive) ...[
             const Divider(height: 1, color: Color(0xFFF0EEF8)),
             Padding(
@@ -459,7 +450,7 @@ class VoiceStatusHeader extends StatelessWidget {
                 ],
               ),
             ),
-            // ── Cancel / Done row ─────────────────────────────────────────────
+
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
               child: Row(
@@ -518,7 +509,6 @@ class VoiceStatusHeader extends StatelessWidget {
   }
 }
 
-// ─── EXTRACTED DATA SUMMARY CARD ──────────────────────────────────────────────
 class ExtractedDataSummaryCard extends StatefulWidget {
   const ExtractedDataSummaryCard({
     super.key,
@@ -824,7 +814,6 @@ class _FieldRow extends StatelessWidget {
   }
 }
 
-// ─── EXTRACTION PROCESSING CARD ───────────────────────────────────────────────
 class ExtractionProcessingCard extends StatefulWidget {
   const ExtractionProcessingCard({super.key, required this.stages});
   final List<String> stages;
@@ -937,7 +926,6 @@ class _ExtractionProcessingCardState extends State<ExtractionProcessingCard> {
   }
 }
 
-// ─── EXPANDABLE TRANSCRIPT ────────────────────────────────────────────────────
 class ExpandableTranscript extends StatefulWidget {
   const ExpandableTranscript({super.key, required this.transcript});
   final String transcript;

@@ -38,18 +38,13 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
           onNavigationRequest: (NavigationRequest request) {
             final url = request.url;
 
-            // ── Catch AirPay deep link redirect ────────────────────
-            // AirPay callback redirects to buildtrack://payment/...
             if (url.startsWith('buildtrack://payment/')) {
               final isSuccess = url.contains('/success');
               _handlePaymentReturn(isSuccess);
               return NavigationDecision.prevent;
             }
 
-            // ── Also catch ngrok callback URL in case redirect
-            // happens via the backend URL before deep link ───────────
             if (url.contains('/api/subscriptions/callback')) {
-              // Let it load — backend will redirect to deep link
               return NavigationDecision.navigate;
             }
 
@@ -57,10 +52,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
           },
         ),
       )
-      // ── Load the AirPay POST form as an HTML string ───────────────
-      // AirPay requires a POST request — WebViews cannot do POST navigation
-      // directly. The standard solution is to inject a hidden HTML form
-      // and auto-submit it via JavaScript on page load.
       ..loadHtmlString(
         _buildPaymentHtml(),
         baseUrl: 'https://build-track.onrender.com/',
@@ -71,11 +62,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     final p = widget.paymentParams;
     final airpayUrl = p['airpayUrl']?.toString() ?? '';
 
-    // Build one hidden <input> for every param except airpayUrl itself
     final StringBuffer inputFields = StringBuffer();
     p.forEach((key, value) {
       if (key != 'airpayUrl') {
-        // Escape any special HTML characters in values
         final safeValue = value
             .toString()
             .replaceAll('&', '&amp;')
@@ -139,9 +128,8 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   }
 
   void _handlePaymentReturn(bool isSuccess) {
-    // Tell provider to re-fetch subscription status from backend
     context.read<SubscriptionProvider>().handlePaymentResult(isSuccess);
-    // Pop with result so subscription_screen knows to show dialog
+
     if (mounted) Navigator.of(context).pop(isSuccess);
   }
 
@@ -171,7 +159,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Color(0xFF344054)),
           onPressed: () {
-            // User manually closed — treat as failure
             _handlePaymentReturn(false);
           },
         ),
@@ -184,7 +171,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         children: [
           WebViewWidget(controller: _controller),
 
-          // ── Loading overlay ─────────────────────────────────────
           if (_isLoading)
             Container(
               color: Colors.white,

@@ -1,38 +1,27 @@
-// voice_recording_controller.dart
-// Shared speech engine lifecycle for BuildTrack voice review screens.
-// Wraps speech_to_text with a full state machine, live partial feedback,
-// session timer, and clean dispose semantics.
-
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
-// ─── State machine enum ────────────────────────────────────────────────────────
 enum VoiceEngineState { idle, listening, processing, parsed, error }
 
-// ─── Controller ───────────────────────────────────────────────────────────────
 class VoiceRecordingController extends ChangeNotifier {
   VoiceRecordingController({
     this.listenForSeconds = 45,
     this.pauseForSeconds = 6,
   });
 
-  // Configuration
   final int listenForSeconds;
   final int pauseForSeconds;
 
-  // Internal STT engine
   final SpeechToText _stt = SpeechToText();
   bool _sttInitialised = false;
   bool _initialising = false;
 
-  // ── Exposed state ─────────────────────────────────────────────────────────
   VoiceEngineState get engineState => _engineState;
   VoiceEngineState _engineState = VoiceEngineState.idle;
 
-  /// Live partial transcript shown during listening (combined accumulated + current partial).
   String get partialTranscript {
     final acc = _finalTranscript.trim();
     final part = _partialTranscript.trim();
@@ -43,37 +32,28 @@ class VoiceRecordingController extends ChangeNotifier {
 
   String _partialTranscript = '';
 
-  /// Final confirmed transcript after session ends.
   String get finalTranscript => _finalTranscript;
   String _finalTranscript = '';
 
-  /// Elapsed seconds since recording started.
   int get elapsedSeconds => _elapsedSeconds;
   int _elapsedSeconds = 0;
 
-  /// Human-readable error message (non-empty only in error state).
   String get errorMessage => _errorMessage;
   String _errorMessage = '';
 
-  /// True while the engine is actively in a listen session.
   bool get isListening => _engineState == VoiceEngineState.listening;
 
-  /// Live microphone sound level.
   double get soundLevel => _soundLevel;
   double _soundLevel = 0.0;
 
-  // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _sessionTimer;
   Timer? _forceParsedTimer;
-  // Guard: prevents multiple competing code paths from all emitting 'parsed'.
-  // Reset to false at the start of every new recording session.
+
   bool _parsedEmitted = false;
 
-  // Continuous listening / auto-restart logic
   String _accumulatedTranscript = '';
   DateTime? _lastResultTime;
 
-  // ─── Init ──────────────────────────────────────────────────────────────────
   Future<bool> _ensureInitialised() async {
     if (_sttInitialised) return true;
     if (_initialising) return false;
@@ -102,7 +82,6 @@ class VoiceRecordingController extends ChangeNotifier {
     return _sttInitialised;
   }
 
-  /// Pre-initialize the speech-to-text engine to minimize latency when recording starts.
   Future<bool> preInitialize() async {
     debugPrint('[VOICE INITIALIZATION] Pre-initialize triggered.');
     return _ensureInitialised();
@@ -113,7 +92,6 @@ class VoiceRecordingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Start listening ───────────────────────────────────────────────────────
   Future<void> startListening() async {
     debugPrint(
       '[VOICE START] startListening() requested. Current state: $_engineState',
@@ -124,7 +102,7 @@ class VoiceRecordingController extends ChangeNotifier {
     }
 
     _forceParsedTimer?.cancel();
-    _parsedEmitted = false; // reset guard for new session
+    _parsedEmitted = false;
 
     _partialTranscript = '';
     _finalTranscript = '';
@@ -170,7 +148,6 @@ class VoiceRecordingController extends ChangeNotifier {
         '[VOICE TIMER] Tick: $_elapsedSeconds seconds. STT isListening: ${_stt.isListening}, EngineState: $_engineState',
       );
 
-      // Auto recovery check:
       if (_engineState == VoiceEngineState.listening && _elapsedSeconds > 1) {
         if (!_stt.isListening) {
           final silenceDuration = DateTime.now().difference(
@@ -217,7 +194,6 @@ class VoiceRecordingController extends ChangeNotifier {
     }
   }
 
-  // ─── Stop (manual) ────────────────────────────────────────────────────────
   Future<void> stopListening() async {
     debugPrint(
       '[VOICE STOP] stopListening() requested. Current state: $_engineState',
@@ -233,7 +209,6 @@ class VoiceRecordingController extends ChangeNotifier {
     _setEngineState(VoiceEngineState.processing);
   }
 
-  // ─── Cancel ───────────────────────────────────────────────────────────────
   Future<void> cancelListening() async {
     debugPrint(
       '[VOICE CANCEL] cancelListening() requested. Current state: $_engineState',
@@ -252,7 +227,6 @@ class VoiceRecordingController extends ChangeNotifier {
     _setEngineState(VoiceEngineState.idle);
   }
 
-  // ─── Reset to idle (for re-record flow) ───────────────────────────────────
   void reset() {
     debugPrint('[VOICE RESET] reset() requested. Current state: $_engineState');
     _forceParsedTimer?.cancel();
@@ -268,10 +242,6 @@ class VoiceRecordingController extends ChangeNotifier {
     _setEngineState(VoiceEngineState.idle);
   }
 
-  // ─── Reset STT engine without changing state ─────────────────────────────
-  // Calls stt.cancel() to properly reset the recognizer for the next listen()
-  // without reverting the state machine. This avoids the stale recognizer bug
-  // where notListening fires immediately after a new listen() call.
   Future<void> resetEngine() async {
     debugPrint('[VOICE RESET ENGINE] resetEngine() requested.');
     _forceParsedTimer?.cancel();
@@ -290,8 +260,6 @@ class VoiceRecordingController extends ChangeNotifier {
     await _stt.cancel();
     debugPrint('[VOICE RESET ENGINE] resetEngine: done (state=$_engineState)');
   }
-
-  // ─── STT Callbacks ────────────────────────────────────────────────────────
 
   void _onResult(SpeechRecognitionResult result) {
     if (_engineState != VoiceEngineState.listening &&
@@ -468,7 +436,9 @@ class VoiceRecordingController extends ChangeNotifier {
     if (error.errorMsg == 'error_no_match' ||
         error.errorMsg == 'error_speech_timeout' ||
         error.errorMsg == 'error_client') {
-      debugPrint('[VOICE TIMEOUT] Ending session due to silence timeout / client stop.');
+      debugPrint(
+        '[VOICE TIMEOUT] Ending session due to silence timeout / client stop.',
+      );
       if (_engineState == VoiceEngineState.listening ||
           _engineState == VoiceEngineState.processing) {
         _setEngineState(VoiceEngineState.processing);
@@ -481,11 +451,6 @@ class VoiceRecordingController extends ChangeNotifier {
     _setEngineState(VoiceEngineState.error);
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  // Single parsed emitter — all code paths must call this instead of
-  // _setEngineState(parsed) directly. The _parsedEmitted flag ensures
-  // only the FIRST caller wins; all subsequent calls are ignored.
   void _emitParsed() {
     if (_parsedEmitted) {
       debugPrint(
@@ -525,7 +490,6 @@ class VoiceRecordingController extends ChangeNotifier {
     }
   }
 
-  // ── Timer display helper ──────────────────────────────────────────────────
   String get elapsedDisplay {
     final m = (_elapsedSeconds ~/ 60).toString().padLeft(2, '0');
     final s = (_elapsedSeconds % 60).toString().padLeft(2, '0');

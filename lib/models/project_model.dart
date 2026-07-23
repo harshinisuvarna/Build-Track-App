@@ -104,7 +104,8 @@ class EntryModel {
   final double paidAmount;
   final List<Map<String, dynamic>> paymentHistory;
 
-  double get remainingAmount => (amount - paidAmount).clamp(0.0, double.infinity);
+  double get remainingAmount =>
+      (amount - paidAmount).clamp(0.0, double.infinity);
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -133,7 +134,6 @@ class EntryModel {
   };
 
   factory EntryModel.fromJson(Map<String, dynamic> j) {
-    // ADD: read createdBy from persisted cache (stored by project_provider)
     String? createdBy;
     final raw = j['createdBy'];
     if (raw is Map) {
@@ -160,7 +160,7 @@ class EntryModel {
       activity: j['activity']?.toString(),
       activityId: j['activityId']?.toString(),
       unit: j['unit']?.toString(),
-      createdBy: createdBy, // ADD
+      createdBy: createdBy,
       approvalStatus: j['approvalStatus']?.toString() ?? 'Pending',
       paymentStatus: j['paymentStatus']?.toString() ?? 'Pending',
       approvedBy: j['approvedBy'] != null
@@ -179,7 +179,9 @@ class EntryModel {
       paidAmount: (j['paidAmount'] as num?)?.toDouble() ?? 0.0,
       paymentHistory: j['paymentHistory'] != null
           ? List<Map<String, dynamic>>.from(
-              (j['paymentHistory'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+              (j['paymentHistory'] as List).map(
+                (e) => Map<String, dynamic>.from(e as Map),
+              ),
             )
           : const [],
     );
@@ -334,7 +336,9 @@ class ProjectActivity {
           : null,
       notes: j['notes']?.toString(),
       photo: j['photo']?.toString(),
-      photos: j['photos'] != null ? List<String>.from(j['photos'] as List) : null,
+      photos: j['photos'] != null
+          ? List<String>.from(j['photos'] as List)
+          : null,
       budgetMaterial: mat,
       budgetLabour: lab,
       budgetEquipment: equ,
@@ -371,17 +375,29 @@ class ActivityBudget {
 
   factory ActivityBudget.fromJson(Map<String, dynamic> j) {
     return ActivityBudget(
-      material: ActivityBudgetCategory.fromJson(j['material'] as Map<String, dynamic>? ?? {}),
-      labour: ActivityBudgetCategory.fromJson(j['labour'] as Map<String, dynamic>? ?? {}),
-      equipment: ActivityBudgetCategory.fromJson(j['equipment'] as Map<String, dynamic>? ?? {}),
-      total: ActivityBudgetCategory.fromJson(j['total'] as Map<String, dynamic>? ?? {}),
+      material: ActivityBudgetCategory.fromJson(
+        j['material'] as Map<String, dynamic>? ?? {},
+      ),
+      labour: ActivityBudgetCategory.fromJson(
+        j['labour'] as Map<String, dynamic>? ?? {},
+      ),
+      equipment: ActivityBudgetCategory.fromJson(
+        j['equipment'] as Map<String, dynamic>? ?? {},
+      ),
+      total: ActivityBudgetCategory.fromJson(
+        j['total'] as Map<String, dynamic>? ?? {},
+      ),
       budgetLastCalculatedAt: j['budgetLastCalculatedAt'] != null
           ? DateTime.tryParse(j['budgetLastCalculatedAt'].toString())
           : null,
     );
   }
 
-  static ActivityBudget zero(double budgetMaterial, double budgetLabour, double budgetEquipment) {
+  static ActivityBudget zero(
+    double budgetMaterial,
+    double budgetLabour,
+    double budgetEquipment,
+  ) {
     final double total = budgetMaterial + budgetLabour + budgetEquipment;
     return ActivityBudget(
       material: ActivityBudgetCategory.zero(budgetMaterial),
@@ -847,11 +863,10 @@ class ProjectModel {
         buildingType != null) {
       final mainType = buildingType['mainType']?.toString() ?? '';
       final subType = buildingType['subType']?.toString() ?? '';
-      // Use ' → ' to match the separator used in edit_project.dart _populateFrom
+
       projectTypeStr = subType.isNotEmpty ? '$mainType → $subType' : mainType;
     }
     if (projectTypeStr != null) {
-      // Normalize legacy 'Business / Commercial' to 'Commercial'
       if (projectTypeStr.contains('Business / Commercial')) {
         projectTypeStr = projectTypeStr.replaceAll(
           'Business / Commercial',
@@ -863,7 +878,7 @@ class ProjectModel {
           'Commercial',
         );
       }
-      // Normalize legacy ' / ' separator to ' → ' so edit screen always gets consistent format
+
       if (projectTypeStr.contains(' / ')) {
         projectTypeStr = projectTypeStr.replaceFirst(' / ', ' → ');
       }
@@ -872,7 +887,7 @@ class ProjectModel {
     return ProjectModel(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
       name: finalName,
-      // Some backends return city inside location or omit it entirely
+
       city: (j['city']?.toString() ?? '').isNotEmpty
           ? j['city'].toString()
           : (j['location']?.toString() ?? ''),

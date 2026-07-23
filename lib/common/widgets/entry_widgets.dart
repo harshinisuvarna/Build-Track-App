@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 
-// ── Standardized inventory units ──────────────────────────────────────────
 const Map<String, List<String>> kInventoryUnits = {
   'Weight': ['kg', 'ton', 'gram'],
   'Volume': ['litre', 'm³', 'cum'],
@@ -18,21 +17,18 @@ const Map<String, List<String>> kInventoryUnits = {
   'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
 };
 
-// ── Labour-specific units ──────────────────────────────────────────────────
 const Map<String, List<String>> kLabourUnits = {
   'Time Based': ['Day', 'Hour', 'Week', 'Month'],
   'Area Based': ['Sq ft', 'Sq meter', 'Rmt'],
   'Job Based': ['Job Basis', 'Contract', 'Lump Sum'],
 };
 
-// ── Equipment-specific units ──────────────────────────────────────────────
 const Map<String, List<String>> kEquipmentUnits = {
   'Time Based': ['Hour', 'Day', 'Week', 'Month'],
   'Trip Based': ['Trip', 'Load', 'Shift'],
   'Fixed': ['Job Basis', 'Lump Sum'],
 };
 
-// Flat list of all canonical unit strings (for search / lookup)
 const List<String> kAllInventoryUnits = [
   'kg',
   'ton',
@@ -57,8 +53,6 @@ const List<String> kAllInventoryUnits = [
   'coil',
 ];
 
-/// Normalizes free-text unit strings to a canonical form.
-/// e.g. 'KG', 'kgs', 'kilo' → 'kg'
 String normalizeUnit(String raw) {
   final s = raw.trim().toLowerCase();
   const aliases = <String, String>{
@@ -439,7 +433,7 @@ class UnitSelectorField extends StatelessWidget {
 
   final String? value;
   final ValueChanged<String?> onChanged;
-  final Map<String, List<String>>? units; // null → defaults to kInventoryUnits
+  final Map<String, List<String>>? units;
   final String hint;
   final String? error;
 
@@ -609,7 +603,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle
             const SizedBox(height: 10),
             Center(
               child: Container(
@@ -623,7 +616,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
             ),
             const SizedBox(height: 6),
 
-            // Title row
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
               child: Row(
@@ -659,7 +651,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
               ),
             ),
 
-            // Search bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
               child: TextField(
@@ -683,7 +674,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
               ),
             ),
 
-            // Unit list
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 360),
               child: filtered.isEmpty
@@ -799,7 +789,7 @@ class ExecutionContextCard extends StatelessWidget {
 
   final String? selectedProjectId;
   final String? selectedFloor;
-  final dynamic selectedPhase; // PhaseModel?
+  final dynamic selectedPhase;
   final String? selectedActivity;
   final ValueChanged<String?> onProjectChanged;
   final ValueChanged<String?> onFloorChanged;
@@ -824,7 +814,6 @@ class ExecutionContextCard extends StatelessWidget {
                 orElse: () => null,
               );
 
-        // Floors: use project-configured floors, fall back to standard list
         const List<String> defaultFloors = [
           'Basement',
           'Ground Floor',
@@ -840,8 +829,6 @@ class ExecutionContextCard extends StatelessWidget {
           floors.insert(0, selectedFloor!);
         }
 
-        // ── Phase & Activity — project-driven architecture ─────────────────────
-        // Resolve the selected phase name (always stored as String in dropdowns)
         String? selPhaseName;
         if (selectedPhase is String) {
           selPhaseName = selectedPhase as String;
@@ -878,13 +865,11 @@ class ExecutionContextCard extends StatelessWidget {
             projectPhases != null && projectPhases.isNotEmpty;
 
         if (hasNewWorkflow) {
-          // ── NEW: load directly from project.selectedPhases ────────────────
           visiblePhaseNames = projectPhases
-              .where((p) => p.activities.isNotEmpty) // never show empty phases
+              .where((p) => p.activities.isNotEmpty)
               .map((p) => p.phaseName)
               .toList();
 
-          // Activities: find the chosen phase inside selectedPhases
           final ProjectPhase? selPhase = selPhaseName != null
               ? projectPhases.cast<ProjectPhase?>().firstWhere(
                   (p) => p?.phaseName == selPhaseName,
@@ -895,7 +880,6 @@ class ExecutionContextCard extends StatelessWidget {
               ? selPhase.activities.map((a) => a.name).toList()
               : <String>[];
         } else {
-          // ── LEGACY: fall back to master list + selectedPhaseNames filter ──
           final List<ConstructionPhase> allPhases = buildDefaultPhases();
           final List<String>? legacyPhaseNames =
               selProject?.selectedPhaseNames != null
@@ -1418,7 +1402,7 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFF15803D);
       case PaymentStatus.partial:
-        return const Color(0xFF1D4ED8); // blue
+        return const Color(0xFF1D4ED8);
       case PaymentStatus.pending:
         return const Color(0xFFDC2626);
       case PaymentStatus.overdue:
@@ -1431,7 +1415,7 @@ class PaymentStatusChip extends StatelessWidget {
       case PaymentStatus.paid:
         return const Color(0xFFDCFCE7);
       case PaymentStatus.partial:
-        return const Color(0xFFEFF6FF); // blue bg
+        return const Color(0xFFEFF6FF);
       case PaymentStatus.pending:
         return const Color(0xFFFEE2E2);
       case PaymentStatus.overdue:
@@ -1661,8 +1645,6 @@ class PaymentSummaryBanner extends StatelessWidget {
   }
 }
 
-// ─── Payment Bottom Sheet ──────────────────────────────────────────────────────
-
 Future<Map<String, dynamic>?> showPaymentSheet(
   BuildContext context, {
   required String entryTitle,
@@ -1682,7 +1664,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String selectedMethod = 'UPI';
   String? amountError;
   String? uploadedReceipt;
-String? uploadedReceiptDataUri;
+  String? uploadedReceiptDataUri;
   DateTime selectedPaymentDate = DateTime.now();
 
   const pMethods = [
@@ -1723,10 +1705,8 @@ String? uploadedReceiptDataUri;
         return LayoutBuilder(
           builder: (ctx, constraints) {
             final parentW = constraints.maxWidth;
-            final chipW =
-                (parentW - 40) /
-                2; // Subtract horizontal padding (16*2=32) and horizontal spacing (8)
-            final fullW = parentW - 32; // Subtract horizontal padding (16*2=32)
+            final chipW = (parentW - 40) / 2;
+            final fullW = parentW - 32;
 
             return Padding(
               padding: EdgeInsets.only(bottom: inset),
@@ -1740,7 +1720,6 @@ String? uploadedReceiptDataUri;
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // HANDLE
                       const SizedBox(height: 12),
                       Center(
                         child: Container(
@@ -1754,7 +1733,6 @@ String? uploadedReceiptDataUri;
                       ),
                       const SizedBox(height: 12),
 
-                      // NAV ROW
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
@@ -1791,7 +1769,6 @@ String? uploadedReceiptDataUri;
                       ),
                       const SizedBox(height: 12),
 
-                      // GRADIENT HEADER CARD
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -1890,7 +1867,6 @@ String? uploadedReceiptDataUri;
                         ),
                       ),
 
-                      // SCROLLABLE BODY
                       Flexible(
                         child: SingleChildScrollView(
                           physics: const ClampingScrollPhysics(),
@@ -1903,7 +1879,6 @@ String? uploadedReceiptDataUri;
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // PAYMENT STATUS
                               const _SheetSectionLabel('PAYMENT STATUS'),
                               const SizedBox(height: 8),
                               Row(
@@ -1961,7 +1936,6 @@ String? uploadedReceiptDataUri;
                               ),
                               const SizedBox(height: 16),
 
-                              // PAYMENT METHOD — 4 in 2x2 + Cheque full-width
                               const _SheetSectionLabel('PAYMENT METHOD'),
                               const SizedBox(height: 8),
                               Wrap(
@@ -2000,7 +1974,6 @@ String? uploadedReceiptDataUri;
                               ),
                               const SizedBox(height: 16),
 
-                              // AMOUNT FIELD
                               const _SheetSectionLabel(
                                 'ACTUAL AMOUNT PAID (₹)',
                               ),
@@ -2116,16 +2089,18 @@ String? uploadedReceiptDataUri;
                               ),
                               const SizedBox(height: 16),
 
-                              // PAYMENT RECEIPT UPLOAD
                               const _SheetSectionLabel('PAYMENT RECEIPT'),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
-                                  final attachment = await pickAttachmentDirect(ctx);
+                                  final attachment = await pickAttachmentDirect(
+                                    ctx,
+                                  );
                                   if (attachment != null) {
                                     ss(() {
                                       uploadedReceipt = attachment.name;
-                                      uploadedReceiptDataUri = attachment.dataUri;
+                                      uploadedReceiptDataUri =
+                                          attachment.dataUri;
                                     });
                                   }
                                 },
@@ -2299,7 +2274,6 @@ String? uploadedReceiptDataUri;
                         ),
                       ),
 
-                      // STICKY BOTTOM CTA
                       Container(
                         padding: EdgeInsets.fromLTRB(
                           16,
@@ -2381,7 +2355,7 @@ String? uploadedReceiptDataUri;
                                       ? 0.0
                                       : (parseAmount(amountCtrl.text.trim()) ??
                                             0);
-                                    Navigator.pop(ctx, {
+                                  Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,
                                     'note': noteCtrl.text.trim(),
@@ -2450,8 +2424,6 @@ String? uploadedReceiptDataUri;
     ),
   );
 }
-
-// ─── Sheet helpers ──────────────────────────────────────────────────────────────────────
 
 class _SheetSectionLabel extends StatelessWidget {
   const _SheetSectionLabel(this.label);
@@ -2573,7 +2545,6 @@ Widget _pMethodChip(
   );
 }
 
-// ── INVOICE ATTACHMENT CARD ───────────────────────────────────────────────
 class InvoiceAttachmentCard extends StatelessWidget {
   final PickedAttachment? attachment;
   final String? fileName;
@@ -2639,7 +2610,6 @@ class InvoiceAttachmentCard extends StatelessWidget {
       );
     }
 
-    // Determine icon and color
     IconData iconData = Icons.insert_drive_file_outlined;
     Color iconColor = const Color(0xFF546E7A);
     Color iconBg = const Color(0xFFECEFF1);
@@ -2674,7 +2644,9 @@ class InvoiceAttachmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
-          final String receiptData = attachment != null ? attachment!.dataUri : name;
+          final String receiptData = attachment != null
+              ? attachment!.dataUri
+              : name;
           Navigator.pushNamed(
             context,
             '/receipt-viewer',
@@ -2706,8 +2678,10 @@ class InvoiceAttachmentCard extends StatelessWidget {
                 color: iconBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: (attachment == null &&
-                      (name.startsWith('http://') || name.startsWith('https://')) &&
+              child:
+                  (attachment == null &&
+                      (name.startsWith('http://') ||
+                          name.startsWith('https://')) &&
                       (lowerName.contains('.jpg') ||
                           lowerName.contains('.jpeg') ||
                           lowerName.contains('.png')))
@@ -2783,11 +2757,7 @@ class InvoiceAttachmentCard extends StatelessWidget {
   }
 }
 
-// ── PAYMENT RECEIPT CARD ─────────────────────────────────────────────────────
-/// Displays a payment receipt (UPI proof, bank transfer, cheque) uploaded
-/// during the Fulfillment & Payment flow. Separate from InvoiceAttachmentCard.
 class PaymentReceiptCard extends StatelessWidget {
-  /// File name of the uploaded payment receipt.
   final String? fileName;
 
   const PaymentReceiptCard({super.key, this.fileName});
@@ -2850,7 +2820,6 @@ class PaymentReceiptCard extends StatelessWidget {
       );
     }
 
-    // Determine icon based on file type
     final lowerName = fileName!.toLowerCase();
     IconData iconData = Icons.receipt_long_outlined;
     Color iconColor = const Color(0xFF15803D);

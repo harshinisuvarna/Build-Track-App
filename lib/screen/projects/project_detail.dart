@@ -20,7 +20,6 @@ import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
 
-
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
   @override
@@ -100,7 +99,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         Icons.assignment_turned_in,
                         color: AppColors.primary,
                       ),
-                      onPressed: () => Navigator.pushNamed(context, '/assign-task'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/assign-task'),
                     )
                   : null,
             ),
@@ -245,7 +245,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                     ],
 
-                    // FIX: pass currentUserId so only this user's entries show
                     _RecentEntriesSection(
                       project: project,
                       provider: provider,
@@ -309,7 +308,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 }
 
-// ── Tracker Phase Card ────────────────────────────────────────────────────────
 class _TrackerPhaseCard extends StatelessWidget {
   const _TrackerPhaseCard({
     required this.phase,
@@ -471,7 +469,6 @@ class _TrackerPhaseCard extends StatelessWidget {
   }
 }
 
-// ── Tracker Activity Row ──────────────────────────────────────────────────────
 class _TrackerActivityRow extends StatefulWidget {
   const _TrackerActivityRow({
     required this.activity,
@@ -511,7 +508,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     if (!widget.activity.completed) return null;
     final dt = widget.activity.completedAt;
     if (dt == null) return 'Date not recorded';
-    // Sentinel date means completed but date was unknown
+
     if (dt.year == 2000 && dt.month == 1 && dt.day == 1) {
       return 'Date not recorded';
     }
@@ -533,8 +530,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       },
     ).then((_) async {
       if (context.mounted) {
-        // Wait for any in-flight PUT to finish before re-fetching,
-        // otherwise load() overwrites the optimistic tick with stale server data.
         await Future.delayed(const Duration(milliseconds: 600));
         if (context.mounted) {
           context.read<ProjectProvider>().load();
@@ -545,11 +540,14 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
 
   void _openUpdateBudgetDialog(BuildContext context) {
     final materialController = TextEditingController(
-        text: (widget.activity.budgetMaterial ?? 0.0).toStringAsFixed(0));
+      text: (widget.activity.budgetMaterial ?? 0.0).toStringAsFixed(0),
+    );
     final labourController = TextEditingController(
-        text: (widget.activity.budgetLabour ?? 0.0).toStringAsFixed(0));
+      text: (widget.activity.budgetLabour ?? 0.0).toStringAsFixed(0),
+    );
     final equipmentController = TextEditingController(
-        text: (widget.activity.budgetEquipment ?? 0.0).toStringAsFixed(0));
+      text: (widget.activity.budgetEquipment ?? 0.0).toStringAsFixed(0),
+    );
 
     showModalBottomSheet(
       context: context,
@@ -592,17 +590,17 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
               const SizedBox(height: 4),
               const Text(
                 'Allocate activity budgets under Materials, Labour, and Equipment categories.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textLight,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.textLight),
               ),
               const SizedBox(height: 16),
               _buildDialogTextField('Materials Budget (₹)', materialController),
               const SizedBox(height: 12),
               _buildDialogTextField('Labour Budget (₹)', labourController),
               const SizedBox(height: 12),
-              _buildDialogTextField('Equipment Budget (₹)', equipmentController),
+              _buildDialogTextField(
+                'Equipment Budget (₹)',
+                equipmentController,
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -611,29 +609,30 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   onPressed: () async {
                     final mat = double.tryParse(materialController.text) ?? 0.0;
                     final lab = double.tryParse(labourController.text) ?? 0.0;
-                    final equ = double.tryParse(equipmentController.text) ?? 0.0;
+                    final equ =
+                        double.tryParse(equipmentController.text) ?? 0.0;
 
                     Navigator.pop(modalContext);
 
-                    // Show loading spinner
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                      builder: (_) =>
+                          const Center(child: CircularProgressIndicator()),
                     );
 
-                    final success = await context.read<ProjectProvider>().updateActivityBudget(
-                      widget.project.id,
-                      widget.activity.id,
-                      budgetMaterial: mat,
-                      budgetLabour: lab,
-                      budgetEquipment: equ,
-                    );
+                    final success = await context
+                        .read<ProjectProvider>()
+                        .updateActivityBudget(
+                          widget.project.id,
+                          widget.activity.id,
+                          budgetMaterial: mat,
+                          budgetLabour: lab,
+                          budgetEquipment: equ,
+                        );
 
                     if (context.mounted) {
-                      Navigator.pop(context); // Close loading spinner
+                      Navigator.pop(context);
                       if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -644,7 +643,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Failed to update budget. Please try again.'),
+                            content: Text(
+                              'Failed to update budget. Please try again.',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -661,10 +662,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   ),
                   child: const Text(
                     'Save Budget Allocation',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -693,7 +691,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Color(0xFFDDE0F0)),
@@ -704,7 +705,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
@@ -719,7 +723,8 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     final allocLab = widget.activity.budgetLabour ?? 0.0;
     final allocEqu = widget.activity.budgetEquipment ?? 0.0;
 
-    final budget = widget.activity.budget ??
+    final budget =
+        widget.activity.budget ??
         ActivityBudget.zero(allocMat, allocLab, allocEqu);
 
     return Container(
@@ -747,7 +752,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
               GestureDetector(
                 onTap: () => _openUpdateBudgetDialog(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(6),
@@ -755,7 +763,11 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit_rounded, size: 10, color: AppColors.primary),
+                      Icon(
+                        Icons.edit_rounded,
+                        size: 10,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'Update Budget',
@@ -810,7 +822,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     final spent = category.spent;
     final allocated = category.allocated;
     final remaining = category.remaining;
-    final pct = category.progress; // progress is clamped [0, 1] from backend
+    final pct = category.progress;
     final isOver = spent > allocated && allocated > 0;
     final barColor = isOver ? const Color(0xFFEF4444) : color;
 
@@ -825,7 +837,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-                color: isBold ? const Color(0xFF1F2937) : const Color(0xFF4B5563),
+                color: isBold
+                    ? const Color(0xFF1F2937)
+                    : const Color(0xFF4B5563),
               ),
             ),
             Text(
@@ -835,7 +849,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                 fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
                 color: isOver
                     ? const Color(0xFFEF4444)
-                    : (isBold ? const Color(0xFF1F2937) : const Color(0xFF374151)),
+                    : (isBold
+                          ? const Color(0xFF1F2937)
+                          : const Color(0xFF374151)),
               ),
             ),
           ],
@@ -901,7 +917,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                       borderRadius: BorderRadius.circular(6),
                       color: done ? AppColors.success : Colors.transparent,
                       border: Border.all(
-                        color: done ? AppColors.success : const Color(0xFFCDD0DA),
+                        color: done
+                            ? AppColors.success
+                            : const Color(0xFFCDD0DA),
                         width: 1.5,
                       ),
                     ),
@@ -958,7 +976,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: done
                         ? AppColors.success.withValues(alpha: 0.10)
@@ -979,7 +1000,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   onTap: () => _openUpdateProgress(context),
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -1005,7 +1029,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     onTap: () => _showActivityDetails(context),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.success.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
@@ -1067,7 +1094,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Drag indicator
                   Center(
                     child: Container(
                       width: 40,
@@ -1079,8 +1105,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Header
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1099,9 +1124,14 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                             ),
                             const SizedBox(height: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.08),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -1118,24 +1148,29 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.grey,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Scrollable Content
+
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Status & Date Row
                           Row(
                             children: [
-                              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.success),
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 16,
+                                color: AppColors.success,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Completed on $formattedDate',
@@ -1147,9 +1182,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               ),
                             ],
                           ),
-                          
-                          // Notes/Remarks Section
-                          if (widget.activity.notes != null && widget.activity.notes!.trim().isNotEmpty) ...[
+
+                          if (widget.activity.notes != null &&
+                              widget.activity.notes!.trim().isNotEmpty) ...[
                             const SizedBox(height: 20),
                             const Text(
                               'Notes & Remarks',
@@ -1167,7 +1202,9 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF9FAFB),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                                border: Border.all(
+                                  color: const Color(0xFFE5E7EB),
+                                ),
                               ),
                               child: Text(
                                 widget.activity.notes!,
@@ -1180,10 +1217,11 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               ),
                             ),
                           ],
-                          
-                          // Photos Section
-                          if ((widget.activity.photos != null && widget.activity.photos!.isNotEmpty) ||
-                              (widget.activity.photo != null && widget.activity.photo!.isNotEmpty)) ...[
+
+                          if ((widget.activity.photos != null &&
+                                  widget.activity.photos!.isNotEmpty) ||
+                              (widget.activity.photo != null &&
+                                  widget.activity.photo!.isNotEmpty)) ...[
                             const SizedBox(height: 20),
                             const Text(
                               'Progress Photos',
@@ -1198,22 +1236,33 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                             _buildProgressPhotosList(context, widget.activity),
                           ],
 
-                          // Empty details placeholder
-                          if ((widget.activity.notes == null || widget.activity.notes!.trim().isEmpty) &&
-                              (widget.activity.photo == null || widget.activity.photo!.isEmpty) &&
-                              (widget.activity.photos == null || widget.activity.photos!.isEmpty)) ...[
+                          if ((widget.activity.notes == null ||
+                                  widget.activity.notes!.trim().isEmpty) &&
+                              (widget.activity.photo == null ||
+                                  widget.activity.photo!.isEmpty) &&
+                              (widget.activity.photos == null ||
+                                  widget.activity.photos!.isEmpty)) ...[
                             const SizedBox(height: 20),
                             Container(
-                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 24,
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF9FAFB),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                                border: Border.all(
+                                  color: const Color(0xFFE5E7EB),
+                                ),
                               ),
                               child: const Center(
                                 child: Column(
                                   children: [
-                                    Icon(Icons.info_outline_rounded, color: Colors.grey, size: 28),
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      color: Colors.grey,
+                                      size: 28,
+                                    ),
                                     SizedBox(height: 8),
                                     Text(
                                       'No additional notes or photos recorded for this activity.',
@@ -1248,16 +1297,15 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       try {
         final base64String = photoUrl.split(';base64,').last;
         final bytes = base64.decode(base64String);
-        img = Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          width: 80,
-          height: 80,
-        );
+        img = Image.memory(bytes, fit: BoxFit.cover, width: 80, height: 80);
       } catch (e) {
         img = Container(
           color: const Color(0xFFF3F4F6),
-          child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24),
+          child: const Icon(
+            Icons.broken_image_outlined,
+            color: Colors.grey,
+            size: 24,
+          ),
         );
       }
     } else {
@@ -1269,18 +1317,22 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
         errorBuilder: (context, error, stackTrace) {
           return Container(
             color: const Color(0xFFF3F4F6),
-            child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24),
+            child: const Icon(
+              Icons.broken_image_outlined,
+              color: Colors.grey,
+              size: 24,
+            ),
           );
         },
       );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: img,
-    );
+    return ClipRRect(borderRadius: BorderRadius.circular(10), child: img);
   }
 
-  Widget _buildProgressPhotosList(BuildContext context, ProjectActivity activity) {
+  Widget _buildProgressPhotosList(
+    BuildContext context,
+    ProjectActivity activity,
+  ) {
     final photos = (activity.photos != null && activity.photos!.isNotEmpty)
         ? activity.photos!
         : [activity.photo!];
@@ -1307,21 +1359,20 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     );
   }
 
-  void _openPhotoGallery(BuildContext context, List<String> photos, int initialIndex) {
+  void _openPhotoGallery(
+    BuildContext context,
+    List<String> photos,
+    int initialIndex,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
-      builder: (context) => _GalleryDialog(
-        photos: photos,
-        initialIndex: initialIndex,
-      ),
+      builder: (context) =>
+          _GalleryDialog(photos: photos, initialIndex: initialIndex),
     );
   }
-
-
 }
 
-// ── Summary Card ─────────────────────────────────────────────────────────────
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.project,
@@ -1571,9 +1622,6 @@ class _SummaryCard extends StatelessWidget {
   );
 }
 
-
-
-// ── Project Info Card ─────────────────────────────────────────────────────────
 class _ProjectInfoCard extends StatelessWidget {
   const _ProjectInfoCard({required this.project});
   final ProjectModel project;
@@ -1732,7 +1780,6 @@ class _InfoRow {
   final String label, value;
 }
 
-// ── Building Type Card ────────────────────────────────────────────────────────
 class _BuildingTypeCard extends StatelessWidget {
   const _BuildingTypeCard({required this.project});
   final ProjectModel project;
@@ -1872,7 +1919,6 @@ class _BuildingTypeCard extends StatelessWidget {
   }
 }
 
-// ── Land & Floors Card ────────────────────────────────────────────────────────
 class _LandFloorsCard extends StatelessWidget {
   const _LandFloorsCard({required this.project});
   final ProjectModel project;
@@ -1965,7 +2011,6 @@ class _LandFloorsCard extends StatelessWidget {
   }
 }
 
-// ── Rooms & Baths Card ────────────────────────────────────────────────────────
 class _RoomsBathsCard extends StatelessWidget {
   const _RoomsBathsCard({required this.project});
   final ProjectModel project;
@@ -2245,7 +2290,6 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
   }
 }
 
-// ── Project Timeline & Status Card ────────────────────────────────────────────
 class _ProjectTimelineCard extends StatelessWidget {
   const _ProjectTimelineCard({required this.project});
   final ProjectModel project;
@@ -2406,7 +2450,6 @@ class _ProjectTimelineCard extends StatelessWidget {
   );
 }
 
-// ── Financial Card ────────────────────────────────────────────────────────────
 class _FinancialCard extends StatelessWidget {
   const _FinancialCard({required this.project});
   final ProjectModel project;
@@ -2639,11 +2682,6 @@ class _FinancialCard extends StatelessWidget {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// RECENT ENTRIES SECTION
-// FIX: Filter entries to show only the current user's own entries.
-//      Admins see all entries (no filter); non-admins see only their own.
-// ══════════════════════════════════════════════════════════════════════════════
 class _RecentEntriesSection extends StatelessWidget {
   const _RecentEntriesSection({
     required this.project,
@@ -2652,7 +2690,7 @@ class _RecentEntriesSection extends StatelessWidget {
   });
   final ProjectModel project;
   final ProjectProvider provider;
-  // FIX: userId passed in from ProjectDetailScreen via UserSession.userId
+
   final String? currentUserId;
 
   @override
@@ -2660,8 +2698,6 @@ class _RecentEntriesSection extends StatelessWidget {
     final isAdmin = UserSession.isAdmin;
     final allEntries = provider.entriesForProject(project.id).toList();
 
-    // STRICT FILTER: Only show the current user's own entries, and only if they are approved.
-    // This applies to everyone, including admins and supervisors.
     final filtered = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
@@ -2669,7 +2705,6 @@ class _RecentEntriesSection extends StatelessWidget {
       return true;
     }).toList();
 
-    // Sort newest first, take 3 for the preview
     filtered.sort((a, b) => b.date.compareTo(a.date));
     final entries = filtered.take(3).toList();
 
@@ -2677,7 +2712,6 @@ class _RecentEntriesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSectionHeader(
-          // Always show as "My Recent Entries" since it strictly filters by current user
           title: 'My Recent Entries',
           actionLabel: entries.isEmpty ? null : 'View All',
           onAction: () {
@@ -2963,10 +2997,6 @@ class _EntryTile extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ACTION BUTTONS
-// FIX: All three buttons are permission-gated via RoleManager.
-// ══════════════════════════════════════════════════════════════════════════════
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
   final ProjectModel project;
@@ -3120,11 +3150,6 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ALL ENTRIES SCREEN
-// FIX: Filters entries by current user (non-admins see only their own).
-//      Edit icon in top bar hidden unless user has edit_project permission.
-// ══════════════════════════════════════════════════════════════════════════════
 class _AllProjectEntriesScreen extends StatelessWidget {
   const _AllProjectEntriesScreen({
     required this.project,
@@ -3140,7 +3165,6 @@ class _AllProjectEntriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // STRICT FILTER: Only show the current user's own entries, and only if they are approved.
     final allEntries = provider.entriesForProject(project.id).toList();
     final entries = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
@@ -3164,7 +3188,7 @@ class _AllProjectEntriesScreen extends StatelessWidget {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-              // FIX: edit icon only shown when user has edit_project permission
+
               rightWidget: canEdit
                   ? IconButton(
                       icon: const Icon(
@@ -3242,7 +3266,6 @@ class _GalleryDialogState extends State<_GalleryDialog> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Semi-transparent backdrop
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -3251,7 +3274,7 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               height: double.infinity,
             ),
           ),
-          // PageView for swipeable images
+
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -3263,13 +3286,18 @@ class _GalleryDialogState extends State<_GalleryDialog> {
             itemBuilder: (context, index) {
               final photoUrl = widget.photos[index];
               Widget imageWidget;
-              if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
+              if (photoUrl.startsWith('data:image/') &&
+                  photoUrl.contains(';base64,')) {
                 try {
                   final base64String = photoUrl.split(';base64,').last;
                   final bytes = base64.decode(base64String);
                   imageWidget = Image.memory(bytes, fit: BoxFit.contain);
                 } catch (e) {
-                  imageWidget = const Icon(Icons.broken_image, color: Colors.white, size: 48);
+                  imageWidget = const Icon(
+                    Icons.broken_image,
+                    color: Colors.white,
+                    size: 48,
+                  );
                 }
               } else {
                 imageWidget = Image.network(
@@ -3282,7 +3310,11 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.broken_image, color: Colors.white, size: 48);
+                    return const Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: 48,
+                    );
                   },
                 );
               }
@@ -3293,7 +3325,7 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               );
             },
           ),
-          // Floating Close Button (Top right)
+
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
@@ -3302,7 +3334,7 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          // Paging Indicator (Bottom)
+
           Positioned(
             bottom: 40,
             child: Container(
@@ -3327,7 +3359,6 @@ class _GalleryDialogState extends State<_GalleryDialog> {
   }
 }
 
-// ── CSV Import/Export Card ──────────────────────────────────────────────────
 class _CsvImportExportCard extends StatefulWidget {
   const _CsvImportExportCard({required this.project});
   final ProjectModel project;
@@ -3353,11 +3384,12 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         'Budget_Labour_Amount',
         'Equipment_Rate',
         'Budget_Equipment_Amount',
-        'Total_Amount'
-      ]
+        'Total_Amount',
+      ],
     ];
 
-    if (widget.project.selectedPhases != null && widget.project.selectedPhases!.isNotEmpty) {
+    if (widget.project.selectedPhases != null &&
+        widget.project.selectedPhases!.isNotEmpty) {
       for (final phase in widget.project.selectedPhases!) {
         int slNo = 1;
         for (final act in phase.activities) {
@@ -3423,7 +3455,8 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
     }
 
     final csvContent = const ListToCsvConverter().convert(csvRows);
-    final filename = '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
+    final filename =
+        '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
 
     try {
       await saveAndShareCsv(
@@ -3471,13 +3504,17 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       }
 
       final csvString = utf8.decode(fileBytes);
-      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
+        csvString,
+      );
 
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
 
-      final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
+      final headers = parsedCsv.first
+          .map((h) => h.toString().trim().toLowerCase())
+          .toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
       int qtyIdx = headers.indexOf('total_qty');
@@ -3493,7 +3530,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
 
       if (phaseIdx == -1 || particularIdx == -1) {
-        throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
+        throw Exception(
+          "CSV is missing required 'Phase' or 'Particular' column headers",
+        );
       }
 
       double? parseVal(dynamic v) {
@@ -3506,7 +3545,8 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       }
 
       List<ProjectPhase> updatedPhases = [];
-      if (widget.project.selectedPhases != null && widget.project.selectedPhases!.isNotEmpty) {
+      if (widget.project.selectedPhases != null &&
+          widget.project.selectedPhases!.isNotEmpty) {
         updatedPhases = List<ProjectPhase>.from(widget.project.selectedPhases!);
       } else {
         final defaultPhases = buildDefaultPhases();
@@ -3540,21 +3580,40 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
-        final double? qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : null;
+        final double? qty = qtyIdx != -1 && qtyIdx < row.length
+            ? parseVal(row[qtyIdx])
+            : null;
 
-        final double? matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : null;
-        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : null;
-        if (matAmt == null && matRate != null && qty != null) matAmt = qty * matRate;
+        final double? matRate = matRateIdx != -1 && matRateIdx < row.length
+            ? parseVal(row[matRateIdx])
+            : null;
+        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length
+            ? parseVal(row[matAmtIdx])
+            : null;
+        if (matAmt == null && matRate != null && qty != null)
+          matAmt = qty * matRate;
 
-        final double? labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : null;
-        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : null;
-        if (labAmt == null && labRate != null && qty != null) labAmt = qty * labRate;
+        final double? labRate = labRateIdx != -1 && labRateIdx < row.length
+            ? parseVal(row[labRateIdx])
+            : null;
+        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length
+            ? parseVal(row[labAmtIdx])
+            : null;
+        if (labAmt == null && labRate != null && qty != null)
+          labAmt = qty * labRate;
 
-        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : null;
-        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : null;
-        if (eqAmt == null && eqRate != null && qty != null) eqAmt = qty * eqRate;
+        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
+            ? parseVal(row[eqRateIdx])
+            : null;
+        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length
+            ? parseVal(row[eqAmtIdx])
+            : null;
+        if (eqAmt == null && eqRate != null && qty != null)
+          eqAmt = qty * eqRate;
 
-        int phaseIndex = updatedPhases.indexWhere((p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase());
+        int phaseIndex = updatedPhases.indexWhere(
+          (p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase(),
+        );
         if (phaseIndex == -1) {
           final newPhase = ProjectPhase(
             id: 'phase_${phaseName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
@@ -3568,7 +3627,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
 
         final phase = updatedPhases[phaseIndex];
         final activities = List<ProjectActivity>.from(phase.activities);
-        final actIndex = activities.indexWhere((a) => a.name.trim().toLowerCase() == activityName.toLowerCase());
+        final actIndex = activities.indexWhere(
+          (a) => a.name.trim().toLowerCase() == activityName.toLowerCase(),
+        );
 
         if (actIndex != -1) {
           final currentAct = activities[actIndex];
@@ -3612,7 +3673,11 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           equipmentSum += act.budgetEquipment ?? 0.0;
         }
       }
-      final double totalSum = materialSum + labourSum + equipmentSum + (widget.project.budgetMisc ?? 0.0);
+      final double totalSum =
+          materialSum +
+          labourSum +
+          equipmentSum +
+          (widget.project.budgetMisc ?? 0.0);
 
       final updatedProject = widget.project.copyWith(
         selectedPhases: updatedPhases,
@@ -3627,7 +3692,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Successfully imported budget for $updatedCount activities!'),
+            content: Text(
+              'Successfully imported budget for $updatedCount activities!',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -3705,7 +3772,10 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
                   label: const Text('Export CSV'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFEEF0F5),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -3752,4 +3822,3 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
     );
   }
 }
-

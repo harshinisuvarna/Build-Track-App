@@ -25,11 +25,10 @@ class AddMaterialScreen extends StatefulWidget {
 }
 
 class _AddMaterialScreenState extends State<AddMaterialScreen> {
-  // ── Execution context state ─────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
-  dynamic _selectedPhase; // PhaseModel / String (name)
+  dynamic _selectedPhase;
   String? _selectedPhaseId;
   String? _selectedActivity;
   String? _selectedActivityId;
@@ -38,7 +37,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   List<String> _phases = [];
   List<String> _activities = [];
 
-  // ── Resource detail controllers ─────────────────────────────────────────
   final _nameCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _categoryCtrl = TextEditingController();
@@ -47,30 +45,25 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final _rateCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  // ── Supplier ────────────────────────────────────────────────────────────
   final _supplierCtrl = TextEditingController();
 
-  // ── UI state ────────────────────────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
-  bool _isDuplicate = false; // true when opened via Add More
+  bool _isDuplicate = false;
   String? _editingTransactionId;
-  String? _sourceTransactionId; // audit: which tx this duplicates
+  String? _sourceTransactionId;
   bool _argsLoaded = false;
-  bool _isDatePickerOpen = false; // guards against dialog/card overlap
+  bool _isDatePickerOpen = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
   bool _isLoadingRecent = false;
 
-  // ── Autocomplete suggestion cache ───────────────────────────────────────
   List<Map<String, dynamic>> _suggestions = [];
 
-  // ── GST state ──────────────────────────────────────────────────
   bool _isWithGst = false;
   final _gstCtrl = TextEditingController();
 
-  // ── Payment state ───────────────────────────────────────────────────────
   bool _isAddAndPay = false;
   bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
@@ -80,11 +73,8 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
-  // ── Scroll ────────────────────────────────────────────────────────────────
   final _scrollCtrl = ScrollController();
 
-
-  // ── Validation errors ───────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
@@ -94,7 +84,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   String? _activityError;
   String? _unitError;
 
-  // ── Missing master data warnings ────────────────────────────────────────
   String? _floorWarning;
   String? _phaseWarning;
   String? _activityWarning;
@@ -175,7 +164,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           _fetchAndRestoreEdit(txId, argsData: routeData);
         });
       } else {
-        // ── New entry — load from ProjectProvider ───────────────────
         final projectProvider = Provider.of<ProjectProvider>(
           context,
           listen: false,
@@ -206,7 +194,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
             'phase=$_selectedPhase activity=$_selectedActivity',
           );
         } else {
-          // Fallback to route arguments
           final routeProjectId =
               args['projectId']?.toString() ?? UserSession.projectId;
           final routeFloor = args['floor']?.toString();
@@ -231,7 +218,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
           }
         }
 
-        // ── Detect duplicate / Add More mode ──────────────────────────
         _isDuplicate = args['isDuplicate'] as bool? ?? false;
         _sourceTransactionId = args['sourceTransactionId']?.toString();
 
@@ -387,7 +373,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     }
   }
 
-  /// Look up the ProjectPhase.id matching the given phase name.
   String? _derivePhaseId(dynamic phaseNameOrObj) {
     if (_selectedProjectId == null) return null;
     String? phaseName;
@@ -414,7 +399,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     return null;
   }
 
-  /// Look up the ProjectActivity.id matching the given activity name.
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -444,7 +428,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     debugPrint('txId: $txId');
     debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
 
-    // Use route args for immediate prefill of text/numeric fields (fast, no async)
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
@@ -516,7 +499,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       );
     }
 
-    // LAYER 2: ALWAYS fetch from the dedicated API endpoint for restoration data
     debugPrint(
       '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
     );
@@ -531,7 +513,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
     }
 
-    // LAYER 3: Choose authoritative source (API > route args)
     debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
     Map<String, dynamic>? latest;
     if (apiData != null) {
@@ -545,8 +526,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       return;
     }
 
-    // ── Re-prefill ALL controllers from authoritative source (API data) ─────
-    // This OVERWRITES the stale route-arg prefill from Layer 1 with fresh data.
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -611,13 +590,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     }
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
-    // ── Detect executionContext (NEW entries) vs legacy ─────────────────
     final rawCtx = latest['executionContext'];
     final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
     debugPrint('Has executionContext: $hasExecutionContext');
 
-    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
-    // If executionContext exists, extract from it; otherwise fall back to top-level fields
     final ctxSource = hasExecutionContext ? rawCtx : latest;
     final contextToRestore = {
       'projectId': _selectedProjectId,
@@ -654,7 +630,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     debugPrint('txId: $txId');
     debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
 
-    // Prefill text/numeric fields from route args immediately
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
@@ -712,7 +687,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       );
     }
 
-    // LAYER 2: ALWAYS fetch from the dedicated API endpoint
     debugPrint(
       '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
     );
@@ -727,7 +701,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       }
     }
 
-    // LAYER 3: Choose authoritative source (API > route args)
     debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
     Map<String, dynamic>? latest;
     if (apiData != null) {
@@ -741,7 +714,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       return;
     }
 
-    // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -797,13 +769,10 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
-    // ── Detect executionContext (NEW entries) vs legacy ─────────────────
     final rawCtx = latest['executionContext'];
     final bool hasExecutionContext = rawCtx is Map<String, dynamic>;
     debugPrint('Has executionContext: $hasExecutionContext');
 
-    // Sequential restoration of context: Project -> Floor -> Phase -> Activity
-    // If executionContext exists, extract from it; otherwise fall back to top-level fields
     final ctxSource = hasExecutionContext ? rawCtx : latest;
     final contextToRestore = {
       'projectId': _selectedProjectId,
@@ -845,7 +814,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       await projectProvider.load();
     }
 
-    // ── Resolve project ID ──────────────────────────────────────────────
     final pId = latest['projectId'] ?? latest['project'];
     String? resolvedProjectId;
     if (pId != null) {
@@ -855,7 +823,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     }
     debugPrint('resolvedProjectId => $resolvedProjectId');
 
-    // ── Extract floor / phase / activity (names AND IDs) ──────────────
     final String floorName = _extractString(latest, [
       'floor',
       'floorName',
@@ -885,7 +852,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     debugPrint('activityName => "$activityName"');
     debugPrint('activityId   => "$activityId"');
 
-    // Look up the project model for ID→name resolution
     final ProjectModel? project = resolvedProjectId == null
         ? null
         : projectProvider.projects.cast<ProjectModel?>().firstWhere(
@@ -899,20 +865,16 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       debugPrint('PROJECT NOT FOUND for ID: $resolvedProjectId');
     }
 
-    // ── 1. Select project ──────────────────────────────────────────────
     await _selectProject(resolvedProjectId);
     debugPrint('PROJECT => $_selectedProjectId');
 
-    // Clear previous warnings
     _floorWarning = null;
     _phaseWarning = null;
     _activityWarning = null;
 
-    // ── 2. Load floors ─────────────────────────────────────────────────
     await _loadFloors(resolvedProjectId);
     debugPrint('FLOORS LOADED: $_floors');
 
-    // ── 3. Restore floor + floorId ────────────────────────────────────
     String? resolvedFloor;
     if (floorName.isNotEmpty) {
       resolvedFloor = floorName;
@@ -933,23 +895,21 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         debugPrint('FLOOR "$resolvedFloor" found in project floors');
       }
       _selectedFloor = resolvedFloor;
-      // floorId: prefer the explicit ID from data; otherwise leave null (floors have no ID model)
+
       _selectedFloorId = floorId.isNotEmpty ? floorId : null;
       debugPrint('FLOOR => $_selectedFloor  FLOOR_ID => $_selectedFloorId');
     } else {
       debugPrint('FLOOR => NO DATA (both name and ID empty)');
     }
 
-    // ── 4. Load phases ─────────────────────────────────────────────────
     await _loadPhases(_selectedFloor);
     debugPrint('PHASES LOADED: $_phases');
 
-    // ── 5. Restore phase + phaseId ────────────────────────────────────
     String? resolvedPhase;
     String? resolvedPhaseId;
     if (phaseName.isNotEmpty) {
       resolvedPhase = phaseName;
-      // Legacy: derive phaseId from project data using the name
+
       resolvedPhaseId = phaseId.isNotEmpty
           ? phaseId
           : _derivePhaseId(phaseName);
@@ -990,16 +950,14 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       debugPrint('PHASE => NO DATA (both name and ID empty)');
     }
 
-    // ── 6. Load activities ────────────────────────────────────────────
     await _loadActivities(_selectedPhase);
     debugPrint('ACTIVITIES LOADED: $_activities');
 
-    // ── 7. Restore activity + activityId ─────────────────────────────
     String? resolvedActivity;
     String? resolvedActivityId;
     if (activityName.isNotEmpty) {
       resolvedActivity = activityName;
-      // Legacy: derive activityId from project data using the name
+
       resolvedActivityId = activityId.isNotEmpty
           ? activityId
           : _deriveActivityId(activityName);
@@ -1052,7 +1010,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       debugPrint('ACTIVITY => NO DATA (both name and ID empty)');
     }
 
-    // ── Type-safety assertions (soft — warnings only) ──────────────────
     if (resolvedFloor != null && !_floors.any((f) => f == resolvedFloor)) {
       debugPrint(
         '!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert',
@@ -1096,7 +1053,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     super.dispose();
   }
 
-  // ── GST Calculation Helpers ─────────────────────────────────────
   double _subtotal() {
     final qty = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
@@ -1125,7 +1081,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   }
 
   bool _validate() {
-    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
+    debugPrint(
+      '[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit',
+    );
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
@@ -1219,7 +1177,7 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       "amount": _finalTotal(),
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
-      // Upgrade legacy records: create executionContext if context fields exist
+
       if (_selectedFloor != null ||
           _selectedPhase != null ||
           (_selectedActivity != null && _selectedActivity!.isNotEmpty))
@@ -1289,9 +1247,9 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
         payload["notes"] = _paymentResult!['note'];
       }
       final receiptDataUri = _paymentResult!['receiptDataUri'] as String?;
-if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
-  payload["paymentReceipt"] = receiptDataUri;
-}
+      if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
+        payload["paymentReceipt"] = receiptDataUri;
+      }
     }
 
     if (_attachment != null) {
@@ -1330,7 +1288,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
             ? 'Material entry updated successfully!'
             : 'Material entry saved successfully!',
       );
-      // Navigate to inventory, clearing the entry form from stack
+
       if (UserSession.hasPermission('view_inventory')) {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -1357,7 +1315,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     );
   }
 
-  // ── Recent Entries bottom sheet ────────────────────────────────
   void _showRecentEntriesSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -1378,7 +1335,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Handle + header ─────────────────────────────────
                   Center(
                     child: Container(
                       margin: const EdgeInsets.only(top: 12, bottom: 4),
@@ -1438,7 +1394,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                     child: Divider(color: Color(0xFFF0EEF8)),
                   ),
 
-                  // ── Entry list ────────────────────────────────────
                   Expanded(
                     child: ListView.separated(
                       controller: scrollCtrl,
@@ -1498,7 +1453,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                               ),
                               child: Row(
                                 children: [
-                                  // Icon
                                   Container(
                                     width: 44,
                                     height: 44,
@@ -1515,7 +1469,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  // Info
+
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -1551,7 +1505,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  // Use button
+
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
@@ -1599,16 +1553,15 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     }
     setState(() => _isLoadingRecent = true);
 
-    // Load recent entries and autocomplete suggestions in parallel
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
-      type: 'Materials', // or 'Materials' / 'Expense'
-      userId: UserSession.userId, // ADD THIS
+      type: 'Materials',
+      userId: UserSession.userId,
     );
     final suggestionFuture = ApiService.fetchSuggestions(
       projectId: _selectedProjectId!,
       type: 'Materials',
-      userId: UserSession.userId, // ADD THIS
+      userId: UserSession.userId,
     );
     final recentTxs = await recentFuture;
     final suggestions = await suggestionFuture;
@@ -1657,9 +1610,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
           : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
 
-      // FIX: this is a brand-new entry — only descriptive fields should
-      // carry over. Payment state must never be inherited from the entry
-      // being copied, since the new one hasn't been paid for yet.
       _existingPaidAmount = 0.0;
       _isAddAndPay = false;
       _recordPaymentNow = false;
@@ -1712,7 +1662,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
   }
 
   Widget _buildPaymentSection() {
-
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1975,12 +1924,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Execution Context (Edit mode only) ──────────────
-                    // In Create mode the user already chose Project/Floor/
-                    // Phase/Activity in ExecutionContextScreen before arriving
-                    // here, so we intentionally hide this section.
-                    // In Edit or Duplicate/Repeat mode there is no preceding context screen, so
-                    // we restore the card so users can change the context.
                     if (_isEditing || _isDuplicate) ...[
                       ExecutionContextCard(
                         selectedProjectId: _selectedProjectId,
@@ -2055,9 +1998,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       const SizedBox(height: 16),
                     ],
 
-
-
-                    // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
@@ -2161,12 +2101,10 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                         ),
                       ),
 
-                    // ── SECTION 2: MATERIAL PURCHASE ENTRY ────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── Header ──────────────────────────────────────
                           const EntryCardHeader(
                             icon: Icons.receipt_long_outlined,
                             title: 'Material Purchase Entry',
@@ -2177,7 +2115,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          // ── 1. DATE ──────────────────────────────────────
                           const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
                           GestureDetector(
@@ -2203,9 +2140,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                               setState(() {
                                 _isDatePickerOpen = false;
                                 if (picked != null) {
-                                  // FIX: showDatePicker only returns a date
-                                  // (midnight) — preserve the real time-of-
-                                  // day instead of zeroing it out.
                                   _selectedDate = DateTime(
                                     picked.year,
                                     picked.month,
@@ -2258,7 +2192,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 2. MATERIAL / ITEM ───────────────────────────
                           const EntryFieldLabel(
                             'Material / Item',
                             required: true,
@@ -2274,7 +2207,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 3. UNIT ──────────────────────────────────────
                           const EntryFieldLabel('Unit', required: true),
                           const SizedBox(height: 8),
                           UnitSelectorField(
@@ -2287,7 +2219,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 4. QUANTITY ──────────────────────────────────
                           const EntryFieldLabel('Quantity', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2300,7 +2231,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 5. RATE ──────────────────────────────────────
                           const EntryFieldLabel('Rate (₹)', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2313,7 +2243,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 6. AMOUNT (auto-calculated) ──────────────────
                           const EntryFieldLabel('Amount (₹)', required: false),
                           const SizedBox(height: 8),
                           Container(
@@ -2375,7 +2304,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 24),
 
-                          // ── Divider before optional fields ───────────────
                           Row(
                             children: [
                               const Expanded(
@@ -2402,7 +2330,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 16),
 
-                          // ── 7. BRAND ─────────────────────────────────────
                           const EntryFieldLabel('Brand (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2411,7 +2338,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 8. CATEGORY ───────────────────────────────────
                           const EntryFieldLabel('Category (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2420,7 +2346,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // ── 9. SUPPLIER ───────────────────────────────────
                           const EntryFieldLabel('Supplier (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2429,7 +2354,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 24),
 
-                          // ── GST PRICING MODULE ────────────────────────────
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -2661,7 +2585,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 18),
 
-                          // ── NOTES ─────────────────────────────────────────
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
@@ -2669,7 +2592,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       ),
                     ),
 
-                    // ── SECTION 4: COST SUMMARY ────────────────────────────
                     CostSummaryCard(
                       totalAmount: _finalTotal(),
                       label: _isWithGst
@@ -2695,7 +2617,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       ],
                     ),
 
-                    // ── RECEIPT UPLOAD ─────────────────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2717,12 +2638,10 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       ),
                     ),
 
-                    // ── PAYMENT SECTION ────────────────────────────────────
                     if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 
-                    // ── RECENT ENTRIES COMPACT BANNER (bottom-sheet) ────
                     if (_selectedProjectId != null &&
                         !_isEditing &&
                         !_isDatePickerOpen) ...[
@@ -2812,7 +2731,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       ],
                     ],
 
-                    // ── SUBMIT ─────────────────────────────────────────────
                     EntrySubmitButton(
                       label: RoleManager.canApprovePayments
                           ? 'Save Material Entry'

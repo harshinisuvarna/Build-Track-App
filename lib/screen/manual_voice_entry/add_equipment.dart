@@ -25,7 +25,6 @@ class AddEquipmentScreen extends StatefulWidget {
 }
 
 class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
-  // ── Execution context ─────────────────────────────────────────────────────
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -40,7 +39,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   List<String> _phases = [];
   List<String> _activities = [];
 
-  // ── Resource detail controllers ───────────────────────────────────────────
   final _nameCtrl = TextEditingController();
   final _typeCtrl = TextEditingController();
   final _operatorCtrl = TextEditingController();
@@ -49,7 +47,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _rateCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  // ── UI state ──────────────────────────────────────────────────────────────
   bool _isSaving = false;
   bool _isEditing = false;
   String? _editingTransactionId;
@@ -60,14 +57,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   List<dynamic> _recentEntries = [];
   bool _isLoadingRecent = false;
 
-  // ── Autocomplete ──────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _suggestions = [];
 
-  // ── GST ───────────────────────────────────────────────────────────────────
   bool _isWithGst = false;
   final _gstCtrl = TextEditingController();
 
-  // ── Payment ───────────────────────────────────────────────────────────────
   bool _isAddAndPay = false;
   bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
@@ -77,15 +71,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
 
-  // ── Missing master data warnings ────────────────────────────────────────
   String? _floorWarning;
   String? _phaseWarning;
   String? _activityWarning;
 
-  // ── Scroll ────────────────────────────────────────────────────────────────
   final _scrollCtrl = ScrollController();
 
-  // ── Validation ────────────────────────────────────────────────────────────
   String? _nameError;
   String? _qtyError;
   String? _rateError;
@@ -95,7 +86,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String? _activityError;
   String? _unitError;
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   String _safeString(dynamic val) {
     if (val == null) return '';
     if (val is String) return val.trim();
@@ -141,7 +131,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     return 0.0;
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -172,7 +161,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           _fetchAndRestoreEdit(txId, argsData: routeData);
         });
       } else {
-        // ── New entry — load from ProjectProvider ───────────────────
         final projectProvider = Provider.of<ProjectProvider>(
           context,
           listen: false,
@@ -203,7 +191,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             'phase=$_selectedPhase activity=$_selectedActivity',
           );
         } else {
-          // Fallback to route arguments
           final routeProjectId =
               args['projectId']?.toString() ?? UserSession.projectId;
           final routeFloor = args['floor']?.toString();
@@ -228,7 +215,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           }
         }
 
-        // ── Detect duplicate / Add More mode ──────────────────────────
         _isDuplicate = args['isDuplicate'] as bool? ?? false;
         _sourceTransactionId = args['sourceTransactionId']?.toString();
 
@@ -243,7 +229,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           });
         }
 
-        // Smart pre-fill from latest record
         final latest = args['latestRecord'] as Map<String, dynamic>?;
         if (latest != null) {
           final pId = latest['projectId'] ?? latest['project'];
@@ -314,7 +299,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
-  // ── Unit mapping helper ───────────────────────────────────────────────────
   void _applyUnitFromRaw(String rawUnit) {
     if (rawUnit == 'day' || rawUnit == 'days') {
       _selectedUnit = 'Day';
@@ -334,7 +318,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
-  // ── Project/Floor/Phase/Activity loaders (for edit/duplicate restore) ─────
   Future<void> _selectProject(String? projectId) async {
     _selectedProjectId = projectId;
   }
@@ -455,7 +438,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
-  /// Look up the ProjectPhase.id matching the given phase name.
   String? _derivePhaseId(dynamic phaseNameOrObj) {
     if (_selectedProjectId == null) return null;
     String? phaseName;
@@ -482,7 +464,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     return null;
   }
 
-  /// Look up the ProjectActivity.id matching the given activity name.
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -611,7 +592,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
-    // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -799,7 +779,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
-    // ── Re-prefill ALL controllers from authoritative source ──────────────
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -898,7 +877,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       await projectProvider.load();
     }
 
-    // ── Resolve project ID ──────────────────────────────────────────────
     final pId = latest['projectId'] ?? latest['project'];
     String? resolvedProjectId;
     if (pId != null) {
@@ -908,7 +886,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     debugPrint('resolvedProjectId => $resolvedProjectId');
 
-    // ── Extract floor / phase / activity (names AND IDs) ──────────────
     final String floorName = _extractString(latest, [
       'floor',
       'floorName',
@@ -938,7 +915,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     debugPrint('activityName => "$activityName"');
     debugPrint('activityId   => "$activityId"');
 
-    // Look up the project model for ID→name resolution
     final ProjectModel? project = resolvedProjectId == null
         ? null
         : projectProvider.projects.cast<ProjectModel?>().firstWhere(
@@ -952,20 +928,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('PROJECT NOT FOUND for ID: $resolvedProjectId');
     }
 
-    // ── 1. Select project ──────────────────────────────────────────────
     await _selectProject(resolvedProjectId);
     debugPrint('PROJECT => $_selectedProjectId');
 
-    // Clear previous warnings
     _floorWarning = null;
     _phaseWarning = null;
     _activityWarning = null;
 
-    // ── 2. Load floors ─────────────────────────────────────────────────
     await _loadFloors(resolvedProjectId);
     debugPrint('FLOORS LOADED: $_floors');
 
-    // ── 3. Restore floor ──────────────────────────────────────────────
     String? resolvedFloor;
     if (floorName.isNotEmpty) {
       resolvedFloor = floorName;
@@ -992,11 +964,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('FLOOR => NO DATA (both name and ID empty)');
     }
 
-    // ── 4. Load phases ─────────────────────────────────────────────────
     await _loadPhases(_selectedFloor);
     debugPrint('PHASES LOADED: $_phases');
 
-    // ── 5. Restore phase + phaseId ────────────────────────────────────
     String? resolvedPhase;
     String? resolvedPhaseId;
     if (phaseName.isNotEmpty) {
@@ -1041,11 +1011,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('PHASE => NO DATA (both name and ID empty)');
     }
 
-    // ── 6. Load activities ────────────────────────────────────────────
     await _loadActivities(_selectedPhase);
     debugPrint('ACTIVITIES LOADED: $_activities');
 
-    // ── 7. Restore activity + activityId ─────────────────────────────
     String? resolvedActivity;
     String? resolvedActivityId;
     if (activityName.isNotEmpty) {
@@ -1102,7 +1070,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('ACTIVITY => NO DATA (both name and ID empty)');
     }
 
-    // ── Type-safety assertions (soft — warnings only) ──────────────────
     if (resolvedFloor != null && !_floors.any((f) => f == resolvedFloor)) {
       debugPrint(
         '!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert',
@@ -1145,7 +1112,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     super.dispose();
   }
 
-  // ── Calculations ──────────────────────────────────────────────────────────
   double _subtotal() {
     final qty = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
@@ -1160,7 +1126,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   double _finalTotal() => _subtotal() + _gstAmount();
 
-  // ── Validation ────────────────────────────────────────────────────────────
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -1175,7 +1140,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   bool _validate() {
-    debugPrint('[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit');
+    debugPrint(
+      '[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit',
+    );
     bool ok = true;
     setState(() {
       _nameError = _nameCtrl.text.trim().isEmpty
@@ -1217,7 +1184,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     return ok;
   }
 
-  // ── Save ──────────────────────────────────────────────────────────────────
   Future<void> _save(BuildContext ctx) async {
     if (!_validate()) return;
 
@@ -1321,9 +1287,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         payload["notes"] = _paymentResult!['note'];
       }
       final receiptDataUri = _paymentResult!['receiptDataUri'] as String?;
-if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
-  payload["paymentReceipt"] = receiptDataUri;
-}
+      if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
+        payload["paymentReceipt"] = receiptDataUri;
+      }
     }
 
     if (_attachment != null) {
@@ -1387,8 +1353,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     );
   }
 
-  // ── Recent entries ────────────────────────────────────────────────────────
-  // FIX: userId passed so only this user's entries are fetched
   Future<void> _loadRecentEntries() async {
     if (_selectedProjectId == null) {
       setState(() {
@@ -1402,12 +1366,12 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
       type: 'Expense',
-      userId: UserSession.userId, // FIX: scope to current user
+      userId: UserSession.userId,
     );
     final suggestionFuture = ApiService.fetchSuggestions(
       projectId: _selectedProjectId!,
       type: 'Expense',
-      userId: UserSession.userId, // FIX: scope to current user
+      userId: UserSession.userId,
     );
 
     final recentTxs = await recentFuture;
@@ -1422,7 +1386,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     }
   }
 
-  // ── Recent entries bottom-sheet ───────────────────────────────────────────
   void _showRecentEntriesSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -1651,7 +1614,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     );
   }
 
-  // ── Pre-fill from recent ──────────────────────────────────────────────────
   void _prefillFromRecent(Map<String, dynamic> tx) {
     setState(() {
       _nameCtrl.text = tx['title']?.toString() ?? '';
@@ -1667,9 +1629,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
           ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString())
           : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
-      // FIX: this was flipping the payment toggle ON for a brand-new entry
-      // based on the copied entry's old payment status. Only data fields
-      // should prefill — payment state stays off/zeroed.
+
       _existingPaidAmount = 0.0;
       _isAddAndPay = false;
       _recordPaymentNow = false;
@@ -1696,9 +1656,7 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     return (month >= 1 && month <= 12) ? months[month - 1] : '';
   }
 
-  // ── Payment section ───────────────────────────────────────────────────────
   Widget _buildPaymentSection() {
-
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1932,8 +1890,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     );
   }
 
-
-  // ── Calc row helper ───────────────────────────────────────────────────────
   Widget _calcRow(String label, String value, {bool muted = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1958,7 +1914,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     context.watch<ProjectProvider>().projects;
@@ -1988,11 +1943,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // In Create mode the user already chose Project/Floor/
-                    // Phase/Activity in ExecutionContextScreen before arriving
-                    // here, so we intentionally hide this section.
-                    // In Edit or Duplicate/Repeat mode there is no preceding context screen, so
-                    // we restore the card so users can change the context.
                     if (_isEditing || _isDuplicate) ...[
                       ExecutionContextCard(
                         selectedProjectId: _selectedProjectId,
@@ -2067,8 +2017,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       const SizedBox(height: 16),
                     ],
 
-
-                    // ── Missing master data warnings ───────────────────────
                     if (_floorWarning != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
@@ -2172,7 +2120,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                         ),
                       ),
 
-                    // ── SECTION 2: EQUIPMENT ENTRY ─────────────────────────
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2187,7 +2134,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
 
-                          // 1. DATE
                           const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
                           GestureDetector(
@@ -2213,9 +2159,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                               setState(() {
                                 _isDatePickerOpen = false;
                                 if (picked != null) {
-                                  // FIX: showDatePicker only returns a date
-                                  // (midnight) — preserve the real time-of-
-                                  // day instead of zeroing it out.
                                   _selectedDate = DateTime(
                                     picked.year,
                                     picked.month,
@@ -2269,7 +2212,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 2. EQUIPMENT NAME
                           const EntryFieldLabel(
                             'Equipment Name',
                             required: true,
@@ -2285,7 +2227,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 3. UNIT
                           const EntryFieldLabel('Unit', required: true),
                           const SizedBox(height: 8),
                           UnitSelectorField(
@@ -2300,7 +2241,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 4. QUANTITY
                           const EntryFieldLabel('Quantity', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2313,7 +2253,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 5. RATE
                           const EntryFieldLabel('Rate (₹)', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2326,7 +2265,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 6. AMOUNT (auto)
                           const EntryFieldLabel('Amount (₹)'),
                           const SizedBox(height: 8),
                           Container(
@@ -2388,7 +2326,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 24),
 
-                          // OPTIONAL
                           Row(
                             children: [
                               const Expanded(
@@ -2415,7 +2352,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 16),
 
-                          // 7. MACHINERY SUB-CLASS
                           const EntryFieldLabel(
                             'Machinery Sub-Class / Model (Optional)',
                           ),
@@ -2426,7 +2362,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 20),
 
-                          // 8. OPERATOR / VENDOR
                           const EntryFieldLabel('Operator / Vendor (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2435,7 +2370,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 22),
 
-                          // GST MODULE
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -2664,7 +2598,6 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                           ),
                           const SizedBox(height: 18),
 
-                          // NOTES
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
@@ -2713,12 +2646,10 @@ if (receiptDataUri != null && receiptDataUri.isNotEmpty) {
                       ),
                     ),
 
-                    // FIX: Payment section only shown when user has approve_payments permission
                     if (RoleManager.canApprovePayments && !_isEditing)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 
-                    // ── RECENT ENTRIES COMPACT BANNER (bottom-sheet) ────
                     if (_selectedProjectId != null &&
                         !_isEditing &&
                         !_isDatePickerOpen) ...[

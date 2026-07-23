@@ -26,7 +26,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
 
-  // ── State loaded from route args ─────────────────────────────────────────
   bool _argsLoaded = false;
   Map _args = {};
   EntryStatus _entryStatus = EntryStatus.pending;
@@ -66,25 +65,18 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     } else {
       _paymentHistory = [];
     }
-   _customDate = args['date'] as String?;
+    _customDate = args['date'] as String?;
     _floor = args['floor'] as String?;
     _phase = args['phase'] as String?;
     _activity = args['activity'] as String?;
     _projectName = args['projectName'] as String?;
 
-    // FIX: populate payment receipt on initial load, not just after
-    // recording a new payment in this session.
-    // FIX: payment receipt must NOT reuse the invoice's `receipt` field —
-    // that field feeds InvoiceAttachmentCard (see `receipt` below). The
-    // actual payment receipt lives on its own field, falling back to the
-    // most recent payment-history entry's own `receipt` value.
-    _paymentReceiptFile = args['paymentReceipt'] as String? ??
+    _paymentReceiptFile =
+        args['paymentReceipt'] as String? ??
         (_paymentHistory.isNotEmpty
             ? _paymentHistory.last['receipt'] as String?
             : null);
   }
-
-  // ── Static type helpers ──────────────────────────────────────────────────
 
   static Color _typeColor(String type) {
     switch (type) {
@@ -141,8 +133,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     }
   }
 
-  // ── Formatters ────────────────────────────────────────────────────────────
-
   Widget _fieldLabel(String t) =>
       Text(t, style: AppTheme.label.copyWith(color: textGray));
 
@@ -171,7 +161,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     if (dateVal == null) return '';
     final str = dateVal.toString().trim();
     if (str.isEmpty) return '';
-    
+
     DateTime? dt;
     try {
       dt = DateTime.parse(str).toLocal();
@@ -184,8 +174,18 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     }
 
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
 
@@ -203,19 +203,23 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
     final String relativeStr;
     if (absDiff.inMinutes < 60) {
-      relativeStr = isFuture ? 'in ${absDiff.inMinutes}m' : '${absDiff.inMinutes}m ago';
+      relativeStr = isFuture
+          ? 'in ${absDiff.inMinutes}m'
+          : '${absDiff.inMinutes}m ago';
     } else if (absDiff.inHours < 24) {
-      relativeStr = isFuture ? 'in ${absDiff.inHours}h' : '${absDiff.inHours}h ago';
+      relativeStr = isFuture
+          ? 'in ${absDiff.inHours}h'
+          : '${absDiff.inHours}h ago';
     } else if (absDiff.inDays == 1) {
       relativeStr = isFuture ? 'Tomorrow' : 'Yesterday';
     } else {
-      relativeStr = isFuture ? 'in ${absDiff.inDays}d' : '${absDiff.inDays}d ago';
+      relativeStr = isFuture
+          ? 'in ${absDiff.inDays}d'
+          : '${absDiff.inDays}d ago';
     }
 
     return '$dateStr • $timeStr ($relativeStr)';
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -223,19 +227,15 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final String title = args['title'] as String? ?? 'Stock Entry';
     final String ref = args['ref'] as String? ?? '#INV-0000';
     final String amount = args['amount'] as String? ?? '+0';
-    final String date = _customDate ?? args['date'] as String? ?? 'Unknown date';
+    final String date =
+        _customDate ?? args['date'] as String? ?? 'Unknown date';
     final String displayDate = _formatDateTimeWithTime(date);
     final String type = args['type'] as String? ?? 'material';
     final String name = args['name'] as String? ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
     final String? receipt = args['receipt'] as String?;
-    // FIX: 'attachment' arrives from the transaction list as a URL String
-// (not a PickedAttachment, which only exists transiently during the
-// Add-entry form session before upload). Casting String -> PickedAttachment
-// threw at runtime and crashed this page whenever an entry had an invoice.
-// The actual URL is already available via `receipt` below, so this is
-// intentionally always null here.
-final PickedAttachment? attachment = null;
+
+    final PickedAttachment? attachment = null;
     final String createdBy = args['createdBy'] as String? ?? '';
     final String projectId = args['projectId'] as String? ?? '';
     final String supplier = args['supplier'] as String? ?? '';
@@ -285,7 +285,6 @@ final PickedAttachment? attachment = null;
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── TYPE BADGE + PAYMENT STATUS ─────────────────────────
                     Row(
                       children: [
                         _buildTypeBadge(type),
@@ -295,7 +294,6 @@ final PickedAttachment? attachment = null;
                     ),
                     const SizedBox(height: 16),
 
-                    // ── ITEM HEADER ─────────────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -341,7 +339,6 @@ final PickedAttachment? attachment = null;
                     ),
                     const SizedBox(height: 14),
 
-                    // ── EXECUTION CONTEXT ────────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -377,7 +374,6 @@ final PickedAttachment? attachment = null;
                     ),
                     const SizedBox(height: 14),
 
-                    // ── OPERATIONAL SUMMARY ─────────────────────────────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -423,33 +419,32 @@ final PickedAttachment? attachment = null;
                             ],
                           ),
                           const AppDivider(verticalPadding: 12),
-          _fieldLabel('PURCHASE DATE'),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(
-                Icons.calendar_today_outlined,
-                color: _typeColor(type),
-                size: 14,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  displayDate,
-                  style: AppTheme.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
+                          _fieldLabel('PURCHASE DATE'),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                color: _typeColor(type),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  displayDate,
+                                  style: AppTheme.bodyLarge.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: textDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
 
-                    // ── SETTLEMENT SUMMARY ──────────────────────────────────
                     if (_billAmount > 0) ...[
                       _buildSettlementCard(
                         due: due,
@@ -459,11 +454,9 @@ final PickedAttachment? attachment = null;
                       const SizedBox(height: 14),
                     ],
 
-                    // ── PAYMENT HISTORY ─────────────────────────────────────
                     _buildPaymentHistoryCard(),
                     if (_paymentHistory.isNotEmpty) const SizedBox(height: 14),
 
-                    // ── INVOICE / BILL (uploaded at entry creation) ───────────
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -480,7 +473,6 @@ final PickedAttachment? attachment = null;
                     ),
                     const SizedBox(height: 14),
 
-                    // ── PAYMENT RECEIPT (uploaded via Fulfillment & Payment) ──
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -494,7 +486,6 @@ final PickedAttachment? attachment = null;
                     ),
                     const SizedBox(height: 20),
 
-                    // ── RECORD PAYMENT CTA ──────────────────────────────────
                     if (canSettle && RoleManager.canApprovePayments)
                       _buildRecordPaymentCTA(
                         context,
@@ -505,10 +496,8 @@ final PickedAttachment? attachment = null;
                         type: type,
                       ),
 
-                    // ── SETTLED CONFIRMATION ────────────────────────────────
                     if (isSettled) _buildSettledBadge(),
 
-                    // ── DELETE ENTRY — secondary destructive action ──────────
                     if (canDelete) ...[
                       const SizedBox(height: 16),
                       _buildDeleteAction(
@@ -529,7 +518,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── TOP BAR ───────────────────────────────────────────────────────────────
   Widget _buildTopBar(
     BuildContext context,
     String type,
@@ -595,7 +583,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── TYPE BADGE ────────────────────────────────────────────────────────────
   Widget _buildTypeBadge(String type) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -622,7 +609,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── SETTLEMENT SUMMARY CARD ───────────────────────────────────────────────
   Widget _buildSettlementCard({
     required double due,
     required String method,
@@ -726,7 +712,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── RECORD PAYMENT CTA ────────────────────────────────────────────────────
   Widget _buildRecordPaymentCTA(
     BuildContext context, {
     required String id,
@@ -775,7 +760,6 @@ final PickedAttachment? attachment = null;
           arguments: payArgs,
         ).then((updated) async {
           if (updated == true && mounted) {
-            // Fetch latest transaction details to refresh details page
             final latest = await ApiService.fetchTransactionById(id);
             if (latest != null && mounted) {
               setState(() {
@@ -798,10 +782,8 @@ final PickedAttachment? attachment = null;
                     ? List.from(latest['paymentHistory'])
                     : [];
 
-                // FIX: `attachments` is the INVOICE array — reading it here
-                // is exactly why the Payment Receipt card mirrored the
-                // Invoice card. Pull from the payment's own field instead.
-                final dynamic freshPaymentReceipt = latest['paymentReceipt'] ??
+                final dynamic freshPaymentReceipt =
+                    latest['paymentReceipt'] ??
                     (_paymentHistory.isNotEmpty
                         ? _paymentHistory.last['receipt']
                         : null);
@@ -849,7 +831,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── SETTLED BADGE ─────────────────────────────────────────────────────────
   Widget _buildSettledBadge() {
     return Container(
       width: double.infinity,
@@ -952,7 +933,6 @@ final PickedAttachment? attachment = null;
             itemBuilder: (context, index) {
               final item = displayedHistory[index] ?? {};
 
-              // Parse date
               final rawDate = item['date'] ?? item['paymentDate'];
               final String formattedDate = _formatDateTimeWithTime(rawDate);
 
@@ -1032,7 +1012,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── DELETE ACTION — low-emphasis secondary ────────────────────────────────
   Widget _buildDeleteAction(
     BuildContext context, {
     required String id,
@@ -1066,7 +1045,6 @@ final PickedAttachment? attachment = null;
     );
   }
 
-  // ── DELETE DIALOG ─────────────────────────────────────────────────────────
   void _showDeleteDialog(
     BuildContext context, {
     required String id,

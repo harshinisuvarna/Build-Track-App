@@ -13,7 +13,6 @@ class ChooseEntryModeScreen extends StatefulWidget {
 
 class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     with SingleTickerProviderStateMixin {
-  // ── Route args ───────────────────────────────────────────────────────────
   String _entryType = 'material';
   Map<String, dynamic> _contextArgs = {};
 
@@ -48,7 +47,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       _contextArgs = Map<String, dynamic>.from(args);
     }
 
-    // Sync from provider for compatibility
     final projectProvider = Provider.of<ProjectProvider>(
       context,
       listen: false,
@@ -62,7 +60,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     _contextArgs['activity'] = projectProvider.selectedActivity;
     _contextArgs['activityId'] = projectProvider.selectedActivityId;
 
-    // Trigger entrance animation after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _animCtrl.forward());
   }
 
@@ -72,7 +69,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     super.dispose();
   }
 
-  // ── Routing ───────────────────────────────────────────────────────────────
   static const Map<String, String> _voiceRoutes = {
     'material': '/review-material',
     'labour': '/review-labour',
@@ -99,7 +95,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     }
   }
 
-  // ── Computed labels ───────────────────────────────────────────────────────
   String get _entryTypeLabel {
     switch (_entryType) {
       case 'labour':
@@ -157,11 +152,9 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Step indicator ──────────────────────────────
                         _buildStepIndicator(),
                         const SizedBox(height: 24),
 
-                        // ── Heading ─────────────────────────────────────
                         const Text(
                           'How do you want\nto add?',
                           style: TextStyle(
@@ -182,11 +175,9 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                         ),
                         const SizedBox(height: 24),
 
-                        // ── Context summary banner ───────────────────────
                         _buildContextBanner(),
                         const SizedBox(height: 28),
 
-                        // ── Mode option: Voice ───────────────────────────
                         _InteractiveModeCard(
                           icon: Icons.mic_rounded,
                           iconColor: AppColors.primary,
@@ -198,7 +189,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                         ),
                         const SizedBox(height: 16),
 
-                        // ── Mode option: Manual ──────────────────────────
                         _InteractiveModeCard(
                           icon: Icons.edit_outlined,
                           iconColor: const Color(0xFF7C3AED),

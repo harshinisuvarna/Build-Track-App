@@ -1,8 +1,8 @@
 class ConstructionActivity {
-  final String key; // Format: "PhaseName::GroupName::ActivityName"
+  final String key;
   final String name;
   final bool isCustom;
-  bool isSelected; // used in add_project for scope selection
+  bool isSelected;
 
   double? qty;
   String? unit;
@@ -69,15 +69,10 @@ class ConstructionPhase {
   int get totalCount => allActivities.length;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 ConstructionActivity _a(String phase, String group, String name) =>
     ConstructionActivity(key: '$phase::$group::$name', name: name);
 
-// ── Static phase catalogue ─────────────────────────────────────────────────
-
 List<ConstructionPhase> buildDefaultPhases() => [
-  // ── 1. PRE-CONSTRUCTION ───────────────────────────────────────────────
   ConstructionPhase(
     name: 'Pre-Construction',
     activities: [
@@ -94,7 +89,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 2. SITE PREPARATION ───────────────────────────────────────────────
   ConstructionPhase(
     name: 'Site Preparation',
     activities: [
@@ -108,7 +102,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 3. FOUNDATION & PLINTH WORK ──────────────────────────────────────
   ConstructionPhase(
     name: 'Foundation & Plinth Work',
     activities: [
@@ -182,7 +175,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 4. FLOOR CONSTRUCTION ─────────────────────────────────────────────
   ConstructionPhase(
     name: 'Floor Construction',
     activities: [
@@ -223,7 +215,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 5. FINISHING WORK ─────────────────────────────────────────────────
   ConstructionPhase(
     name: 'Finishing Work',
     activities: [
@@ -260,7 +251,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 6. EXTERNAL WORKS ─────────────────────────────────────────────────
   ConstructionPhase(
     name: 'External Works',
     activities: [
@@ -277,7 +267,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 7. MATERIAL MASTER ────────────────────────────────────────────────
   ConstructionPhase(
     name: 'Material Master',
     activities: [
@@ -305,7 +294,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 8. LABOUR MASTER ──────────────────────────────────────────────────
   ConstructionPhase(
     name: 'Labour Master',
     activities: [
@@ -324,7 +312,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
     ],
   ),
 
-  // ── 9. EQUIPMENT MASTER ───────────────────────────────────────────────
   ConstructionPhase(
     name: 'Equipment Master',
     activities: [

@@ -7,13 +7,13 @@ class AppColors {
   static const Color primaryPurple = Color(0xFFB137FF);
   static const Color primaryLightBlue = Color(0xFF67C8FF);
 
-  static const Color bgBase1 = Color(0xFFD8D4F0); // top-left
-  static const Color bgBase2 = Color(0xFFCAC3ED); // upper-center
-  static const Color bgBase3 = Color(0xFFD2CBF0); // lower-center
-  static const Color bgBase4 = Color(0xFFE8E4F8); // bottom-right
-  static const Color bgGlow1 = Color(0xFFFFFFFF); // center-right  (0.55)
-  static const Color bgGlow2 = Color(0xFF9B8FE8); //top-left      (0.45)
-  static const Color bgGlow3 = Color(0xFFCFB8F0); // bottom-right  (0.40)
+  static const Color bgBase1 = Color(0xFFD8D4F0);
+  static const Color bgBase2 = Color(0xFFCAC3ED);
+  static const Color bgBase3 = Color(0xFFD2CBF0);
+  static const Color bgBase4 = Color(0xFFE8E4F8);
+  static const Color bgGlow1 = Color(0xFFFFFFFF);
+  static const Color bgGlow2 = Color(0xFF9B8FE8);
+  static const Color bgGlow3 = Color(0xFFCFB8F0);
 
   static const Color authStart = Color(0xFF8B9FE8);
   static const Color authMid = Color(0xFFB4A8EF);
@@ -24,8 +24,8 @@ class AppColors {
 
   static const Color textPrimary = Color(0xFF1A1A2E);
   static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textBlue = Color(0xFF173EEA); // links / IDs
-  static const Color textAmount = Color(0xFF1A1A2E); // bold ₹ amounts
+  static const Color textBlue = Color(0xFF173EEA);
+  static const Color textAmount = Color(0xFF1A1A2E);
 
   static const Color badgeWarningBg = Color(0xFFFFF4E0);
   static const Color badgeWarningText = Color(0xFFB45309);

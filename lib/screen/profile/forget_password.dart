@@ -19,7 +19,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isLoading = false;
   bool _obscurePass = true;
 
-  // false = step 1 (email), true = step 2 (token + new password)
   bool _step2 = false;
 
   @override
@@ -150,7 +149,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         GestureDetector(
           onTap: () {
             if (_step2) {
-              // Go back to step 1
               setState(() => _step2 = false);
             } else {
               Navigator.pop(context);
@@ -183,8 +181,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      // Wake up Render server before actual request
-      try { await ApiService.get('/health'); } catch (_) {}
+      try {
+        await ApiService.get('/health');
+      } catch (_) {}
       await Future.delayed(const Duration(seconds: 3));
       final token = await ApiService.resetPassword(email);
       if (!mounted) return;

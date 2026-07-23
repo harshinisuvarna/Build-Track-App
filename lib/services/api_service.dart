@@ -12,7 +12,7 @@ class ApiService {
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    // Try 'token' first, fall back to 'jwt_token'
+
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
 
     return {
@@ -76,10 +76,6 @@ class ApiService {
     debugPrint('Body: ${response.body}');
     return response;
   }
-
-  // ==========================================
-  // PROJECT API METHODS
-  // ==========================================
 
   static Future<List<ProjectModel>> fetchProjects() async {
     if (mockProjects != null) return mockProjects!;
@@ -176,50 +172,46 @@ class ApiService {
     }
   }
 
-  // ==========================================
-  // TRANSACTION API METHODS
-  // ==========================================
-
   static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
-  try {
-    String endpoint = '/transactions?filterByViewAccess=true&limit=10000';
-    if (projectId != null && projectId.isNotEmpty) {
-      endpoint += '&project=$projectId';
-    }
-    final response = await get(endpoint);
+    try {
+      String endpoint = '/transactions?filterByViewAccess=true&limit=10000';
+      if (projectId != null && projectId.isNotEmpty) {
+        endpoint += '&project=$projectId';
+      }
+      final response = await get(endpoint);
 
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      if (decoded is List) {
-        return decoded;
-      } else if (decoded is Map) {
-        return decoded['transactions'] ?? decoded['data'] ?? [];
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) {
+          return decoded;
+        } else if (decoded is Map) {
+          return decoded['transactions'] ?? decoded['data'] ?? [];
+        }
+        return [];
+      } else if (response.statusCode == 401) {
+        if (kDebugMode) {
+          debugPrint(
+            'AUTH Error: Token missing or expired (401). Body: ${response.body}',
+          );
+        }
+        throw Exception('Unauthorized – please log in again');
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+            'GET /transactions failed with status ${response.statusCode}: ${response.body}',
+          );
+        }
+        throw Exception(
+          'Failed to load transactions (HTTP ${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('GET Error: $e');
       }
       return [];
-    } else if (response.statusCode == 401) {
-      if (kDebugMode) {
-        debugPrint(
-          'AUTH Error: Token missing or expired (401). Body: ${response.body}',
-        );
-      }
-      throw Exception('Unauthorized – please log in again');
-    } else {
-      if (kDebugMode) {
-        debugPrint(
-          'GET /transactions failed with status ${response.statusCode}: ${response.body}',
-        );
-      }
-      throw Exception(
-        'Failed to load transactions (HTTP ${response.statusCode})',
-      );
     }
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('GET Error: $e');
-    }
-    return [];
   }
-}
 
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
@@ -241,9 +233,13 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> addTransactionsBulk(List<Map<String, dynamic>> payloads) async {
+  static Future<Map<String, dynamic>?> addTransactionsBulk(
+    List<Map<String, dynamic>> payloads,
+  ) async {
     try {
-      final response = await post('/transactions/bulk', {'transactions': payloads});
+      final response = await post('/transactions/bulk', {
+        'transactions': payloads,
+      });
 
       if (kDebugMode) {
         debugPrint('=== BULK UPLOAD SERVER RESPONSE ===');
@@ -252,7 +248,9 @@ class ApiService {
         debugPrint('===================================');
       }
 
-      if (response.statusCode == 207 || response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 207 ||
+          response.statusCode == 200 ||
+          response.statusCode == 201) {
         return json.decode(response.body);
       }
       return null;
@@ -383,10 +381,6 @@ class ApiService {
     }
   }
 
-  // ==========================================
-  // INVENTORY API METHODS
-  // ==========================================
-
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
       String endpoint = '/transactions?limit=10000&filterByViewAccess=true';
@@ -418,12 +412,14 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          final String rawType = (t['type'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
 
-          // ── Only Approved entries count toward inventory/stock ──────────
           final String approvalStatus = (t['approvalStatus'] ?? '')
               .toString()
               .toLowerCase()
@@ -596,12 +592,14 @@ class ApiService {
         final Map<String, Map<String, dynamic>> grouped = {};
 
         for (final t in raw) {
-          final String rawType = (t['type'] ?? '').toString().trim().toLowerCase();
+          final String rawType = (t['type'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
 
-          // ── Only Approved entries count toward inventory/stock ──────────
           final String approvalStatus = (t['approvalStatus'] ?? '')
               .toString()
               .toLowerCase()
@@ -609,7 +607,7 @@ class ApiService {
           if (approvalStatus != 'approved') {
             continue;
           }
-          final String itemName =   
+          final String itemName =
               (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
                   .toString()
                   .trim();
@@ -717,38 +715,38 @@ class ApiService {
   }
 
   static Future<String?> resetPassword(String email) async {
-  try {
-    final response = await post('/auth/forgot-password', {'email': email});
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final body = json.decode(response.body);
-      return body['resetToken'] as String?; // null in production
-    } else {
-      throw Exception('Server returned ${response.statusCode}');
+    try {
+      final response = await post('/auth/forgot-password', {'email': email});
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = json.decode(response.body);
+        return body['resetToken'] as String?;
+      } else {
+        throw Exception('Server returned ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('resetPassword Error: $e');
+      rethrow;
     }
-  } catch (e) {
-    if (kDebugMode) debugPrint('resetPassword Error: $e');
-    rethrow;
   }
-}
 
   static Future<void> confirmResetPassword({
-  required String token,
-  required String password,
-}) async {
-  try {
-    final response = await post('/auth/reset-password', {
-      'token': token,
-      'password': password,
-    });
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      final body = json.decode(response.body);
-      throw Exception(body['message'] ?? 'Failed to reset password');
+    required String token,
+    required String password,
+  }) async {
+    try {
+      final response = await post('/auth/reset-password', {
+        'token': token,
+        'password': password,
+      });
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final body = json.decode(response.body);
+        throw Exception(body['message'] ?? 'Failed to reset password');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('confirmResetPassword Error: $e');
+      rethrow;
     }
-  } catch (e) {
-    if (kDebugMode) debugPrint('confirmResetPassword Error: $e');
-    rethrow;
   }
-}
 
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
@@ -780,10 +778,6 @@ class ApiService {
     }
   }
 
-  // ==========================================
-  // AUTOCOMPLETE SUGGESTIONS
-  // ==========================================
-
   static Future<List<Map<String, dynamic>>> fetchSuggestions({
     required String projectId,
     required String type,
@@ -792,7 +786,8 @@ class ApiService {
     try {
       List<dynamic> projectTxs = [];
       try {
-        String projectUrl = '/transactions?limit=10000&project=$projectId&type=$type';
+        String projectUrl =
+            '/transactions?limit=10000&project=$projectId&type=$type';
         if (userId != null && userId.isNotEmpty) {
           projectUrl += '&createdBy=$userId';
         }
@@ -909,10 +904,6 @@ class ApiService {
     }
   }
 
-  // ==========================================
-  // Maker-Checker Approvals
-  // ==========================================
-
   static Future<Map<String, dynamic>?> fetchPendingApprovals() async {
     try {
       final response = await get('/approvals/pending');
@@ -1017,56 +1008,52 @@ class ApiService {
     }
   }
 
-  /// Fetches recent inventory-related entries for the home screen.
-/// - Admin: sees recent valid entries across inventory
-/// - Others: sees their own recent valid entries only
-/// - Rejected entries are excluded
-/// - If projectId is passed, only that project's entries are returned
-static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
-  try {
-    String url = '/transactions?limit=10&filterByViewAccess=true';
+  static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
+    try {
+      String url = '/transactions?limit=10&filterByViewAccess=true';
 
-    if (projectId != null && projectId.isNotEmpty) {
-      url += '&project=$projectId';
+      if (projectId != null && projectId.isNotEmpty) {
+        url += '&project=$projectId';
+      }
+
+      final response = await get(url);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final List<dynamic> rawEntries = decoded is List
+            ? decoded
+            : (decoded['transactions'] ?? decoded['data'] ?? [])
+                  as List<dynamic>;
+
+        final filtered = rawEntries.where((entry) {
+          if (entry is! Map<String, dynamic>) return false;
+
+          final type = (entry['type'] ?? '').toString().toLowerCase().trim();
+          final approvalStatus = (entry['approvalStatus'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim();
+
+          if (type == 'income' || type == 'revenue') return false;
+          if (approvalStatus == 'rejected') return false;
+          if (approvalStatus != 'approved') {
+            return false;
+          }
+
+          return true;
+        }).toList();
+
+        filtered.sort((a, b) {
+          final aDate = (a['date'] ?? a['createdAt'] ?? '').toString();
+          final bDate = (b['date'] ?? b['createdAt'] ?? '').toString();
+          return bDate.compareTo(aDate);
+        });
+
+        return filtered.take(10).toList();
+      }
+    } catch (e) {
+      debugPrint('fetchMyRecentEntries error: $e');
     }
-
-    final response = await get(url);
-
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      final List<dynamic> rawEntries = decoded is List
-          ? decoded
-          : (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
-
-      final filtered = rawEntries.where((entry) {
-        if (entry is! Map<String, dynamic>) return false;
-
-        final type = (entry['type'] ?? '').toString().toLowerCase().trim();
-        final approvalStatus = (entry['approvalStatus'] ?? '')
-            .toString()
-            .toLowerCase()
-            .trim();
-
-        if (type == 'income' || type == 'revenue') return false;
-        if (approvalStatus == 'rejected') return false;
-        if (approvalStatus != 'approved') {
-          return false;
-        }
-
-        return true;
-      }).toList();
-
-      filtered.sort((a, b) {
-        final aDate = (a['date'] ?? a['createdAt'] ?? '').toString();
-        final bDate = (b['date'] ?? b['createdAt'] ?? '').toString();
-        return bDate.compareTo(aDate);
-      });
-
-      return filtered.take(10).toList();
-    }
-  } catch (e) {
-    debugPrint('fetchMyRecentEntries error: $e');
+    return [];
   }
-  return [];
-}
 }

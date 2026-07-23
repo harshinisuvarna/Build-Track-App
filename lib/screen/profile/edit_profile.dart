@@ -8,7 +8,7 @@ import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-import 'profile.dart'; // for ProfileUserData
+import 'profile.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -33,23 +33,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _nameCtrl = TextEditingController();
     _emailCtrl = TextEditingController();
-    // Defer so ModalRoute.settings.arguments is available
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _initFields());
   }
 
   void _initFields() {
-    // ProfileScreen passes the already-fetched ProfileUserData as arguments
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ProfileUserData) {
       _nameCtrl.text = args.name;
       _emailCtrl.text = args.email;
       _initialPhotoUrl = args.profilePhoto;
     } else {
-      // Fallback: use session values
       _nameCtrl.text = UserSession.userId.isNotEmpty ? UserSession.userId : '';
       _emailCtrl.text = '';
       _initialPhotoUrl = UserSession.profilePhoto;
-      // Try to fetch fresh from API
+
       _fetchProfile();
       return;
     }
@@ -68,7 +66,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _initialPhotoUrl = userJson['profilePhoto']?.toString();
       }
     } catch (_) {
-      // Keep whatever was set from session
     } finally {
       if (mounted) setState(() => _isLoadingInitial = false);
     }
@@ -157,7 +154,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // 1. Handle profile picture upload/deletion if changed
       if (_deletePhoto) {
         final photoResponse = await ApiService.put('/users/profile/photo', {
           'profilePhoto': 'delete',
@@ -180,7 +176,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
 
-      // 2. Save profile name and email
       final payload = <String, dynamic>{
         'name': name,
         if (email.isNotEmpty) 'email': email,
@@ -194,7 +189,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final decoded = json.decode(response.body);
         final userJson = decoded['user'] ?? decoded;
 
-        // Update local session (includes updated profile photo, name, email)
         await UserSession.fromLoginResponse(
           Map<String, dynamic>.from(userJson),
         );
@@ -251,7 +245,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 const SizedBox(height: AppTheme.spacingLg),
 
-                // ── Avatar picker ─────────────────────────────────────────
                 Center(
                   child: Stack(
                     children: [
@@ -314,7 +307,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                 const SizedBox(height: AppTheme.spacingXl),
 
-                // ── Name ──────────────────────────────────────────────────
                 AppTextField(
                   label: 'Full Name',
                   controller: _nameCtrl,
@@ -322,7 +314,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   prefixIcon: Icons.person_outline,
                 ),
 
-                // ── Email ─────────────────────────────────────────────────
                 AppTextField(
                   label: 'Email Address',
                   controller: _emailCtrl,
@@ -333,7 +324,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                 const SizedBox(height: AppTheme.spacingXl),
 
-                // ── Save button ───────────────────────────────────────────
                 _isSaving
                     ? const Center(
                         child: CircularProgressIndicator(

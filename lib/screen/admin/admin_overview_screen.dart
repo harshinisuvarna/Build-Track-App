@@ -44,7 +44,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
       _usersError = null;
     });
     try {
-      // Fetch all provisioned users — backend scopes to org automatically
       final response = await ApiService.get('/auth/users');
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -103,7 +102,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
 
   @override
   Widget build(BuildContext context) {
-    // ── Issue 1: Non-admin gate ──────────────────────────────────────────
     if (!RoleManager.canViewTeamAccess) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -258,8 +256,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
     );
   }
 
-  // ── USERS TAB ──────────────────────────────────────────────────────────────
-
   Widget _buildUsersTab() {
     if (_loadingUsers) {
       return const Center(
@@ -307,8 +303,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
     );
   }
 
-  // ── TRANSACTIONS TAB ───────────────────────────────────────────────────────
-
   Widget _buildTransactionsTab() {
     if (_loadingTx) {
       return const Center(
@@ -350,7 +344,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
   }
 }
 
-// ── User card ─────────────────────────────────────────────────────────────────
 class _UserCard extends StatelessWidget {
   const _UserCard({required this.user, this.onEdit});
   final Map<String, dynamic> user;
@@ -448,7 +441,7 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // ── Edit button — hidden for Admin users ───────────────
+
               if (!isAdminUser && onEdit != null) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -536,8 +529,6 @@ class _UserCard extends StatelessWidget {
     );
   }
 }
-
-// ── Transaction card ──────────────────────────────────────────────────────────
 
 class _TxCard extends StatelessWidget {
   const _TxCard({required this.tx});

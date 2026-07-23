@@ -57,28 +57,69 @@ class ReportExportHelper {
     return 'Rs. $formattedRemaining,$lastThree.$decimal';
   }
 
-  /// Returns the display header list for a given tab/column selection.
-  /// Used by both CSV export and CSV import template so they stay in sync.
   static List<String> getExportHeaders({
     required String quickCategoryTab,
     List<String>? activeColumns,
   }) {
     if (activeColumns != null) {
-      return activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
+      return activeColumns
+          .map((col) => col == 'Amount' ? 'Amount (INR)' : col)
+          .toList();
     }
     switch (quickCategoryTab) {
       case 'Materials':
-        return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+        return [
+          'Purchased Date',
+          'Project',
+          'Material',
+          'Brand',
+          'Rate',
+          'Qty',
+          'Unit',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       case 'Labour':
-        return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
+        return [
+          'Purchased Date',
+          'Project',
+          'Worker Type',
+          'Rate/Day',
+          'Days',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       case 'Equipment':
-        return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
+        return [
+          'Purchased Date',
+          'Project',
+          'Equipment',
+          'Rent Rate',
+          'Duration',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       default:
-        return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+        return [
+          'Purchased Date',
+          'Project',
+          'Type',
+          'Description',
+          'Brand',
+          'Floor',
+          'Phase',
+          'Activity',
+          'Unit',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
     }
   }
 
-  /// Export entries as a CSV file and open share sheet / download
   static Future<void> exportToCsv({
     required List<EntryModel> entries,
     required String Function(String) getProjectName,
@@ -90,28 +131,75 @@ class ReportExportHelper {
     final csvBuffer = StringBuffer();
     final List<String> headers;
     if (activeColumns != null) {
-      headers = activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
+      headers = activeColumns
+          .map((col) => col == 'Amount' ? 'Amount (INR)' : col)
+          .toList();
     } else {
       if (quickCategoryTab == 'Materials') {
-        headers = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+        headers = [
+          'Purchased Date',
+          'Project',
+          'Material',
+          'Brand',
+          'Rate',
+          'Qty',
+          'Unit',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       } else if (quickCategoryTab == 'Labour') {
-        headers = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
+        headers = [
+          'Purchased Date',
+          'Project',
+          'Worker Type',
+          'Rate/Day',
+          'Days',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       } else if (quickCategoryTab == 'Equipment') {
-        headers = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
+        headers = [
+          'Purchased Date',
+          'Project',
+          'Equipment',
+          'Rent Rate',
+          'Duration',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       } else {
-        headers = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+        headers = [
+          'Purchased Date',
+          'Project',
+          'Type',
+          'Description',
+          'Brand',
+          'Floor',
+          'Phase',
+          'Activity',
+          'Unit',
+          'Status',
+          'Amount (INR)',
+          'Payment Date',
+        ];
       }
     }
 
-    // Write header line with quotes
-    csvBuffer.writeln(headers.map((h) => '"${h.replaceAll('"', '""')}"').join(','));
+    csvBuffer.writeln(
+      headers.map((h) => '"${h.replaceAll('"', '""')}"').join(','),
+    );
 
     for (final entry in entries) {
       final dateStr = _formatYmd(entry.date);
       final projectName = getProjectName(entry.projectId);
       final amount = entry.amount;
       final status = _getPaymentStatusLabel(entry.paymentStatus);
-      final payDateStr = entry.paymentDate != null ? _formatYmd(entry.paymentDate!) : '—';
+      final payDateStr = entry.paymentDate != null
+          ? _formatYmd(entry.paymentDate!)
+          : '—';
 
       final List<String> rowValues;
       if (activeColumns != null) {
@@ -125,7 +213,10 @@ class ReportExportHelper {
             rowValues.add(projectName);
           } else if (col == 'Type') {
             rowValues.add(entry.type.name.toUpperCase());
-          } else if (col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment') {
+          } else if (col == 'Description' ||
+              col == 'Material' ||
+              col == 'Worker Type' ||
+              col == 'Equipment') {
             rowValues.add(entry.description.isEmpty ? '—' : entry.description);
           } else if (col == 'Brand') {
             rowValues.add(entry.brand ?? '—');
@@ -208,11 +299,14 @@ class ReportExportHelper {
         ];
       }
 
-      final escapedRow = rowValues.map((val) => '"${val.replaceAll('"', '""')}"').join(',');
+      final escapedRow = rowValues
+          .map((val) => '"${val.replaceAll('"', '""')}"')
+          .join(',');
       csvBuffer.writeln(escapedRow);
     }
 
-    final filename = 'BuildTrack_Report_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final filename =
+        'BuildTrack_Report_${DateTime.now().millisecondsSinceEpoch}.csv';
     final shareText = 'BuildTrack Filtered Report (${entries.length} entries)';
 
     await saveAndShareCsv(
@@ -222,7 +316,6 @@ class ReportExportHelper {
     );
   }
 
-  /// Generate and open PDF print preview
   static Future<void> exportToPdf({
     required List<EntryModel> entries,
     required String Function(String) getProjectName,
@@ -233,7 +326,6 @@ class ReportExportHelper {
   }) async {
     final pdf = pw.Document();
 
-    // Calculate totals
     double materialTotal = 0;
     double labourTotal = 0;
     double equipmentTotal = 0;
@@ -261,17 +353,35 @@ class ReportExportHelper {
     final double cellFontSize;
 
     if (activeColumns != null) {
-      pdfHeaders = activeColumns.map((col) => col == 'Amount' ? 'Amount (INR)' : col).toList();
+      pdfHeaders = activeColumns
+          .map((col) => col == 'Amount' ? 'Amount (INR)' : col)
+          .toList();
       headerFontSize = 7;
       cellFontSize = 6;
       cellAlignmentsMap = {};
       for (int i = 0; i < activeColumns.length; i++) {
         final col = activeColumns[i];
-        if (col == 'Purchased Date' || col == 'Payment Date' || col == 'Project' || col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment' || col == 'Brand' || col == 'Floor' || col == 'Phase' || col == 'Activity') {
+        if (col == 'Purchased Date' ||
+            col == 'Payment Date' ||
+            col == 'Project' ||
+            col == 'Description' ||
+            col == 'Material' ||
+            col == 'Worker Type' ||
+            col == 'Equipment' ||
+            col == 'Brand' ||
+            col == 'Floor' ||
+            col == 'Phase' ||
+            col == 'Activity') {
           cellAlignmentsMap[i] = pw.Alignment.centerLeft;
         } else if (col == 'Type' || col == 'Unit' || col == 'Status') {
           cellAlignmentsMap[i] = pw.Alignment.center;
-        } else if (col == 'Amount' || col == 'Rate' || col == 'Rate/Day' || col == 'Rent Rate' || col == 'Qty' || col == 'Days' || col == 'Duration') {
+        } else if (col == 'Amount' ||
+            col == 'Rate' ||
+            col == 'Rate/Day' ||
+            col == 'Rent Rate' ||
+            col == 'Qty' ||
+            col == 'Days' ||
+            col == 'Duration') {
           cellAlignmentsMap[i] = pw.Alignment.centerRight;
         }
       }
@@ -281,12 +391,17 @@ class ReportExportHelper {
           if (col == 'Purchased Date') {
             rowValues.add(_formatYmd(e.date));
           } else if (col == 'Payment Date') {
-            rowValues.add(e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—');
+            rowValues.add(
+              e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
+            );
           } else if (col == 'Project') {
             rowValues.add(getProjectName(e.projectId));
           } else if (col == 'Type') {
             rowValues.add(e.type.name.toUpperCase());
-          } else if (col == 'Description' || col == 'Material' || col == 'Worker Type' || col == 'Equipment') {
+          } else if (col == 'Description' ||
+              col == 'Material' ||
+              col == 'Worker Type' ||
+              col == 'Equipment') {
             rowValues.add(e.description.isEmpty ? '—' : e.description);
           } else if (col == 'Brand') {
             rowValues.add(e.brand ?? '—');
@@ -314,7 +429,18 @@ class ReportExportHelper {
         return rowValues;
       }).toList();
     } else if (quickCategoryTab == 'Materials') {
-      pdfHeaders = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+      pdfHeaders = [
+        'Purchased Date',
+        'Project',
+        'Material',
+        'Brand',
+        'Rate',
+        'Qty',
+        'Unit',
+        'Status',
+        'Amount (INR)',
+        'Payment Date',
+      ];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -346,7 +472,16 @@ class ReportExportHelper {
         ];
       }).toList();
     } else if (quickCategoryTab == 'Labour') {
-      pdfHeaders = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount (INR)', 'Payment Date'];
+      pdfHeaders = [
+        'Purchased Date',
+        'Project',
+        'Worker Type',
+        'Rate/Day',
+        'Days',
+        'Status',
+        'Amount (INR)',
+        'Payment Date',
+      ];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -374,7 +509,16 @@ class ReportExportHelper {
         ];
       }).toList();
     } else if (quickCategoryTab == 'Equipment') {
-      pdfHeaders = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount (INR)', 'Payment Date'];
+      pdfHeaders = [
+        'Purchased Date',
+        'Project',
+        'Equipment',
+        'Rent Rate',
+        'Duration',
+        'Status',
+        'Amount (INR)',
+        'Payment Date',
+      ];
       headerFontSize = 8;
       cellFontSize = 7;
       cellAlignmentsMap = {
@@ -402,8 +546,20 @@ class ReportExportHelper {
         ];
       }).toList();
     } else {
-      // All
-      pdfHeaders = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount (INR)', 'Payment Date'];
+      pdfHeaders = [
+        'Purchased Date',
+        'Project',
+        'Type',
+        'Description',
+        'Brand',
+        'Floor',
+        'Phase',
+        'Activity',
+        'Unit',
+        'Status',
+        'Amount (INR)',
+        'Payment Date',
+      ];
       headerFontSize = 7;
       cellFontSize = 6;
       cellAlignmentsMap = {
@@ -444,7 +600,6 @@ class ReportExportHelper {
         margin: const pw.EdgeInsets.all(24),
         build: (pw.Context context) {
           return [
-            // Branded Header
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
@@ -474,11 +629,17 @@ class ReportExportHelper {
                   children: [
                     pw.Text(
                       'Generated on:',
-                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey600,
+                      ),
                     ),
                     pw.Text(
                       _formatDateTime(DateTime.now()),
-                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -487,7 +648,6 @@ class ReportExportHelper {
             pw.Divider(thickness: 2, color: PdfColor.fromHex('#173EEA')),
             pw.SizedBox(height: 12),
 
-            // Active Filters Box
             pw.Container(
               padding: const pw.EdgeInsets.all(8),
               decoration: pw.BoxDecoration(
@@ -498,7 +658,10 @@ class ReportExportHelper {
                 children: [
                   pw.Text(
                     'Filters applied: ',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 9,
+                    ),
                   ),
                   pw.Expanded(
                     child: pw.Text(
@@ -511,19 +674,33 @@ class ReportExportHelper {
             ),
             pw.SizedBox(height: 16),
 
-            // Summary Totals Row
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                _buildPdfSummaryCard('Material', _formatIndianCurrency(materialTotal), '#5B5FCF'),
-                _buildPdfSummaryCard('Labour', _formatIndianCurrency(labourTotal), '#B137FF'),
-                _buildPdfSummaryCard('Equipment', _formatIndianCurrency(equipmentTotal), '#67C8FF'),
-                _buildPdfSummaryCard('Total Cost', _formatIndianCurrency(grandTotal), '#173EEA'),
+                _buildPdfSummaryCard(
+                  'Material',
+                  _formatIndianCurrency(materialTotal),
+                  '#5B5FCF',
+                ),
+                _buildPdfSummaryCard(
+                  'Labour',
+                  _formatIndianCurrency(labourTotal),
+                  '#B137FF',
+                ),
+                _buildPdfSummaryCard(
+                  'Equipment',
+                  _formatIndianCurrency(equipmentTotal),
+                  '#67C8FF',
+                ),
+                _buildPdfSummaryCard(
+                  'Total Cost',
+                  _formatIndianCurrency(grandTotal),
+                  '#173EEA',
+                ),
               ],
             ),
             pw.SizedBox(height: 20),
 
-            // Table Header
             pw.Text(
               'Report Logs',
               style: pw.TextStyle(
@@ -534,7 +711,6 @@ class ReportExportHelper {
             ),
             pw.SizedBox(height: 8),
 
-            // Data Table
             pw.TableHelper.fromTextArray(
               context: context,
               headers: pdfHeaders,
@@ -556,14 +732,17 @@ class ReportExportHelper {
       ),
     );
 
-    // Open print preview UI using the printing package
     await Printing.layoutPdf(
       name: 'BuildTrack_Report_${_formatYmd(DateTime.now())}',
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
 
-  static pw.Widget _buildPdfSummaryCard(String title, String value, String colorHex) {
+  static pw.Widget _buildPdfSummaryCard(
+    String title,
+    String value,
+    String colorHex,
+  ) {
     return pw.Container(
       width: 110,
       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),

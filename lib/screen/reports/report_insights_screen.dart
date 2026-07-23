@@ -9,8 +9,8 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_model.dart';
-// ADD near the top, with the other imports:
-import 'package:buildtrack_mobile/screen/reports/report_widgets.dart'; // ⚠️ adjust path if needed
+
+import 'package:buildtrack_mobile/screen/reports/report_widgets.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,17 +21,12 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 
-// =============================================================================
-// MAIN SCREEN
-// =============================================================================
-
 class ReportInsightsScreen extends StatefulWidget {
   const ReportInsightsScreen({super.key});
   @override
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
 
-// REPLACE:
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
@@ -127,11 +122,8 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       );
     }
 
-    // ── Pull live report from the same source as report_widgets.dart ──
     final report = _buildReportForProject(provider, project.id, isAll);
 
-    // Kick off inventory fetch once we know which project is selected.
-    // Guarded by _lastInventoryProjectId so it doesn't re-fire every build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInventory(project!.id);
     });
@@ -201,7 +193,7 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                         _toDate = to;
                       }),
                     ),
-                    // REPLACE:
+
                     const SizedBox(height: 10),
                     _ProjectSummaryCard(project: project, report: report),
                     const SizedBox(height: 14),
@@ -349,10 +341,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   }
 }
 
-// =============================================================================
-// DATE RANGE ROW
-// =============================================================================
-
 class _DateRangeRow extends StatelessWidget {
   const _DateRangeRow({
     required this.fromDate,
@@ -431,10 +419,6 @@ class _DateRangeRow extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// EXPORT FAB
-// =============================================================================
-
 class _ExportFab extends StatelessWidget {
   const _ExportFab({required this.onTap});
   final VoidCallback onTap;
@@ -476,10 +460,6 @@ class _ExportFab extends StatelessWidget {
     );
   }
 }
-
-// =============================================================================
-// EXPORT BOTTOM SHEET
-// =============================================================================
 
 class _ExportSheet extends StatefulWidget {
   const _ExportSheet({
@@ -535,7 +515,6 @@ class _ExportSheetState extends State<_ExportSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle bar
               Center(
                 child: Container(
                   width: 40,
@@ -548,7 +527,6 @@ class _ExportSheetState extends State<_ExportSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Title
               Row(
                 children: [
                   Container(
@@ -591,7 +569,6 @@ class _ExportSheetState extends State<_ExportSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Date range chip
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -626,7 +603,6 @@ class _ExportSheetState extends State<_ExportSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Section toggles label
               const Text(
                 'INCLUDE IN REPORT',
                 style: TextStyle(
@@ -645,7 +621,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                 _includeCostBreakdown,
                 (v) => setState(() => _includeCostBreakdown = v),
               ),
-              // REPLACE:
+
               _toggle(
                 'Category Chart',
                 'Visual chart + table of budget vs actual',
@@ -676,7 +652,6 @@ class _ExportSheetState extends State<_ExportSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Action buttons
               Row(
                 children: [
                   Expanded(
@@ -867,8 +842,6 @@ class _ExportSheetState extends State<_ExportSheet> {
           'buildtrack_${widget.project.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       if (kIsWeb) {
-        // Web has no filesystem/path_provider — share via in-memory bytes
-        // directly. XFile.fromData works on web without touching disk.
         if (!mounted) return;
         Navigator.pop(context);
         await SharePlus.instance.share(
@@ -884,7 +857,6 @@ class _ExportSheetState extends State<_ExportSheet> {
           ),
         );
       } else {
-        // Native platforms: write to temp dir, then share the file path.
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsBytes(bytes);
@@ -916,10 +888,6 @@ class _ExportSheetState extends State<_ExportSheet> {
     }
   }
 }
-
-// =============================================================================
-// PDF BUILDER
-// =============================================================================
 
 class _ReportPdfBuilder {
   static String _fmt(DateTime d) =>
@@ -954,7 +922,7 @@ class _ReportPdfBuilder {
     final lightBg = PdfColor.fromHex('#F5F6FA');
     final textDark = PdfColor.fromHex('#1A1D3A');
     final textGray = PdfColor.fromHex('#8A92A6');
-    // REPLACE:
+
     final successColor = PdfColor.fromHex('#2E7D32');
     final errorColor = PdfColor.fromHex('#C62828');
     final targetBarColor = PdfColor.fromHex('#EF9A9A');
@@ -1028,7 +996,6 @@ class _ReportPdfBuilder {
           ),
         ),
         build: (_) => [
-          // ── Project summary card ──
           pw.Container(
             padding: const pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
@@ -1079,7 +1046,6 @@ class _ReportPdfBuilder {
           ),
           pw.SizedBox(height: 20),
 
-          // ── Cost breakdown ──
           if (includeCostBreakdown) ...[
             _sectionTitle('Cost Summary', primaryColor),
             pw.SizedBox(height: 10),
@@ -1111,9 +1077,6 @@ class _ReportPdfBuilder {
             pw.SizedBox(height: 20),
           ],
 
-          // ── Category analysis table ──
-          // REPLACE:
-          // ── Category chart + table ──
           if (includeCategoryChart) ...[
             _sectionTitle('Spend vs Budget by Category', primaryColor),
             pw.SizedBox(height: 10),
@@ -1204,7 +1167,6 @@ class _ReportPdfBuilder {
             pw.SizedBox(height: 20),
           ],
 
-          // ── Entry log ──
           if (includeEntryLog && entries.isNotEmpty) ...[
             _sectionTitle(
               'Entry Log (${entries.length} entries)',
@@ -1287,7 +1249,6 @@ class _ReportPdfBuilder {
             ),
           ],
 
-          // ── Activity progress ──
           if (includeActivityProgress) ...[
             pw.SizedBox(height: 20),
             _sectionTitle('Activity Progress', primaryColor),
@@ -1358,7 +1319,6 @@ class _ReportPdfBuilder {
               }),
           ],
 
-          // ── Inventory status ──
           if (includeInventory) ...[
             pw.SizedBox(height: 20),
             _sectionTitle('Inventory Status', primaryColor),
@@ -1664,9 +1624,6 @@ class _ExportDetailsHintCard extends StatelessWidget {
     );
   }
 }
-// =============================================================================
-// PROJECT SUMMARY CARD  (uses live ReportModel — fixed)
-// =============================================================================
 
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
@@ -1737,7 +1694,7 @@ class _ProjectSummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          // Live spent vs budget row
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1783,10 +1740,6 @@ class _ProjectSummaryCard extends StatelessWidget {
     );
   }
 }
-
-// =============================================================================
-// CATEGORY BREAKDOWN CARD  (uses live categoryCosts/categoryBudgets — fixed)
-// =============================================================================
 
 class _CategoryBreakdownCard extends StatelessWidget {
   final ProjectModel project;

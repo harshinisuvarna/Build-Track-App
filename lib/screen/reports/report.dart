@@ -1,5 +1,3 @@
-// lib/screen/reports/report.dart
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -33,13 +31,11 @@ class _ReportsView extends StatefulWidget {
 class _ReportsViewState extends State<_ReportsView> {
   bool _linked = false;
 
-  // Filter State
   String _selectedProjectId = 'all';
   String? _selectedFloor;
   String? _selectedPhaseId;
   String? _selectedActivityName;
 
-  // Category specific search & filter state
   String _searchQuery = '';
   String? _selectedItemName;
   bool _reportGenerated = false;
@@ -51,24 +47,72 @@ class _ReportsViewState extends State<_ReportsView> {
     EntryType.labour,
     EntryType.equipment,
   };
-  final String _selectedStatus = 'All'; // All, Approved, Pending, Rejected
+  final String _selectedStatus = 'All';
   DateTime? _startDate;
   DateTime? _endDate;
-  String _datePreset = 'All Time'; // All Time, Today, This Week, This Month, Last 30 Days, This Year, Custom
+  String _datePreset = 'All Time';
 
   bool _isImportingCsv = false;
 
-  // Sorting & Pagination State
-  String _sortColumn = 'date'; // date, amount, project
+  String _sortColumn = 'date';
   bool _sortAscending = false;
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
-  // Columns customization lists for each tab
-  List<String> _activeColumnsAll = ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
-  List<String> _activeColumnsMaterials = ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
-  List<String> _activeColumnsLabour = ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
-  List<String> _activeColumnsEquipment = ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+  List<String> _activeColumnsAll = [
+    'Purchased Date',
+    'Project',
+    'Type',
+    'Description',
+    'Brand',
+    'Floor',
+    'Phase',
+    'Activity',
+    'Unit',
+    'Status',
+    'Amount',
+    'Paid',
+    'Remaining',
+    'Payment Date',
+  ];
+  List<String> _activeColumnsMaterials = [
+    'Purchased Date',
+    'Project',
+    'Material',
+    'Brand',
+    'Rate',
+    'Qty',
+    'Unit',
+    'Status',
+    'Amount',
+    'Paid',
+    'Remaining',
+    'Payment Date',
+  ];
+  List<String> _activeColumnsLabour = [
+    'Purchased Date',
+    'Project',
+    'Worker Type',
+    'Rate/Day',
+    'Days',
+    'Status',
+    'Amount',
+    'Paid',
+    'Remaining',
+    'Payment Date',
+  ];
+  List<String> _activeColumnsEquipment = [
+    'Purchased Date',
+    'Project',
+    'Equipment',
+    'Rent Rate',
+    'Duration',
+    'Status',
+    'Amount',
+    'Paid',
+    'Remaining',
+    'Payment Date',
+  ];
 
   @override
   void didChangeDependencies() {
@@ -88,13 +132,74 @@ class _ReportsViewState extends State<_ReportsView> {
 
   List<String> _getAllColumnsForTab(String tabName) {
     if (tabName == 'Materials') {
-      return ['Purchased Date', 'Project', 'Material', 'Brand', 'Rate', 'Qty', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+      return [
+        'Purchased Date',
+        'Project',
+        'Material',
+        'Brand',
+        'Rate',
+        'Qty',
+        'Unit',
+        'Floor',
+        'Phase',
+        'Activity',
+        'Status',
+        'Amount',
+        'Paid',
+        'Remaining',
+        'Payment Date',
+      ];
     } else if (tabName == 'Labour') {
-      return ['Purchased Date', 'Project', 'Worker Type', 'Rate/Day', 'Days', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+      return [
+        'Purchased Date',
+        'Project',
+        'Worker Type',
+        'Rate/Day',
+        'Days',
+        'Unit',
+        'Floor',
+        'Phase',
+        'Activity',
+        'Status',
+        'Amount',
+        'Paid',
+        'Remaining',
+        'Payment Date',
+      ];
     } else if (tabName == 'Equipment') {
-      return ['Purchased Date', 'Project', 'Equipment', 'Rent Rate', 'Duration', 'Unit', 'Floor', 'Phase', 'Activity', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+      return [
+        'Purchased Date',
+        'Project',
+        'Equipment',
+        'Rent Rate',
+        'Duration',
+        'Unit',
+        'Floor',
+        'Phase',
+        'Activity',
+        'Status',
+        'Amount',
+        'Paid',
+        'Remaining',
+        'Payment Date',
+      ];
     } else {
-      return ['Purchased Date', 'Project', 'Type', 'Description', 'Brand', 'Floor', 'Phase', 'Activity', 'Unit', 'Status', 'Amount', 'Paid', 'Remaining', 'Payment Date'];
+      return [
+        'Purchased Date',
+        'Project',
+        'Type',
+        'Description',
+        'Brand',
+        'Floor',
+        'Phase',
+        'Activity',
+        'Unit',
+        'Status',
+        'Amount',
+        'Paid',
+        'Remaining',
+        'Payment Date',
+      ];
     }
   }
 
@@ -136,7 +241,9 @@ class _ReportsViewState extends State<_ReportsView> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               backgroundColor: Colors.white,
               child: Container(
                 width: 320,
@@ -185,7 +292,6 @@ class _ReportsViewState extends State<_ReportsView> {
                             final item = tempAll.removeAt(oldIndex);
                             tempAll.insert(newIndex, item);
 
-                            // Re-align tempActive's order with tempAll
                             final newTempActive = <String>[];
                             for (final col in tempAll) {
                               if (tempActive.contains(col)) {
@@ -205,7 +311,10 @@ class _ReportsViewState extends State<_ReportsView> {
                             dense: true,
                             title: Text(
                               col,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             leading: Checkbox(
                               activeColor: AppColors.primary,
@@ -214,7 +323,7 @@ class _ReportsViewState extends State<_ReportsView> {
                                 setDialogState(() {
                                   if (val == true) {
                                     tempActive.add(col);
-                                    // Keep order of tempActive aligned with tempAll
+
                                     final newTempActive = <String>[];
                                     for (final c in tempAll) {
                                       if (tempActive.contains(c)) {
@@ -226,9 +335,13 @@ class _ReportsViewState extends State<_ReportsView> {
                                     if (tempActive.length > 1) {
                                       tempActive.remove(col);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('At least one column must be visible.'),
+                                          content: Text(
+                                            'At least one column must be visible.',
+                                          ),
                                           duration: Duration(seconds: 1),
                                         ),
                                       );
@@ -237,7 +350,11 @@ class _ReportsViewState extends State<_ReportsView> {
                                 });
                               },
                             ),
-                            trailing: const Icon(Icons.drag_handle, size: 20, color: Colors.grey),
+                            trailing: const Icon(
+                              Icons.drag_handle,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
                           );
                         },
                       ),
@@ -253,20 +370,31 @@ class _ReportsViewState extends State<_ReportsView> {
                               tempAll = List.from(allCols);
                             });
                           },
-                          child: const Text('Reset', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           onPressed: () {
                             _setActiveColumnsForTab(tabName, tempActive);
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -280,10 +408,21 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // --- Formatting Helpers (avoids package:intl dependency) ---
-
   String _formatDateShort(DateTime dt) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final day = dt.day.toString().padLeft(2, '0');
     final month = months[dt.month - 1];
     final year = dt.year.toString().substring(dt.year.toString().length - 2);
@@ -291,7 +430,20 @@ class _ReportsViewState extends State<_ReportsView> {
   }
 
   String _formatDateLong(DateTime dt) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final day = dt.day.toString().padLeft(2, '0');
     final month = months[dt.month - 1];
     final year = dt.year;
@@ -355,7 +507,11 @@ class _ReportsViewState extends State<_ReportsView> {
           _endDate = null;
           break;
         case 'Last 30 Days':
-          _startDate = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+          _startDate = DateTime(
+            now.year,
+            now.month,
+            now.day,
+          ).subtract(const Duration(days: 30));
           _endDate = null;
           break;
         case 'This Year':
@@ -363,7 +519,6 @@ class _ReportsViewState extends State<_ReportsView> {
           _endDate = null;
           break;
         case 'Custom':
-          // User must manually select dates
           break;
       }
     });
@@ -421,13 +576,12 @@ class _ReportsViewState extends State<_ReportsView> {
         activeColumns: activeColumns,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSV Export failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('CSV Export failed: $e')));
     }
   }
 
-  // ignore: unused_element
   Future<void> _handlePdfExport(
     List<EntryModel> filtered,
     String Function(String) getProjectName,
@@ -449,8 +603,13 @@ class _ReportsViewState extends State<_ReportsView> {
         }
         if (_selectedPhaseId != null) {
           final projectProvider = context.read<ProjectProvider>();
-          final proj = projectProvider.projects.where((p) => p.id == _selectedProjectId).firstOrNull;
-          final phaseName = proj?.selectedPhases?.where((ph) => ph.id == _selectedPhaseId).firstOrNull?.phaseName;
+          final proj = projectProvider.projects
+              .where((p) => p.id == _selectedProjectId)
+              .firstOrNull;
+          final phaseName = proj?.selectedPhases
+              ?.where((ph) => ph.id == _selectedPhaseId)
+              .firstOrNull
+              ?.phaseName;
           parts.add('Phase: ${phaseName ?? _selectedPhaseId}');
         }
         if (_selectedActivityName != null) {
@@ -459,7 +618,9 @@ class _ReportsViewState extends State<_ReportsView> {
       } else {
         parts.add('All Projects');
       }
-      parts.add('Types: ${_selectedTypes.map((t) => t.name.toUpperCase()).join(", ")}');
+      parts.add(
+        'Types: ${_selectedTypes.map((t) => t.name.toUpperCase()).join(", ")}',
+      );
       parts.add('Status: $_selectedStatus');
       parts.add('Date Range: $_datePreset');
 
@@ -474,13 +635,16 @@ class _ReportsViewState extends State<_ReportsView> {
         activeColumns: activeColumns,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF Export failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('PDF Export failed: $e')));
     }
   }
 
-  Future<void> _handleDownloadImportTemplate(String quickCategoryTab, List<String> activeCols) async {
+  Future<void> _handleDownloadImportTemplate(
+    String quickCategoryTab,
+    List<String> activeCols,
+  ) async {
     try {
       await CsvImportHelper.downloadTemplate(
         quickCategoryTab: quickCategoryTab,
@@ -488,13 +652,19 @@ class _ReportsViewState extends State<_ReportsView> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Import template downloaded!'), backgroundColor: Color(0xFF15803D)),
+          const SnackBar(
+            content: Text('Import template downloaded!'),
+            backgroundColor: Color(0xFF15803D),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Template download failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Template download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -511,24 +681,28 @@ class _ReportsViewState extends State<_ReportsView> {
     try {
       final result = await CsvImportHelper.importCsv(
         projects: projectProvider.projects,
-        selectedProjectId: _selectedProjectId == 'all' ? null : _selectedProjectId,
+        selectedProjectId: _selectedProjectId == 'all'
+            ? null
+            : _selectedProjectId,
       );
 
       if (!mounted) return;
 
-      // Refresh data
       final activeProjId = projectProvider.selectedProject?.id;
       if (activeProjId != null) {
-        // ignore: use_build_context_synchronously
         context.read<ProjectProvider>().load();
       }
 
-      // Show results dialog
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Import Results', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Import Results',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -536,8 +710,13 @@ class _ReportsViewState extends State<_ReportsView> {
               children: [
                 Text('Total rows processed: ${result.totalRows}'),
                 const SizedBox(height: 8),
-                Text('Successfully imported: ${result.successCount}',
-                    style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold)),
+                Text(
+                  'Successfully imported: ${result.successCount}',
+                  style: const TextStyle(
+                    color: Color(0xFF15803D),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.only(left: 16, top: 4),
                   child: Column(
@@ -550,13 +729,19 @@ class _ReportsViewState extends State<_ReportsView> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('Failed: ${result.failedCount}',
-                    style: TextStyle(
-                        color: result.failedCount > 0 ? Colors.red : Colors.grey,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  'Failed: ${result.failedCount}',
+                  style: TextStyle(
+                    color: result.failedCount > 0 ? Colors.red : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 if (result.errors.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const Text('Details/Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Details/Errors:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 6),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 150),
@@ -572,7 +757,13 @@ class _ReportsViewState extends State<_ReportsView> {
                       itemCount: result.errors.length,
                       itemBuilder: (c, idx) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(result.errors[idx], style: TextStyle(color: Colors.red[800], fontSize: 12)),
+                        child: Text(
+                          result.errors[idx],
+                          style: TextStyle(
+                            color: Colors.red[800],
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -583,7 +774,10 @@ class _ReportsViewState extends State<_ReportsView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'OK',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -591,7 +785,10 @@ class _ReportsViewState extends State<_ReportsView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Import failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -625,7 +822,11 @@ class _ReportsViewState extends State<_ReportsView> {
                   color: const Color(0xFF173EEA).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.upload_file_rounded, color: Color(0xFF173EEA), size: 22),
+                child: const Icon(
+                  Icons.upload_file_rounded,
+                  color: Color(0xFF173EEA),
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -644,7 +845,10 @@ class _ReportsViewState extends State<_ReportsView> {
                     const SizedBox(height: 2),
                     Text(
                       'Download template, customize columns, then upload',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -656,13 +860,26 @@ class _ReportsViewState extends State<_ReportsView> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _isImportingCsv ? null : () => _handleDownloadImportTemplate(quickCategoryTab, activeCols),
+                  onPressed: _isImportingCsv
+                      ? null
+                      : () => _handleDownloadImportTemplate(
+                          quickCategoryTab,
+                          activeCols,
+                        ),
                   icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('Download Template', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Download Template',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    side: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     foregroundColor: AppColors.primary,
                   ),
                 ),
@@ -670,13 +887,26 @@ class _ReportsViewState extends State<_ReportsView> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _isImportingCsv ? null : () => _showCustomizeColumnsDialog(context, quickCategoryTab),
+                  onPressed: _isImportingCsv
+                      ? null
+                      : () => _showCustomizeColumnsDialog(
+                          context,
+                          quickCategoryTab,
+                        ),
                   icon: const Icon(Icons.edit_note, size: 16),
-                  label: const Text('Customize Columns', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Customize Columns',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    side: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     foregroundColor: AppColors.primary,
                   ),
                 ),
@@ -689,16 +919,30 @@ class _ReportsViewState extends State<_ReportsView> {
             child: ElevatedButton.icon(
               onPressed: _isImportingCsv ? null : _handleUploadCsv,
               icon: _isImportingCsv
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.upload_file_rounded, size: 16),
-              label: Text(_isImportingCsv ? 'Importing...' : 'Upload CSV File',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              label: Text(
+                _isImportingCsv ? 'Importing...' : 'Upload CSV File',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -713,7 +957,6 @@ class _ReportsViewState extends State<_ReportsView> {
     final projectProvider = context.watch<ProjectProvider>();
     final List<EntryModel> allEntries = projectProvider.entries;
 
-    // Helper to resolve project name
     String getProjectName(String id) {
       return projectProvider.projects
               .where((p) => p.id == id)
@@ -722,7 +965,6 @@ class _ReportsViewState extends State<_ReportsView> {
           'Unknown Project';
     }
 
-    // Determine active quick category tab based on _selectedTypes
     String quickCategoryTab = 'All';
     if (_selectedTypes.length == 1) {
       if (_selectedTypes.contains(EntryType.material)) {
@@ -735,12 +977,12 @@ class _ReportsViewState extends State<_ReportsView> {
     } else if (_selectedTypes.length == 3) {
       quickCategoryTab = 'All';
     } else {
-      quickCategoryTab = ''; // custom subset
+      quickCategoryTab = '';
     }
 
-    // Filter Logic
     final filtered = allEntries.where((entry) {
-      if (_selectedProjectId != 'all' && entry.projectId.trim() != _selectedProjectId.trim()) {
+      if (_selectedProjectId != 'all' &&
+          entry.projectId.trim() != _selectedProjectId.trim()) {
         return false;
       }
 
@@ -764,8 +1006,10 @@ class _ReportsViewState extends State<_ReportsView> {
           }
         }
 
-        if (_selectedActivityName != null && _selectedActivityName != 'Select Activity') {
-          if (entry.activity != _selectedActivityName && entry.description != _selectedActivityName) {
+        if (_selectedActivityName != null &&
+            _selectedActivityName != 'Select Activity') {
+          if (entry.activity != _selectedActivityName &&
+              entry.description != _selectedActivityName) {
             return false;
           }
         }
@@ -775,7 +1019,6 @@ class _ReportsViewState extends State<_ReportsView> {
         return false;
       }
 
-      // Dynamic sub-filters for category report tab
       if (quickCategoryTab != 'All' && _reportGenerated) {
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
@@ -789,7 +1032,6 @@ class _ReportsViewState extends State<_ReportsView> {
         }
       }
 
-      // Search filter for All tab (real-time filtering without requiring report generation)
       if (quickCategoryTab == 'All' && _searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final projectName = getProjectName(entry.projectId).toLowerCase();
@@ -798,13 +1040,21 @@ class _ReportsViewState extends State<_ReportsView> {
         final projectMatch = projectName.contains(query);
         final floorMatch = (entry.floor ?? '').toLowerCase().contains(query);
         final phaseMatch = (entry.phase ?? '').toLowerCase().contains(query);
-        final activityMatch = (entry.activity ?? '').toLowerCase().contains(query);
+        final activityMatch = (entry.activity ?? '').toLowerCase().contains(
+          query,
+        );
         final amountMatch = entry.amount.toString().contains(query);
         final typeMatch = entry.type.name.toLowerCase().contains(query);
-        final statusMatch = _getPaymentStatusLabel(entry.paymentStatus).toLowerCase().contains(query);
-        final dateMatch = _formatDateShort(entry.date).toLowerCase().contains(query);
-        final payDateMatch = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!).toLowerCase().contains(query) : false;
- 
+        final statusMatch = _getPaymentStatusLabel(
+          entry.paymentStatus,
+        ).toLowerCase().contains(query);
+        final dateMatch = _formatDateShort(
+          entry.date,
+        ).toLowerCase().contains(query);
+        final payDateMatch = entry.paymentDate != null
+            ? _formatDateShort(entry.paymentDate!).toLowerCase().contains(query)
+            : false;
+
         if (!descMatch &&
             !brandMatch &&
             !projectMatch &&
@@ -826,12 +1076,24 @@ class _ReportsViewState extends State<_ReportsView> {
       }
 
       if (_startDate != null) {
-        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-        final start = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+        final entryDate = DateTime(
+          entry.date.year,
+          entry.date.month,
+          entry.date.day,
+        );
+        final start = DateTime(
+          _startDate!.year,
+          _startDate!.month,
+          _startDate!.day,
+        );
         if (entryDate.isBefore(start)) return false;
       }
       if (_endDate != null) {
-        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
+        final entryDate = DateTime(
+          entry.date.year,
+          entry.date.month,
+          entry.date.day,
+        );
         final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
         if (entryDate.isAfter(end)) return false;
       }
@@ -839,7 +1101,6 @@ class _ReportsViewState extends State<_ReportsView> {
       return true;
     }).toList();
 
-    // Sorting Logic
     filtered.sort((a, b) {
       int cmp = 0;
       if (_sortColumn == 'date') {
@@ -847,12 +1108,13 @@ class _ReportsViewState extends State<_ReportsView> {
       } else if (_sortColumn == 'amount') {
         cmp = a.amount.compareTo(b.amount);
       } else if (_sortColumn == 'project') {
-        cmp = getProjectName(a.projectId).compareTo(getProjectName(b.projectId));
+        cmp = getProjectName(
+          a.projectId,
+        ).compareTo(getProjectName(b.projectId));
       }
       return _sortAscending ? cmp : -cmp;
     });
 
-    // Dynamic Calculations based on filtered results
     double materialTotal = 0;
     double labourTotal = 0;
     double equipmentTotal = 0;
@@ -876,24 +1138,37 @@ class _ReportsViewState extends State<_ReportsView> {
     }
     final grandRemaining = (grandTotal - grandPaid).clamp(0.0, double.infinity);
 
-    // Pagination Calculations
     final totalCount = filtered.length;
-    final totalPages = (totalCount / _rowsPerPage).ceil() == 0 ? 1 : (totalCount / _rowsPerPage).ceil();
+    final totalPages = (totalCount / _rowsPerPage).ceil() == 0
+        ? 1
+        : (totalCount / _rowsPerPage).ceil();
     int safeCurrentPage = _currentPage;
     if (safeCurrentPage > totalPages) safeCurrentPage = totalPages;
     if (safeCurrentPage < 1) safeCurrentPage = 1;
 
     final startIndex = (safeCurrentPage - 1) * _rowsPerPage;
-    final endIndex = (startIndex + _rowsPerPage < totalCount) ? startIndex + _rowsPerPage : totalCount;
+    final endIndex = (startIndex + _rowsPerPage < totalCount)
+        ? startIndex + _rowsPerPage
+        : totalCount;
 
-    final List<EntryModel> paginatedEntries = (totalCount > 0) ? filtered.sublist(startIndex, endIndex) : [];
+    final List<EntryModel> paginatedEntries = (totalCount > 0)
+        ? filtered.sublist(startIndex, endIndex)
+        : [];
 
     final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
-    final List<String> uiActiveCols = [...activeCols, 'Add More', 'Record Payment', 'Edit Entry'];
+    final List<String> uiActiveCols = [
+      ...activeCols,
+      'Add More',
+      'Record Payment',
+      'Edit Entry',
+    ];
     final List<DataColumn> columns = uiActiveCols.map((colName) {
       if (colName == 'Date') {
         return DataColumn(
-          label: const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: const Text(
+            'Date',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           onSort: (colIndex, ascending) {
             setState(() {
               _sortColumn = 'date';
@@ -903,7 +1178,10 @@ class _ReportsViewState extends State<_ReportsView> {
         );
       } else if (colName == 'Project') {
         return DataColumn(
-          label: const Text('Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: const Text(
+            'Project',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           onSort: (colIndex, ascending) {
             setState(() {
               _sortColumn = 'project';
@@ -913,7 +1191,10 @@ class _ReportsViewState extends State<_ReportsView> {
         );
       } else if (colName == 'Amount') {
         return DataColumn(
-          label: const Text('Amount (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: const Text(
+            'Amount (INR)',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           numeric: true,
           onSort: (colIndex, ascending) {
             setState(() {
@@ -922,27 +1203,51 @@ class _ReportsViewState extends State<_ReportsView> {
             });
           },
         );
-      } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate' || colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+      } else if (colName == 'Rate' ||
+          colName == 'Rate/Day' ||
+          colName == 'Rent Rate' ||
+          colName == 'Qty' ||
+          colName == 'Days' ||
+          colName == 'Duration') {
         return DataColumn(
-          label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: Text(
+            colName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           numeric: true,
         );
       } else if (colName == 'Paid') {
         return DataColumn(
-          label: const Text('Paid (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: const Text(
+            'Paid (INR)',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           numeric: true,
         );
       } else if (colName == 'Remaining') {
         return DataColumn(
-          label: const Text('Remaining (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: const Text(
+            'Remaining (INR)',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
           numeric: true,
         );
-      } else if (colName == 'Add More' || colName == 'Record Payment' || colName == 'Edit Entry') {
+      } else if (colName == 'Add More' ||
+          colName == 'Record Payment' ||
+          colName == 'Edit Entry') {
         return DataColumn(
-          label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          label: Text(
+            colName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
         );
       } else {
-        return DataColumn(label: Text(colName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+        return DataColumn(
+          label: Text(
+            colName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        );
       }
     }).toList();
 
@@ -970,15 +1275,12 @@ class _ReportsViewState extends State<_ReportsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // "Ask AI" banner (exactly as requested to keep)
                       _AskAiBanner(projectName: provider.selectedProjectName),
                       const SizedBox(height: 18),
 
-                      // Filters Card Section
                       _buildFiltersCard(context, projectProvider),
                       const SizedBox(height: 20),
 
-                      // Cost Summary Cards (Real-time dynamic calculations)
                       const Text(
                         'Filtered Cost Summary',
                         style: TextStyle(
@@ -1013,7 +1315,9 @@ class _ReportsViewState extends State<_ReportsView> {
                           _buildCostCard(
                             title: 'Remaining',
                             value: grandRemaining,
-                            color: grandRemaining > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D),
+                            color: grandRemaining > 0
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF15803D),
                             icon: Icons.pending_outlined,
                           ),
                           _buildCostCard(
@@ -1037,7 +1341,7 @@ class _ReportsViewState extends State<_ReportsView> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Category Quick Filter Tabs
+
                       _CategoryTabs(
                         activeTab: quickCategoryTab,
                         onTabChanged: (newTab) {
@@ -1048,7 +1352,7 @@ class _ReportsViewState extends State<_ReportsView> {
                             _reportGenerated = false;
                             _searchController.clear();
                             _showSuggestions = false;
-                            
+
                             if (newTab == 'All') {
                               _selectedTypes.addAll({
                                 EntryType.material,
@@ -1070,30 +1374,38 @@ class _ReportsViewState extends State<_ReportsView> {
                       ),
                       if (quickCategoryTab != 'All') ...[
                         const SizedBox(height: 14),
-                        _buildCategorySubFilters(context, quickCategoryTab, allEntries),
+                        _buildCategorySubFilters(
+                          context,
+                          quickCategoryTab,
+                          allEntries,
+                        ),
                       ] else ...[
                         const SizedBox(height: 14),
                         _buildAllTabSearchBar(context),
                       ],
                       const SizedBox(height: 18),
 
-                      // Dynamic Data Table Section
                       if (quickCategoryTab != 'All' && !_reportGenerated)
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 40,
+                              horizontal: 16,
+                            ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: (quickCategoryTab == 'Materials'
-                                            ? const Color(0xFF5B5FCF)
-                                            : (quickCategoryTab == 'Labour'
-                                                ? AppColors.primaryPurple
-                                                : AppColors.primaryLightBlue))
-                                        .withValues(alpha: 0.1),
+                                    color:
+                                        (quickCategoryTab == 'Materials'
+                                                ? const Color(0xFF5B5FCF)
+                                                : (quickCategoryTab == 'Labour'
+                                                      ? AppColors.primaryPurple
+                                                      : AppColors
+                                                            .primaryLightBlue))
+                                            .withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -1102,8 +1414,8 @@ class _ReportsViewState extends State<_ReportsView> {
                                     color: quickCategoryTab == 'Materials'
                                         ? const Color(0xFF5B5FCF)
                                         : (quickCategoryTab == 'Labour'
-                                            ? AppColors.primaryPurple
-                                            : AppColors.primaryLightBlue),
+                                              ? AppColors.primaryPurple
+                                              : AppColors.primaryLightBlue),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -1133,15 +1445,24 @@ class _ReportsViewState extends State<_ReportsView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  10,
+                                ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
+                                          quickCategoryTab == 'All'
+                                              ? 'Report Logs'
+                                              : '$quickCategoryTab Report Logs',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 15,
@@ -1164,176 +1485,277 @@ class _ReportsViewState extends State<_ReportsView> {
                                         fit: BoxFit.scaleDown,
                                         alignment: Alignment.centerRight,
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
                                           children: [
                                             if (quickCategoryTab == 'All') ...[
                                               InkWell(
-                                              onTap: () => _showCustomizeColumnsDialog(context, quickCategoryTab),
-                                              borderRadius: BorderRadius.circular(20),
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primary.withValues(alpha: 0.08),
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: AppColors.primary.withValues(alpha: 0.2),
-                                                    width: 1,
+                                                onTap: () =>
+                                                    _showCustomizeColumnsDialog(
+                                                      context,
+                                                      quickCategoryTab,
+                                                    ),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.primary
+                                                        .withValues(
+                                                          alpha: 0.08,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: AppColors.primary
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: const [
+                                                      Icon(
+                                                        Icons.edit_note,
+                                                        size: 14,
+                                                        color:
+                                                            AppColors.primary,
+                                                      ),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'Edit Columns',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color:
+                                                              AppColors.primary,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: const [
-                                                    Icon(
-                                                      Icons.edit_note,
-                                                      size: 14,
-                                                      color: AppColors.primary,
-                                                    ),
-                                                    SizedBox(width: 4),
-                                                    Text(
-                                                      'Edit Columns',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight: FontWeight.w700,
-                                                        color: AppColors.primary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
                                               ),
                                               const SizedBox(width: 4),
                                             ],
 
-                                          Theme(
-                                          data: Theme.of(context).copyWith(
-                                            cardColor: Colors.white,
-                                          ),
-                                          child: PopupMenuButton<String>(
-                                            tooltip: 'Export options',
-                                            offset: const Offset(0, 32),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            onSelected: (val) {
-                                              if (val == 'csv') {
-                                                _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols);
-                                              } else if (val == 'pdf') {
-                                                _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols);
-                                              }
-                                            },
-                                            itemBuilder: (context) => [
-                                              PopupMenuItem(
-                                                value: 'csv',
-                                                child: Row(
-                                                  children: const [
-                                                    Icon(Icons.description_outlined, color: AppColors.primary, size: 18),
-                                                    SizedBox(width: 8),
-                                                    Text('Download CSV'),
-                                                  ],
-                                                ),
+                                            Theme(
+                                              data: Theme.of(context).copyWith(
+                                                cardColor: Colors.white,
                                               ),
-                                              PopupMenuItem(
-                                                value: 'pdf',
-                                                child: Row(
-                                                  children: const [
-                                                    Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary, size: 18),
-                                                    SizedBox(width: 8),
-                                                    Text('Download PDF'),
-                                                  ],
+                                              child: PopupMenuButton<String>(
+                                                tooltip: 'Export options',
+                                                offset: const Offset(0, 32),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
                                                 ),
-                                              ),
-                                            ],
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary.withValues(alpha: 0.08),
-                                                borderRadius: BorderRadius.circular(20),
-                                                border: Border.all(
-                                                  color: AppColors.primary.withValues(alpha: 0.2),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: const [
-                                                  Icon(
-                                                    Icons.download,
-                                                    size: 14,
-                                                    color: AppColors.primary,
-                                                  ),
-                                                  SizedBox(width: 4),
-                                                  Text(
-                                                    'Export',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: AppColors.primary,
+                                                onSelected: (val) {
+                                                  if (val == 'csv') {
+                                                    _handleCsvExport(
+                                                      filtered,
+                                                      getProjectName,
+                                                      quickCategoryTab,
+                                                      activeColumns: activeCols,
+                                                    );
+                                                  } else if (val == 'pdf') {
+                                                    _handlePdfExport(
+                                                      filtered,
+                                                      getProjectName,
+                                                      quickCategoryTab,
+                                                      activeColumns: activeCols,
+                                                    );
+                                                  }
+                                                },
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem(
+                                                    value: 'csv',
+                                                    child: Row(
+                                                      children: const [
+                                                        Icon(
+                                                          Icons
+                                                              .description_outlined,
+                                                          color:
+                                                              AppColors.primary,
+                                                          size: 18,
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        Text('Download CSV'),
+                                                      ],
                                                     ),
                                                   ),
-                                                  SizedBox(width: 2),
-                                                  Icon(
-                                                    Icons.arrow_drop_down,
-                                                    size: 12,
-                                                    color: AppColors.primary,
+                                                  PopupMenuItem(
+                                                    value: 'pdf',
+                                                    child: Row(
+                                                      children: const [
+                                                        Icon(
+                                                          Icons
+                                                              .picture_as_pdf_outlined,
+                                                          color:
+                                                              AppColors.primary,
+                                                          size: 18,
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        Text('Download PDF'),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ],
-                                              ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          IconButton(
-                                            tooltip: 'View Full Screen',
-                                            icon: const Icon(Icons.fullscreen, color: AppColors.primary, size: 22),
-                                            onPressed: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (context) => _FullScreenLogsViewer(
-                                                    columns: columns,
-                                                    filteredEntries: filtered,
-                                                    getProjectName: getProjectName,
-                                                    quickCategoryTab: quickCategoryTab,
-                                                    title: quickCategoryTab == 'All' ? 'Report Logs' : '$quickCategoryTab Report Logs',
-                                                    onExportCsv: () => _handleCsvExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                    onExportPdf: () => _handlePdfExport(filtered, getProjectName, quickCategoryTab, activeColumns: activeCols),
-                                                    activeColumns: uiActiveCols,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.primary
+                                                        .withValues(
+                                                          alpha: 0.08,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: AppColors.primary
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: const [
+                                                      Icon(
+                                                        Icons.download,
+                                                        size: 14,
+                                                        color:
+                                                            AppColors.primary,
+                                                      ),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'Export',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color:
+                                                              AppColors.primary,
+                                                        ),
+                                                      ),
+                                                      SizedBox(width: 2),
+                                                      Icon(
+                                                        Icons.arrow_drop_down,
+                                                        size: 12,
+                                                        color:
+                                                            AppColors.primary,
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                              );
-                                            },
-                                          ),
-                                        ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            IconButton(
+                                              tooltip: 'View Full Screen',
+                                              icon: const Icon(
+                                                Icons.fullscreen,
+                                                color: AppColors.primary,
+                                                size: 22,
+                                              ),
+                                              onPressed: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        _FullScreenLogsViewer(
+                                                          columns: columns,
+                                                          filteredEntries:
+                                                              filtered,
+                                                          getProjectName:
+                                                              getProjectName,
+                                                          quickCategoryTab:
+                                                              quickCategoryTab,
+                                                          title:
+                                                              quickCategoryTab ==
+                                                                  'All'
+                                                              ? 'Report Logs'
+                                                              : '$quickCategoryTab Report Logs',
+                                                          onExportCsv: () =>
+                                                              _handleCsvExport(
+                                                                filtered,
+                                                                getProjectName,
+                                                                quickCategoryTab,
+                                                                activeColumns:
+                                                                    activeCols,
+                                                              ),
+                                                          onExportPdf: () =>
+                                                              _handlePdfExport(
+                                                                filtered,
+                                                                getProjectName,
+                                                                quickCategoryTab,
+                                                                activeColumns:
+                                                                    activeCols,
+                                                              ),
+                                                          activeColumns:
+                                                              uiActiveCols,
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
                                   ],
                                 ),
                               ),
                               const Divider(height: 1),
 
-                              // Horizontal scroll wrapper for DataTable
                               if (paginatedEntries.isNotEmpty)
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Theme(
-                                    data: Theme.of(context).copyWith(
-                                      cardColor: AppColors.cardBg,
-                                    ),
+                                    data: Theme.of(
+                                      context,
+                                    ).copyWith(cardColor: AppColors.cardBg),
                                     child: DataTable(
                                       showCheckboxColumn: false,
                                       headingRowColor: WidgetStateProperty.all(
-                                        AppColors.primary.withValues(alpha: 0.04),
+                                        AppColors.primary.withValues(
+                                          alpha: 0.04,
+                                        ),
                                       ),
                                       horizontalMargin: 16,
                                       columnSpacing: 24,
                                       sortColumnIndex: (() {
                                         if (_sortColumn == 'date') {
-                                          final idx = activeCols.indexOf('Date');
+                                          final idx = activeCols.indexOf(
+                                            'Date',
+                                          );
                                           return idx != -1 ? idx : null;
                                         } else if (_sortColumn == 'project') {
-                                          final idx = activeCols.indexOf('Project');
+                                          final idx = activeCols.indexOf(
+                                            'Project',
+                                          );
                                           return idx != -1 ? idx : null;
                                         } else if (_sortColumn == 'amount') {
-                                          final idx = activeCols.indexOf('Amount');
+                                          final idx = activeCols.indexOf(
+                                            'Amount',
+                                          );
                                           return idx != -1 ? idx : null;
                                         }
                                         return null;
@@ -1341,7 +1763,9 @@ class _ReportsViewState extends State<_ReportsView> {
                                       sortAscending: _sortAscending,
                                       columns: columns,
                                       rows: paginatedEntries.map((entry) {
-                                        final projectName = getProjectName(entry.projectId);
+                                        final projectName = getProjectName(
+                                          entry.projectId,
+                                        );
                                         return _buildDataRowForCategory(
                                           context: context,
                                           entry: entry,
@@ -1355,43 +1779,71 @@ class _ReportsViewState extends State<_ReportsView> {
                               else
                                 Center(
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 40),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 40,
+                                    ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.search_off_outlined, size: 44, color: Colors.grey.shade400),
+                                        Icon(
+                                          Icons.search_off_outlined,
+                                          size: 44,
+                                          color: Colors.grey.shade400,
+                                        ),
                                         const SizedBox(height: 10),
                                         Text(
                                           'No transaction logs match filters.',
-                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
 
-                              // Pagination Row
                               if (totalCount > 0) ...[
                                 const Divider(height: 1),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
                                           const Text(
                                             'Show: ',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary,
+                                            ),
                                           ),
                                           DropdownButton<int>(
                                             value: _rowsPerPage,
                                             underline: const SizedBox(),
-                                            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                             items: const [
-                                              DropdownMenuItem(value: 10, child: Text('10')),
-                                              DropdownMenuItem(value: 20, child: Text('20')),
-                                              DropdownMenuItem(value: 50, child: Text('50')),
+                                              DropdownMenuItem(
+                                                value: 10,
+                                                child: Text('10'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 20,
+                                                child: Text('20'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 50,
+                                                child: Text('50'),
+                                              ),
                                             ],
                                             onChanged: (val) {
                                               if (val != null) {
@@ -1407,25 +1859,37 @@ class _ReportsViewState extends State<_ReportsView> {
                                       Row(
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.chevron_left, size: 20),
+                                            icon: const Icon(
+                                              Icons.chevron_left,
+                                              size: 20,
+                                            ),
                                             onPressed: safeCurrentPage > 1
                                                 ? () {
                                                     setState(() {
-                                                      _currentPage = safeCurrentPage - 1;
+                                                      _currentPage =
+                                                          safeCurrentPage - 1;
                                                     });
                                                   }
                                                 : null,
                                           ),
                                           Text(
                                             'Page $safeCurrentPage of $totalPages',
-                                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary,
+                                            ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.chevron_right, size: 20),
-                                            onPressed: safeCurrentPage < totalPages
+                                            icon: const Icon(
+                                              Icons.chevron_right,
+                                              size: 20,
+                                            ),
+                                            onPressed:
+                                                safeCurrentPage < totalPages
                                                 ? () {
                                                     setState(() {
-                                                      _currentPage = safeCurrentPage + 1;
+                                                      _currentPage =
+                                                          safeCurrentPage + 1;
                                                     });
                                                   }
                                                 : null,
@@ -1440,9 +1904,9 @@ class _ReportsViewState extends State<_ReportsView> {
                           ),
                         ),
 
-                    const SizedBox(height: 20),
-                    _buildCsvImportCard(quickCategoryTab, activeCols),
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 20),
+                      _buildCsvImportCard(quickCategoryTab, activeCols),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -1455,7 +1919,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Cost card builder helper
   Widget _buildCostCard({
     required String title,
     required double value,
@@ -1500,7 +1963,9 @@ class _ReportsViewState extends State<_ReportsView> {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: isFeatured ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary,
+                      color: isFeatured
+                          ? Colors.white.withValues(alpha: 0.85)
+                          : AppColors.textSecondary,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1541,35 +2006,32 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-
-
-  // Filters Panel Widget Card (Redesigned as "Project Context" matching mockup)
-  Widget _buildFiltersCard(BuildContext context, ProjectProvider projectProvider) {
-    // Resolve selected project model
+  Widget _buildFiltersCard(
+    BuildContext context,
+    ProjectProvider projectProvider,
+  ) {
     final proj = projectProvider.projects
         .where((p) => p.id == _selectedProjectId)
         .firstOrNull;
 
-    // Build project selector name
     final projectNameSelected = _selectedProjectId == 'all'
         ? 'All projects'
         : (proj?.name ?? 'Unknown Project');
 
-    // Build floors options
     final floors = proj?.floors ?? [];
 
-    // Build phase selected name
     final selectedPhase = proj?.selectedPhases
         ?.where((p) => p.id == _selectedPhaseId)
         .firstOrNull;
     final selectedPhaseName = selectedPhase?.phaseName ?? 'Select Phase';
 
-    // Build activities options
     final List<ProjectActivity> activities = [];
     if (_selectedPhaseId != null) {
       activities.addAll(selectedPhase?.activities ?? []);
     } else if (proj != null) {
-      activities.addAll(proj.selectedPhases?.expand((p) => p.activities).toList() ?? []);
+      activities.addAll(
+        proj.selectedPhases?.expand((p) => p.activities).toList() ?? [],
+      );
     }
     final uniqueActivityNames = activities.map((a) => a.name).toSet().toList();
 
@@ -1589,7 +2051,6 @@ class _ReportsViewState extends State<_ReportsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header matching mockup styling
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -1641,7 +2102,6 @@ class _ReportsViewState extends State<_ReportsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 2x2 Grid of Dropdowns matching the layout mockup
                 Row(
                   children: [
                     Expanded(
@@ -1649,8 +2109,14 @@ class _ReportsViewState extends State<_ReportsView> {
                         label: 'Project',
                         selectedLabel: projectNameSelected,
                         items: [
-                          const PopupMenuItem(value: 'all', child: Text('All projects')),
-                          ...projectProvider.projects.map((p) => PopupMenuItem(value: p.id, child: Text(p.name))),
+                          const PopupMenuItem(
+                            value: 'all',
+                            child: Text('All projects'),
+                          ),
+                          ...projectProvider.projects.map(
+                            (p) =>
+                                PopupMenuItem(value: p.id, child: Text(p.name)),
+                          ),
                         ],
                         onSelected: (val) {
                           if (val != null) {
@@ -1670,14 +2136,22 @@ class _ReportsViewState extends State<_ReportsView> {
                       child: _buildProjectContextDropdown(
                         label: 'Floor',
                         selectedLabel: _selectedFloor ?? 'Select Floor',
-                        enabled: _selectedProjectId != 'all' && floors.isNotEmpty,
+                        enabled:
+                            _selectedProjectId != 'all' && floors.isNotEmpty,
                         items: [
-                          const PopupMenuItem(value: 'Select Floor', child: Text('Select Floor (All)')),
-                          ...floors.map((f) => PopupMenuItem(value: f, child: Text(f))),
+                          const PopupMenuItem(
+                            value: 'Select Floor',
+                            child: Text('Select Floor (All)'),
+                          ),
+                          ...floors.map(
+                            (f) => PopupMenuItem(value: f, child: Text(f)),
+                          ),
                         ],
                         onSelected: (val) {
                           setState(() {
-                            _selectedFloor = (val == 'Select Floor') ? null : val;
+                            _selectedFloor = (val == 'Select Floor')
+                                ? null
+                                : val;
                             _currentPage = 1;
                           });
                         },
@@ -1692,14 +2166,27 @@ class _ReportsViewState extends State<_ReportsView> {
                       child: _buildProjectContextDropdown(
                         label: 'Phase',
                         selectedLabel: selectedPhaseName,
-                        enabled: _selectedProjectId != 'all' && (proj?.selectedPhases?.isNotEmpty ?? false),
+                        enabled:
+                            _selectedProjectId != 'all' &&
+                            (proj?.selectedPhases?.isNotEmpty ?? false),
                         items: [
-                          const PopupMenuItem(value: 'Select Phase', child: Text('Select Phase (All)')),
-                          ...(proj?.selectedPhases?.map((ph) => PopupMenuItem(value: ph.id, child: Text(ph.phaseName))) ?? []),
+                          const PopupMenuItem(
+                            value: 'Select Phase',
+                            child: Text('Select Phase (All)'),
+                          ),
+                          ...(proj?.selectedPhases?.map(
+                                (ph) => PopupMenuItem(
+                                  value: ph.id,
+                                  child: Text(ph.phaseName),
+                                ),
+                              ) ??
+                              []),
                         ],
                         onSelected: (val) {
                           setState(() {
-                            _selectedPhaseId = (val == 'Select Phase') ? null : val;
+                            _selectedPhaseId = (val == 'Select Phase')
+                                ? null
+                                : val;
                             _selectedActivityName = null;
                             _currentPage = 1;
                           });
@@ -1710,15 +2197,26 @@ class _ReportsViewState extends State<_ReportsView> {
                     Expanded(
                       child: _buildProjectContextDropdown(
                         label: 'Activity',
-                        selectedLabel: _selectedActivityName ?? 'Select Activity',
-                        enabled: _selectedProjectId != 'all' && uniqueActivityNames.isNotEmpty,
+                        selectedLabel:
+                            _selectedActivityName ?? 'Select Activity',
+                        enabled:
+                            _selectedProjectId != 'all' &&
+                            uniqueActivityNames.isNotEmpty,
                         items: [
-                          const PopupMenuItem(value: 'Select Activity', child: Text('Select Activity (All)')),
-                          ...uniqueActivityNames.map((name) => PopupMenuItem(value: name, child: Text(name))),
+                          const PopupMenuItem(
+                            value: 'Select Activity',
+                            child: Text('Select Activity (All)'),
+                          ),
+                          ...uniqueActivityNames.map(
+                            (name) =>
+                                PopupMenuItem(value: name, child: Text(name)),
+                          ),
                         ],
                         onSelected: (val) {
                           setState(() {
-                            _selectedActivityName = (val == 'Select Activity') ? null : val;
+                            _selectedActivityName = (val == 'Select Activity')
+                                ? null
+                                : val;
                             _currentPage = 1;
                           });
                         },
@@ -1728,7 +2226,6 @@ class _ReportsViewState extends State<_ReportsView> {
                 ),
                 const SizedBox(height: 12),
 
-                // Date Preset Selector styled like other dropdowns
                 _buildProjectContextDropdown(
                   label: 'Date Period',
                   selectedLabel: _datePreset,
@@ -1736,8 +2233,14 @@ class _ReportsViewState extends State<_ReportsView> {
                     PopupMenuItem(value: 'All Time', child: Text('All Time')),
                     PopupMenuItem(value: 'Today', child: Text('Today')),
                     PopupMenuItem(value: 'This Week', child: Text('This Week')),
-                    PopupMenuItem(value: 'This Month', child: Text('This Month')),
-                    PopupMenuItem(value: 'Last 30 Days', child: Text('Last 30 Days')),
+                    PopupMenuItem(
+                      value: 'This Month',
+                      child: Text('This Month'),
+                    ),
+                    PopupMenuItem(
+                      value: 'Last 30 Days',
+                      child: Text('Last 30 Days'),
+                    ),
                     PopupMenuItem(value: 'This Year', child: Text('This Year')),
                     PopupMenuItem(value: 'Custom', child: Text('Custom Range')),
                   ],
@@ -1748,7 +2251,6 @@ class _ReportsViewState extends State<_ReportsView> {
                   },
                 ),
 
-                // Custom date pickers using the matching style box
                 if (_datePreset == 'Custom') ...[
                   const SizedBox(height: 12),
                   Row(
@@ -1756,7 +2258,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       Expanded(
                         child: _buildDatePickerBox(
                           label: 'Start Date',
-                          selectedLabel: _startDate == null ? 'Select Date' : _formatDateShort(_startDate!),
+                          selectedLabel: _startDate == null
+                              ? 'Select Date'
+                              : _formatDateShort(_startDate!),
                           onTap: () => _selectStartDate(context),
                         ),
                       ),
@@ -1764,7 +2268,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       Expanded(
                         child: _buildDatePickerBox(
                           label: 'End Date',
-                          selectedLabel: _endDate == null ? 'Select Date' : _formatDateShort(_endDate!),
+                          selectedLabel: _endDate == null
+                              ? 'Select Date'
+                              : _formatDateShort(_endDate!),
                           onTap: () => _selectEndDate(context),
                         ),
                       ),
@@ -1779,7 +2285,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Custom Dropdown UI helper using PopupMenuButton to display options
   Widget _buildProjectContextDropdown({
     required String label,
     required String selectedLabel,
@@ -1788,9 +2293,7 @@ class _ReportsViewState extends State<_ReportsView> {
     bool enabled = true,
   }) {
     return Theme(
-      data: Theme.of(context).copyWith(
-        cardColor: Colors.white,
-      ),
+      data: Theme.of(context).copyWith(cardColor: Colors.white),
       child: PopupMenuButton<String>(
         enabled: enabled,
         onSelected: onSelected,
@@ -1819,7 +2322,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
-                        color: enabled ? AppColors.textSecondary : Colors.grey.shade400,
+                        color: enabled
+                            ? AppColors.textSecondary
+                            : Colors.grey.shade400,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1828,7 +2333,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: enabled ? AppColors.textPrimary : Colors.grey.shade400,
+                        color: enabled
+                            ? AppColors.textPrimary
+                            : Colors.grey.shade400,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1866,11 +2373,7 @@ class _ReportsViewState extends State<_ReportsView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(
-              Icons.edit_note,
-              size: 16,
-              color: AppColors.primary,
-            ),
+            Icon(Icons.edit_note, size: 16, color: AppColors.primary),
             SizedBox(width: 4),
             Text(
               'Edit Columns',
@@ -1886,7 +2389,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Date selection input box helper matching project context dropdown aesthetics
   Widget _buildDatePickerBox({
     required String label,
     required String selectedLabel,
@@ -1900,10 +2402,7 @@ class _ReportsViewState extends State<_ReportsView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFE2E4FA),
-            width: 1.2,
-          ),
+          border: Border.all(color: const Color(0xFFE2E4FA), width: 1.2),
         ),
         child: Row(
           children: [
@@ -1945,7 +2444,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Search bar helper panel for All tab
   Widget _buildAllTabSearchBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1973,12 +2471,24 @@ class _ReportsViewState extends State<_ReportsView> {
             },
             style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Search by description, brand, project, phase, activity...',
-              hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+              hintText:
+                  'Search by description, brand, project, phase, activity...',
+              hintStyle: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.textSecondary, size: 18),
+                      icon: const Icon(
+                        Icons.clear,
+                        color: AppColors.textSecondary,
+                        size: 18,
+                      ),
                       onPressed: () {
                         setState(() {
                           _searchController.clear();
@@ -1987,7 +2497,10 @@ class _ReportsViewState extends State<_ReportsView> {
                       },
                     )
                   : null,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: Color(0xFFE2E4FA)),
@@ -2007,8 +2520,11 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Category specific sub-filters helper panel
-  Widget _buildCategorySubFilters(BuildContext context, String tabName, List<EntryModel> allEntries) {
+  Widget _buildCategorySubFilters(
+    BuildContext context,
+    String tabName,
+    List<EntryModel> allEntries,
+  ) {
     final String searchPlaceholder;
     final String dropdownLabel;
     final EntryType targetType;
@@ -2027,20 +2543,29 @@ class _ReportsViewState extends State<_ReportsView> {
     }
 
     final uniqueNames = allEntries
-        .where((e) => e.type == targetType && (_selectedProjectId == 'all' || e.projectId.trim() == _selectedProjectId.trim()))
+        .where(
+          (e) =>
+              e.type == targetType &&
+              (_selectedProjectId == 'all' ||
+                  e.projectId.trim() == _selectedProjectId.trim()),
+        )
         .map((e) => e.description)
         .where((name) => name.isNotEmpty)
         .toSet()
         .toList();
 
     final suggestions = uniqueNames
-        .where((name) => name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .where(
+          (name) => name.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
         .toList();
 
-    final showSuggestionsList = _showSuggestions &&
+    final showSuggestionsList =
+        _showSuggestions &&
         _searchQuery.isNotEmpty &&
         suggestions.isNotEmpty &&
-        !(suggestions.length == 1 && suggestions.first.toLowerCase() == _searchQuery.toLowerCase());
+        !(suggestions.length == 1 &&
+            suggestions.first.toLowerCase() == _searchQuery.toLowerCase());
 
     return TapRegion(
       onTapOutside: (event) {
@@ -2071,17 +2596,31 @@ class _ReportsViewState extends State<_ReportsView> {
                 setState(() {
                   _searchQuery = val.trim();
                   _showSuggestions = true;
-                  if (_selectedItemName != null && _selectedItemName != _searchQuery) {
+                  if (_selectedItemName != null &&
+                      _selectedItemName != _searchQuery) {
                     _selectedItemName = null;
                   }
                 });
               },
-              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: searchPlaceholder,
-                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFE2E4FA)),
@@ -2116,7 +2655,8 @@ class _ReportsViewState extends State<_ReportsView> {
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   itemCount: suggestions.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: Color(0xFFF3F4F6)),
                   itemBuilder: (context, index) {
                     final name = suggestions[index];
                     return InkWell(
@@ -2129,7 +2669,10 @@ class _ReportsViewState extends State<_ReportsView> {
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             const Icon(
@@ -2166,11 +2709,15 @@ class _ReportsViewState extends State<_ReportsView> {
                     selectedLabel: _selectedItemName ?? 'All',
                     items: [
                       const PopupMenuItem(value: 'All', child: Text('All')),
-                      ...uniqueNames.map((name) => PopupMenuItem(value: name, child: Text(name))),
+                      ...uniqueNames.map(
+                        (name) => PopupMenuItem(value: name, child: Text(name)),
+                      ),
                     ],
                     onSelected: (val) {
                       setState(() {
-                        _selectedItemName = (val == 'All' || val == null) ? null : val;
+                        _selectedItemName = (val == 'All' || val == null)
+                            ? null
+                            : val;
                         final selectedVal = val == 'All' ? '' : (val ?? '');
                         _searchController.text = selectedVal;
                         _searchQuery = selectedVal;
@@ -2189,13 +2736,20 @@ class _ReportsViewState extends State<_ReportsView> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.analytics_outlined, size: 18),
-                label: const Text('Generate CSV Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Generate CSV Report',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tabName == 'Materials'
                       ? const Color(0xFF5B5FCF)
-                      : (tabName == 'Labour' ? AppColors.primaryPurple : AppColors.primaryLightBlue),
+                      : (tabName == 'Labour'
+                            ? AppColors.primaryPurple
+                            : AppColors.primaryLightBlue),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
                 ),
@@ -2214,7 +2768,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Type Chip inside table
   Widget _buildTypeChip(EntryType type) {
     Color color;
     IconData icon;
@@ -2245,14 +2798,17 @@ class _ReportsViewState extends State<_ReportsView> {
           const SizedBox(width: 4),
           Text(
             type.name.toUpperCase(),
-            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Status Badge helper
   Widget _buildStatusBadge(String status) {
     Color bg;
     Color text;
@@ -2285,13 +2841,18 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 
-  // Detail Modal Dialog popup on Row Click
-  void _showEntryDetailsDialog(BuildContext context, EntryModel entry, String projectName) {
+  void _showEntryDetailsDialog(
+    BuildContext context,
+    EntryModel entry,
+    String projectName,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           backgroundColor: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -2322,22 +2883,44 @@ class _ReportsViewState extends State<_ReportsView> {
                   _buildDetailRow('Project', projectName),
                   _buildDetailRow('Type', entry.type.name.toUpperCase()),
                   _buildDetailRow('Date', _formatDateLong(entry.date)),
-                  _buildDetailRow('Amount', _formatIndianCurrency(entry.amount)),
-                  _buildDetailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
-                  _buildDetailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
-                  _buildDetailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
+                  _buildDetailRow(
+                    'Amount',
+                    _formatIndianCurrency(entry.amount),
+                  ),
+                  _buildDetailRow(
+                    'Paid',
+                    _formatIndianCurrency(entry.paidAmount),
+                  ),
+                  _buildDetailRow(
+                    'Remaining',
+                    _formatIndianCurrency(entry.remainingAmount),
+                  ),
+                  _buildDetailRow(
+                    'Status',
+                    _getPaymentStatusLabel(entry.paymentStatus),
+                  ),
                   _PaymentHistorySection(
                     entry: entry,
                     formatCurrency: _formatIndianCurrency,
                     formatDate: _formatDateLong,
                   ),
-                  if (entry.description.isNotEmpty) _buildDetailRow('Description', entry.description),
-                  if (entry.brand != null && entry.brand!.isNotEmpty) _buildDetailRow('Brand', entry.brand!),
-                  if (entry.floor != null && entry.floor!.isNotEmpty) _buildDetailRow('Floor', entry.floor!),
-                  if (entry.phase != null && entry.phase!.isNotEmpty) _buildDetailRow('Phase', entry.phase!),
-                  if (entry.unit != null && entry.unit!.isNotEmpty) _buildDetailRow('Unit', entry.unit!),
-                  if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
-                    _buildDetailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
+                  if (entry.description.isNotEmpty)
+                    _buildDetailRow('Description', entry.description),
+                  if (entry.brand != null && entry.brand!.isNotEmpty)
+                    _buildDetailRow('Brand', entry.brand!),
+                  if (entry.floor != null && entry.floor!.isNotEmpty)
+                    _buildDetailRow('Floor', entry.floor!),
+                  if (entry.phase != null && entry.phase!.isNotEmpty)
+                    _buildDetailRow('Phase', entry.phase!),
+                  if (entry.unit != null && entry.unit!.isNotEmpty)
+                    _buildDetailRow('Unit', entry.unit!),
+                  if (entry.rejectionReason != null &&
+                      entry.rejectionReason!.isNotEmpty)
+                    _buildDetailRow(
+                      'Rejection Reason',
+                      entry.rejectionReason!,
+                      isWarning: true,
+                    ),
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 16),
@@ -2363,7 +2946,11 @@ class _ReportsViewState extends State<_ReportsView> {
                           style: _ReportActionStyle.secondary,
                           onTap: () {
                             Navigator.of(dialogContext).pop();
-                            _ReportActions.recordPayment(context, entry, projectName);
+                            _ReportActions.recordPayment(
+                              context,
+                              entry,
+                              projectName,
+                            );
                           },
                         ),
                       ),
@@ -2400,7 +2987,11 @@ class _ReportsViewState extends State<_ReportsView> {
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary, fontSize: 12),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
             ),
           ),
           Expanded(
@@ -2425,48 +3016,118 @@ class _ReportsViewState extends State<_ReportsView> {
     required String quickCategoryTab,
   }) {
     final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
-    final List<String> uiActiveCols = [...activeCols, 'Add More', 'Record Payment', 'Edit Entry'];
+    final List<String> uiActiveCols = [
+      ...activeCols,
+      'Add More',
+      'Record Payment',
+      'Edit Entry',
+    ];
 
     final List<DataCell> cells = uiActiveCols.map((colName) {
       if (colName == 'Purchased Date') {
-        return DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(
+            _formatDateShort(entry.date),
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
       } else if (colName == 'Payment Date') {
-        final payDateStr = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!) : '—';
+        final payDateStr = entry.paymentDate != null
+            ? _formatDateShort(entry.paymentDate!)
+            : '—';
         return DataCell(Text(payDateStr, style: const TextStyle(fontSize: 12)));
       } else if (colName == 'Project') {
-        return DataCell(Text(projectName, style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(projectName, style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Type') {
         return DataCell(_buildTypeChip(entry.type));
       } else if (colName == 'Description') {
-        return DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12)));
-      } else if (colName == 'Material' || colName == 'Worker Type' || colName == 'Equipment') {
-        return DataCell(Text(entry.description, style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(
+            entry.description.isEmpty ? '—' : entry.description,
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+      } else if (colName == 'Material' ||
+          colName == 'Worker Type' ||
+          colName == 'Equipment') {
+        return DataCell(
+          Text(entry.description, style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Brand') {
-        return DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Floor') {
-        return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Phase') {
-        return DataCell(Text(entry.phase ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(entry.phase ?? '—', style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Activity') {
-        return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Unit') {
-        return DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Status') {
         return DataCell(_buildStatusBadge(entry.paymentStatus));
       } else if (colName == 'Amount') {
-        return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+        return DataCell(
+          Text(
+            _formatIndianCurrency(entry.amount),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        );
       } else if (colName == 'Paid') {
-        return DataCell(Text(_formatIndianCurrency(entry.paidAmount), style: TextStyle(fontSize: 12, color: entry.paidAmount > 0 ? const Color(0xFF15803D) : AppColors.textSecondary)));
+        return DataCell(
+          Text(
+            _formatIndianCurrency(entry.paidAmount),
+            style: TextStyle(
+              fontSize: 12,
+              color: entry.paidAmount > 0
+                  ? const Color(0xFF15803D)
+                  : AppColors.textSecondary,
+            ),
+          ),
+        );
       } else if (colName == 'Remaining') {
         final rem = entry.remainingAmount;
-        return DataCell(Text(_formatIndianCurrency(rem), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rem > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D))));
-      } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
+        return DataCell(
+          Text(
+            _formatIndianCurrency(rem),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: rem > 0
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF15803D),
+            ),
+          ),
+        );
+      } else if (colName == 'Rate' ||
+          colName == 'Rate/Day' ||
+          colName == 'Rent Rate') {
         final rate = entry.ratePerUnit ?? 0.0;
-        return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));
-      } else if (colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+        return DataCell(
+          Text(
+            _formatIndianCurrency(rate),
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+      } else if (colName == 'Qty' ||
+          colName == 'Days' ||
+          colName == 'Duration') {
         final rate = entry.ratePerUnit ?? 0.0;
         final val = (rate == 0) ? 0.0 : entry.amount / rate;
-        return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+        return DataCell(
+          Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)),
+        );
       } else if (colName == 'Add More') {
         return DataCell(
           _ReportActionBtn(
@@ -2482,7 +3143,8 @@ class _ReportsViewState extends State<_ReportsView> {
             label: 'Record Payment',
             icon: Icons.credit_card_outlined,
             style: _ReportActionStyle.secondary,
-            onTap: () => _ReportActions.recordPayment(context, entry, projectName),
+            onTap: () =>
+                _ReportActions.recordPayment(context, entry, projectName),
           ),
         );
       } else if (colName == 'Edit Entry') {
@@ -2509,8 +3171,6 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 }
-
-// ─── Ask AI banner button (exactly as originally styled) ─────────────────────
 
 class _AskAiBanner extends StatelessWidget {
   const _AskAiBanner({required this.projectName});
@@ -2549,7 +3209,11 @@ class _AskAiBanner extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -2558,17 +3222,29 @@ class _AskAiBanner extends StatelessWidget {
                     children: [
                       Text(
                         'Ask AI',
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         'Ask about costs, entries & inventory',
-                        style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w400),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 14),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white70,
+                  size: 14,
+                ),
               ],
             ),
           ),
@@ -2577,8 +3253,6 @@ class _AskAiBanner extends StatelessWidget {
     );
   }
 }
-
-// ─── Category Quick Filter Tabs ────────────────────────────────────────────────
 
 class _CategoryTabs extends StatelessWidget {
   const _CategoryTabs({required this.activeTab, required this.onTabChanged});
@@ -2624,7 +3298,9 @@ class _CategoryTabs extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: active ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
+                  color: active
+                      ? activeColor.withValues(alpha: 0.12)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -2671,7 +3347,7 @@ class _FullScreenLogsViewer extends StatefulWidget {
 }
 
 class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
-  int _quarterTurns = 0; // 0 for straight, 1 for rotated 90 deg
+  int _quarterTurns = 0;
 
   void _toggleRotation() {
     setState(() {
@@ -2680,7 +3356,20 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
   }
 
   String _formatDateShort(DateTime dt) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final day = dt.day.toString().padLeft(2, '0');
     final month = months[dt.month - 1];
     final year = dt.year.toString().substring(dt.year.toString().length - 2);
@@ -2742,7 +3431,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
           const SizedBox(width: 4),
           Text(
             type.name.toUpperCase(),
-            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -2781,9 +3474,26 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
     );
   }
 
-  void _showEntryDetailsDialog(BuildContext context, EntryModel entry, String projectName) {
+  void _showEntryDetailsDialog(
+    BuildContext context,
+    EntryModel entry,
+    String projectName,
+  ) {
     String formatDateLong(DateTime dt) {
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final day = dt.day.toString().padLeft(2, '0');
       final month = months[dt.month - 1];
       final year = dt.year;
@@ -2806,7 +3516,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
               width: 100,
               child: Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
             Expanded(
@@ -2828,7 +3542,9 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       context: context,
       builder: (BuildContext dialogContext) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           backgroundColor: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -2861,20 +3577,36 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   detailRow('Date', formatDateLong(entry.date)),
                   detailRow('Amount', _formatIndianCurrency(entry.amount)),
                   detailRow('Paid', _formatIndianCurrency(entry.paidAmount)),
-                  detailRow('Remaining', _formatIndianCurrency(entry.remainingAmount)),
-                  detailRow('Status', _getPaymentStatusLabel(entry.paymentStatus)),
+                  detailRow(
+                    'Remaining',
+                    _formatIndianCurrency(entry.remainingAmount),
+                  ),
+                  detailRow(
+                    'Status',
+                    _getPaymentStatusLabel(entry.paymentStatus),
+                  ),
                   _PaymentHistorySection(
                     entry: entry,
                     formatCurrency: _formatIndianCurrency,
                     formatDate: formatDateLong,
                   ),
-                  if (entry.description.isNotEmpty) detailRow('Description', entry.description),
-                  if (entry.brand != null && entry.brand!.isNotEmpty) detailRow('Brand', entry.brand!),
-                  if (entry.floor != null && entry.floor!.isNotEmpty) detailRow('Floor', entry.floor!),
-                  if (entry.phase != null && entry.phase!.isNotEmpty) detailRow('Phase', entry.phase!),
-                  if (entry.unit != null && entry.unit!.isNotEmpty) detailRow('Unit', entry.unit!),
-                  if (entry.rejectionReason != null && entry.rejectionReason!.isNotEmpty)
-                    detailRow('Rejection Reason', entry.rejectionReason!, isWarning: true),
+                  if (entry.description.isNotEmpty)
+                    detailRow('Description', entry.description),
+                  if (entry.brand != null && entry.brand!.isNotEmpty)
+                    detailRow('Brand', entry.brand!),
+                  if (entry.floor != null && entry.floor!.isNotEmpty)
+                    detailRow('Floor', entry.floor!),
+                  if (entry.phase != null && entry.phase!.isNotEmpty)
+                    detailRow('Phase', entry.phase!),
+                  if (entry.unit != null && entry.unit!.isNotEmpty)
+                    detailRow('Unit', entry.unit!),
+                  if (entry.rejectionReason != null &&
+                      entry.rejectionReason!.isNotEmpty)
+                    detailRow(
+                      'Rejection Reason',
+                      entry.rejectionReason!,
+                      isWarning: true,
+                    ),
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 16),
@@ -2900,7 +3632,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                           style: _ReportActionStyle.secondary,
                           onTap: () {
                             Navigator.of(dialogContext).pop();
-                            _ReportActions.recordPayment(context, entry, projectName);
+                            _ReportActions.recordPayment(
+                              context,
+                              entry,
+                              projectName,
+                            );
                           },
                         ),
                       ),
@@ -2936,7 +3672,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       appBar: AppBar(
         title: Text(
           '${widget.title} (${widget.filteredEntries.length} entries)',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0.5,
@@ -2947,7 +3687,10 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
         actions: [
           IconButton(
             tooltip: rotated ? 'Straight View' : 'Rotate View (Landscape)',
-            icon: Icon(rotated ? Icons.screen_lock_portrait : Icons.screen_rotation, color: AppColors.primary),
+            icon: Icon(
+              rotated ? Icons.screen_lock_portrait : Icons.screen_rotation,
+              color: AppColors.primary,
+            ),
             onPressed: _toggleRotation,
           ),
           Theme(
@@ -2955,7 +3698,9 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
             child: PopupMenuButton<String>(
               tooltip: 'Export Options',
               icon: const Icon(Icons.download, color: AppColors.primary),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               onSelected: (val) {
                 if (val == 'csv') {
                   widget.onExportCsv();
@@ -2968,7 +3713,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   value: 'csv',
                   child: Row(
                     children: const [
-                      Icon(Icons.description_outlined, color: AppColors.primary, size: 18),
+                      Icon(
+                        Icons.description_outlined,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
                       SizedBox(width: 8),
                       Text('Download CSV'),
                     ],
@@ -2978,7 +3727,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   value: 'pdf',
                   child: Row(
                     children: const [
-                      Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary, size: 18),
+                      Icon(
+                        Icons.picture_as_pdf_outlined,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
                       SizedBox(width: 8),
                       Text('Download PDF'),
                     ],
@@ -2996,44 +3749,135 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
               final projectName = widget.getProjectName(entry.projectId);
               final List<DataCell> cells = widget.activeColumns.map((colName) {
                 if (colName == 'Purchased Date') {
-                  return DataCell(Text(_formatDateShort(entry.date), style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      _formatDateShort(entry.date),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Payment Date') {
-                  final payDateStr = entry.paymentDate != null ? _formatDateShort(entry.paymentDate!) : '—';
-                  return DataCell(Text(payDateStr, style: const TextStyle(fontSize: 12)));
+                  final payDateStr = entry.paymentDate != null
+                      ? _formatDateShort(entry.paymentDate!)
+                      : '—';
+                  return DataCell(
+                    Text(payDateStr, style: const TextStyle(fontSize: 12)),
+                  );
                 } else if (colName == 'Project') {
-                  return DataCell(Text(projectName, style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(projectName, style: const TextStyle(fontSize: 12)),
+                  );
                 } else if (colName == 'Type') {
                   return DataCell(_buildTypeChip(entry.type));
                 } else if (colName == 'Description') {
-                  return DataCell(Text(entry.description.isEmpty ? '—' : entry.description, style: const TextStyle(fontSize: 12)));
-                } else if (colName == 'Material' || colName == 'Worker Type' || colName == 'Equipment') {
-                  return DataCell(Text(entry.description, style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.description.isEmpty ? '—' : entry.description,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
+                } else if (colName == 'Material' ||
+                    colName == 'Worker Type' ||
+                    colName == 'Equipment') {
+                  return DataCell(
+                    Text(
+                      entry.description,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Brand') {
-                  return DataCell(Text(entry.brand ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.brand ?? '—',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Floor') {
-                  return DataCell(Text(entry.floor ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.floor ?? '—',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Phase') {
-                  return DataCell(Text(entry.phase ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.phase ?? '—',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Activity') {
-                  return DataCell(Text(entry.activity ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.activity ?? '—',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Unit') {
-                  return DataCell(Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      entry.unit ?? '—',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Status') {
                   return DataCell(_buildStatusBadge(entry.paymentStatus));
                 } else if (colName == 'Amount') {
-                  return DataCell(Text(_formatIndianCurrency(entry.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      _formatIndianCurrency(entry.amount),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
                 } else if (colName == 'Paid') {
-                  return DataCell(Text(_formatIndianCurrency(entry.paidAmount), style: TextStyle(fontSize: 12, color: entry.paidAmount > 0 ? const Color(0xFF15803D) : AppColors.textSecondary)));
+                  return DataCell(
+                    Text(
+                      _formatIndianCurrency(entry.paidAmount),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: entry.paidAmount > 0
+                            ? const Color(0xFF15803D)
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  );
                 } else if (colName == 'Remaining') {
                   final rem = entry.remainingAmount;
-                  return DataCell(Text(_formatIndianCurrency(rem), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rem > 0 ? const Color(0xFFDC2626) : const Color(0xFF15803D))));
-                } else if (colName == 'Rate' || colName == 'Rate/Day' || colName == 'Rent Rate') {
+                  return DataCell(
+                    Text(
+                      _formatIndianCurrency(rem),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: rem > 0
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFF15803D),
+                      ),
+                    ),
+                  );
+                } else if (colName == 'Rate' ||
+                    colName == 'Rate/Day' ||
+                    colName == 'Rent Rate') {
                   final rate = entry.ratePerUnit ?? 0.0;
-                  return DataCell(Text(_formatIndianCurrency(rate), style: const TextStyle(fontSize: 12)));
-                } else if (colName == 'Qty' || colName == 'Days' || colName == 'Duration') {
+                  return DataCell(
+                    Text(
+                      _formatIndianCurrency(rate),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
+                } else if (colName == 'Qty' ||
+                    colName == 'Days' ||
+                    colName == 'Duration') {
                   final rate = entry.ratePerUnit ?? 0.0;
                   final val = (rate == 0) ? 0.0 : entry.amount / rate;
-                  return DataCell(Text(val.toStringAsFixed(1), style: const TextStyle(fontSize: 12)));
+                  return DataCell(
+                    Text(
+                      val.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
                 } else if (colName == 'Add More') {
                   return DataCell(
                     _ReportActionBtn(
@@ -3049,7 +3893,11 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                       label: 'Record Payment',
                       icon: Icons.credit_card_outlined,
                       style: _ReportActionStyle.secondary,
-                      onTap: () => _ReportActions.recordPayment(context, entry, projectName),
+                      onTap: () => _ReportActions.recordPayment(
+                        context,
+                        entry,
+                        projectName,
+                      ),
                     ),
                   );
                 } else if (colName == 'Edit Entry') {
@@ -3084,7 +3932,9 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   data: Theme.of(context).copyWith(cardColor: Colors.white),
                   child: DataTable(
                     showCheckboxColumn: false,
-                    headingRowColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.04)),
+                    headingRowColor: WidgetStateProperty.all(
+                      AppColors.primary.withValues(alpha: 0.04),
+                    ),
                     horizontalMargin: 16,
                     columnSpacing: 24,
                     columns: widget.columns,
@@ -3105,10 +3955,14 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Theme(
-                        data: Theme.of(context).copyWith(cardColor: Colors.white),
+                        data: Theme.of(
+                          context,
+                        ).copyWith(cardColor: Colors.white),
                         child: DataTable(
                           showCheckboxColumn: false,
-                          headingRowColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.04)),
+                          headingRowColor: WidgetStateProperty.all(
+                            AppColors.primary.withValues(alpha: 0.04),
+                          ),
                           horizontalMargin: 16,
                           columnSpacing: 24,
                           columns: widget.columns,
@@ -3145,8 +3999,6 @@ String _getPaymentStatusLabel(String status) {
       return 'Not Paid';
   }
 }
-
-// ─── REPORT LOG ACTION HELPERS & BUTTONS ────────────────────────────────────
 
 enum _ReportActionStyle { primary, secondary, tertiary }
 
@@ -3280,7 +4132,11 @@ class _ReportActions {
     });
   }
 
-  static Future<void> recordPayment(BuildContext context, EntryModel entry, String projectName) async {
+  static Future<void> recordPayment(
+    BuildContext context,
+    EntryModel entry,
+    String projectName,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -3301,13 +4157,25 @@ class _ReportActions {
 
     final pId = entry.projectId;
     final pName = projectName;
-    final rawItemName = tx['materialName'] ?? tx['itemName'] ?? tx['title'] ?? tx['name'] ?? entry.description;
+    final rawItemName =
+        tx['materialName'] ??
+        tx['itemName'] ??
+        tx['title'] ??
+        tx['name'] ??
+        entry.description;
     final itemType = tx['type'] ?? entry.type.name;
-    final qty = (tx['quantity'] as num?)?.toDouble() ?? ((entry.ratePerUnit ?? 0) == 0 ? 0.0 : entry.amount / entry.ratePerUnit!);
+    final qty =
+        (tx['quantity'] as num?)?.toDouble() ??
+        ((entry.ratePerUnit ?? 0) == 0
+            ? 0.0
+            : entry.amount / entry.ratePerUnit!);
     final rate = (tx['rate'] as num?)?.toDouble() ?? entry.ratePerUnit ?? 0.0;
     final totalAmount = (tx['amount'] as num?)?.toDouble() ?? entry.amount;
     final paidAmount = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
-    final outstandingAmount = (totalAmount - paidAmount).clamp(0.0, double.infinity);
+    final outstandingAmount = (totalAmount - paidAmount).clamp(
+      0.0,
+      double.infinity,
+    );
     final payStatus = EntryModel.fromJson(tx).paymentStatus;
 
     final payArgs = {
@@ -3323,7 +4191,9 @@ class _ReportActions {
       'paidAmount': paidAmount,
       'outstandingAmount': outstandingAmount,
       'paymentStatus': payStatus,
-      'receipt': (tx['attachments'] is List && tx['attachments'].isNotEmpty) ? tx['attachments'].first?.toString() : null,
+      'receipt': (tx['attachments'] is List && tx['attachments'].isNotEmpty)
+          ? tx['attachments'].first?.toString()
+          : null,
       'transactionDetails': tx,
     };
 
@@ -3347,11 +4217,10 @@ class _PaymentHistorySection extends StatefulWidget {
   final String Function(DateTime) formatDate;
 
   const _PaymentHistorySection({
-    Key? key,
     required this.entry,
     required this.formatCurrency,
     required this.formatDate,
-  }) : super(key: key);
+  });
 
   @override
   State<_PaymentHistorySection> createState() => _PaymentHistorySectionState();
@@ -3364,7 +4233,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
   Widget build(BuildContext context) {
     final history = widget.entry.paymentHistory;
 
-    // Header
     Widget header = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -3430,7 +4298,8 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemsToShow.length,
-        separatorBuilder: (_, __) => const Divider(height: 12, color: Color(0xFFF0F0F8)),
+        separatorBuilder: (_, _) =>
+            const Divider(height: 12, color: Color(0xFFF0F0F8)),
         itemBuilder: (context, idx) {
           final item = itemsToShow[idx];
           final amt = (item['amount'] as num?)?.toDouble() ?? 0.0;
@@ -3467,7 +4336,10 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.badgeInfoBg,
                               borderRadius: BorderRadius.circular(4),
@@ -3516,9 +4388,7 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
           constraints: const BoxConstraints(maxHeight: 180),
           child: Scrollbar(
             thumbVisibility: true,
-            child: SingleChildScrollView(
-              child: list,
-            ),
+            child: SingleChildScrollView(child: list),
           ),
         );
       } else {

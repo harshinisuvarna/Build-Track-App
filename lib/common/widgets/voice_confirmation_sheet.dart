@@ -9,9 +9,6 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public entry point — call from anywhere to open the AI assistant
-// ─────────────────────────────────────────────────────────────────────────────
 Future<void> showVoiceConfirmationSheet(
   BuildContext context, {
   String? detectedType,
@@ -27,11 +24,8 @@ Future<void> showVoiceConfirmationSheet(
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data model holding all collected entry fields
-// ─────────────────────────────────────────────────────────────────────────────
 class _EntryData {
-  String? type; // 'material' | 'labour' | 'equipment'
+  String? type;
   String? projectId;
   String? projectName;
   String? floor;
@@ -41,15 +35,15 @@ class _EntryData {
   String? quantity;
   String? unit;
   String? rate;
-  // optional
+
   String? brand;
   String? supplier;
   String? category;
   String? gst;
   String? paymentMode;
   String? notes;
-  String? operator0; // equipment operator
-  String? fuelCost; // equipment fuel
+  String? operator0;
+  String? fuelCost;
 
   double get computedAmount {
     final q = double.tryParse(quantity ?? '') ?? 0;
@@ -71,11 +65,7 @@ class _EntryData {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Steps definition
-// ─────────────────────────────────────────────────────────────────────────────
 enum _StepId {
-  // common
   entryType,
   project,
   floor,
@@ -85,15 +75,12 @@ enum _StepId {
   quantity,
   unit,
   rate,
-  // optional bucket — shown as group before review
+
   optionals,
-  // review
+
   review,
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sheet widget
-// ─────────────────────────────────────────────────────────────────────────────
 class VoiceConfirmationSheet extends StatefulWidget {
   final String? initialType;
   const VoiceConfirmationSheet({super.key, this.initialType});
@@ -104,7 +91,6 @@ class VoiceConfirmationSheet extends StatefulWidget {
 
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     with TickerProviderStateMixin {
-  // ── Design tokens ──────────────────────────────────────────────────────────
   static const _blue = AppColors.primaryBlue;
   static const _bgColor = Color(0xFFF4F6FC);
   static const _cardBg = Colors.white;
@@ -112,7 +98,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   static const _textGray = Color(0xFF5A6B82);
   static const _successGreen = Color(0xFF10B981);
 
-  // ── State ──────────────────────────────────────────────────────────────────
   final _entry = _EntryData();
   _StepId _currentStep = _StepId.entryType;
   final _answerCtrl = TextEditingController();
@@ -120,20 +105,16 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   bool _saveSuccess = false;
   String? _saveError;
 
-  // Speech-to-text
   final _voiceCtrl = VoiceRecordingController();
   String _sttError = '';
 
-  // Animation
   late final AnimationController _pulseCtrl;
   late final AnimationController _waveCtrl;
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
-  // For freeform text entry
   final _textFocusNode = FocusNode();
 
-  // Units list
   static const _units = [
     'Bags',
     'Kg',
@@ -150,7 +131,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Trips',
   ];
 
-  // Payment modes
   static const _paymentModes = ['Cash', 'UPI', 'NEFT', 'Cheque', 'Credit'];
 
   @override
@@ -176,7 +156,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
 
     _voiceCtrl.addListener(_onVoiceStateChanged);
 
-    // If type was pre-detected, skip straight to project step
     if (widget.initialType != null) {
       _entry.type = widget.initialType;
       _currentStep = _StepId.project;
@@ -195,7 +174,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     super.dispose();
   }
 
-  // ── Step metadata ───────────────────────────────────────────────────────────
   List<_StepId> get _allSteps {
     return [
       _StepId.entryType,
@@ -333,8 +311,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       }
     });
   }
-
-  // ── Speech-to-Text ──────────────────────────────────────────────────────────
 
   void _onVoiceStateChanged() {
     if (!mounted) return;
@@ -566,7 +542,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Save logic ──────────────────────────────────────────────────────────────
   String _mapUnitToBackend(String? rawUnit) {
     if (rawUnit == null || rawUnit.isEmpty) return 'unit';
     final lower = rawUnit.toLowerCase();
@@ -575,7 +550,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
     if (lower.contains('ton')) return 'ton';
     if (lower.contains('sqft') || lower.contains('square')) return 'sqft';
-    if (lower.contains('sqm') || lower.contains('cum') || lower.contains('cft')) {
+    if (lower.contains('sqm') ||
+        lower.contains('cum') ||
+        lower.contains('cft')) {
       return 'sqm';
     }
     if (lower.contains('day')) return 'day';
@@ -640,7 +617,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       final result = await ApiService.addTransaction(payload);
 
       if (result != null) {
-        // Refresh provider
         if (mounted) {
           final provider = Provider.of<ProjectProvider>(context, listen: false);
           await provider.load();
@@ -649,7 +625,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _isSaving = false;
           _saveSuccess = true;
         });
-        // Close sheet after brief success flash
+
         await Future.delayed(const Duration(milliseconds: 1400));
         if (mounted) Navigator.of(context).pop();
       } else {
@@ -666,7 +642,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     }
   }
 
-  // ── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -698,7 +673,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Drag handle ─────────────────────────────────────────────────────────────
   Widget _buildHandle() {
     return Padding(
       padding: const EdgeInsets.only(top: 12, bottom: 4),
@@ -713,7 +687,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Header with mic + AI greeting ──────────────────────────────────────────
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -721,7 +694,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Animated mic orb
           _buildMicOrb(),
           const SizedBox(width: 16),
           Expanded(
@@ -750,7 +722,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               ],
             ),
           ),
-          // Close button
+
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -799,7 +771,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Progress bar ─────────────────────────────────────────────────────────────
   Widget _buildProgressBar() {
     final progress = _totalSteps > 1
         ? (_stepIndex / (_totalSteps - 1)).clamp(0.0, 1.0)
@@ -845,14 +816,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step content dispatcher ─────────────────────────────────────────────────
   Widget _buildStepContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Waveform + confirmed answers bar (not on first step)
           if (_currentStep != _StepId.entryType) ...[
             _buildWaveformRow(),
             const SizedBox(height: 12),
@@ -860,7 +829,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             const SizedBox(height: 16),
           ],
 
-          // Step-specific input UI
           _buildCurrentStepInput(),
           if (_currentStep != _StepId.review &&
               _currentStep != _StepId.optionals) ...[
@@ -872,7 +840,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Waveform bar ──────────────────────────────────────────────────────────
   Widget _buildWaveformRow() {
     return AnimatedBuilder(
       animation: _waveCtrl,
@@ -898,7 +865,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Confirmed answers summary strip ──────────────────────────────────────
   Widget _buildAnsweredSoFar() {
     final chips = <Widget>[];
 
@@ -929,7 +895,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     return Wrap(spacing: 8, runSpacing: 8, children: chips);
   }
 
-  // ── Step: entry type ───────────────────────────────────────────────────────
   Widget _buildEntryTypeStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1027,7 +992,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: project ───────────────────────────────────────────────────────────
   Widget _buildProjectStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final projects = provider.projects;
@@ -1050,7 +1014,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 setState(() {
                   _entry.projectId = p.id;
                   _entry.projectName = p.name;
-                  // Reset downstream
+
                   _entry.floor = null;
                   _entry.phase = null;
                   _entry.activity = null;
@@ -1063,7 +1027,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: floor ─────────────────────────────────────────────────────────────
   Widget _buildFloorStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
@@ -1103,7 +1066,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: phase ─────────────────────────────────────────────────────────────
   Widget _buildPhaseStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
@@ -1150,7 +1112,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: activity ──────────────────────────────────────────────────────────
   Widget _buildActivityStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
@@ -1158,7 +1119,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       orElse: () => _placeholderProject(),
     );
 
-    // Get activities for the chosen phase
     List<String> activities = [];
     if (project.selectedPhases != null && _entry.phase != null) {
       final phaseObj = project.selectedPhases!
@@ -1201,7 +1161,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: item name ─────────────────────────────────────────────────────────
   Widget _buildItemNameStep() {
     final suggestions = _entry.type == 'material'
         ? _materialSuggestions
@@ -1247,7 +1206,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: quantity ──────────────────────────────────────────────────────────
   Widget _buildQuantityStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1270,7 +1228,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: unit ──────────────────────────────────────────────────────────────
   Widget _buildUnitStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1310,7 +1267,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: rate ──────────────────────────────────────────────────────────────
   Widget _buildRateStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1383,7 +1339,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: optionals ─────────────────────────────────────────────────────────
   Widget _buildOptionalsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1391,7 +1346,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         _buildSectionLabel('OPTIONAL — SKIP ANYTIME'),
         const SizedBox(height: 12),
 
-        // Material-specific
         if (_entry.type == 'material') ...[
           _buildOptionalField(
             'Brand',
@@ -1414,7 +1368,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _buildOptionalGst(),
         ],
 
-        // Equipment-specific
         if (_entry.type == 'equipment') ...[
           _buildOptionalField(
             'Operator Name',
@@ -1431,7 +1384,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           ),
         ],
 
-        // All types
         _buildPaymentModeField(),
         _buildOptionalField(
           'Notes',
@@ -1580,7 +1532,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Step: review ─────────────────────────────────────────────────────────────
   Widget _buildReviewStep() {
     if (_saveSuccess) {
       return _buildSuccessState();
@@ -1589,7 +1540,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Summary card
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1610,7 +1560,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Type badge
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -1654,7 +1603,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 'Total Amount',
                 '₹${_formatAmount(_entry.computedAmount)}',
               ),
-              // optional rows
+
               if ((_entry.gst ?? '').isNotEmpty) ...[
                 const SizedBox(height: 4),
                 _reviewRow('GST', '${_entry.gst}%'),
@@ -1705,7 +1654,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
 
         const SizedBox(height: 20),
 
-        // Edit button
         _buildOutlinedButton(
           label: 'Edit',
           icon: Icons.edit_outlined,
@@ -1713,7 +1661,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         ),
         const SizedBox(height: 12),
 
-        // Confirm & Save
         _isSaving
             ? _buildLoadingButton()
             : _buildGradientButton(
@@ -1822,7 +1769,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Dispatcher ──────────────────────────────────────────────────────────────
   Widget _buildCurrentStepInput() {
     switch (_currentStep) {
       case _StepId.entryType:
@@ -1849,10 +1795,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         return _buildReviewStep();
     }
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Reusable UI primitives
-  // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildSectionLabel(String text) {
     return Text(
@@ -2228,7 +2170,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
   String _formatAmount(double amount) {
     if (amount >= 10000000) {
       return '${(amount / 10000000).toStringAsFixed(2)} Cr';
@@ -2263,7 +2204,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     );
   }
 
-  // ── Static suggestion lists ─────────────────────────────────────────────────
   static const _defaultPhases = [
     'Foundation & Plinth Work',
     'Floor Construction',
@@ -2329,9 +2269,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   ];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Answer chip widget
-// ─────────────────────────────────────────────────────────────────────────────
 class _AnswerChip extends StatelessWidget {
   final IconData icon;
   final String value;

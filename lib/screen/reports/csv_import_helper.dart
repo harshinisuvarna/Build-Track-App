@@ -29,7 +29,6 @@ class CsvImportResult {
 }
 
 class CsvImportHelper {
-  /// Downloads a CSV template whose headers match the current export columns.
   static Future<void> downloadTemplate({
     required String quickCategoryTab,
     required List<String> activeColumns,
@@ -40,9 +39,12 @@ class CsvImportHelper {
     );
 
     final csvBuffer = StringBuffer();
-    csvBuffer.writeln(headers.map((h) => '"${h.replaceAll('"', '""')}"').join(','));
+    csvBuffer.writeln(
+      headers.map((h) => '"${h.replaceAll('"', '""')}"').join(','),
+    );
 
-    final filename = 'BuildTrack_Import_${quickCategoryTab}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final filename =
+        'BuildTrack_Import_${quickCategoryTab}_${DateTime.now().millisecondsSinceEpoch}.csv';
     final shareText = 'BuildTrack Import Template ($quickCategoryTab)';
 
     await saveAndShareCsv(
@@ -79,7 +81,9 @@ class CsvImportHelper {
     if (fileBytes == null) throw Exception('Failed to read file data');
 
     final csvString = utf8.decode(fileBytes);
-    final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+    final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
+      csvString,
+    );
 
     if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
       throw Exception('CSV file is empty or has no data rows');
@@ -90,13 +94,21 @@ class CsvImportHelper {
 
     // Map each export header to the import field it represents.
     // Display-only columns (Amount, Paid, Remaining, Payment Date) are skipped.
-    final dateIdx = headerLower.indexWhere((h) => h == 'purchased date' || h == 'date');
+    final dateIdx = headerLower.indexWhere(
+      (h) => h == 'purchased date' || h == 'date',
+    );
     final projectIdx = headerLower.indexOf('project');
     final typeIdx = headerLower.indexOf('type');
 
     // Name/description columns — use whichever is present
-    final nameIdx = headerLower.indexWhere((h) =>
-        h == 'description' || h == 'material' || h == 'worker type' || h == 'equipment' || h == 'name');
+    final nameIdx = headerLower.indexWhere(
+      (h) =>
+          h == 'description' ||
+          h == 'material' ||
+          h == 'worker type' ||
+          h == 'equipment' ||
+          h == 'name',
+    );
 
     final brandIdx = headerLower.indexOf('brand');
     final floorIdx = headerLower.indexOf('floor');
@@ -104,16 +116,21 @@ class CsvImportHelper {
     final activityIdx = headerLower.indexOf('activity');
     final unitIdx = headerLower.indexOf('unit');
 
-    final rateIdx = headerLower.indexWhere((h) =>
-        h == 'rate' || h == 'rate/day' || h == 'rent rate');
-    final qtyIdx = headerLower.indexWhere((h) =>
-        h == 'qty' || h == 'days' || h == 'duration' || h == 'quantity');
+    final rateIdx = headerLower.indexWhere(
+      (h) => h == 'rate' || h == 'rate/day' || h == 'rent rate',
+    );
+    final qtyIdx = headerLower.indexWhere(
+      (h) => h == 'qty' || h == 'days' || h == 'duration' || h == 'quantity',
+    );
     final statusIdx = headerLower.indexOf('status');
     final notesIdx = headerLower.indexOf('notes');
 
     // Validate required columns exist
     if (dateIdx == -1) throw Exception('CSV missing "Purchased Date" column');
-    if (nameIdx == -1) throw Exception('CSV missing a name column (Description, Material, Worker Type, or Equipment)');
+    if (nameIdx == -1)
+      throw Exception(
+        'CSV missing a name column (Description, Material, Worker Type, or Equipment)',
+      );
 
     // Resolve default project
     ProjectModel? defaultProject;
@@ -147,42 +164,63 @@ class CsvImportHelper {
 
     for (int i = 1; i < parsedCsv.length; i++) {
       final row = parsedCsv[i];
-      if (row.isEmpty || row.every((e) => e == null || e.toString().trim().isEmpty)) continue;
+      if (row.isEmpty ||
+          row.every((e) => e == null || e.toString().trim().isEmpty))
+        continue;
       final rowNum = i + 1;
 
       try {
         // ── Date ──
-        final dateStr = dateIdx != -1 && dateIdx < row.length ? parseString(row[dateIdx]) : '';
-        final date = dateStr.isNotEmpty ? (DateTime.tryParse(dateStr) ?? DateTime.now()) : DateTime.now();
+        final dateStr = dateIdx != -1 && dateIdx < row.length
+            ? parseString(row[dateIdx])
+            : '';
+        final date = dateStr.isNotEmpty
+            ? (DateTime.tryParse(dateStr) ?? DateTime.now())
+            : DateTime.now();
 
         // ── Project resolution ──
-        final csvProjName = projectIdx != -1 && projectIdx < row.length ? parseString(row[projectIdx]) : '';
+        final csvProjName = projectIdx != -1 && projectIdx < row.length
+            ? parseString(row[projectIdx])
+            : '';
         var matchedProject = projects.cast<ProjectModel?>().firstWhere(
-          (p) => p?.name.trim().toLowerCase() == csvProjName.trim().toLowerCase() || p?.id == csvProjName,
+          (p) =>
+              p?.name.trim().toLowerCase() ==
+                  csvProjName.trim().toLowerCase() ||
+              p?.id == csvProjName,
           orElse: () => null,
         );
         matchedProject ??= defaultProject;
-        if (matchedProject == null) throw Exception('Row $rowNum: Project "$csvProjName" not found');
+        if (matchedProject == null)
+          throw Exception('Row $rowNum: Project "$csvProjName" not found');
         final projectId = matchedProject.id;
 
         // ── Floor ──
-        final csvFloor = floorIdx != -1 && floorIdx < row.length ? parseString(row[floorIdx]) : '';
+        final csvFloor = floorIdx != -1 && floorIdx < row.length
+            ? parseString(row[floorIdx])
+            : '';
         String? resolvedFloor;
         if (csvFloor.isNotEmpty) {
           resolvedFloor = csvFloor;
-        } else if (matchedProject.floors != null && matchedProject.floors!.isNotEmpty) {
+        } else if (matchedProject.floors != null &&
+            matchedProject.floors!.isNotEmpty) {
           resolvedFloor = matchedProject.floors!.first;
         }
 
         // ── Phase ──
-        final csvPhase = phaseIdx != -1 && phaseIdx < row.length ? parseString(row[phaseIdx]) : '';
+        final csvPhase = phaseIdx != -1 && phaseIdx < row.length
+            ? parseString(row[phaseIdx])
+            : '';
         String? phaseName;
         String? phaseId;
         if (csvPhase.isNotEmpty && matchedProject.selectedPhases != null) {
-          final phaseMatch = matchedProject.selectedPhases!.cast<ProjectPhase?>().firstWhere(
-            (p) => p?.phaseName.trim().toLowerCase() == csvPhase.trim().toLowerCase(),
-            orElse: () => null,
-          );
+          final phaseMatch = matchedProject.selectedPhases!
+              .cast<ProjectPhase?>()
+              .firstWhere(
+                (p) =>
+                    p?.phaseName.trim().toLowerCase() ==
+                    csvPhase.trim().toLowerCase(),
+                orElse: () => null,
+              );
           if (phaseMatch != null) {
             phaseName = phaseMatch.phaseName;
             phaseId = phaseMatch.id;
@@ -192,16 +230,25 @@ class CsvImportHelper {
         }
 
         // ── Activity ──
-        final csvActivity = activityIdx != -1 && activityIdx < row.length ? parseString(row[activityIdx]) : '';
+        final csvActivity = activityIdx != -1 && activityIdx < row.length
+            ? parseString(row[activityIdx])
+            : '';
         String? activityName;
         String? activityId;
         if (csvActivity.isNotEmpty && matchedProject.selectedPhases != null) {
           for (final phase in matchedProject.selectedPhases!) {
-            if (phaseName != null && phase.phaseName.trim().toLowerCase() != phaseName.trim().toLowerCase()) continue;
-            final actMatch = phase.activities.cast<ProjectActivity?>().firstWhere(
-              (a) => a?.name.trim().toLowerCase() == csvActivity.trim().toLowerCase(),
-              orElse: () => null,
-            );
+            if (phaseName != null &&
+                phase.phaseName.trim().toLowerCase() !=
+                    phaseName.trim().toLowerCase())
+              continue;
+            final actMatch = phase.activities
+                .cast<ProjectActivity?>()
+                .firstWhere(
+                  (a) =>
+                      a?.name.trim().toLowerCase() ==
+                      csvActivity.trim().toLowerCase(),
+                  orElse: () => null,
+                );
             if (actMatch != null) {
               activityName = actMatch.name;
               activityId = actMatch.id;
@@ -216,32 +263,52 @@ class CsvImportHelper {
         }
 
         // ── Name / description ──
-        final name = nameIdx != -1 && nameIdx < row.length ? parseString(row[nameIdx]) : '';
-        if (name.isEmpty) throw Exception('Row $rowNum: Name/Description is empty');
+        final name = nameIdx != -1 && nameIdx < row.length
+            ? parseString(row[nameIdx])
+            : '';
+        if (name.isEmpty)
+          throw Exception('Row $rowNum: Name/Description is empty');
 
         // ── Type ──
-        final typeStr = typeIdx != -1 && typeIdx < row.length ? parseString(row[typeIdx]).toLowerCase() : '';
+        final typeStr = typeIdx != -1 && typeIdx < row.length
+            ? parseString(row[typeIdx]).toLowerCase()
+            : '';
         EntryType entryType;
-        if (typeStr.contains('wage') || typeStr.contains('labour') || typeStr.contains('labor')) {
+        if (typeStr.contains('wage') ||
+            typeStr.contains('labour') ||
+            typeStr.contains('labor')) {
           entryType = EntryType.labour;
-        } else if (typeStr.contains('expense') || typeStr.contains('equipment')) {
+        } else if (typeStr.contains('expense') ||
+            typeStr.contains('equipment')) {
           entryType = EntryType.equipment;
         } else {
           entryType = EntryType.material;
         }
 
         // ── Numeric fields ──
-        final qty = qtyIdx != -1 && qtyIdx < row.length ? parseDouble(row[qtyIdx]) : 1.0;
-        final rate = rateIdx != -1 && rateIdx < row.length ? parseDouble(row[rateIdx]) : 0.0;
-        final brand = brandIdx != -1 && brandIdx < row.length ? parseString(row[brandIdx]) : '';
-        final unit = unitIdx != -1 && unitIdx < row.length ? parseString(row[unitIdx]).toLowerCase() : 'unit';
-        final notes = notesIdx != -1 && notesIdx < row.length ? parseString(row[notesIdx]) : '';
+        final qty = qtyIdx != -1 && qtyIdx < row.length
+            ? parseDouble(row[qtyIdx])
+            : 1.0;
+        final rate = rateIdx != -1 && rateIdx < row.length
+            ? parseDouble(row[rateIdx])
+            : 0.0;
+        final brand = brandIdx != -1 && brandIdx < row.length
+            ? parseString(row[brandIdx])
+            : '';
+        final unit = unitIdx != -1 && unitIdx < row.length
+            ? parseString(row[unitIdx]).toLowerCase()
+            : 'unit';
+        final notes = notesIdx != -1 && notesIdx < row.length
+            ? parseString(row[notesIdx])
+            : '';
 
         // ── Payment status ──
         String resolvedStatus = 'Pending';
         if (statusIdx != -1 && statusIdx < row.length) {
           final statusStr = parseString(row[statusIdx]).trim().toLowerCase();
-          if (statusStr == 'fully paid' || statusStr == 'paid' || statusStr == 'fullypaid') {
+          if (statusStr == 'fully paid' ||
+              statusStr == 'paid' ||
+              statusStr == 'fullypaid') {
             resolvedStatus = 'Paid';
           } else if (statusStr == 'partial' || statusStr == 'partially paid') {
             resolvedStatus = 'Partial';
@@ -257,9 +324,12 @@ class CsvImportHelper {
         final Map<String, dynamic> payload = {};
 
         if (entryType == EntryType.labour) {
-          final normalizedUnit = (unit == 'day' || unit == 'days') ? 'day'
-              : (unit == 'hour' || unit == 'hours') ? 'hour'
-              : (unit == 'sqft' || unit == 'sq.ft') ? 'sqft'
+          final normalizedUnit = (unit == 'day' || unit == 'days')
+              ? 'day'
+              : (unit == 'hour' || unit == 'hours')
+              ? 'hour'
+              : (unit == 'sqft' || unit == 'sq.ft')
+              ? 'sqft'
               : 'unit';
 
           payload.addAll({
@@ -286,9 +356,15 @@ class CsvImportHelper {
           });
           labourCount++;
         } else if (entryType == EntryType.equipment) {
-          final normalizedUnit = (unit == 'day') ? 'day'
-              : (unit == 'hour') ? 'hour'
-              : (unit == 'trip' || unit == 'load' || unit == 'shift' || unit == 'truck') ? 'truck'
+          final normalizedUnit = (unit == 'day')
+              ? 'day'
+              : (unit == 'hour')
+              ? 'hour'
+              : (unit == 'trip' ||
+                    unit == 'load' ||
+                    unit == 'shift' ||
+                    unit == 'truck')
+              ? 'truck'
               : 'unit';
 
           payload.addAll({
@@ -315,10 +391,14 @@ class CsvImportHelper {
           });
           equipmentCount++;
         } else {
-          final normalizedUnit = (unit == 'bags' || unit == 'bag') ? 'bag'
-              : (unit == 'sq.ft' || unit == 'sqft') ? 'sqft'
-              : (unit == 'ton' || unit == 'tons') ? 'ton'
-              : (unit == 'kg' || unit == 'kgs') ? 'kg'
+          final normalizedUnit = (unit == 'bags' || unit == 'bag')
+              ? 'bag'
+              : (unit == 'sq.ft' || unit == 'sqft')
+              ? 'sqft'
+              : (unit == 'ton' || unit == 'tons')
+              ? 'ton'
+              : (unit == 'kg' || unit == 'kgs')
+              ? 'kg'
               : 'unit';
 
           payload.addAll({
@@ -343,7 +423,9 @@ class CsvImportHelper {
             'paymentStatus': resolvedStatus,
             'paidAmount': paidAmt,
             'paymentMode': 'Cash',
-            if (resolvedFloor != null || phaseName != null || activityName != null)
+            if (resolvedFloor != null ||
+                phaseName != null ||
+                activityName != null)
               'executionContext': {
                 'project': projectId,
                 'floor': ?resolvedFloor,
@@ -357,7 +439,10 @@ class CsvImportHelper {
         }
 
         final success = await ApiService.addMaterial(payload);
-        if (!success) throw Exception('Row $rowNum: Failed to create transaction on the server');
+        if (!success)
+          throw Exception(
+            'Row $rowNum: Failed to create transaction on the server',
+          );
         successCount++;
       } catch (e) {
         failedCount++;

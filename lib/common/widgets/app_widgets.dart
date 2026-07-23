@@ -397,7 +397,7 @@ class AppProgressBar extends StatelessWidget {
   });
 
   final String label;
-  final double percent; // 0.0 â€“ 1.0
+  final double percent;
   final Color color;
 
   @override
@@ -498,7 +498,7 @@ class StatusBadge extends StatelessWidget {
       case 'rejected':
         return AppColors.error;
       default:
-        return AppColors.badgeWarningText; // pending
+        return AppColors.badgeWarningText;
     }
   }
 

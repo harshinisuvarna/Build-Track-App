@@ -8,8 +8,6 @@ import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ── Project Status definitions ──────────────────────────────────────────────
-
 enum _ProjectStatus {
   planning,
   inProgress,
@@ -95,8 +93,6 @@ enum _ProjectStatus {
   }
 }
 
-// ── Reusable ProjectStatusChip ───────────────────────────────────────────────
-
 class ProjectStatusChip extends StatelessWidget {
   const ProjectStatusChip({super.key, required this.statusRaw});
 
@@ -132,8 +128,6 @@ class ProjectStatusChip extends StatelessWidget {
   }
 }
 
-// ── Projects Screen ──────────────────────────────────────────────────────────
-
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
 
@@ -146,13 +140,11 @@ class ProjectsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
 
-    // FIX: Only show the "+" FAB when the user has the create_project
-    // permission (or is Admin via RoleManager.canCreateProject).
     final canCreate = RoleManager.canCreateProject;
 
     return Scaffold(
       backgroundColor: bgColor,
-      // FIX: FAB is null (hidden) when the user lacks create_project permission
+
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () => Navigator.push(
@@ -306,7 +298,6 @@ class ProjectsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Name + STATUS chip ────────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -328,7 +319,6 @@ class ProjectsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // ── Location ──────────────────────────────────────────────
               Text(
                 p.location,
                 style: const TextStyle(
@@ -339,7 +329,6 @@ class ProjectsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // ── Budget summary ────────────────────────────────────────
               Text(
                 '${p.formattedSpent} of ${p.formattedBudget}',
                 style: const TextStyle(
@@ -350,7 +339,6 @@ class ProjectsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // ── Progress bar ──────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -386,7 +374,6 @@ class ProjectsScreen extends StatelessWidget {
               const Divider(color: Color(0xFFEEF0F5), height: 1),
               const SizedBox(height: 12),
 
-              // ── View Details ──────────────────────────────────────────
               Align(
                 alignment: Alignment.centerRight,
                 child: InkWell(

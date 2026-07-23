@@ -20,7 +20,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
   String _description = '';
-  
+
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -65,13 +65,12 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
           _users = users;
         });
       }
-    } catch (e) {
-      // Handle error
-    }
+    } catch (e) {}
   }
 
   String? _derivePhaseId(String? phaseName) {
-    if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null) return null;
+    if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null)
+      return null;
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
@@ -85,7 +84,10 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
   }
 
   String? _deriveActivityId(String? activityName) {
-    if (activityName == null || activityName.isEmpty || _selectedProjectId == null) return null;
+    if (activityName == null ||
+        activityName.isEmpty ||
+        _selectedProjectId == null)
+      return null;
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
@@ -134,7 +136,8 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
 
     try {
       final phaseId = _selectedPhaseId ?? _derivePhaseId(_selectedPhase);
-      final activityId = _selectedActivityId ?? _deriveActivityId(_selectedActivity);
+      final activityId =
+          _selectedActivityId ?? _deriveActivityId(_selectedActivity);
 
       await TaskService.createTask({
         'project': _selectedProjectId,
@@ -150,15 +153,15 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task assigned successfully'))
+          const SnackBar(content: Text('Task assigned successfully')),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -180,171 +183,236 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
               onLeftTap: () => Navigator.maybePop(context),
             ),
             Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Task Context',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textDark,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Task Context',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textDark,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          ExecutionContextCard(
-                            selectedProjectId: _selectedProjectId,
-                            selectedFloor: _selectedFloor,
-                            selectedPhase: _selectedPhase,
-                            selectedActivity: _selectedActivity,
-                            projectError: _projectError,
-                            floorError: _floorError,
-                            phaseError: _phaseError,
-                            activityError: _activityError,
-                            onProjectChanged: (v) {
-                              setState(() {
-                                _selectedProjectId = v;
-                                _selectedFloor = null;
-                                _selectedFloorId = null;
-                                _selectedPhase = null;
-                                _selectedPhaseId = null;
-                                _selectedActivity = null;
-                                _selectedActivityId = null;
-                                _projectError = null;
-                              });
-                              final provider = Provider.of<ProjectProvider>(context, listen: false);
-                              if (v != null) {
-                                final project = provider.projects.firstWhere((p) => p.id == v);
-                                provider.selectProject(project);
-                              }
-                            },
-                            onFloorChanged: (v) {
-                              setState(() {
-                                _selectedFloor = v;
-                                _selectedFloorId = v;
-                                _selectedPhase = null;
-                                _selectedPhaseId = null;
-                                _selectedActivity = null;
-                                _selectedActivityId = null;
-                                _floorError = null;
-                              });
-                              Provider.of<ProjectProvider>(context, listen: false).selectFloor(v);
-                            },
-                            onPhaseChanged: (v) {
-                              final phaseName = v?.toString();
-                              final phaseId = phaseName != null ? _derivePhaseId(phaseName) : null;
-                              setState(() {
-                                _selectedPhase = phaseName;
-                                _selectedPhaseId = phaseId;
-                                _selectedActivity = null;
-                                _selectedActivityId = null;
-                                _phaseError = null;
-                              });
-                              Provider.of<ProjectProvider>(context, listen: false).selectPhase(phaseName, phaseId);
-                            },
-                            onActivityChanged: (v) {
-                              final activityName = v?.toString();
-                              final activityId = activityName != null ? _deriveActivityId(activityName) : null;
-                              setState(() {
-                                _selectedActivity = activityName;
-                                _selectedActivityId = activityId;
-                                _activityError = null;
-                              });
-                              Provider.of<ProjectProvider>(context, listen: false).selectActivity(activityName, activityId);
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          
-                          const Text(
-                            'Task Details',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textDark,
+                            const SizedBox(height: 16),
+                            ExecutionContextCard(
+                              selectedProjectId: _selectedProjectId,
+                              selectedFloor: _selectedFloor,
+                              selectedPhase: _selectedPhase,
+                              selectedActivity: _selectedActivity,
+                              projectError: _projectError,
+                              floorError: _floorError,
+                              phaseError: _phaseError,
+                              activityError: _activityError,
+                              onProjectChanged: (v) {
+                                setState(() {
+                                  _selectedProjectId = v;
+                                  _selectedFloor = null;
+                                  _selectedFloorId = null;
+                                  _selectedPhase = null;
+                                  _selectedPhaseId = null;
+                                  _selectedActivity = null;
+                                  _selectedActivityId = null;
+                                  _projectError = null;
+                                });
+                                final provider = Provider.of<ProjectProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                                if (v != null) {
+                                  final project = provider.projects.firstWhere(
+                                    (p) => p.id == v,
+                                  );
+                                  provider.selectProject(project);
+                                }
+                              },
+                              onFloorChanged: (v) {
+                                setState(() {
+                                  _selectedFloor = v;
+                                  _selectedFloorId = v;
+                                  _selectedPhase = null;
+                                  _selectedPhaseId = null;
+                                  _selectedActivity = null;
+                                  _selectedActivityId = null;
+                                  _floorError = null;
+                                });
+                                Provider.of<ProjectProvider>(
+                                  context,
+                                  listen: false,
+                                ).selectFloor(v);
+                              },
+                              onPhaseChanged: (v) {
+                                final phaseName = v?.toString();
+                                final phaseId = phaseName != null
+                                    ? _derivePhaseId(phaseName)
+                                    : null;
+                                setState(() {
+                                  _selectedPhase = phaseName;
+                                  _selectedPhaseId = phaseId;
+                                  _selectedActivity = null;
+                                  _selectedActivityId = null;
+                                  _phaseError = null;
+                                });
+                                Provider.of<ProjectProvider>(
+                                  context,
+                                  listen: false,
+                                ).selectPhase(phaseName, phaseId);
+                              },
+                              onActivityChanged: (v) {
+                                final activityName = v?.toString();
+                                final activityId = activityName != null
+                                    ? _deriveActivityId(activityName)
+                                    : null;
+                                setState(() {
+                                  _selectedActivity = activityName;
+                                  _selectedActivityId = activityId;
+                                  _activityError = null;
+                                });
+                                Provider.of<ProjectProvider>(
+                                  context,
+                                  listen: false,
+                                ).selectActivity(activityName, activityId);
+                              },
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          AppCard(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Task Title', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textLight)),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(), 
-                                    hintText: 'Enter task title',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                  validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                                  onSaved: (val) => _title = val ?? '',
-                                ),
-                                const SizedBox(height: 16),
+                            const SizedBox(height: 24),
 
-                                const Text('Description (Optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textLight)),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(), 
-                                    hintText: 'Details about the task',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                  onSaved: (val) => _description = val ?? '',
-                                ),
-                                const SizedBox(height: 16),
-
-                                const Text('Assign To', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textLight)),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedUserId,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(), 
-                                    hintText: 'Select a user',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                  items: _users.map((u) => DropdownMenuItem(
-                                    value: u['_id'].toString(),
-                                    child: Text('${u['name']} (${u['role']})'),
-                                  )).toList(),
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _selectedUserId = val;
-                                    });
-                                  },
-                                ),
-                              ],
+                            const Text(
+                              'Task Details',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textDark,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 32),
+                            const SizedBox(height: 16),
+                            AppCard(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Task Title',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: AppColors.textLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: 'Enter task title',
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    validator: (val) =>
+                                        val == null || val.isEmpty
+                                        ? 'Required'
+                                        : null,
+                                    onSaved: (val) => _title = val ?? '',
+                                  ),
+                                  const SizedBox(height: 16),
 
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  const Text(
+                                    'Description (Optional)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: AppColors.textLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    maxLines: 3,
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: 'Details about the task',
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    onSaved: (val) => _description = val ?? '',
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  const Text(
+                                    'Assign To',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: AppColors.textLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedUserId,
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: 'Select a user',
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    items: _users
+                                        .map(
+                                          (u) => DropdownMenuItem(
+                                            value: u['_id'].toString(),
+                                            child: Text(
+                                              '${u['name']} (${u['role']})',
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedUserId = val;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Assign Task',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                              child: const Text('Assign Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
             ),
           ],
         ),

@@ -13,7 +13,6 @@ import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
 
-
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
   @override
@@ -29,11 +28,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final _scrollController = ScrollController();
   final _formKey = GlobalKey<FormState>();
 
-  // ── Project Setup ──
   final _nameCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
 
-  // ── Basic Information ──
   final _mapAddressCtrl = TextEditingController();
   final _clientCtrl = TextEditingController();
   final _contractorCtrl = TextEditingController();
@@ -41,7 +38,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final _contactCtrl = TextEditingController();
   late final String _projectCode;
 
-  // ── Building Type ──
   String? _mainBuildingType;
   String? _buildingSubType;
   String? _buildingTypeError;
@@ -74,7 +70,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Industrial': ['Factory', 'Warehouse', 'Other (Custom)'],
   };
 
-  // ── Dates, Budget & Status ──
   DateTime? _startDate;
   DateTime? _expectedEndDate;
 
@@ -92,7 +87,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Cancelled',
   ];
 
-  // ── Accordion States ──
   bool _cfgBasicInfoExpanded = true;
   bool _cfgBuildingTypeExpanded = true;
   bool _cfgLandExpanded = true;
@@ -104,7 +98,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   bool _cfgElectricalExpanded = false;
   bool _cfgTerraceExpanded = false;
 
-  // ── Land & Floors ──
   final _landAreaCtrl = TextEditingController();
   String _landUnit = 'Sq ft';
   final List<String> _selectedFloorChips = [];
@@ -118,7 +111,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Head Room',
   ];
 
-  // ── Rooms & Bathrooms ──
   int _room1BHKCount = 0,
       _room2BHKCount = 0,
       _room3BHKCount = 0,
@@ -128,7 +120,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       _bathCommonCount = 0,
       _bathAttachedCount = 0;
 
-  // ── Additional Config ──
   final Set<String> _additionalConfigs = {};
   final List<String> _addlConfigOptions = [
     'Balcony',
@@ -416,8 +407,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           ? <String>['Ground']
           : List<String>.from(_selectedFloorChips);
 
-      // Build the location string from city and optional map address.
-      // mapAddress is more specific; fall back to city if not provided.
       final locationStr = _mapAddressCtrl.text.trim().isNotEmpty
           ? _mapAddressCtrl.text.trim()
           : _cityCtrl.text.trim();
@@ -432,7 +421,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         totalBudget: budgetTotal,
         spentAmount: 0.0,
         startDate: _startDate!,
-        // FIX: location is now required — derive from map address or city
+
         location: locationStr,
         projectCode: _projectCode,
         mapAddress: nn(_mapAddressCtrl.text),
@@ -582,7 +571,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // PROJECT SETUP
                       _buildSectionCard(
                         title: 'Project Setup',
                         icon: Icons.business_center_rounded,
@@ -615,7 +603,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // BASIC INFORMATION
                       _buildAccordionCard(
                         title: 'Basic Information',
                         isExpanded: _cfgBasicInfoExpanded,
@@ -792,7 +779,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // BUILDING TYPE
                       _buildAccordionCard(
                         title: 'Building Type',
                         isExpanded: _cfgBuildingTypeExpanded,
@@ -904,7 +890,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // LAND & FLOORS
                       _buildAccordionCard(
                         title: 'Land & Floors',
                         isExpanded: _cfgLandExpanded,
@@ -932,12 +917,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                                               decimal: true,
                                             ),
                                         inputFormatters: [
-                                          LengthLimitingTextInputFormatter(
-                                            10,
-                                          ), // Caps at 10 digits
+                                          LengthLimitingTextInputFormatter(10),
                                           FilteringTextInputFormatter.allow(
                                             RegExp(r'^\d+\.?\d*'),
-                                          ), // Prevents letters/symbols
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -997,7 +980,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ROOMS & BATHROOMS
                       _buildAccordionCard(
                         title: 'Rooms & Bathrooms',
                         isExpanded: _cfgRoomsExpanded,
@@ -1103,7 +1085,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ADDITIONAL CONFIGURATION
                       _buildAccordionCard(
                         title: 'Additional Configuration',
                         isExpanded: _cfgAddlExpanded,
@@ -1183,7 +1164,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // DATES, BUDGET & STATUS
                       _buildSectionCard(
                         title: 'Dates, Budget & Status',
                         icon: Icons.calendar_today_rounded,
@@ -1419,7 +1399,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       _buildCsvImportExportCard(),
                       const SizedBox(height: 16),
 
-                      // CONSTRUCTION PHASES
                       _buildConstructionPhasesCard(),
                     ],
                   ),
@@ -2399,7 +2378,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   void _showAddCustomActivityDialog(ConstructionPhase phase) {
     final ctrl = TextEditingController();
-    final focusNode = FocusNode(); // <-- 1. Create a dedicated focus anchor
+    final focusNode = FocusNode();
 
     showDialog(
       context: context,
@@ -2416,7 +2395,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ),
         content: TextField(
           controller: ctrl,
-          focusNode: focusNode, // <-- 2. Attach the anchor to the input
+          focusNode: focusNode,
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'Enter name',
@@ -2476,7 +2455,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ],
       ),
     ).then((_) {
-      // <-- 3. Clean up both the controller and the anchor to prevent memory leaks
       ctrl.dispose();
       focusNode.dispose();
     });
@@ -2564,8 +2542,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         'Budget_Labour_Amount',
         'Equipment_Rate',
         'Budget_Equipment_Amount',
-        'Total_Amount'
-      ]
+        'Total_Amount',
+      ],
     ];
 
     final defaultPhases = buildDefaultPhases();
@@ -2576,15 +2554,15 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           phase.name,
           slNo++,
           act.name,
-          '', // Total_Qty
-          '', // Unit
-          '', // Material_Rate
-          '', // Budget_Material_Amount
-          '', // Labour_Rate
-          '', // Budget_Labour_Amount
-          '', // Equipment_Rate
-          '', // Budget_Equipment_Amount
-          '', // Total_Amount
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
         ]);
       }
     }
@@ -2638,37 +2616,43 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
 
       final csvString = utf8.decode(fileBytes);
-      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(csvString);
+      final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
+        csvString,
+      );
 
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
 
-      final headers = parsedCsv.first.map((h) => h.toString().trim().toLowerCase()).toList();
+      final headers = parsedCsv.first
+          .map((h) => h.toString().trim().toLowerCase())
+          .toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
-      
+
       int qtyIdx = headers.indexOf('total_qty');
       if (qtyIdx == -1) qtyIdx = headers.indexOf('qty');
-      
+
       final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
-      
+
       int matAmtIdx = headers.indexOf('budget_material_amount');
       if (matAmtIdx == -1) matAmtIdx = headers.indexOf('material_amount');
-      
+
       final labRateIdx = headers.indexOf('labour_rate');
-      
+
       int labAmtIdx = headers.indexOf('budget_labour_amount');
       if (labAmtIdx == -1) labAmtIdx = headers.indexOf('labour_amount');
-      
+
       final eqRateIdx = headers.indexOf('equipment_rate');
-      
+
       int eqAmtIdx = headers.indexOf('budget_equipment_amount');
       if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
 
       if (phaseIdx == -1 || particularIdx == -1) {
-        throw Exception("CSV is missing required 'Phase' or 'Particular' column headers");
+        throw Exception(
+          "CSV is missing required 'Phase' or 'Particular' column headers",
+        );
       }
 
       double? parseVal(dynamic v) {
@@ -2694,24 +2678,39 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
 
-        final double? qty = qtyIdx != -1 && qtyIdx < row.length ? parseVal(row[qtyIdx]) : null;
-        final String unit = unitIdx != -1 && unitIdx < row.length ? row[unitIdx].toString().trim() : '';
+        final double? qty = qtyIdx != -1 && qtyIdx < row.length
+            ? parseVal(row[qtyIdx])
+            : null;
+        final String unit = unitIdx != -1 && unitIdx < row.length
+            ? row[unitIdx].toString().trim()
+            : '';
 
-        final double? matRate = matRateIdx != -1 && matRateIdx < row.length ? parseVal(row[matRateIdx]) : null;
-        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length ? parseVal(row[matAmtIdx]) : null;
+        final double? matRate = matRateIdx != -1 && matRateIdx < row.length
+            ? parseVal(row[matRateIdx])
+            : null;
+        double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length
+            ? parseVal(row[matAmtIdx])
+            : null;
 
-        final double? labRate = labRateIdx != -1 && labRateIdx < row.length ? parseVal(row[labRateIdx]) : null;
-        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length ? parseVal(row[labAmtIdx]) : null;
+        final double? labRate = labRateIdx != -1 && labRateIdx < row.length
+            ? parseVal(row[labRateIdx])
+            : null;
+        double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length
+            ? parseVal(row[labAmtIdx])
+            : null;
 
-        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length ? parseVal(row[eqRateIdx]) : null;
-        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length ? parseVal(row[eqAmtIdx]) : null;
+        final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
+            ? parseVal(row[eqRateIdx])
+            : null;
+        double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length
+            ? parseVal(row[eqAmtIdx])
+            : null;
 
-        int phaseIndex = _phases.indexWhere((p) => p.name.trim().toLowerCase() == phaseName.toLowerCase());
+        int phaseIndex = _phases.indexWhere(
+          (p) => p.name.trim().toLowerCase() == phaseName.toLowerCase(),
+        );
         if (phaseIndex == -1) {
-          final newPhase = ConstructionPhase(
-            name: phaseName,
-            isCustom: true,
-          );
+          final newPhase = ConstructionPhase(name: phaseName, isCustom: true);
           newPhase.isSelected = true;
           newPhase.isExpanded = true;
           _phases.add(newPhase);
@@ -2722,7 +2721,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         phase.isSelected = true;
         phase.isExpanded = true;
 
-        final actIndex = phase.allActivities.indexWhere((a) => a.name.trim().toLowerCase() == activityName.toLowerCase());
+        final actIndex = phase.allActivities.indexWhere(
+          (a) => a.name.trim().toLowerCase() == activityName.toLowerCase(),
+        );
 
         if (actIndex != -1) {
           final act = phase.allActivities[actIndex];
@@ -2744,7 +2745,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           equipmentSum += eqAmt ?? 0.0;
         } else {
           final newAct = ConstructionActivity(
-            key: '${phaseName.trim().toLowerCase()}::${activityName.trim().toLowerCase()}',
+            key:
+                '${phaseName.trim().toLowerCase()}::${activityName.trim().toLowerCase()}',
             name: activityName,
             isCustom: true,
             budgetMaterial: matAmt,
@@ -2768,16 +2770,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         }
       }
 
-      _budgetMaterialCtrl.text = materialSum > 0 ? materialSum.toStringAsFixed(0) : '';
-      _budgetLabourCtrl.text = labourSum > 0 ? labourSum.toStringAsFixed(0) : '';
-      _budgetEquipmentCtrl.text = equipmentSum > 0 ? equipmentSum.toStringAsFixed(0) : '';
+      _budgetMaterialCtrl.text = materialSum > 0
+          ? materialSum.toStringAsFixed(0)
+          : '';
+      _budgetLabourCtrl.text = labourSum > 0
+          ? labourSum.toStringAsFixed(0)
+          : '';
+      _budgetEquipmentCtrl.text = equipmentSum > 0
+          ? equipmentSum.toStringAsFixed(0)
+          : '';
 
       setState(() {});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Successfully imported budget for $updatedCount activities!'),
+            content: Text(
+              'Successfully imported budget for $updatedCount activities!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -2865,7 +2875,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   label: const Text('Template'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFFEEF0F5), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFEEF0F5),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

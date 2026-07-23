@@ -37,8 +37,13 @@ class TaskService {
     throw Exception('Failed to create task');
   }
 
-  static Future<TaskModel> updateTaskStatus(String taskId, String status) async {
-    final response = await ApiService.put('/tasks/$taskId/status', {'status': status});
+  static Future<TaskModel> updateTaskStatus(
+    String taskId,
+    String status,
+  ) async {
+    final response = await ApiService.put('/tasks/$taskId/status', {
+      'status': status,
+    });
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return TaskModel.fromJson(data['task']);
@@ -46,7 +51,10 @@ class TaskService {
     throw Exception('Failed to update task status');
   }
 
-  static Future<TaskModel> updateTask(String taskId, Map<String, dynamic> taskData) async {
+  static Future<TaskModel> updateTask(
+    String taskId,
+    Map<String, dynamic> taskData,
+  ) async {
     final response = await ApiService.put('/tasks/$taskId', taskData);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

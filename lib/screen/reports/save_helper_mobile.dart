@@ -12,9 +12,6 @@ Future<void> saveAndShareCsv({
   await file.writeAsString(csvContent);
 
   await SharePlus.instance.share(
-    ShareParams(
-      files: [XFile(file.path)],
-      text: shareText,
-    ),
+    ShareParams(files: [XFile(file.path)], text: shareText),
   );
 }
