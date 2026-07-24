@@ -65,6 +65,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _isAddAndPay = false;
   bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
+  List<Map<String, dynamic>> _paymentHistory = [];
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
@@ -654,9 +655,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         freshPStatus != '') {
       _isAddAndPay = true;
       _paymentMethod =
+      _paymentMethod =
           latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
       _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
+    
+    if (latest['paymentHistory'] != null && latest['paymentHistory'] is List) {
+      _paymentHistory = List<Map<String, dynamic>>.from(
+        (latest['paymentHistory'] as List).map((x) => Map<String, dynamic>.from(x))
+      );
+    }
+    
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
     final contextToRestore = {
@@ -835,6 +844,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               : freshGst.toString())
         : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
+    
+    if (latest['paymentHistory'] != null && latest['paymentHistory'] is List) {
+      _paymentHistory = List<Map<String, dynamic>>.from(
+        (latest['paymentHistory'] as List).map((x) => Map<String, dynamic>.from(x))
+      );
+    }
+    
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
 
     final contextToRestore = {
@@ -1233,8 +1249,29 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         "sourceTransactionId": _sourceTransactionId,
     };
 
-    if (_isAddAndPay) {
-      final paid = parseAmount(_paymentAmountCtrl.text) ?? 0.0;
+    if (_isEditing) {
+      if (_paymentHistory.isNotEmpty) {
+        payload["paymentHistory"] = _paymentHistory.map((p) {
+          final rawDate = p['date'] ?? p['paymentDate'];
+          String finalDate = DateTime.now().toUtc().toIso8601String();
+          if (rawDate is DateTime) {
+            finalDate = rawDate.toUtc().toIso8601String();
+          } else if (rawDate != null) {
+            finalDate = rawDate.toString();
+          }
+          return {
+            "date": finalDate,
+            "method": p['method'] ?? p['paymentMode'] ?? 'Cash',
+            "amount": _parseDouble(p['amount']),
+            "note": p['note'] ?? '',
+            "receipt": p['receipt'] ?? p['receiptDataUri'] ?? '',
+          };
+        }).toList();
+      } else {
+        payload["paymentHistory"] = [];
+      }
+    } else if (_isAddAndPay) {
+      final paid = _parseDouble(_paymentAmountCtrl.text);
       final totalPaid = _existingPaidAmount + paid;
       final outstanding = (_finalTotal() - _existingPaidAmount).clamp(
         0.0,
@@ -1634,6 +1671,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _isAddAndPay = false;
       _recordPaymentNow = false;
       _paymentResult = null;
+      _paymentHistory.clear();
       _paymentAmountCtrl.clear();
     });
   }
@@ -1681,9 +1719,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Pay Now',
-                      style: TextStyle(
+                    Text(
+                      _isEditing ? 'Payment History' : 'Pay Now',
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textDark,
@@ -1691,7 +1729,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Optionally log payment while adding',
+                      _isEditing ? 'Manage payments for this entry' : 'Optionally log payment while adding',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textLight,
@@ -1700,7 +1738,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   ],
                 ),
               ),
-              Switch(
+              if (!_isEditing) Switch(
                 value: _recordPaymentNow,
                 activeThumbColor: AppColors.primary,
                 onChanged: (v) async {
@@ -1736,13 +1774,186 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ],
           ),
-          if (_recordPaymentNow && _paymentResult != null) ...[
+          if (!_isEditing && _recordPaymentNow && _paymentResult != null) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFF0EEF8)),
             const SizedBox(height: 12),
             _buildPaymentSummary(),
           ],
+          if (_isEditing) ...[
+            const SizedBox(height: 16),
+            if (_paymentHistory.isNotEmpty) ...[
+              const Divider(color: Color(0xFFF0EEF8)),
+              const SizedBox(height: 12),
+              ..._paymentHistory.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final payment = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: _buildHistoryItem(payment, idx),
+                );
+              }),
+            ],
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () async {
+                  final result = await showPaymentSheet(
+                    context,
+                    entryTitle: _nameCtrl.text.trim().isEmpty
+                        ? 'Equipment'
+                        : _nameCtrl.text.trim(),
+                    entryRef: '',
+                    totalAmount: _finalTotal(),
+                    alreadyPaid: _calculateTotalPaidFromHistory(),
+                    vendorName: _operatorCtrl.text.trim(),
+                    category: _typeCtrl.text.trim().isEmpty
+                        ? 'Equipment'
+                        : _typeCtrl.text.trim(),
+                  );
+                  if (result != null && mounted) {
+                    setState(() {
+                      _paymentHistory.add(result);
+                    });
+                  }
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Payment'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+  
+  double _calculateTotalPaidFromHistory() {
+    double total = 0.0;
+    for (var p in _paymentHistory) {
+      total += _parseDouble(p['amount']);
+    }
+    return total;
+  }
+  
+  Widget _buildHistoryItem(Map<String, dynamic> payment, int index) {
+    final amount = _parseDouble(payment['amount']);
+    final method = (payment['method'] ?? payment['paymentMode'] ?? 'Cash').toString();
+    DateTime payDate = DateTime.now();
+    if (payment['date'] != null) {
+      try {
+        payDate = DateTime.parse(payment['date'].toString());
+      } catch (_) {}
+    } else if (payment['paymentDate'] != null) {
+      try {
+        payDate = payment['paymentDate'] as DateTime;
+      } catch (_) {}
+    }
+    final note = (payment['note'] ?? '').toString();
+    
+    return GestureDetector(
+      onTap: () async {
+        final result = await showPaymentSheet(
+          context,
+          entryTitle: _nameCtrl.text.trim().isEmpty
+              ? 'Equipment'
+              : _nameCtrl.text.trim(),
+          entryRef: '',
+          totalAmount: _finalTotal(),
+          alreadyPaid: _calculateTotalPaidFromHistory() - amount,
+          vendorName: _operatorCtrl.text.trim(),
+          category: _typeCtrl.text.trim().isEmpty
+              ? 'Equipment'
+              : _typeCtrl.text.trim(),
+          initialAmount: amount,
+          initialMethod: method,
+          initialNote: note,
+          initialDate: payDate,
+        );
+        if (result != null && mounted) {
+          setState(() {
+            _paymentHistory[index] = result;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Payment',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    setState(() {
+                      _paymentHistory.removeAt(index);
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _summaryChip(
+                    Icons.currency_rupee,
+                    '₹${amount.toStringAsFixed(0)}',
+                    'Amount',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _summaryChip(Icons.payment_outlined, method, 'Method'),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _summaryChip(
+                    Icons.calendar_today_outlined,
+                    '${payDate.day}/${payDate.month}/${payDate.year}',
+                    'Date',
+                  ),
+                ),
+              ],
+            ),
+            if (note.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Note: $note',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF4B5563),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -2646,7 +2857,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                     ),
 
-                    if (RoleManager.canApprovePayments && !_isEditing)
+                    if (RoleManager.canApprovePayments)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
 

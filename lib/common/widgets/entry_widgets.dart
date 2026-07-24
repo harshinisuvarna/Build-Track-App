@@ -1653,19 +1653,23 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   double alreadyPaid = 0,
   String vendorName = '',
   String category = '',
+  double? initialAmount,
+  String? initialMethod,
+  String? initialNote,
+  DateTime? initialDate,
 }) {
-  final amountCtrl = TextEditingController();
-  final noteCtrl = TextEditingController();
+  final amountCtrl = TextEditingController(text: initialAmount != null ? initialAmount.toString() : '');
+  final noteCtrl = TextEditingController(text: initialNote ?? '');
   final outstanding = (totalAmount - alreadyPaid).clamp(0.0, double.infinity);
 
   PaymentStatus selectedStatus = outstanding > 0
       ? (alreadyPaid > 0 ? PaymentStatus.partial : PaymentStatus.pending)
       : PaymentStatus.paid;
-  String selectedMethod = 'UPI';
+  String selectedMethod = initialMethod ?? 'UPI';
   String? amountError;
   String? uploadedReceipt;
   String? uploadedReceiptDataUri;
-  DateTime selectedPaymentDate = DateTime.now();
+  DateTime selectedPaymentDate = initialDate ?? DateTime.now();
 
   const pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
