@@ -65,12 +65,15 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
           _users = users;
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
   }
 
   String? _derivePhaseId(String? phaseName) {
-    if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null)
+    if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null) {
       return null;
+    }
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
@@ -86,8 +89,9 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
-        _selectedProjectId == null)
+        _selectedProjectId == null) {
       return null;
+    }
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,

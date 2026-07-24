@@ -895,15 +895,19 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     }
 
     final relevantTasks = _dailyTasks.where((task) {
-      if (_selectedProjectId != null && task.project != _selectedProjectId)
+      if (_selectedProjectId != null && task.project != _selectedProjectId) {
         return false;
-      if (_selectedFloor != null && task.floorName != _selectedFloor)
+      }
+      if (_selectedFloor != null && task.floorName != _selectedFloor) {
         return false;
-      if (_selectedPhaseName != null && task.phaseName != _selectedPhaseName)
+      }
+      if (_selectedPhaseName != null && task.phaseName != _selectedPhaseName) {
         return false;
+      }
       if (_selectedActivityName != null &&
-          task.activityName != _selectedActivityName)
+          task.activityName != _selectedActivityName) {
         return false;
+      }
       return true;
     }).toList();
 

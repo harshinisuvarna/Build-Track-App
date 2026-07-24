@@ -3590,8 +3590,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length
             ? parseVal(row[matAmtIdx])
             : null;
-        if (matAmt == null && matRate != null && qty != null)
+        if (matAmt == null && matRate != null && qty != null) {
           matAmt = qty * matRate;
+        }
 
         final double? labRate = labRateIdx != -1 && labRateIdx < row.length
             ? parseVal(row[labRateIdx])
@@ -3599,8 +3600,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length
             ? parseVal(row[labAmtIdx])
             : null;
-        if (labAmt == null && labRate != null && qty != null)
+        if (labAmt == null && labRate != null && qty != null) {
           labAmt = qty * labRate;
+        }
 
         final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
             ? parseVal(row[eqRateIdx])
@@ -3608,8 +3610,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length
             ? parseVal(row[eqAmtIdx])
             : null;
-        if (eqAmt == null && eqRate != null && qty != null)
+        if (eqAmt == null && eqRate != null && qty != null) {
           eqAmt = qty * eqRate;
+        }
 
         int phaseIndex = updatedPhases.indexWhere(
           (p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase(),

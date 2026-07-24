@@ -1,3 +1,5 @@
+rootProject.name = "buildtrack_mobile"
+
 pluginManagement {
     val flutterSdkPath =
         run {

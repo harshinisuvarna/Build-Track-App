@@ -1822,8 +1822,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                     },
                                     loadingBuilder:
                                         (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
+                                          if (loadingProgress == null) {
                                             return child;
+                                          }
                                           return Container(
                                             height: 150,
                                             color: Colors.grey[100],

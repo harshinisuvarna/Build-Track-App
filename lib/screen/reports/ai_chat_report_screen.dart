@@ -961,12 +961,14 @@ class _ResultsStateState extends State<_ResultsState> {
       if (colName == 'Amount (INR)') return 104;
       if (colName == 'Description' ||
           colName == 'Project' ||
-          colName == 'Material')
+          colName == 'Material') {
         return 160;
+      }
       if (colName == 'Purchased Date' ||
           colName == 'Payment Date' ||
-          colName == 'Qty')
+          colName == 'Qty') {
         return 96;
+      }
       return 120;
     }
 

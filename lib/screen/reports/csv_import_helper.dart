@@ -127,10 +127,11 @@ class CsvImportHelper {
 
     // Validate required columns exist
     if (dateIdx == -1) throw Exception('CSV missing "Purchased Date" column');
-    if (nameIdx == -1)
+    if (nameIdx == -1) {
       throw Exception(
         'CSV missing a name column (Description, Material, Worker Type, or Equipment)',
       );
+    }
 
     // Resolve default project
     ProjectModel? defaultProject;
@@ -165,8 +166,9 @@ class CsvImportHelper {
     for (int i = 1; i < parsedCsv.length; i++) {
       final row = parsedCsv[i];
       if (row.isEmpty ||
-          row.every((e) => e == null || e.toString().trim().isEmpty))
+          row.every((e) => e == null || e.toString().trim().isEmpty)) {
         continue;
+      }
       final rowNum = i + 1;
 
       try {
@@ -190,8 +192,9 @@ class CsvImportHelper {
           orElse: () => null,
         );
         matchedProject ??= defaultProject;
-        if (matchedProject == null)
+        if (matchedProject == null) {
           throw Exception('Row $rowNum: Project "$csvProjName" not found');
+        }
         final projectId = matchedProject.id;
 
         // ── Floor ──
@@ -239,8 +242,9 @@ class CsvImportHelper {
           for (final phase in matchedProject.selectedPhases!) {
             if (phaseName != null &&
                 phase.phaseName.trim().toLowerCase() !=
-                    phaseName.trim().toLowerCase())
+                    phaseName.trim().toLowerCase()) {
               continue;
+            }
             final actMatch = phase.activities
                 .cast<ProjectActivity?>()
                 .firstWhere(
@@ -266,8 +270,9 @@ class CsvImportHelper {
         final name = nameIdx != -1 && nameIdx < row.length
             ? parseString(row[nameIdx])
             : '';
-        if (name.isEmpty)
+        if (name.isEmpty) {
           throw Exception('Row $rowNum: Name/Description is empty');
+        }
 
         // ── Type ──
         final typeStr = typeIdx != -1 && typeIdx < row.length
@@ -439,10 +444,11 @@ class CsvImportHelper {
         }
 
         final success = await ApiService.addMaterial(payload);
-        if (!success)
+        if (!success) {
           throw Exception(
             'Row $rowNum: Failed to create transaction on the server',
           );
+        }
         successCount++;
       } catch (e) {
         failedCount++;

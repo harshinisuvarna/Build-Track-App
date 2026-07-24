@@ -817,8 +817,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             }
           } else if (detectedType == 'material') {
             final name = parseString(row[materialItemIdx]);
-            if (name.isEmpty)
+            if (name.isEmpty) {
               throw Exception("Row $rowNum: Material / Item name is empty");
+            }
 
             final unit = matUnitIdx != -1 && matUnitIdx < row.length
                 ? parseString(row[matUnitIdx]).toLowerCase()
@@ -904,8 +905,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             materialCount++;
           } else if (detectedType == 'labour') {
             final name = parseString(row[labourTypeIdx]);
-            if (name.isEmpty)
+            if (name.isEmpty) {
               throw Exception("Row $rowNum: Labour Type (name) is empty");
+            }
 
             final unit = labUnitIdx != -1 && labUnitIdx < row.length
                 ? parseString(row[labUnitIdx]).toLowerCase()
@@ -963,8 +965,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             labourCount++;
           } else if (detectedType == 'equipment') {
             final name = parseString(row[eqNameIdx]);
-            if (name.isEmpty)
+            if (name.isEmpty) {
               throw Exception("Row $rowNum: Equipment Name is empty");
+            }
 
             final unit = eqUnitIdx != -1 && eqUnitIdx < row.length
                 ? parseString(row[eqUnitIdx]).toLowerCase()
