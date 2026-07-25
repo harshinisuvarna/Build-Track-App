@@ -292,7 +292,7 @@ class ProjectsScreen extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
@@ -382,9 +382,9 @@ class ProjectsScreen extends StatelessWidget {
                   minHeight: 7,
                 ),
               ),
-              const SizedBox(height: 14),
-              const Divider(color: Color(0xFFEEF0F5), height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
+              // const Divider(color: Color(0xFFEEF0F5), height: 1),
+              // const SizedBox(height: 12),
 
               // ── View Details ──────────────────────────────────────────
               Align(
@@ -398,7 +398,7 @@ class ProjectsScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 4,
-                      vertical: 8,
+                      vertical: 2,
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
