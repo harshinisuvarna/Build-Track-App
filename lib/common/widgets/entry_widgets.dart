@@ -1439,25 +1439,26 @@ class PaymentStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 9),
+      height: 35,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: _bg,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        // mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, color: _fg, size: 11),
+          Icon(_icon, color: _fg, size: 16),
           const SizedBox(width: 4),
           Text(
             _label,
             style: TextStyle(
               color: _fg,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              height: 1,
+              // letterSpacing: 0.5,
+              // height: 1,
             ),
           ),
         ],

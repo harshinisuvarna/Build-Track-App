@@ -1367,11 +1367,11 @@ class _PurchaseCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Column(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         PaymentStatusChip(status: record.payStatus),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 8),
                         PopupMenuButton<String>(
                           padding: EdgeInsets.zero,
                           iconSize: 18,
@@ -2110,7 +2110,7 @@ class _KpiCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -2122,28 +2122,33 @@ class _KpiCard extends StatelessWidget {
             ),
             child: Icon(data.icon, color: data.color, size: 15),
           ),
-          const SizedBox(height: 10),
-          Text(
-            data.value,
-            style: TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w900,
-              color: data.isAlert ? data.color : const Color(0xFF1A1A2E),
-              letterSpacing: -0.3,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            data.label,
-            style: const TextStyle(
-              fontSize: 9.5,
-              color: AppColors.textLight,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                data.value,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w900,
+                  color: data.isAlert ? data.color : const Color(0xFF1A1A2E),
+                  letterSpacing: -0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                data.label,
+                style: const TextStyle(
+                  fontSize: 9.5,
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ],
       ),
