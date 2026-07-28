@@ -25,6 +25,9 @@ class AddMaterialScreen extends StatefulWidget {
 }
 
 class _AddMaterialScreenState extends State<AddMaterialScreen> {
+  bool _requestEsign = false;
+  final TextEditingController _clientEmailCtrl = TextEditingController();
+
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -1244,6 +1247,15 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
+      if (apiMode == 'Cash' && _requestEsign) {
+        payload['requestEsign'] = true;
+        payload['clientEmail'] = _clientEmailCtrl.text.trim();
+      }
+      if (apiMode == 'Cash' && _requestEsign) {
+        payload['requestEsign'] = true;
+        payload['clientEmail'] = _clientEmailCtrl.text.trim();
+      }
+
       payload["paymentStatus"] = totalPaid >= _finalTotal()
           ? "Paid"
           : totalPaid > 0
@@ -1272,6 +1284,11 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
       if (apiMode == 'Bank Transfer' || apiMode == 'Card') apiMode = 'Bank';
       payload["paidAmount"] = totalPaid;
       payload["paymentMode"] = apiMode;
+      final bool esignReq = (_paymentResult!['requestEsign'] as bool?) ?? false;
+      if (apiMode == 'Cash' && esignReq) {
+        payload['requestEsign'] = true;
+        payload['clientEmail'] = (_paymentResult!['clientEmail'] as String?) ?? '';
+      }
       payload["paymentStatus"] = totalPaid >= _finalTotal()
           ? "Paid"
           : totalPaid > 0
@@ -1777,6 +1794,30 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ),
             ],
           ),
+          
+          if (!_isEditing) ...[
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              title: const Text('Request E-Signature for Cash Receipt'),
+              value: _requestEsign,
+              onChanged: (val) => setState(() => _requestEsign = val ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (_requestEsign)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                child: TextFormField(
+                  controller: _clientEmailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Client Email Address',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+          ],
           if (!_isEditing && _recordPaymentNow && _paymentResult != null) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFF0EEF8)),

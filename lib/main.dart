@@ -35,6 +35,7 @@ import 'package:buildtrack_mobile/screen/inventory/transaction_log.dart';
 import 'package:buildtrack_mobile/screen/manual_voice_entry/updated_progress.dart';
 import 'dart:async';
 import 'package:buildtrack_mobile/services/api_service.dart';
+import 'package:buildtrack_mobile/screen/esign/signature_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
@@ -169,6 +170,15 @@ class MyApp extends StatelessWidget {
 
       onGenerateRoute: (settings) {
         final name = settings.name ?? '';
+        
+        if (name.startsWith('/sign-receipt')) {
+          final uri = Uri.parse(name);
+          final token = uri.queryParameters['token'] ?? '';
+          return MaterialPageRoute(
+            builder: (context) => SignaturePage(token: token),
+          );
+        }
+
         if (!RoleManager.canNavigate(name)) {
           return MaterialPageRoute(
             builder: (context) {
