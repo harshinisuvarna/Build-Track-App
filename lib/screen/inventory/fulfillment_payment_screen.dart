@@ -29,6 +29,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   late double _alreadyPaid;
   late double _outstanding;
   late String? _existingReceipt;
+  late String? _phase;
+  late String? _activity;
 
   late PaymentStatus _selectedStatus;
   String _selectedMethod = 'UPI';
@@ -39,6 +41,79 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   String? _newReceiptDataUri;
   DateTime _selectedPaymentDate = DateTime.now();
   bool _isSaving = false;
+  bool _requestEsign = false;
+  final _clientEmailCtrl = TextEditingController();
+
+  bool _isEsignPolling = false;
+  bool _isEsignCompleted = false;
+  String _esignStatusText = '';
+
+  Future<void> _startEsignFlow() async {
+    
+    final amt = _parseAmount(_amountCtrl.text);
+    if (amt == null || amt <= 0) {
+      setState(() => _amountError = 'Please enter a valid amount before requesting an E-Signature.');
+      return;
+    }
+    
+    if (_clientEmailCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter client email')));
+      return;
+    }
+    setState(() {
+      _isEsignPolling = true;
+      _esignStatusText = 'Sending request...';
+    });
+    
+    final meta = {
+      'projectName': _projectName,
+      'itemName': _itemName,
+      if (_phase != null && _phase!.isNotEmpty) 'phase': _phase,
+      if (_activity != null && _activity!.isNotEmpty) 'activity': _activity,
+      'type': _itemType,
+      'totalAmount': _totalAmount,
+      'alreadyPaid': _alreadyPaid,
+      'amount': _parseAmount(_amountCtrl.text) ?? 0.0,
+      'paymentMethod': _selectedMethod,
+      'notes': _noteCtrl.text.trim(),
+      'date': _selectedPaymentDate.toIso8601String(),
+    };
+
+    final res = await ApiService.requestEsignature(_clientEmailCtrl.text.trim(), meta);
+    if (res == null || res['requestId'] == null) {
+      setState(() {
+        _isEsignPolling = false;
+        _esignStatusText = 'Failed to send request';
+      });
+      return;
+    }
+    
+    setState(() {
+      _esignStatusText = 'Waiting for client to sign...';
+    });
+    
+    final reqId = res['requestId'];
+    
+    while (_isEsignPolling) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (!mounted || !_isEsignPolling) break;
+      
+      final statusRes = await ApiService.checkEsignatureStatus(reqId);
+      if (statusRes != null && statusRes['status'] == 'signed') {
+        if (mounted) {
+          setState(() {
+            _isEsignPolling = false;
+            _isEsignCompleted = true;
+            _newReceiptDataUri = statusRes['signatureData'];
+            _uploadedReceipt = 'Signed_Receipt.jpg';
+            _esignStatusText = 'Signature captured!';
+          });
+        }
+        break;
+      }
+    }
+  }
+
 
   static const _pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
@@ -107,6 +182,10 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
 
     _noteCtrl.text = (args['notes'] ?? args['remarks'] ?? '').toString();
     _uploadedReceipt = _existingReceipt;
+
+    final txDetails = args['transactionDetails'] as Map?;
+    _phase = (txDetails?['phase'] ?? txDetails?['phaseName'])?.toString();
+    _activity = (txDetails?['activity'] ?? txDetails?['activityName'])?.toString();
   }
 
   @override
@@ -180,12 +259,16 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         'paymentMode': apiPaymentMode,
         'notes': _noteCtrl.text.trim(),
         'paymentDate': _selectedPaymentDate.toIso8601String(),
+        if (apiPaymentMode == 'Cash' && _requestEsign) 'requestEsign': true,
+        if (apiPaymentMode == 'Cash' && _requestEsign) 'clientEmail': _clientEmailCtrl.text.trim(),
         if (amount > 0)
           'paymentEntry': {
             'amount': amount,
             'method': apiPaymentMode,
             'date': _selectedPaymentDate.toIso8601String(),
             'notes': _noteCtrl.text.trim(),
+            if (apiPaymentMode == 'Cash' && _requestEsign) 'requestEsign': true,
+            if (apiPaymentMode == 'Cash' && _requestEsign) 'clientEmail': _clientEmailCtrl.text.trim(),
           },
         if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
       };
@@ -483,42 +566,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                     const SizedBox(height: 20),
 
                     const Text(
-                      'PAYMENT METHOD',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: _kGray,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ..._pMethods.take(4).map((m) {
-                          final lbl = m['label'] as String;
-                          final ico = m['icon'] as IconData;
-                          final sel = _selectedMethod == lbl;
-                          return _buildMethodChip(lbl, ico, sel, chipW, () {
-                            setState(() => _selectedMethod = lbl);
-                          });
-                        }),
-                        Builder(
-                          builder: (_) {
-                            const lbl = 'Cheque';
-                            const ico = Icons.description_outlined;
-                            final sel = _selectedMethod == lbl;
-                            return _buildMethodChip(lbl, ico, sel, fullW, () {
-                              setState(() => _selectedMethod = lbl);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    const Text(
                       'ACTUAL AMOUNT PAID (₹)',
                       style: TextStyle(
                         fontSize: 11,
@@ -603,6 +650,122 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+
+                    const Text(
+                      'PAYMENT METHOD',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: _kGray,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ..._pMethods.take(4).map((m) {
+                          final lbl = m['label'] as String;
+                          final ico = m['icon'] as IconData;
+                          final sel = _selectedMethod == lbl;
+                          return _buildMethodChip(lbl, ico, sel, chipW, () {
+                            setState(() => _selectedMethod = lbl);
+                          });
+                        }),
+                        Builder(
+                          builder: (_) {
+                            const lbl = 'Cheque';
+                            const ico = Icons.description_outlined;
+                            final sel = _selectedMethod == lbl;
+                            return _buildMethodChip(lbl, ico, sel, fullW, () {
+                              setState(() => _selectedMethod = lbl);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    if (_selectedMethod == 'Cash') ...[
+                      const SizedBox(height: 16),
+                      CheckboxListTile(
+                        title: const Text(
+                          'Request E-Signature for Cash Receipt',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _kDark),
+                        ),
+                        value: _requestEsign,
+                        onChanged: (val) => setState(() => _requestEsign = val ?? false),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: const Color(0xFF173EEA),
+                      ),
+                      if (_requestEsign)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                          child: TextField(
+                            controller: _clientEmailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'Client Email Address',
+                              labelStyle: const TextStyle(color: _kGray, fontSize: 13),
+                              prefixIcon: const Icon(Icons.email_outlined, color: _kGray, size: 20),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFE2E4F6)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFF173EEA), width: 1.5),
+                              ),
+                            ),
+                            style: const TextStyle(fontSize: 14, color: _kDark, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+
+                      if (_requestEsign && !_isEsignCompleted) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isEsignPolling ? () {
+                              setState(() => _isEsignPolling = false);
+                            } : _startEsignFlow,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isEsignPolling ? Colors.red : const Color(0xFF173EEA),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(_isEsignPolling ? 'Cancel Polling' : 'Send for E-Signature', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        if (_esignStatusText.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(_esignStatusText, style: TextStyle(color: _isEsignPolling ? Colors.orange : (_isEsignCompleted ? Colors.green : Colors.red), fontWeight: FontWeight.bold)),
+                          )
+                      ],
+                      if (_isEsignCompleted) ...[
+                         const SizedBox(height: 8),
+                         Container(
+                           padding: const EdgeInsets.all(12),
+                           decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green)),
+                           child: const Row(
+                             children: [
+                               Icon(Icons.check_circle, color: Colors.green),
+                               SizedBox(width: 8),
+                               Text('Signature successfully captured!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                             ]
+                           )
+                         )
+                      ],
+                      
+                    ],
+                    const SizedBox(height: 20),
+
+
                     Padding(
                       padding: const EdgeInsets.only(top: 5, left: 2),
                       child: Text(

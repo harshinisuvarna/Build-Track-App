@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 
 const Map<String, List<String>> kInventoryUnits = {
   'Weight': ['kg', 'ton', 'gram'],
@@ -1670,6 +1671,68 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   String? uploadedReceipt;
   String? uploadedReceiptDataUri;
   DateTime selectedPaymentDate = initialDate ?? DateTime.now();
+  bool requestEsign = false;
+  final emailCtrl = TextEditingController();
+
+  bool isEsignPolling = false;
+  bool isEsignCompleted = false;
+  String esignStatusText = '';
+  
+  Future<void> startEsignFlow(StateSetter ss) async {
+    
+    final amt = double.tryParse(amountCtrl.text);
+    if (amt == null || amt <= 0) {
+      ss(() => amountError = 'Please enter a valid amount before requesting an E-Signature.');
+      return;
+    }
+    
+    if (emailCtrl.text.isEmpty) return;
+    ss(() {
+      isEsignPolling = true;
+      esignStatusText = 'Sending request...';
+    });
+    
+    final meta = {
+      'projectName': entryTitle,
+      'type': category,
+      'amount': double.tryParse(amountCtrl.text) ?? 0.0,
+      'paymentMethod': selectedMethod,
+      'notes': noteCtrl.text.trim(),
+      'date': selectedPaymentDate.toIso8601String(),
+    };
+
+    final res = await ApiService.requestEsignature(emailCtrl.text.trim(), meta);
+    if (res == null || res['requestId'] == null) {
+      ss(() {
+        isEsignPolling = false;
+        esignStatusText = 'Failed to send request';
+      });
+      return;
+    }
+    
+    ss(() {
+      esignStatusText = 'Waiting for client to sign...';
+    });
+    
+    final reqId = res['requestId'];
+    
+    while (isEsignPolling) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (!isEsignPolling) break;
+      
+      final statusRes = await ApiService.checkEsignatureStatus(reqId);
+      if (statusRes != null && statusRes['status'] == 'signed') {
+        ss(() {
+          isEsignPolling = false;
+          isEsignCompleted = true;
+          uploadedReceiptDataUri = statusRes['signatureData'];
+          esignStatusText = 'Signature captured!';
+        });
+        break;
+      }
+    }
+  }
+
 
   const pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
@@ -1940,44 +2003,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                               ),
                               const SizedBox(height: 16),
 
-                              const _SheetSectionLabel('PAYMENT METHOD'),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  ...pMethods.take(4).map((m) {
-                                    final lbl = m['label'] as String;
-                                    final ico = m['icon'] as IconData;
-                                    final sel = selectedMethod == lbl;
-                                    return _pMethodChip(
-                                      lbl,
-                                      ico,
-                                      sel,
-                                      chipW,
-                                      46,
-                                      () => ss(() => selectedMethod = lbl),
-                                    );
-                                  }),
-                                  Builder(
-                                    builder: (_) {
-                                      const lbl = 'Cheque';
-                                      const ico = Icons.description_outlined;
-                                      final sel = selectedMethod == lbl;
-                                      return _pMethodChip(
-                                        lbl,
-                                        ico,
-                                        sel,
-                                        fullW,
-                                        46,
-                                        () => ss(() => selectedMethod = lbl),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
                               const _SheetSectionLabel(
                                 'ACTUAL AMOUNT PAID (₹)',
                               ),
@@ -2091,6 +2116,120 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                   ),
                                 ),
                               ),
+
+                              const _SheetSectionLabel('PAYMENT METHOD'),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  ...pMethods.take(4).map((m) {
+                                    final lbl = m['label'] as String;
+                                    final ico = m['icon'] as IconData;
+                                    final sel = selectedMethod == lbl;
+                                    return _pMethodChip(
+                                      lbl,
+                                      ico,
+                                      sel,
+                                      chipW,
+                                      46,
+                                      () => ss(() => selectedMethod = lbl),
+                                    );
+                                  }),
+                                  Builder(
+                                    builder: (_) {
+                                      const lbl = 'Cheque';
+                                      const ico = Icons.description_outlined;
+                                      final sel = selectedMethod == lbl;
+                                      return _pMethodChip(
+                                        lbl,
+                                        ico,
+                                        sel,
+                                        fullW,
+                                        46,
+                                        () => ss(() => selectedMethod = lbl),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (selectedMethod == 'Cash') ...[
+                                const SizedBox(height: 16),
+                                CheckboxListTile(
+                                  title: const Text(
+                                    'Request E-Signature for Cash Receipt',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _kDark),
+                                  ),
+                                  value: requestEsign,
+                                  onChanged: (val) => ss(() => requestEsign = val ?? false),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  contentPadding: EdgeInsets.zero,
+                                  activeColor: const Color(0xFF173EEA),
+                                ),
+                                if (requestEsign)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                                    child: TextField(
+                                      controller: emailCtrl,
+                                      keyboardType: TextInputType.emailAddress,
+                                      decoration: InputDecoration(
+                                        labelText: 'Client Email Address',
+                                        labelStyle: const TextStyle(color: _kGray, fontSize: 13),
+                                        prefixIcon: const Icon(Icons.email_outlined, color: _kGray, size: 20),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: const BorderSide(color: Color(0xFFE2E4F6)),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: const BorderSide(color: Color(0xFF173EEA), width: 1.5),
+                                        ),
+                                      ),
+                                      style: const TextStyle(fontSize: 14, color: _kDark, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+
+                            if (requestEsign && !isEsignCompleted) ...[
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: isEsignPolling ? () {
+                                    ss(() => isEsignPolling = false);
+                                  } : () => startEsignFlow(ss),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isEsignPolling ? Colors.red : const Color(0xFF173EEA),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  child: Text(isEsignPolling ? 'Cancel Polling' : 'Send for E-Signature', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                              if (esignStatusText.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(esignStatusText, style: TextStyle(color: isEsignPolling ? Colors.orange : (isEsignCompleted ? Colors.green : Colors.red), fontWeight: FontWeight.bold)),
+                                )
+                            ],
+                            if (isEsignCompleted) ...[
+                               const SizedBox(height: 8),
+                               Container(
+                                 padding: const EdgeInsets.all(12),
+                                 decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green)),
+                                 child: const Row(
+                                   children: [
+                                     Icon(Icons.check_circle, color: Colors.green),
+                                     SizedBox(width: 8),
+                                     Text('Signature successfully captured!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                   ]
+                                 )
+                               )
+                            ],
+
+                              ],
                               const SizedBox(height: 16),
 
                               const _SheetSectionLabel('PAYMENT RECEIPT'),
@@ -2357,8 +2496,7 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       ? outstanding
                                       : selectedStatus == PaymentStatus.pending
                                       ? 0.0
-                                      : (parseAmount(amountCtrl.text.trim()) ??
-                                            0);
+                                      : (parseAmount(amountCtrl.text.trim()) ?? 0);
                                   Navigator.pop(ctx, {
                                     'amount': amount,
                                     'method': selectedMethod,
@@ -2367,6 +2505,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                     'receipt': uploadedReceipt,
                                     'receiptDataUri': uploadedReceiptDataUri,
                                     'paymentDate': selectedPaymentDate,
+                                    'requestEsign': requestEsign,
+                                    'clientEmail': emailCtrl.text.trim(),
                                   });
                                 },
                                 child: Container(

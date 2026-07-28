@@ -1056,4 +1056,59 @@ class ApiService {
     }
     return [];
   }
+
+  // --- E-Signature Methods ---
+
+  static Future<Map<String, dynamic>?> requestEsignature(
+      String clientEmail, Map<String, dynamic> meta) async {
+    try {
+      final response = await post(
+        '/esign/request',
+        {'clientEmail': clientEmail, 'meta': meta},
+      );
+      if (response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('requestEsignature error: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> checkEsignatureStatus(String requestId) async {
+    try {
+      final response = await get('/esign/status/$requestId');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('checkEsignatureStatus error: $e');
+    }
+    return null;
+  }
+  
+  static Future<Map<String, dynamic>?> getEsignatureDetails(String token) async {
+    try {
+      final response = await get('/esign/details/$token');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('getEsignatureDetails error: $e');
+    }
+    return null;
+  }
+
+  static Future<bool> submitEsignature(String token, String signatureData) async {
+    try {
+      final response = await post(
+        '/esign/submit',
+        {'token': token, 'signatureData': signatureData},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('submitEsignature error: $e');
+      return false;
+    }
+  }
 }
