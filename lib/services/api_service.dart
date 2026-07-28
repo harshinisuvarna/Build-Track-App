@@ -175,7 +175,7 @@ class ApiService {
   static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
     try {
       String endpoint = '/transactions?filterByViewAccess=true&limit=10000';
-      if (projectId != null && projectId.isNotEmpty) {
+      if (projectId != null && projectId.isNotEmpty && projectId != 'all') {
         endpoint += '&project=$projectId';
       }
       final response = await get(endpoint);

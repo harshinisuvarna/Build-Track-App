@@ -330,11 +330,12 @@ class ProjectProvider extends ChangeNotifier {
     }).toList();
   }
 
-  Future<void> loadEntriesForProject(String projectId) async {
+  Future<void> loadEntriesForProject(String? projectId) async {
     _entriesLoading = true;
     notifyListeners();
     try {
-      final freshEntries = await _fetchEntriesForProject(projectId);
+      final targetId = (projectId == 'all') ? null : projectId;
+      final freshEntries = await _fetchEntriesForProject(targetId);
       _entries = freshEntries;
       await _persistEntries();
     } catch (e, st) {
