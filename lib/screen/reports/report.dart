@@ -125,8 +125,14 @@ class _ReportsViewState extends State<_ReportsView> {
 
       final initialId = projectProvider.selectedProject?.id ?? 'all';
       _selectedProjectId = initialId;
-      reportProvider.selectProject(initialId);
-      projectProvider.loadEntriesForProject(initialId == 'all' ? null : initialId);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          reportProvider.selectProject(initialId);
+          projectProvider.loadEntriesForProject(
+            initialId == 'all' ? null : initialId,
+          );
+        }
+      });
     }
   }
 
