@@ -120,7 +120,13 @@ class _ReportsViewState extends State<_ReportsView> {
     if (!_linked) {
       _linked = true;
       final projectProvider = context.read<ProjectProvider>();
-      context.read<ReportProvider>().linkProjectProvider(projectProvider);
+      final reportProvider = context.read<ReportProvider>();
+      reportProvider.linkProjectProvider(projectProvider);
+
+      final initialId = projectProvider.selectedProject?.id ?? 'all';
+      _selectedProjectId = initialId;
+      reportProvider.selectProject(initialId);
+      projectProvider.loadEntriesForProject(initialId == 'all' ? null : initialId);
     }
   }
 
@@ -1071,7 +1077,7 @@ class _ReportsViewState extends State<_ReportsView> {
       }
 
       if (_selectedStatus != 'All' &&
-          entry.approvalStatus.toLowerCase() != _selectedStatus.toLowerCase()) {
+          entry.paymentStatus.toLowerCase() != _selectedStatus.toLowerCase()) {
         return false;
       }
 
@@ -1094,8 +1100,12 @@ class _ReportsViewState extends State<_ReportsView> {
           entry.date.month,
           entry.date.day,
         );
-        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
-        if (entryDate.isAfter(end)) return false;
+        final end = DateTime(
+          _endDate!.year,
+          _endDate!.month,
+          _endDate!.day,
+        ).add(const Duration(days: 1));
+        if (!entryDate.isBefore(end)) return false;
       }
 
       return true;
@@ -2127,6 +2137,8 @@ class _ReportsViewState extends State<_ReportsView> {
                               _selectedActivityName = null;
                               _currentPage = 1;
                             });
+                            context.read<ProjectProvider>().loadEntriesForProject(val == 'all' ? null : val);
+                            context.read<ReportProvider>().selectProject(val);
                           }
                         },
                       ),

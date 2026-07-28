@@ -74,6 +74,19 @@ class ReportProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  DateTime? _periodStart() {
+    final now = DateTime.now();
+    switch (_tabIndex) {
+      case 1:
+        final quarter = ((now.month - 1) ~/ 3) * 3 + 1;
+        return DateTime(now.year, quarter, 1);
+      case 2:
+        return DateTime(now.year, 1, 1);
+      default:
+        return DateTime(now.year, now.month, 1);
+    }
+  }
+
   ReportModel buildLiveReport() {
     final provider = _projectProvider;
     if (provider == null || provider.projects.isEmpty) {
@@ -86,6 +99,8 @@ class ReportProvider extends ChangeNotifier {
 
     if (targetProjects.isEmpty) return ReportModel.empty();
 
+    final periodStart = _periodStart();
+
     double material = 0;
     double labour = 0;
     double equipment = 0;
@@ -94,6 +109,7 @@ class ReportProvider extends ChangeNotifier {
     for (final project in targetProjects) {
       final entries = provider.entriesForProject(project.id);
       for (final entry in entries) {
+        if (periodStart != null && entry.date.isBefore(periodStart)) continue;
         switch (entry.type) {
           case EntryType.material:
             material += entry.amount;
@@ -141,7 +157,7 @@ class ReportProvider extends ChangeNotifier {
       targetEquipment: targetEquipment,
       targetMisc: targetMisc,
       totalPaid: totalPaid,
-      totalRemaining: (total - totalPaid).clamp(0.0, double.infinity),
+      totalRemaining: total - totalPaid,
       efficiencyNote: isOver
           ? 'Budget exceeded by ${_fmt(total - totalTarget)}'
           : 'Project is within budget',

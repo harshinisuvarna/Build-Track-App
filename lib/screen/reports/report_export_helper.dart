@@ -236,48 +236,48 @@ class ReportExportHelper {
             final rate = entry.ratePerUnit ?? 0.0;
             rowValues.add(rate.toStringAsFixed(2));
           } else if (col == 'Qty' || col == 'Days' || col == 'Duration') {
-            final rate = entry.ratePerUnit ?? 0.0;
-            final val = (rate == 0) ? 0.0 : entry.amount / rate;
-            rowValues.add(val.toStringAsFixed(1));
+            final rate = entry.ratePerUnit;
+            final val = (rate == null || rate == 0) ? null : entry.amount / rate;
+            rowValues.add(val != null ? val.toStringAsFixed(1) : '—');
           }
         }
       } else if (quickCategoryTab == 'Materials') {
-        final rate = entry.ratePerUnit ?? 0.0;
-        final qty = (rate == 0) ? 0.0 : entry.amount / rate;
+        final rate = entry.ratePerUnit;
+        final qty = (rate == null || rate == 0) ? null : entry.amount / rate;
         rowValues = [
           dateStr,
           projectName,
           entry.description,
           entry.brand ?? '—',
-          rate.toStringAsFixed(2),
-          qty.toStringAsFixed(1),
+          (entry.ratePerUnit ?? 0.0).toStringAsFixed(2),
+          qty != null ? qty.toStringAsFixed(1) : '—',
           entry.unit ?? 'unit',
           status,
           amount.toStringAsFixed(2),
           payDateStr,
         ];
       } else if (quickCategoryTab == 'Labour') {
-        final rate = entry.ratePerUnit ?? 0.0;
-        final days = (rate == 0) ? 0.0 : entry.amount / rate;
+        final rate = entry.ratePerUnit;
+        final days = (rate == null || rate == 0) ? null : entry.amount / rate;
         rowValues = [
           dateStr,
           projectName,
           entry.description,
-          rate.toStringAsFixed(2),
-          days.toStringAsFixed(1),
+          (entry.ratePerUnit ?? 0.0).toStringAsFixed(2),
+          days != null ? days.toStringAsFixed(1) : '—',
           status,
           amount.toStringAsFixed(2),
           payDateStr,
         ];
       } else if (quickCategoryTab == 'Equipment') {
-        final rate = entry.ratePerUnit ?? 0.0;
-        final duration = (rate == 0) ? 0.0 : entry.amount / rate;
+        final rate = entry.ratePerUnit;
+        final duration = (rate == null || rate == 0) ? null : entry.amount / rate;
         rowValues = [
           dateStr,
           projectName,
           entry.description,
-          rate.toStringAsFixed(2),
-          duration.toStringAsFixed(1),
+          (entry.ratePerUnit ?? 0.0).toStringAsFixed(2),
+          duration != null ? duration.toStringAsFixed(1) : '—',
           status,
           amount.toStringAsFixed(2),
           payDateStr,
@@ -421,9 +421,9 @@ class ReportExportHelper {
             final rate = e.ratePerUnit ?? 0.0;
             rowValues.add(_formatIndianCurrency(rate));
           } else if (col == 'Qty' || col == 'Days' || col == 'Duration') {
-            final rate = e.ratePerUnit ?? 0.0;
-            final val = (rate == 0) ? 0.0 : e.amount / rate;
-            rowValues.add(val.toStringAsFixed(1));
+            final rate = e.ratePerUnit;
+            final val = (rate == null || rate == 0) ? null : e.amount / rate;
+            rowValues.add(val != null ? val.toStringAsFixed(1) : '—');
           }
         }
         return rowValues;
@@ -456,15 +456,15 @@ class ReportExportHelper {
         9: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
-        final rate = e.ratePerUnit ?? 0.0;
-        final qty = (rate == 0) ? 0.0 : e.amount / rate;
+        final rate = e.ratePerUnit;
+        final qty = (rate == null || rate == 0) ? null : e.amount / rate;
         return [
           _formatYmd(e.date),
           getProjectName(e.projectId),
           e.description.isEmpty ? '—' : e.description,
           e.brand ?? '—',
-          _formatIndianCurrency(rate),
-          qty.toStringAsFixed(1),
+          _formatIndianCurrency(rate ?? 0.0),
+          qty != null ? qty.toStringAsFixed(1) : '—',
           e.unit ?? 'unit',
           _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
@@ -495,14 +495,14 @@ class ReportExportHelper {
         7: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
-        final rate = e.ratePerUnit ?? 0.0;
-        final days = (rate == 0) ? 0.0 : e.amount / rate;
+        final rate = e.ratePerUnit;
+        final days = (rate == null || rate == 0) ? null : e.amount / rate;
         return [
           _formatYmd(e.date),
           getProjectName(e.projectId),
           e.description.isEmpty ? '—' : e.description,
-          _formatIndianCurrency(rate),
-          days.toStringAsFixed(1),
+          _formatIndianCurrency(rate ?? 0.0),
+          days != null ? days.toStringAsFixed(1) : '—',
           _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
@@ -532,14 +532,14 @@ class ReportExportHelper {
         7: pw.Alignment.center,
       };
       pdfData = entries.map((e) {
-        final rate = e.ratePerUnit ?? 0.0;
-        final duration = (rate == 0) ? 0.0 : e.amount / rate;
+        final rate = e.ratePerUnit;
+        final duration = (rate == null || rate == 0) ? null : e.amount / rate;
         return [
           _formatYmd(e.date),
           getProjectName(e.projectId),
           e.description.isEmpty ? '—' : e.description,
-          _formatIndianCurrency(rate),
-          duration.toStringAsFixed(1),
+          _formatIndianCurrency(rate ?? 0.0),
+          duration != null ? duration.toStringAsFixed(1) : '—',
           _getPaymentStatusLabel(e.paymentStatus),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',

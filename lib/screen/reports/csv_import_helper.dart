@@ -123,6 +123,9 @@ class CsvImportHelper {
       (h) => h == 'qty' || h == 'days' || h == 'duration' || h == 'quantity',
     );
     final statusIdx = headerLower.indexOf('status');
+    final paidAmountIdx = headerLower.indexWhere(
+      (h) => h == 'paid' || h == 'paid amount' || h == 'amount paid',
+    );
     final notesIdx = headerLower.indexOf('notes');
 
     // Validate required columns exist
@@ -321,9 +324,16 @@ class CsvImportHelper {
         }
 
         final double finalAmount = qty * rate;
-        final double paidAmt = resolvedStatus == 'Paid'
-            ? finalAmount
-            : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
+        double paidAmt;
+        if (resolvedStatus == 'Paid') {
+          paidAmt = finalAmount;
+        } else if (paidAmountIdx != -1 && paidAmountIdx < row.length) {
+          paidAmt = parseDouble(row[paidAmountIdx]);
+        } else if (resolvedStatus == 'Partial') {
+          paidAmt = finalAmount / 2;
+        } else {
+          paidAmt = 0.0;
+        }
 
         // ── Build payload ──
         final Map<String, dynamic> payload = {};
