@@ -156,7 +156,7 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     _outstanding =
         (args['outstandingAmount'] as num?)?.toDouble() ??
         (_totalAmount - _alreadyPaid).clamp(0.0, double.infinity);
-    _existingReceipt = args['receipt'] as String?;
+    _existingReceipt = (args['receipt'] ?? args['screenshotUrl']) as String?;
 
     _selectedStatus = _outstanding > 0
         ? (_alreadyPaid > 0 ? PaymentStatus.partial : PaymentStatus.pending)

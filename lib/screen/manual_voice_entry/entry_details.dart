@@ -76,6 +76,45 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         (_paymentHistory.isNotEmpty
             ? _paymentHistory.last['receipt'] as String?
             : null);
+            
+    _fetchInitialDetails();
+  }
+
+  Future<void> _fetchInitialDetails() async {
+    final id = _args['id'] ?? _args['_id'] ?? _args['entryId'];
+    if (id == null || id.toString().isEmpty) return;
+
+    try {
+      final latest = await ApiService.fetchTransactionById(id.toString());
+      if (latest != null && mounted) {
+        setState(() {
+          _args = { ..._args, ...latest };
+          
+          final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? 'pending';
+          if (pStatus == 'paid') {
+            _payStatus = PaymentStatus.paid;
+          } else if (pStatus == 'partial') {
+            _payStatus = PaymentStatus.partial;
+          } else if (pStatus == 'overdue') {
+            _payStatus = PaymentStatus.overdue;
+          } else {
+            _payStatus = PaymentStatus.pending;
+          }
+
+          _billAmount = (latest['amount'] as num?)?.toDouble() ?? _billAmount;
+          _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? _paidAmount;
+
+          _paymentHistory = latest['paymentHistory'] is List
+              ? List.from(latest['paymentHistory'])
+              : [];
+
+          _paymentReceiptFile = latest['paymentReceipt'] as String? ??
+              (_paymentHistory.isNotEmpty ? _paymentHistory.last['receipt'] as String? : null);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching transaction details: $e');
+    }
   }
 
   static Color _typeColor(String type) {
@@ -223,23 +262,49 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final String title = args['title'] as String? ?? 'Stock Entry';
-    final String ref = args['ref'] as String? ?? '#INV-0000';
-    final String amount = args['amount'] as String? ?? '+0';
+    final args = _args;
+    final String title = args['title']?.toString() ?? 'Stock Entry';
+    final String ref = args['ref']?.toString() ?? '#INV-0000';
+    final String amount = args['amount']?.toString() ?? '+0';
     final String date =
-        _customDate ?? args['date'] as String? ?? 'Unknown date';
+        _customDate ?? args['date']?.toString() ?? 'Unknown date';
     final String displayDate = _formatDateTimeWithTime(date);
-    final String type = args['type'] as String? ?? 'material';
-    final String name = args['name'] as String? ?? 'Item';
+    final String type = args['type']?.toString() ?? 'material';
+    final String name = args['name']?.toString() ?? 'Item';
     final bool isPositive = args['isPositive'] as bool? ?? true;
-    final String? receipt = args['receipt'] as String?;
+    final Set<String> allInvoices = {};
+    if (args['receipt'] != null && args['receipt'].toString().isNotEmpty) {
+      allInvoices.add(args['receipt'].toString());
+    }
+    if (args['attachments'] is List) {
+      for (var a in args['attachments']) {
+        if (a != null && a.toString().isNotEmpty) {
+          allInvoices.add(a.toString());
+        }
+      }
+    }
+    final List<String> invoiceList = allInvoices.toList();
+
+    final Set<String> allPaymentReceipts = {};
+    if (args['paymentReceipt'] != null && args['paymentReceipt'].toString().isNotEmpty) {
+      allPaymentReceipts.add(args['paymentReceipt'].toString());
+    }
+    if (_paymentReceiptFile != null && _paymentReceiptFile!.isNotEmpty) {
+      allPaymentReceipts.add(_paymentReceiptFile!);
+    }
+    for (var ph in _paymentHistory) {
+      final pr = ph['receipt'] ?? ph['paymentReceipt'];
+      if (pr != null && pr.toString().isNotEmpty) {
+        allPaymentReceipts.add(pr.toString());
+      }
+    }
+    final List<String> receiptList = allPaymentReceipts.toList();
 
     final PickedAttachment? attachment = null;
-    final String createdBy = args['createdBy'] as String? ?? '';
-    final String projectId = args['projectId'] as String? ?? '';
-    final String supplier = args['supplier'] as String? ?? '';
-    final String initialMethod = args['paymentMethod'] as String? ?? '';
+    final String createdBy = args['createdBy']?.toString() ?? '';
+    final String projectId = args['projectId']?.toString() ?? '';
+    final String supplier = args['supplier']?.toString() ?? '';
+    final String initialMethod = args['paymentMethod']?.toString() ?? '';
 
     final String method = (_paymentHistory.isNotEmpty && _paidAmount > 0)
         ? (_paymentHistory.last['method'] ??
@@ -464,10 +529,19 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         children: [
                           _fieldLabel('INVOICE / BILL'),
                           const SizedBox(height: 12),
-                          InvoiceAttachmentCard(
-                            attachment: attachment,
-                            fileName: receipt,
-                          ),
+                          if (invoiceList.isEmpty)
+                            const InvoiceAttachmentCard(
+                              attachment: null,
+                              fileName: null,
+                            )
+                          else
+                            ...invoiceList.map((url) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: InvoiceAttachmentCard(
+                                    attachment: null,
+                                    fileName: url,
+                                  ),
+                                )),
                         ],
                       ),
                     ),
@@ -480,7 +554,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         children: [
                           _fieldLabel('PAYMENT RECEIPT'),
                           const SizedBox(height: 12),
-                          PaymentReceiptCard(fileName: _paymentReceiptFile),
+                          if (receiptList.isEmpty)
+                            const PaymentReceiptCard(fileName: null)
+                          else
+                            ...receiptList.map((url) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: PaymentReceiptCard(fileName: url),
+                                )),
                         ],
                       ),
                     ),
@@ -489,7 +569,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     if (canSettle && RoleManager.canApprovePayments)
                       _buildRecordPaymentCTA(
                         context,
-                        id: args['id'] as String? ?? '',
+                        id: args['id']?.toString() ?? '',
                         title: title,
                         ref: ref,
                         supplier: supplier,
@@ -502,7 +582,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       const SizedBox(height: 16),
                       _buildDeleteAction(
                         context,
-                        id: args['id'] as String? ?? '',
+                        id: args['id']?.toString() ?? '',
                         projectId: projectId,
                       ),
                     ],
