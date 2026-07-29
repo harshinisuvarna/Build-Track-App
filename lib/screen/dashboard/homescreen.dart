@@ -641,7 +641,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         : [];
     String? existingImageUrl = attachments.isNotEmpty
         ? attachments.first.toString()
-        : null;
+        : (editingTx?['paymentReceipt']?.toString());
     bool isInflow = editingTx != null ? initialAmt >= 0 : true;
 
     showModalBottomSheet(
@@ -1068,6 +1068,31 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                 ),
                               ],
                             )
+                          else if (newReceiptDataUri != null)
+                            Row(
+                              children: [
+                                const Text(
+                                  'E-Signature',
+                                  style: TextStyle(
+                                    color: Color(0xFF1976D2),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    setModalState(() {
+                                      newReceiptDataUri = null;
+                                    });
+                                  },
+                                  child: const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            )
                           else if (existingImageUrl != null)
                             Row(
                               children: [
@@ -1130,6 +1155,33 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                 ),
                               );
                             },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ] else if (newReceiptDataUri != null) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        height: 80,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            base64Decode(newReceiptDataUri!.split(',').last),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -1243,8 +1295,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                   'notes': notesCtrl.text.trim(),
                                   if (newReceiptDataUri != null) 'paymentReceipt': newReceiptDataUri,
                                   if (newReceiptDataUri != null) 'receiptImage': newReceiptDataUri,
-                                  'receiptImage': ?base64Image,
-                                  if (base64Image == null && editingTx != null)
+                                  if (base64Image != null) 'receiptImage': base64Image,
+                                  if (base64Image == null && newReceiptDataUri == null && editingTx != null)
                                     'attachments': existingImageUrl != null
                                         ? [existingImageUrl]
                                         : [],
