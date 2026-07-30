@@ -1718,9 +1718,26 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final paymentStatus = tx['paymentStatus']?.toString() ?? 'Paid';
     final rawId = tx['_id']?.toString() ?? tx['id']?.toString() ?? '';
     final refId = rawId.isNotEmpty ? rawId.toUpperCase() : 'N/A';
-    final List<dynamic> attachments = tx['attachments'] is List
-        ? tx['attachments'] as List
-        : [];
+    final List<dynamic> attachments = [];
+    if (tx['attachments'] is List) {
+      attachments.addAll(tx['attachments'] as List);
+    }
+    if (tx['paymentReceipt'] != null && tx['paymentReceipt'].toString().isNotEmpty) {
+      attachments.add(tx['paymentReceipt']);
+    }
+    if (tx['receiptImage'] != null && tx['receiptImage'].toString().isNotEmpty) {
+      attachments.add(tx['receiptImage']);
+    }
+    if (tx['screenshotUrl'] != null && tx['screenshotUrl'].toString().isNotEmpty) {
+      attachments.add(tx['screenshotUrl']);
+    }
+    if (tx['receipts'] is List) {
+      for (var r in tx['receipts']) {
+        if (r is Map && r['fileUrl'] != null) {
+          attachments.add(r['fileUrl']);
+        }
+      }
+    }
 
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
@@ -2403,11 +2420,27 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final formattedAmt = formatCurrency(absAmount);
     final textColor = isOutflow ? Colors.red : const Color(0xFF2E7D32);
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
-    final List<dynamic> attachments = tx['attachments'] is List
-        ? tx['attachments'] as List
-        : [];
-    final hasImage =
-        attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
+    final List<dynamic> attachments = [];
+    if (tx['attachments'] is List) {
+      attachments.addAll(tx['attachments'] as List);
+    }
+    if (tx['paymentReceipt'] != null && tx['paymentReceipt'].toString().isNotEmpty) {
+      attachments.add(tx['paymentReceipt']);
+    }
+    if (tx['receiptImage'] != null && tx['receiptImage'].toString().isNotEmpty) {
+      attachments.add(tx['receiptImage']);
+    }
+    if (tx['screenshotUrl'] != null && tx['screenshotUrl'].toString().isNotEmpty) {
+      attachments.add(tx['screenshotUrl']);
+    }
+    if (tx['receipts'] is List) {
+      for (var r in tx['receipts']) {
+        if (r is Map && r['fileUrl'] != null) {
+          attachments.add(r['fileUrl']);
+        }
+      }
+    }
+    final hasImage = attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
 
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
