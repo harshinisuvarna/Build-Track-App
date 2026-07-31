@@ -24,9 +24,6 @@ class AddEntryScreen extends StatefulWidget {
 }
 
 class _AddEntryScreenState extends State<AddEntryScreen> {
-  bool _requestEsign = false;
-  final TextEditingController _clientEmailCtrl = TextEditingController();
-
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;

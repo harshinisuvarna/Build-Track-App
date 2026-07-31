@@ -5,7 +5,6 @@ import 'package:buildtrack_mobile/common/widgets/entry_widgets.dart';
 import 'package:buildtrack_mobile/controller/entry_model.dart';
 import 'package:buildtrack_mobile/controller/entry_permissions.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
-import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -300,7 +299,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     }
     final List<String> receiptList = allPaymentReceipts.toList();
 
-    final PickedAttachment? attachment = null;
     final String createdBy = args['createdBy']?.toString() ?? '';
     final String projectId = args['projectId']?.toString() ?? '';
     final String supplier = args['supplier']?.toString() ?? '';

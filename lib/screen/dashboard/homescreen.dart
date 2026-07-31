@@ -657,7 +657,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         bool isEsignPolling = false;
         bool isEsignCompleted = false;
         String esignStatusText = '';
-        String clientEmail = '';
         bool requestEsign = false;
         final clientEmailCtrl = TextEditingController();
         String? newReceiptDataUri;
