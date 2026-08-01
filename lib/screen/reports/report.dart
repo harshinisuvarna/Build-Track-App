@@ -8,10 +8,8 @@ import 'package:buildtrack_mobile/screen/reports/csv_import_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -20,28 +18,22 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 }
-
 class _ReportsView extends StatefulWidget {
   const _ReportsView();
-
   @override
   State<_ReportsView> createState() => _ReportsViewState();
 }
-
 class _ReportsViewState extends State<_ReportsView> {
   bool _linked = false;
-
   String _selectedProjectId = 'all';
   String? _selectedFloor;
   String? _selectedPhaseId;
   String? _selectedActivityName;
-
   String _searchQuery = '';
   String? _selectedItemName;
   bool _reportGenerated = false;
   bool _showSuggestions = false;
   final TextEditingController _searchController = TextEditingController();
-
   final Set<EntryType> _selectedTypes = {
     EntryType.material,
     EntryType.labour,
@@ -51,14 +43,11 @@ class _ReportsViewState extends State<_ReportsView> {
   DateTime? _startDate;
   DateTime? _endDate;
   String _datePreset = 'All Time';
-
   bool _isImportingCsv = false;
-
   String _sortColumn = 'date';
   bool _sortAscending = false;
   int _currentPage = 1;
   int _rowsPerPage = 10;
-
   List<String> _activeColumnsAll = [
     'Purchased Date',
     'Project',
@@ -113,7 +102,6 @@ class _ReportsViewState extends State<_ReportsView> {
     'Remaining',
     'Payment Date',
   ];
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -122,7 +110,6 @@ class _ReportsViewState extends State<_ReportsView> {
       final projectProvider = context.read<ProjectProvider>();
       final reportProvider = context.read<ReportProvider>();
       reportProvider.linkProjectProvider(projectProvider);
-
       final initialId = projectProvider.selectedProject?.id ?? 'all';
       _selectedProjectId = initialId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -135,13 +122,11 @@ class _ReportsViewState extends State<_ReportsView> {
       });
     }
   }
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-
   List<String> _getAllColumnsForTab(String tabName) {
     if (tabName == 'Materials') {
       return [
@@ -214,7 +199,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ];
     }
   }
-
   List<String> _getActiveColumnsForTab(String tabName) {
     if (tabName == 'Materials') {
       return _activeColumnsMaterials;
@@ -226,7 +210,6 @@ class _ReportsViewState extends State<_ReportsView> {
       return _activeColumnsAll;
     }
   }
-
   void _setActiveColumnsForTab(String tabName, List<String> cols) {
     setState(() {
       if (tabName == 'Materials') {
@@ -240,13 +223,11 @@ class _ReportsViewState extends State<_ReportsView> {
       }
     });
   }
-
   void _showCustomizeColumnsDialog(BuildContext context, String tabName) {
     final List<String> allCols = _getAllColumnsForTab(tabName);
     List<String> tempActive = List.from(_getActiveColumnsForTab(tabName));
     final inactive = allCols.where((c) => !tempActive.contains(c)).toList();
     List<String> tempAll = [...tempActive, ...inactive];
-
     showDialog(
       context: context,
       builder: (context) {
@@ -303,7 +284,6 @@ class _ReportsViewState extends State<_ReportsView> {
                             }
                             final item = tempAll.removeAt(oldIndex);
                             tempAll.insert(newIndex, item);
-
                             final newTempActive = <String>[];
                             for (final col in tempAll) {
                               if (tempActive.contains(col)) {
@@ -316,7 +296,6 @@ class _ReportsViewState extends State<_ReportsView> {
                         itemBuilder: (context, index) {
                           final col = tempAll[index];
                           final isChecked = tempActive.contains(col);
-
                           return ListTile(
                             key: ValueKey(col),
                             contentPadding: EdgeInsets.zero,
@@ -335,7 +314,6 @@ class _ReportsViewState extends State<_ReportsView> {
                                 setDialogState(() {
                                   if (val == true) {
                                     tempActive.add(col);
-
                                     final newTempActive = <String>[];
                                     for (final c in tempAll) {
                                       if (tempActive.contains(c)) {
@@ -419,7 +397,6 @@ class _ReportsViewState extends State<_ReportsView> {
       },
     );
   }
-
   String _formatDateShort(DateTime dt) {
     final months = [
       'Jan',
@@ -440,7 +417,6 @@ class _ReportsViewState extends State<_ReportsView> {
     final year = dt.year.toString().substring(dt.year.toString().length - 2);
     return '$day $month $year';
   }
-
   String _formatDateLong(DateTime dt) {
     final months = [
       'Jan',
@@ -467,19 +443,15 @@ class _ReportsViewState extends State<_ReportsView> {
     final minute = dt.minute.toString().padLeft(2, '0');
     return '$day $month $year, $hour:$minute $ampm';
   }
-
   String _formatIndianCurrency(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
     final whole = parts[0];
     final decimal = parts[1];
-
     if (whole.length <= 3) {
       return 'Rs. $whole.$decimal';
     }
-
     final lastThree = whole.substring(whole.length - 3);
     final remaining = whole.substring(0, whole.length - 3);
-
     final buffer = StringBuffer();
     int count = 0;
     for (int i = remaining.length - 1; i >= 0; i--) {
@@ -492,13 +464,11 @@ class _ReportsViewState extends State<_ReportsView> {
     final formattedRemaining = buffer.toString().split('').reversed.join('');
     return 'Rs. $formattedRemaining,$lastThree.$decimal';
   }
-
   void _setDatePreset(String preset) {
     setState(() {
       _datePreset = preset;
       final now = DateTime.now();
       _currentPage = 1;
-
       switch (preset) {
         case 'All Time':
           _startDate = null;
@@ -535,7 +505,6 @@ class _ReportsViewState extends State<_ReportsView> {
       }
     });
   }
-
   Future<void> _selectStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -551,7 +520,6 @@ class _ReportsViewState extends State<_ReportsView> {
       });
     }
   }
-
   Future<void> _selectEndDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -567,7 +535,6 @@ class _ReportsViewState extends State<_ReportsView> {
       });
     }
   }
-
   Future<void> _handleCsvExport(
     List<EntryModel> filtered,
     String Function(String) getProjectName,
@@ -593,7 +560,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ).showSnackBar(SnackBar(content: Text('CSV Export failed: $e')));
     }
   }
-
   Future<void> _handlePdfExport(
     List<EntryModel> filtered,
     String Function(String) getProjectName,
@@ -635,7 +601,6 @@ class _ReportsViewState extends State<_ReportsView> {
       );
       parts.add('Status: $_selectedStatus');
       parts.add('Date Range: $_datePreset');
-
       await ReportExportHelper.exportToPdf(
         entries: filtered,
         getProjectName: getProjectName,
@@ -652,7 +617,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ).showSnackBar(SnackBar(content: Text('PDF Export failed: $e')));
     }
   }
-
   Future<void> _handleDownloadImportTemplate(
     String quickCategoryTab,
     List<String> activeCols,
@@ -681,15 +645,12 @@ class _ReportsViewState extends State<_ReportsView> {
       }
     }
   }
-
   Future<void> _handleUploadCsv() async {
     final projectProvider = context.read<ProjectProvider>();
     if (projectProvider.projects.isEmpty) {
       await projectProvider.load();
     }
-
     setState(() => _isImportingCsv = true);
-
     try {
       final result = await CsvImportHelper.importCsv(
         projects: projectProvider.projects,
@@ -697,14 +658,11 @@ class _ReportsViewState extends State<_ReportsView> {
             ? null
             : _selectedProjectId,
       );
-
       if (!mounted) return;
-
       final activeProjId = projectProvider.selectedProject?.id;
       if (activeProjId != null) {
         context.read<ProjectProvider>().load();
       }
-
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -807,7 +765,6 @@ class _ReportsViewState extends State<_ReportsView> {
       if (mounted) setState(() => _isImportingCsv = false);
     }
   }
-
   Widget _buildCsvImportCard(String quickCategoryTab, List<String> activeCols) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -962,13 +919,11 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
     final projectProvider = context.watch<ProjectProvider>();
     final List<EntryModel> allEntries = projectProvider.entries;
-
     String getProjectName(String id) {
       return projectProvider.projects
               .where((p) => p.id == id)
@@ -976,7 +931,6 @@ class _ReportsViewState extends State<_ReportsView> {
               ?.name ??
           'Unknown Project';
     }
-
     String quickCategoryTab = 'All';
     if (_selectedTypes.length == 1) {
       if (_selectedTypes.contains(EntryType.material)) {
@@ -991,18 +945,15 @@ class _ReportsViewState extends State<_ReportsView> {
     } else {
       quickCategoryTab = '';
     }
-
     final filtered = allEntries.where((entry) {
       if (_selectedProjectId != 'all' &&
           entry.projectId.trim() != _selectedProjectId.trim()) {
         return false;
       }
-
       if (_selectedProjectId != 'all') {
         if (_selectedFloor != null && _selectedFloor != 'Select Floor') {
           if (entry.floor != _selectedFloor) return false;
         }
-
         if (_selectedPhaseId != null && _selectedPhaseId != 'Select Phase') {
           final project = projectProvider.projects
               .where((p) => p.id == _selectedProjectId)
@@ -1011,13 +962,11 @@ class _ReportsViewState extends State<_ReportsView> {
               ?.where((ph) => ph.id == _selectedPhaseId)
               .firstOrNull
               ?.phaseName;
-
           if (entry.phaseId != _selectedPhaseId &&
               (phaseName == null || entry.phase != phaseName)) {
             return false;
           }
         }
-
         if (_selectedActivityName != null &&
             _selectedActivityName != 'Select Activity') {
           if (entry.activity != _selectedActivityName &&
@@ -1026,11 +975,9 @@ class _ReportsViewState extends State<_ReportsView> {
           }
         }
       }
-
       if (!_selectedTypes.contains(entry.type)) {
         return false;
       }
-
       if (quickCategoryTab != 'All' && _reportGenerated) {
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
@@ -1038,12 +985,10 @@ class _ReportsViewState extends State<_ReportsView> {
           final brandMatch = (entry.brand ?? '').toLowerCase().contains(query);
           if (!descMatch && !brandMatch) return false;
         }
-
         if (_selectedItemName != null && _selectedItemName != 'All') {
           if (entry.description != _selectedItemName) return false;
         }
       }
-
       if (quickCategoryTab == 'All' && _searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final projectName = getProjectName(entry.projectId).toLowerCase();
@@ -1066,7 +1011,6 @@ class _ReportsViewState extends State<_ReportsView> {
         final payDateMatch = entry.paymentDate != null
             ? _formatDateShort(entry.paymentDate!).toLowerCase().contains(query)
             : false;
-
         if (!descMatch &&
             !brandMatch &&
             !projectMatch &&
@@ -1081,12 +1025,10 @@ class _ReportsViewState extends State<_ReportsView> {
           return false;
         }
       }
-
       if (_selectedStatus != 'All' &&
           entry.paymentStatus.toLowerCase() != _selectedStatus.toLowerCase()) {
         return false;
       }
-
       if (_startDate != null) {
         final entryDate = DateTime(
           entry.date.year,
@@ -1113,10 +1055,8 @@ class _ReportsViewState extends State<_ReportsView> {
         ).add(const Duration(days: 1));
         if (!entryDate.isBefore(end)) return false;
       }
-
       return true;
     }).toList();
-
     filtered.sort((a, b) {
       int cmp = 0;
       if (_sortColumn == 'date') {
@@ -1130,13 +1070,11 @@ class _ReportsViewState extends State<_ReportsView> {
       }
       return _sortAscending ? cmp : -cmp;
     });
-
     double materialTotal = 0;
     double labourTotal = 0;
     double equipmentTotal = 0;
     double grandTotal = 0;
     double grandPaid = 0;
-
     for (final entry in filtered) {
       grandTotal += entry.amount;
       grandPaid += entry.paidAmount;
@@ -1153,7 +1091,6 @@ class _ReportsViewState extends State<_ReportsView> {
       }
     }
     final grandRemaining = (grandTotal - grandPaid).clamp(0.0, double.infinity);
-
     final totalCount = filtered.length;
     final totalPages = (totalCount / _rowsPerPage).ceil() == 0
         ? 1
@@ -1161,16 +1098,13 @@ class _ReportsViewState extends State<_ReportsView> {
     int safeCurrentPage = _currentPage;
     if (safeCurrentPage > totalPages) safeCurrentPage = totalPages;
     if (safeCurrentPage < 1) safeCurrentPage = 1;
-
     final startIndex = (safeCurrentPage - 1) * _rowsPerPage;
     final endIndex = (startIndex + _rowsPerPage < totalCount)
         ? startIndex + _rowsPerPage
         : totalCount;
-
     final List<EntryModel> paginatedEntries = (totalCount > 0)
         ? filtered.sublist(startIndex, endIndex)
         : [];
-
     final List<String> activeCols = _getActiveColumnsForTab(quickCategoryTab);
     final List<String> uiActiveCols = [
       ...activeCols,
@@ -1266,7 +1200,6 @@ class _ReportsViewState extends State<_ReportsView> {
         );
       }
     }).toList();
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -1280,7 +1213,6 @@ class _ReportsViewState extends State<_ReportsView> {
                 child: const ProfileAvatar(radius: 18),
               ),
             ),
-
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -1293,10 +1225,8 @@ class _ReportsViewState extends State<_ReportsView> {
                     children: [
                       _AskAiBanner(projectName: provider.selectedProjectName),
                       const SizedBox(height: 18),
-
                       _buildFiltersCard(context, projectProvider),
                       const SizedBox(height: 20),
-
                       const Text(
                         'Filtered Cost Summary',
                         style: TextStyle(
@@ -1307,7 +1237,6 @@ class _ReportsViewState extends State<_ReportsView> {
                         ),
                       ),
                       const SizedBox(height: 10),
-
                       GridView.count(
                         crossAxisCount: 3,
                         shrinkWrap: true,
@@ -1357,7 +1286,6 @@ class _ReportsViewState extends State<_ReportsView> {
                         ],
                       ),
                       const SizedBox(height: 10),
-
                       _CategoryTabs(
                         activeTab: quickCategoryTab,
                         onTabChanged: (newTab) {
@@ -1368,7 +1296,6 @@ class _ReportsViewState extends State<_ReportsView> {
                             _reportGenerated = false;
                             _searchController.clear();
                             _showSuggestions = false;
-
                             if (newTab == 'All') {
                               _selectedTypes.addAll({
                                 EntryType.material,
@@ -1400,7 +1327,6 @@ class _ReportsViewState extends State<_ReportsView> {
                         _buildAllTabSearchBar(context),
                       ],
                       const SizedBox(height: 18),
-
                       if (quickCategoryTab != 'All' && !_reportGenerated)
                         Center(
                           child: Padding(
@@ -1565,7 +1491,6 @@ class _ReportsViewState extends State<_ReportsView> {
                                               ),
                                               const SizedBox(width: 4),
                                             ],
-
                                             Theme(
                                               data: Theme.of(context).copyWith(
                                                 cardColor: Colors.white,
@@ -1740,7 +1665,6 @@ class _ReportsViewState extends State<_ReportsView> {
                                 ),
                               ),
                               const Divider(height: 1),
-
                               if (paginatedEntries.isNotEmpty)
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
@@ -1818,7 +1742,6 @@ class _ReportsViewState extends State<_ReportsView> {
                                     ),
                                   ),
                                 ),
-
                               if (totalCount > 0) ...[
                                 const Divider(height: 1),
                                 Padding(
@@ -1919,7 +1842,6 @@ class _ReportsViewState extends State<_ReportsView> {
                             ],
                           ),
                         ),
-
                       const SizedBox(height: 20),
                       _buildCsvImportCard(quickCategoryTab, activeCols),
                       const SizedBox(height: 8),
@@ -1934,7 +1856,6 @@ class _ReportsViewState extends State<_ReportsView> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
   Widget _buildCostCard({
     required String title,
     required double value,
@@ -1943,7 +1864,6 @@ class _ReportsViewState extends State<_ReportsView> {
     required IconData icon,
   }) {
     final currencyStr = _formatIndianCurrency(value);
-
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2021,7 +1941,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildFiltersCard(
     BuildContext context,
     ProjectProvider projectProvider,
@@ -2029,18 +1948,14 @@ class _ReportsViewState extends State<_ReportsView> {
     final proj = projectProvider.projects
         .where((p) => p.id == _selectedProjectId)
         .firstOrNull;
-
     final projectNameSelected = _selectedProjectId == 'all'
         ? 'All projects'
         : (proj?.name ?? 'Unknown Project');
-
     final floors = proj?.floors ?? [];
-
     final selectedPhase = proj?.selectedPhases
         ?.where((p) => p.id == _selectedPhaseId)
         .firstOrNull;
     final selectedPhaseName = selectedPhase?.phaseName ?? 'Select Phase';
-
     final List<ProjectActivity> activities = [];
     if (_selectedPhaseId != null) {
       activities.addAll(selectedPhase?.activities ?? []);
@@ -2050,7 +1965,6 @@ class _ReportsViewState extends State<_ReportsView> {
       );
     }
     final uniqueActivityNames = activities.map((a) => a.name).toSet().toList();
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBg,
@@ -2243,7 +2157,6 @@ class _ReportsViewState extends State<_ReportsView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-
                 _buildProjectContextDropdown(
                   label: 'Date Period',
                   selectedLabel: _datePreset,
@@ -2268,7 +2181,6 @@ class _ReportsViewState extends State<_ReportsView> {
                     }
                   },
                 ),
-
                 if (_datePreset == 'Custom') ...[
                   const SizedBox(height: 12),
                   Row(
@@ -2302,7 +2214,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildProjectContextDropdown({
     required String label,
     required String selectedLabel,
@@ -2372,7 +2283,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildEditColumnsButton(String tabName) {
     return InkWell(
       onTap: () => _showCustomizeColumnsDialog(context, tabName),
@@ -2406,7 +2316,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildDatePickerBox({
     required String label,
     required String selectedLabel,
@@ -2461,7 +2370,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildAllTabSearchBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2537,7 +2445,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildCategorySubFilters(
     BuildContext context,
     String tabName,
@@ -2559,7 +2466,6 @@ class _ReportsViewState extends State<_ReportsView> {
       dropdownLabel = 'Equipment Name';
       targetType = EntryType.equipment;
     }
-
     final uniqueNames = allEntries
         .where(
           (e) =>
@@ -2571,20 +2477,17 @@ class _ReportsViewState extends State<_ReportsView> {
         .where((name) => name.isNotEmpty)
         .toSet()
         .toList();
-
     final suggestions = uniqueNames
         .where(
           (name) => name.toLowerCase().contains(_searchQuery.toLowerCase()),
         )
         .toList();
-
     final showSuggestionsList =
         _showSuggestions &&
         _searchQuery.isNotEmpty &&
         suggestions.isNotEmpty &&
         !(suggestions.length == 1 &&
             suggestions.first.toLowerCase() == _searchQuery.toLowerCase());
-
     return TapRegion(
       onTapOutside: (event) {
         setState(() {
@@ -2718,7 +2621,6 @@ class _ReportsViewState extends State<_ReportsView> {
               ),
             ],
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
@@ -2749,7 +2651,6 @@ class _ReportsViewState extends State<_ReportsView> {
               ],
             ),
             const SizedBox(height: 14),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -2785,7 +2686,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildTypeChip(EntryType type) {
     Color color;
     IconData icon;
@@ -2826,7 +2726,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   Widget _buildStatusBadge(String status) {
     Color bg;
     Color text;
@@ -2858,7 +2757,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   void _showEntryDetailsDialog(
     BuildContext context,
     EntryModel entry,
@@ -2994,7 +2892,6 @@ class _ReportsViewState extends State<_ReportsView> {
       },
     );
   }
-
   Widget _buildDetailRow(String label, String value, {bool isWarning = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -3026,7 +2923,6 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-
   DataRow _buildDataRowForCategory({
     required BuildContext context,
     required EntryModel entry,
@@ -3040,7 +2936,6 @@ class _ReportsViewState extends State<_ReportsView> {
       'Record Payment',
       'Edit Entry',
     ];
-
     final List<DataCell> cells = uiActiveCols.map((colName) {
       if (colName == 'Purchased Date') {
         return DataCell(
@@ -3178,7 +3073,6 @@ class _ReportsViewState extends State<_ReportsView> {
         return const DataCell(SizedBox.shrink());
       }
     }).toList();
-
     return DataRow(
       onSelectChanged: (selected) {
         if (selected ?? false) {
@@ -3189,11 +3083,9 @@ class _ReportsViewState extends State<_ReportsView> {
     );
   }
 }
-
 class _AskAiBanner extends StatelessWidget {
   const _AskAiBanner({required this.projectName});
   final String projectName;
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -3271,15 +3163,11 @@ class _AskAiBanner extends StatelessWidget {
     );
   }
 }
-
 class _CategoryTabs extends StatelessWidget {
   const _CategoryTabs({required this.activeTab, required this.onTabChanged});
-
   final String activeTab;
   final ValueChanged<String> onTabChanged;
-
   static const _tabs = ['All', 'Materials', 'Labour', 'Equipment'];
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -3308,7 +3196,6 @@ class _CategoryTabs extends StatelessWidget {
               activeColor = AppColors.primary;
               break;
           }
-
           return Expanded(
             child: GestureDetector(
               onTap: () => onTabChanged(tab),
@@ -3338,7 +3225,6 @@ class _CategoryTabs extends StatelessWidget {
     );
   }
 }
-
 class _FullScreenLogsViewer extends StatefulWidget {
   const _FullScreenLogsViewer({
     required this.columns,
@@ -3350,7 +3236,6 @@ class _FullScreenLogsViewer extends StatefulWidget {
     required this.onExportPdf,
     required this.activeColumns,
   });
-
   final List<DataColumn> columns;
   final List<EntryModel> filteredEntries;
   final String Function(String) getProjectName;
@@ -3359,20 +3244,16 @@ class _FullScreenLogsViewer extends StatefulWidget {
   final VoidCallback onExportCsv;
   final VoidCallback onExportPdf;
   final List<String> activeColumns;
-
   @override
   State<_FullScreenLogsViewer> createState() => _FullScreenLogsViewerState();
 }
-
 class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
   int _quarterTurns = 0;
-
   void _toggleRotation() {
     setState(() {
       _quarterTurns = (_quarterTurns == 0) ? 1 : 0;
     });
   }
-
   String _formatDateShort(DateTime dt) {
     final months = [
       'Jan',
@@ -3393,19 +3274,15 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
     final year = dt.year.toString().substring(dt.year.toString().length - 2);
     return '$day $month $year';
   }
-
   String _formatIndianCurrency(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
     final whole = parts[0];
     final decimal = parts[1];
-
     if (whole.length <= 3) {
       return 'Rs. $whole.$decimal';
     }
-
     final lastThree = whole.substring(whole.length - 3);
     final remaining = whole.substring(0, whole.length - 3);
-
     final buffer = StringBuffer();
     int count = 0;
     for (int i = remaining.length - 1; i >= 0; i--) {
@@ -3418,7 +3295,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
     final formattedRemaining = buffer.toString().split('').reversed.join('');
     return 'Rs. $formattedRemaining,$lastThree.$decimal';
   }
-
   Widget _buildTypeChip(EntryType type) {
     Color color;
     IconData icon;
@@ -3459,7 +3335,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       ),
     );
   }
-
   Widget _buildStatusBadge(String status) {
     Color bg;
     Color text;
@@ -3491,7 +3366,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       ),
     );
   }
-
   void _showEntryDetailsDialog(
     BuildContext context,
     EntryModel entry,
@@ -3523,7 +3397,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       final minute = dt.minute.toString().padLeft(2, '0');
       return '$day $month $year, $hour:$minute $ampm';
     }
-
     Widget detailRow(String label, String value, {bool isWarning = false}) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
@@ -3555,7 +3428,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
         ),
       );
     }
-
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -3680,11 +3552,9 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final rotated = _quarterTurns != 0;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -3931,7 +3801,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                   return const DataCell(SizedBox.shrink());
                 }
               }).toList();
-
               return DataRow(
                 onSelectChanged: (selected) {
                   if (selected ?? false) {
@@ -3941,7 +3810,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                 cells: cells,
               );
             }).toList();
-
             Widget tableWidget = SingleChildScrollView(
               scrollDirection: Axis.vertical,
               child: SingleChildScrollView(
@@ -3961,7 +3829,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                 ),
               ),
             );
-
             if (rotated) {
               tableWidget = RotatedBox(
                 quarterTurns: _quarterTurns,
@@ -3992,7 +3859,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
                 ),
               );
             }
-
             return Center(child: tableWidget);
           },
         ),
@@ -4000,7 +3866,6 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
     );
   }
 }
-
 String _getPaymentStatusLabel(String status) {
   switch (status.toLowerCase().trim()) {
     case 'paid':
@@ -4017,27 +3882,22 @@ String _getPaymentStatusLabel(String status) {
       return 'Not Paid';
   }
 }
-
 enum _ReportActionStyle { primary, secondary, tertiary }
-
 class _ReportActionBtn extends StatelessWidget {
   final String label;
   final IconData icon;
   final _ReportActionStyle style;
   final VoidCallback onTap;
-
   const _ReportActionBtn({
     required this.label,
     required this.icon,
     required this.style,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     BoxDecoration deco;
     Color color;
-
     switch (style) {
       case _ReportActionStyle.primary:
         deco = BoxDecoration(
@@ -4065,7 +3925,6 @@ class _ReportActionBtn extends StatelessWidget {
         color = const Color(0xFF4B5563);
         break;
     }
-
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -4098,14 +3957,12 @@ class _ReportActionBtn extends StatelessWidget {
     );
   }
 }
-
 class _ReportActions {
   static void addMore(BuildContext context, EntryModel entry) {
     final dupArgs = entry.toJson();
     dupArgs['isDuplicate'] = true;
     dupArgs['sourceTransactionId'] = entry.id;
     dupArgs['projectId'] = entry.projectId;
-
     String route;
     switch (entry.type) {
       case EntryType.labour:
@@ -4124,13 +3981,11 @@ class _ReportActions {
       }
     });
   }
-
   static void editEntry(BuildContext context, EntryModel entry) {
     final editArgs = entry.toJson();
     editArgs['isEditing'] = true;
     editArgs['id'] = entry.id;
     editArgs['projectId'] = entry.projectId;
-
     String route;
     switch (entry.type) {
       case EntryType.labour:
@@ -4149,7 +4004,6 @@ class _ReportActions {
       }
     });
   }
-
   static Future<void> recordPayment(
     BuildContext context,
     EntryModel entry,
@@ -4172,7 +4026,6 @@ class _ReportActions {
       }
       return;
     }
-
     final pId = entry.projectId;
     final pName = projectName;
     final rawItemName =
@@ -4195,7 +4048,6 @@ class _ReportActions {
       double.infinity,
     );
     final payStatus = EntryModel.fromJson(tx).paymentStatus;
-
     final payArgs = {
       'id': entry.id,
       'projectId': pId,
@@ -4214,7 +4066,6 @@ class _ReportActions {
           : null,
       'transactionDetails': tx,
     };
-
     if (context.mounted) {
       Navigator.pushNamed(
         context,
@@ -4228,29 +4079,23 @@ class _ReportActions {
     }
   }
 }
-
 class _PaymentHistorySection extends StatefulWidget {
   final EntryModel entry;
   final String Function(double) formatCurrency;
   final String Function(DateTime) formatDate;
-
   const _PaymentHistorySection({
     required this.entry,
     required this.formatCurrency,
     required this.formatDate,
   });
-
   @override
   State<_PaymentHistorySection> createState() => _PaymentHistorySectionState();
 }
-
 class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
   bool _viewAll = false;
-
   @override
   Widget build(BuildContext context) {
     final history = widget.entry.paymentHistory;
-
     Widget header = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -4280,7 +4125,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
           ),
       ],
     );
-
     Widget content;
     if (history.isEmpty) {
       if (widget.entry.paidAmount > 0) {
@@ -4311,7 +4155,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
     } else {
       final displayedList = List.from(history.reversed);
       final itemsToShow = _viewAll ? displayedList : [displayedList.first];
-
       Widget list = ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -4331,7 +4174,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
           final dateStr = dt != null ? widget.formatDate(dt) : '—';
           final method = item['method'] as String? ?? 'Cash';
           final note = item['note'] as String? ?? '';
-
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(
@@ -4400,7 +4242,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
           );
         },
       );
-
       if (_viewAll && displayedList.length > 3) {
         content = Container(
           constraints: const BoxConstraints(maxHeight: 180),
@@ -4413,7 +4254,6 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
         content = list;
       }
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(

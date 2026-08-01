@@ -1,5 +1,4 @@
 import 'checklist_model.dart';
-
 class ActivityModel {
   final String id;
   final String name;
@@ -9,7 +8,6 @@ class ActivityModel {
   final bool requiresVideo;
   final bool requiresApproval;
   final List<ChecklistItem>? checklist;
-
   ActivityModel({
     required this.id,
     required this.name,
@@ -20,7 +18,6 @@ class ActivityModel {
     this.requiresApproval = false,
     this.checklist,
   });
-
   factory ActivityModel.fromJson(Map<String, dynamic> j) => ActivityModel(
     id: j['id'] as String,
     name: j['name'] as String,
@@ -37,7 +34,6 @@ class ActivityModel {
           )
         : null,
   );
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,

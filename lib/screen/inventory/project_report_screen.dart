@@ -7,14 +7,12 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
-
 class ProjectReportScreen extends StatelessWidget {
   const ProjectReportScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final project = provider.selectedProject;
-
     if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -141,7 +139,6 @@ class ProjectReportScreen extends StatelessWidget {
     );
   }
 }
-
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.project});
   final ProjectModel project;
@@ -156,7 +153,6 @@ class _SummaryCard extends StatelessWidget {
     ProjectStage.labourMaster: (Color(0xFFE0F7FA), Color(0xFF00838F)),
     ProjectStage.equipmentMaster: (Color(0xFFF9FBE7), Color(0xFF827717)),
   };
-
   @override
   Widget build(BuildContext context) {
     final (stageBg, stageFg) = _stageMeta[project.stage]!;
@@ -166,7 +162,6 @@ class _SummaryCard extends StatelessWidget {
         : pct >= 0.6
         ? AppColors.warning
         : AppColors.primary;
-
     return AppCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(18),
@@ -271,7 +266,6 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
-
   String _fmtDate(DateTime d) {
     const m = [
       'Jan',
@@ -290,11 +284,9 @@ class _SummaryCard extends StatelessWidget {
     return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
 }
-
 class _FinancialSnapshot extends StatelessWidget {
   const _FinancialSnapshot({required this.project});
   final ProjectModel project;
-
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ProjectProvider>();
@@ -302,13 +294,11 @@ class _FinancialSnapshot extends StatelessWidget {
     final budget = project.totalBudget;
     final remaining = budget - paidTotal;
     final u = budget > 0 ? paidTotal / budget : 0.0;
-
     final statusColor = u >= 0.9
         ? AppColors.error
         : u >= 0.6
         ? AppColors.warning
         : AppColors.success;
-
     return Row(
       children: [
         _StatChip(
@@ -335,7 +325,6 @@ class _FinancialSnapshot extends StatelessWidget {
     );
   }
 }
-
 class _StatChip extends StatelessWidget {
   const _StatChip({
     required this.label,
@@ -391,7 +380,6 @@ class _StatChip extends StatelessWidget {
     );
   }
 }
-
 class _EntrySection extends StatelessWidget {
   const _EntrySection({
     required this.entries,
@@ -457,7 +445,6 @@ class _EntrySection extends StatelessWidget {
               ),
             ],
           ),
-
           if (displayed.isNotEmpty) ...[
             const Divider(color: Color(0xFFEEF0F8), height: 20),
             ...displayed.map((e) => _entryRow(e, color)),
@@ -466,7 +453,6 @@ class _EntrySection extends StatelessWidget {
       ),
     );
   }
-
   Widget _entryRow(EntryModel e, Color c) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -492,7 +478,6 @@ class _EntrySection extends StatelessWidget {
       ),
     );
   }
-
   IconData _typeIcon(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -503,7 +488,6 @@ class _EntrySection extends StatelessWidget {
         return Icons.construction_outlined;
     }
   }
-
   Color _typeColor(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -514,7 +498,6 @@ class _EntrySection extends StatelessWidget {
         return const Color(0xFF7B3FE7);
     }
   }
-
   String _typeLabel(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -526,7 +509,6 @@ class _EntrySection extends StatelessWidget {
     }
   }
 }
-
 class _ActivityTimeline extends StatelessWidget {
   const _ActivityTimeline({required this.entries});
   final List<EntryModel> entries;
@@ -625,7 +607,6 @@ class _ActivityTimeline extends StatelessWidget {
       ),
     );
   }
-
   String _entryTitle(EntryModel e) {
     if (e.description.isNotEmpty) return e.description;
     switch (e.type) {
@@ -637,7 +618,6 @@ class _ActivityTimeline extends StatelessWidget {
         return 'Equipment Used';
     }
   }
-
   (Color, IconData) _typeStyle(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -648,7 +628,6 @@ class _ActivityTimeline extends StatelessWidget {
         return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
-
   String _fmtDate(DateTime d) {
     const m = [
       'Jan',

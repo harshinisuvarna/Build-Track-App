@@ -11,20 +11,16 @@ import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
-
 class EntryDetailScreen extends StatefulWidget {
   const EntryDetailScreen({super.key});
-
   @override
   State<EntryDetailScreen> createState() => _EntryDetailScreenState();
 }
-
 class _EntryDetailScreenState extends State<EntryDetailScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   bool _argsLoaded = false;
   Map _args = {};
   EntryStatus _entryStatus = EntryStatus.pending;
@@ -39,13 +35,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   String? _phase;
   String? _activity;
   String? _projectName;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     _args = args;
     final statusStr = args['status'] as String? ?? 'pending';
@@ -57,7 +51,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         args['paymentStatus'] as PaymentStatus? ?? PaymentStatus.pending;
     _billAmount = (args['billAmount'] as num?)?.toDouble() ?? 0;
     _paidAmount = (args['paidAmount'] as num?)?.toDouble() ?? 0;
-
     final rawHistory = args['paymentHistory'];
     if (rawHistory is List) {
       _paymentHistory = List.from(rawHistory);
@@ -69,26 +62,21 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     _phase = args['phase'] as String?;
     _activity = args['activity'] as String?;
     _projectName = args['projectName'] as String?;
-
     _paymentReceiptFile =
         args['paymentReceipt'] as String? ??
         (_paymentHistory.isNotEmpty
             ? _paymentHistory.last['receipt'] as String?
             : null);
-            
     _fetchInitialDetails();
   }
-
   Future<void> _fetchInitialDetails() async {
     final id = _args['id'] ?? _args['_id'] ?? _args['entryId'];
     if (id == null || id.toString().isEmpty) return;
-
     try {
       final latest = await ApiService.fetchTransactionById(id.toString());
       if (latest != null && mounted) {
         setState(() {
           _args = { ..._args, ...latest };
-          
           final pStatus = latest['paymentStatus']?.toString().toLowerCase() ?? 'pending';
           if (pStatus == 'paid') {
             _payStatus = PaymentStatus.paid;
@@ -99,14 +87,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           } else {
             _payStatus = PaymentStatus.pending;
           }
-
           _billAmount = (latest['amount'] as num?)?.toDouble() ?? _billAmount;
           _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? _paidAmount;
-
           _paymentHistory = latest['paymentHistory'] is List
               ? List.from(latest['paymentHistory'])
               : [];
-
           _paymentReceiptFile = latest['paymentReceipt'] as String? ??
               (_paymentHistory.isNotEmpty ? _paymentHistory.last['receipt'] as String? : null);
         });
@@ -115,7 +100,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       debugPrint('Error fetching transaction details: $e');
     }
   }
-
   static Color _typeColor(String type) {
     switch (type) {
       case 'labour':
@@ -126,7 +110,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         return primaryBlue;
     }
   }
-
   static Color _typeBg(String type) {
     switch (type) {
       case 'labour':
@@ -137,7 +120,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         return const Color(0xFFEEF0FF);
     }
   }
-
   static IconData _typeIcon(String type) {
     switch (type) {
       case 'labour':
@@ -148,7 +130,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         return Icons.inventory_2_outlined;
     }
   }
-
   static String _typeLabel(String type) {
     switch (type) {
       case 'labour':
@@ -159,7 +140,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         return 'MATERIAL';
     }
   }
-
   static String _editRoute(String type) {
     switch (type) {
       case 'labour':
@@ -170,10 +150,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         return '/add-material';
     }
   }
-
   Widget _fieldLabel(String t) =>
       Text(t, style: AppTheme.label.copyWith(color: textGray));
-
   Widget _contextRow(IconData icon, String label, String value) {
     return Row(
       children: [
@@ -194,23 +172,19 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ],
     );
   }
-
   String _formatDateTimeWithTime(dynamic dateVal) {
     if (dateVal == null) return '';
     final str = dateVal.toString().trim();
     if (str.isEmpty) return '';
-
     DateTime? dt;
     try {
       dt = DateTime.parse(str).toLocal();
     } catch (_) {
       dt = DateTime.tryParse(str)?.toLocal();
     }
-
     if (dt == null) {
       return str;
     }
-
     final months = [
       'Jan',
       'Feb',
@@ -226,19 +200,16 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       'Dec',
     ];
     final dateStr = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-
     final hour = dt.hour;
     final minute = dt.minute;
     final ampm = hour >= 12 ? 'PM' : 'AM';
     final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
     final displayMinute = minute.toString().padLeft(2, '0');
     final timeStr = '$displayHour:$displayMinute $ampm';
-
     final now = DateTime.now();
     final diff = now.difference(dt);
     final isFuture = diff.isNegative;
     final absDiff = diff.abs();
-
     final String relativeStr;
     if (absDiff.inMinutes < 60) {
       relativeStr = isFuture
@@ -255,10 +226,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           ? 'in ${absDiff.inDays}d'
           : '${absDiff.inDays}d ago';
     }
-
     return '$dateStr • $timeStr ($relativeStr)';
   }
-
   @override
   Widget build(BuildContext context) {
     final args = _args;
@@ -283,7 +252,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       }
     }
     final List<String> invoiceList = allInvoices.toList();
-
     final Set<String> allPaymentReceipts = {};
     if (args['paymentReceipt'] != null && args['paymentReceipt'].toString().isNotEmpty) {
       allPaymentReceipts.add(args['paymentReceipt'].toString());
@@ -298,23 +266,19 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       }
     }
     final List<String> receiptList = allPaymentReceipts.toList();
-
     final String createdBy = args['createdBy']?.toString() ?? '';
     final String projectId = args['projectId']?.toString() ?? '';
     final String supplier = args['supplier']?.toString() ?? '';
     final String initialMethod = args['paymentMethod']?.toString() ?? '';
-
     final String method = (_paymentHistory.isNotEmpty && _paidAmount > 0)
         ? (_paymentHistory.last['method'] ??
               _paymentHistory.last['paymentMode'] ??
               initialMethod)
         : (_paidAmount > 0 ? initialMethod : '');
-
     final String rawLastUpdated = _paymentHistory.isNotEmpty
         ? (_paymentHistory.last['date']?.toString() ?? date)
         : date;
     final String lastUpdated = _formatDateTimeWithTime(rawLastUpdated);
-
     final bool canEdit = EntryPermissions.canEdit(
       status: _entryStatus.name,
       createdBy: createdBy,
@@ -325,14 +289,12 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       createdBy: createdBy,
       projectId: projectId,
     );
-
     final double due = (_billAmount - _paidAmount).clamp(0.0, double.infinity);
     final bool canSettle =
         _payStatus == PaymentStatus.pending ||
         _payStatus == PaymentStatus.partial ||
         _payStatus == PaymentStatus.overdue;
     final bool isSettled = _payStatus == PaymentStatus.paid;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: bgColor,
@@ -356,7 +318,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -401,7 +362,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -436,7 +396,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -507,7 +466,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     if (_billAmount > 0) ...[
                       _buildSettlementCard(
                         due: due,
@@ -516,10 +474,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                       const SizedBox(height: 14),
                     ],
-
                     _buildPaymentHistoryCard(),
                     if (_paymentHistory.isNotEmpty) const SizedBox(height: 14),
-
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -544,7 +500,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     AppCard(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -563,7 +518,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     if (canSettle && RoleManager.canApprovePayments)
                       _buildRecordPaymentCTA(
                         context,
@@ -573,9 +527,7 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         supplier: supplier,
                         type: type,
                       ),
-
                     if (isSettled) _buildSettledBadge(),
-
                     if (canDelete) ...[
                       const SizedBox(height: 16),
                       _buildDeleteAction(
@@ -584,7 +536,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         projectId: projectId,
                       ),
                     ],
-
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -595,7 +546,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildTopBar(
     BuildContext context,
     String type,
@@ -660,7 +610,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildTypeBadge(String type) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -686,7 +635,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildSettlementCard({
     required double due,
     required String method,
@@ -753,7 +701,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _settlementRow(
     String label,
     String value, {
@@ -789,7 +736,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ],
     );
   }
-
   Widget _buildRecordPaymentCTA(
     BuildContext context, {
     required String id,
@@ -801,7 +747,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     final label = _payStatus == PaymentStatus.partial
         ? 'Settle Remaining Payment'
         : 'Record Payment';
-
     return GestureDetector(
       onTap: () {
         final projectProvider = context.read<ProjectProvider>();
@@ -811,7 +756,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         if (matchedProj.isNotEmpty) {
           pName = matchedProj.first.name;
         }
-
         final payArgs = {
           'id': id,
           'projectId': pId,
@@ -831,7 +775,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           'receipt': _paymentReceiptFile ?? '',
           'transactionDetails': _args,
         };
-
         Navigator.pushNamed(
           context,
           '/fulfillment-payment',
@@ -842,7 +785,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             if (latest != null && mounted) {
               setState(() {
                 _paidAmount = (latest['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
                 final pStatus =
                     latest['paymentStatus']?.toString().toLowerCase() ??
                     'pending';
@@ -855,11 +797,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 } else {
                   _payStatus = PaymentStatus.pending;
                 }
-
                 _paymentHistory = latest['paymentHistory'] is List
                     ? List.from(latest['paymentHistory'])
                     : [];
-
                 final dynamic freshPaymentReceipt =
                     latest['paymentReceipt'] ??
                     (_paymentHistory.isNotEmpty
@@ -908,7 +848,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildSettledBadge() {
     return Container(
       width: double.infinity,
@@ -935,15 +874,12 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildPaymentHistoryCard() {
     if (_paymentHistory.isEmpty) return const SizedBox.shrink();
-
     final reversedHistory = List.from(_paymentHistory.reversed);
     final displayedHistory = _viewAllPayments
         ? reversedHistory
         : [reversedHistory.first];
-
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -1010,14 +946,11 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
             ),
             itemBuilder: (context, index) {
               final item = displayedHistory[index] ?? {};
-
               final rawDate = item['date'] ?? item['paymentDate'];
               final String formattedDate = _formatDateTimeWithTime(rawDate);
-
               final double amt = (item['amount'] as num?)?.toDouble() ?? 0;
               final String method = item['method'] as String? ?? 'Cash';
               final String note = item['note'] as String? ?? '';
-
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1089,7 +1022,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   Widget _buildDeleteAction(
     BuildContext context, {
     required String id,
@@ -1122,7 +1054,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
       ),
     );
   }
-
   void _showDeleteDialog(
     BuildContext context, {
     required String id,
@@ -1150,7 +1081,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-
               if (id.isNotEmpty) {
                 final success = await ApiService.deleteTransaction(id);
                 if (success && context.mounted) {
@@ -1158,7 +1088,6 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     context.read<InventoryProvider>().loadInventory(projectId);
                   }
                   context.read<ProjectProvider>().load();
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Entry deleted successfully'),

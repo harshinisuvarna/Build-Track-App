@@ -5,7 +5,6 @@ import 'package:printing/printing.dart';
 import 'save_helper_stub.dart'
     if (dart.library.html) 'save_helper_web.dart'
     if (dart.library.io) 'save_helper_mobile.dart';
-
 class ReportExportHelper {
   static String _getPaymentStatusLabel(String status) {
     switch (status.toLowerCase().trim()) {
@@ -23,27 +22,21 @@ class ReportExportHelper {
         return 'Not Paid';
     }
   }
-
   static String _formatYmd(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
-
   static String _formatDateTime(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
-
   static String _formatIndianCurrency(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
     final whole = parts[0];
     final decimal = parts[1];
-
     if (whole.length <= 3) {
       return 'Rs. $whole.$decimal';
     }
-
     final lastThree = whole.substring(whole.length - 3);
     final remaining = whole.substring(0, whole.length - 3);
-
     final buffer = StringBuffer();
     int count = 0;
     for (int i = remaining.length - 1; i >= 0; i--) {
@@ -56,7 +49,6 @@ class ReportExportHelper {
     final formattedRemaining = buffer.toString().split('').reversed.join('');
     return 'Rs. $formattedRemaining,$lastThree.$decimal';
   }
-
   static List<String> getExportHeaders({
     required String quickCategoryTab,
     List<String>? activeColumns,
@@ -119,7 +111,6 @@ class ReportExportHelper {
         ];
     }
   }
-
   static Future<void> exportToCsv({
     required List<EntryModel> entries,
     required String Function(String) getProjectName,
@@ -127,7 +118,6 @@ class ReportExportHelper {
     List<String>? activeColumns,
   }) async {
     if (entries.isEmpty) return;
-
     final csvBuffer = StringBuffer();
     final List<String> headers;
     if (activeColumns != null) {
@@ -187,11 +177,9 @@ class ReportExportHelper {
         ];
       }
     }
-
     csvBuffer.writeln(
       headers.map((h) => '"${h.replaceAll('"', '""')}"').join(','),
     );
-
     for (final entry in entries) {
       final dateStr = _formatYmd(entry.date);
       final projectName = getProjectName(entry.projectId);
@@ -200,7 +188,6 @@ class ReportExportHelper {
       final payDateStr = entry.paymentDate != null
           ? _formatYmd(entry.paymentDate!)
           : '—';
-
       final List<String> rowValues;
       if (activeColumns != null) {
         rowValues = [];
@@ -298,24 +285,20 @@ class ReportExportHelper {
           payDateStr,
         ];
       }
-
       final escapedRow = rowValues
           .map((val) => '"${val.replaceAll('"', '""')}"')
           .join(',');
       csvBuffer.writeln(escapedRow);
     }
-
     final filename =
         'BuildTrack_Report_${DateTime.now().millisecondsSinceEpoch}.csv';
     final shareText = 'BuildTrack Filtered Report (${entries.length} entries)';
-
     await saveAndShareCsv(
       csvContent: csvBuffer.toString(),
       filename: filename,
       shareText: shareText,
     );
   }
-
   static Future<void> exportToPdf({
     required List<EntryModel> entries,
     required String Function(String) getProjectName,
@@ -325,12 +308,10 @@ class ReportExportHelper {
     List<String>? activeColumns,
   }) async {
     final pdf = pw.Document();
-
     double materialTotal = 0;
     double labourTotal = 0;
     double equipmentTotal = 0;
     double grandTotal = 0;
-
     for (final entry in entries) {
       grandTotal += entry.amount;
       switch (entry.type) {
@@ -345,13 +326,11 @@ class ReportExportHelper {
           break;
       }
     }
-
     final List<String> pdfHeaders;
     final List<List<String>> pdfData;
     final Map<int, pw.Alignment> cellAlignmentsMap;
     final double headerFontSize;
     final double cellFontSize;
-
     if (activeColumns != null) {
       pdfHeaders = activeColumns
           .map((col) => col == 'Amount' ? 'Amount (INR)' : col)
@@ -593,7 +572,6 @@ class ReportExportHelper {
         ];
       }).toList();
     }
-
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
@@ -647,7 +625,6 @@ class ReportExportHelper {
             ),
             pw.Divider(thickness: 2, color: PdfColor.fromHex('#173EEA')),
             pw.SizedBox(height: 12),
-
             pw.Container(
               padding: const pw.EdgeInsets.all(8),
               decoration: pw.BoxDecoration(
@@ -673,7 +650,6 @@ class ReportExportHelper {
               ),
             ),
             pw.SizedBox(height: 16),
-
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
@@ -700,7 +676,6 @@ class ReportExportHelper {
               ],
             ),
             pw.SizedBox(height: 20),
-
             pw.Text(
               'Report Logs',
               style: pw.TextStyle(
@@ -710,7 +685,6 @@ class ReportExportHelper {
               ),
             ),
             pw.SizedBox(height: 8),
-
             pw.TableHelper.fromTextArray(
               context: context,
               headers: pdfHeaders,
@@ -731,13 +705,11 @@ class ReportExportHelper {
         },
       ),
     );
-
     await Printing.layoutPdf(
       name: 'BuildTrack_Report_${_formatYmd(DateTime.now())}',
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
-
   static pw.Widget _buildPdfSummaryCard(
     String title,
     String value,

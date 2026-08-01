@@ -7,11 +7,9 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 const _kEntriesKey = 'buildtrack_entries_v1';
 const _kCompletedAtKey = 'buildtrack_completed_at_v1';
 const _kActivityDetailsKey = 'buildtrack_activity_details_v1';
-
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
   List<EntryModel> _entries = [];
@@ -24,10 +22,8 @@ class ProjectProvider extends ChangeNotifier {
   String? _selectedActivityId;
   bool _isLoading = false;
   String _error = '';
-
   bool _entriesLoading = false;
   bool get entriesLoading => _entriesLoading;
-
   List<ProjectModel> get projects => List.unmodifiable(_projects);
   List<EntryModel> get entries => List.unmodifiable(_entries);
   List<PhaseModel> get phases => List.unmodifiable(_phases);
@@ -41,7 +37,6 @@ class ProjectProvider extends ChangeNotifier {
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
   int get projectCount => _projects.length;
-
   Map<String, double> get materialStock {
     if (_selectedProject == null) return {};
     final Map<String, double> stockMap = {};
@@ -57,39 +52,31 @@ class ProjectProvider extends ChangeNotifier {
     }
     return stockMap;
   }
-
   List<EntryModel> entriesForProject(String projectId) =>
       _entries.where((e) => e.projectId.trim() == projectId.trim()).toList();
-
   List<EntryModel> entriesForProjectByUser(String projectId, String userId) {
     final all = entriesForProject(projectId);
     if (userId.isEmpty) return all;
     final filtered = all.where((e) => e.createdBy == userId).toList();
     return filtered.isNotEmpty ? filtered : all;
   }
-
   double totalSpentForProject(String projectId) =>
       entriesForProject(projectId).fold(0.0, (sum, e) => sum + e.amount);
-
   double getProjectSqftCost(ProjectModel project) {
     final area = double.tryParse(project.landArea ?? '0') ?? 0;
     if (area <= 0) return 0;
     return project.spentAmount / area;
   }
-
   bool isProjectOverBudget(ProjectModel project) =>
       project.spentAmount > project.totalBudget;
-
   double budgetExceededAmount(ProjectModel project) {
     if (!isProjectOverBudget(project)) return 0;
     return project.spentAmount - project.totalBudget;
   }
-
   double budgetRemainingAmount(ProjectModel project) {
     final remain = project.totalBudget - project.spentAmount;
     return remain < 0 ? 0 : remain;
   }
-
   Future<Map<String, DateTime>> _loadPersistedCompletedAt() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -109,7 +96,6 @@ class ProjectProvider extends ChangeNotifier {
       return {};
     }
   }
-
   Future<void> _saveCompletedAt(
     String projectId,
     String activityId,
@@ -127,7 +113,6 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('_saveCompletedAt error: $e');
     }
   }
-
   Future<void> _saveActivityDetails(
     String projectId,
     String activityId, {
@@ -151,7 +136,6 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('_saveActivityDetails error: $e');
     }
   }
-
   Future<Map<String, Map<String, dynamic>>>
   _loadPersistedActivityDetails() async {
     try {
@@ -171,7 +155,6 @@ class ProjectProvider extends ChangeNotifier {
       return {};
     }
   }
-
   Future<void> _backfillCompletedActivities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -198,35 +181,27 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('_backfillCompletedActivities error: $e');
     }
   }
-
   List<ProjectModel> _filterForCurrentUser(List<ProjectModel> all) {
     if (UserSession.isAdmin) return all;
-
     final assignedIds = UserSession.projectIds.map((id) => id.trim()).toSet();
     if (assignedIds.isEmpty) return [];
-
     return all.where((p) => assignedIds.contains(p.id.trim())).toList();
   }
-
   Future<List<EntryModel>> _fetchEntriesForProject(String? projectId) async {
     final apiMaterials = await ApiService.fetchMaterials(projectId: projectId);
     debugPrint(
       'fetchMaterials(project=$projectId): ${apiMaterials.length} items',
     );
-
     final filtered = apiMaterials.where((json) {
       final rawType = (json['type'] ?? '').toString().toLowerCase();
       if (rawType == 'income' || rawType == 'revenue') return false;
-
       final approvalStatus = (json['approvalStatus'] ?? '')
           .toString()
           .toLowerCase()
           .trim();
       if (approvalStatus == 'rejected') return false;
-
       return true;
     }).toList();
-
     return filtered.map<EntryModel>((json) {
       EntryType parsedType = EntryType.material;
       final rawType = (json['type'] ?? '').toString().toLowerCase();
@@ -235,7 +210,6 @@ class ProjectProvider extends ChangeNotifier {
       } else if (rawType == 'equipment' || rawType == 'expense') {
         parsedType = EntryType.equipment;
       }
-
       String entryProjectId = '';
       if (json['project'] is Map) {
         entryProjectId = json['project']['_id']?.toString() ?? '';
@@ -251,7 +225,6 @@ class ProjectProvider extends ChangeNotifier {
       }
       entryProjectId = entryProjectId.trim();
       if (entryProjectId.isEmpty) entryProjectId = 'p1';
-
       double amount = 0;
       final v = json['amount'];
       if (v != null && v is num && v > 0) {
@@ -263,7 +236,6 @@ class ProjectProvider extends ChangeNotifier {
           amount = (qty * rate).toDouble();
         }
       }
-
       final parsedPaidAmount = (json['paidAmount'] as num?)?.toDouble() ?? 0.0;
       final parsedPaymentHistory = json['paymentHistory'] != null
           ? List<Map<String, dynamic>>.from(
@@ -272,7 +244,6 @@ class ProjectProvider extends ChangeNotifier {
               ),
             )
           : <Map<String, dynamic>>[];
-
       String? createdBy;
       final createdByRaw =
           json['createdBy'] ??
@@ -286,14 +257,11 @@ class ProjectProvider extends ChangeNotifier {
       } else if (createdByRaw != null) {
         createdBy = createdByRaw.toString();
       }
-
       final approvalStatusRaw = json['approvalStatus']?.toString() ?? 'Pending';
-
       final paymentStatusRaw = json['paymentStatus']?.toString() ?? 'Pending';
       final paymentDateRaw = json['paymentDate'] != null
           ? DateTime.tryParse(json['paymentDate'].toString())
           : null;
-
       return EntryModel(
         id:
             json['_id']?.toString() ??
@@ -329,7 +297,6 @@ class ProjectProvider extends ChangeNotifier {
       );
     }).toList();
   }
-
   Future<void> loadEntriesForProject(String? projectId) async {
     _entriesLoading = true;
     notifyListeners();
@@ -345,10 +312,8 @@ class ProjectProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-
     final phaseRaw = prefs.getString('phases');
     if (phaseRaw != null && phaseRaw.isNotEmpty) {
       try {
@@ -384,10 +349,8 @@ class ProjectProvider extends ChangeNotifier {
               .toList();
       _savePhases();
     }
-
     final cachedProjectsRaw = prefs.getString('buildtrack_projects_v1');
     final cachedEntriesRaw = prefs.getString(_kEntriesKey);
-
     bool loadedFromCache = false;
     if (cachedProjectsRaw != null && cachedProjectsRaw.isNotEmpty) {
       try {
@@ -400,7 +363,6 @@ class ProjectProvider extends ChangeNotifier {
         dev.log('Decoding cached projects failed: $e');
       }
     }
-
     if (cachedEntriesRaw != null && cachedEntriesRaw.isNotEmpty) {
       try {
         _entries = EntryModel.decodeList(cachedEntriesRaw);
@@ -408,14 +370,12 @@ class ProjectProvider extends ChangeNotifier {
         dev.log('Decoding cached entries failed: $e');
       }
     }
-
     final String? cachedProjId = prefs.getString(
       'buildtrack_selected_project_id',
     );
     final String? initialProjId =
         cachedProjId ??
         (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
-
     if (loadedFromCache) {
       if (initialProjId != null) {
         final existingIdx = _projects.indexWhere(
@@ -429,7 +389,6 @@ class ProjectProvider extends ChangeNotifier {
       } else if (_projects.isNotEmpty) {
         _selectedProject = _projects.first;
       }
-
       if (_selectedProject != null) {
         UserSession.projectId = _selectedProject!.id;
         final cachedProjId = prefs.getString('buildtrack_selected_project_id');
@@ -443,33 +402,26 @@ class ProjectProvider extends ChangeNotifier {
           );
         }
       }
-
       _isLoading = false;
       notifyListeners();
-
       _fetchNetworkData(initialProjId);
       return;
     }
-
     _setLoading(true);
     await _fetchNetworkData(initialProjId);
     _setLoading(false);
   }
-
   Future<void> _fetchNetworkData(String? initialProjId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       final String? targetProjId =
           initialProjId ??
           prefs.getString('buildtrack_selected_project_id') ??
           (UserSession.projectId.isNotEmpty ? UserSession.projectId : null);
-
       final Map<String, DateTime> persistedDates =
           await _loadPersistedCompletedAt();
       final Map<String, Map<String, dynamic>> persistedDetails =
           await _loadPersistedActivityDetails();
-
       final Map<String, Map<String, DateTime>> prevCompletedAt = {};
       persistedDates.forEach((key, date) {
         final parts = key.split('|');
@@ -477,7 +429,6 @@ class ProjectProvider extends ChangeNotifier {
           prevCompletedAt.putIfAbsent(parts[0], () => {})[parts[1]] = date;
         }
       });
-
       for (final p in _projects) {
         for (final phase in p.selectedPhases ?? <ProjectPhase>[]) {
           for (final act in phase.activities) {
@@ -492,7 +443,6 @@ class ProjectProvider extends ChangeNotifier {
           }
         }
       }
-
       final results = await Future.wait([
         ApiService.fetchProjects(),
         if (targetProjId != null)
@@ -500,19 +450,15 @@ class ProjectProvider extends ChangeNotifier {
         else
           Future.value(<EntryModel>[]),
       ]);
-
       final fetched = results[0] as List<ProjectModel>;
       final List<EntryModel> freshEntries = results[1] as List<EntryModel>;
-
       _projects = _filterForCurrentUser(fetched);
-
       _projects = _projects.map((p) {
         final actDates = prevCompletedAt[p.id];
         final List<ProjectPhase>
         mergedPhases = (p.selectedPhases ?? <ProjectPhase>[]).map((phase) {
           final mergedActivities = phase.activities.map((act) {
             var updatedAct = act;
-
             if (actDates != null) {
               final savedDate = actDates[act.id];
               if (savedDate != null) {
@@ -524,7 +470,6 @@ class ProjectProvider extends ChangeNotifier {
                 }
               }
             }
-
             final detailsKey = '${p.id}|${act.id}';
             final savedDetails = persistedDetails[detailsKey];
             if (savedDetails != null) {
@@ -538,16 +483,13 @@ class ProjectProvider extends ChangeNotifier {
                         .toList(),
               );
             }
-
             return updatedAct;
           }).toList();
           return phase.copyWith(activities: mergedActivities);
         }).toList();
-
         final floors = (p.floors == null || p.floors!.isEmpty)
             ? ['Ground']
             : p.floors!;
-
         final effectivePhases = mergedPhases;
         final totalActs = effectivePhases.fold<int>(
           0,
@@ -560,25 +502,20 @@ class ProjectProvider extends ChangeNotifier {
         final computedProgress = totalActs > 0
             ? doneActs / totalActs
             : p.progress;
-
         return p.copyWith(
           selectedPhases: effectivePhases,
           floors: floors,
           progress: computedProgress,
         );
       }).toList();
-
       debugPrint('Projects loaded: ${_projects.length}');
       for (final p in _projects) {
         debugPrint(
           '  Project: "${p.name}" id=${p.id} floors=${p.floors} spentAmount=${p.spentAmount}',
         );
       }
-
       await _persistProjects();
-
       final double? prevProgress = _selectedProject?.progress;
-
       if (_selectedProject != null) {
         final existingIdx = _projects.indexWhere(
           (p) => p.id.trim() == _selectedProject!.id.trim(),
@@ -606,15 +543,12 @@ class ProjectProvider extends ChangeNotifier {
           _selectedProject = _projects.first;
         }
       }
-
       if (prevProgress != null && _selectedProject != null) {
         _selectedProject = _selectedProject!.copyWith(progress: prevProgress);
       }
-
       if (_selectedProject != null) {
         UserSession.projectId = _selectedProject!.id;
       }
-
       if (_selectedProject != null) {
         if (_selectedProject!.id == targetProjId) {
           _entries = freshEntries;
@@ -624,7 +558,6 @@ class ProjectProvider extends ChangeNotifier {
       } else {
         _entries = [];
       }
-
       _projects = _projects.map((p) {
         final localTotal = totalSpentForProject(p.id);
         if (localTotal > 0 && localTotal > p.spentAmount) {
@@ -632,7 +565,6 @@ class ProjectProvider extends ChangeNotifier {
         }
         return p;
       }).toList();
-
       final cachedProjId = prefs.getString('buildtrack_selected_project_id');
       if (cachedProjId == _selectedProject?.id) {
         _selectedFloor = prefs.getString('buildtrack_selected_floor');
@@ -649,10 +581,8 @@ class ProjectProvider extends ChangeNotifier {
         _selectedActivity = null;
         _selectedActivityId = null;
       }
-
       await _backfillCompletedActivities();
       await _persistEntries();
-
       _error = '';
       notifyListeners();
     } catch (e, st) {
@@ -664,14 +594,11 @@ class ProjectProvider extends ChangeNotifier {
       );
     }
   }
-
   Future<void> fetchProjects() async {
     _setLoading(true);
     try {
       final fetched = await ApiService.fetchProjects();
-
       _projects = _filterForCurrentUser(fetched);
-
       _projects = _projects.map((p) {
         final floors = p.floors;
         if (floors == null || floors.isEmpty) {
@@ -679,7 +606,6 @@ class ProjectProvider extends ChangeNotifier {
         }
         return p;
       }).toList();
-
       if (_projects.isNotEmpty && _selectedProject == null) {
         _selectedProject = _projects.first;
       }
@@ -694,7 +620,6 @@ class ProjectProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
   Future<void> addProject(
     ProjectModel project, {
     String? clientName,
@@ -722,10 +647,8 @@ class ProjectProvider extends ChangeNotifier {
     _selectedProject = saved;
     UserSession.projectId = saved.id;
     notifyListeners();
-
     unawaited(loadEntriesForProject(saved.id));
   }
-
   Future<void> updateProject(ProjectModel updated) async {
     _setLoading(true);
     try {
@@ -751,7 +674,6 @@ class ProjectProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
   Future<void> _saveContextPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -801,7 +723,6 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('_saveContextPrefs error: $e');
     }
   }
-
   void selectProject(ProjectModel project) {
     _selectedProject = project;
     UserSession.projectId = project.id;
@@ -814,7 +735,6 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
     unawaited(loadEntriesForProject(project.id));
   }
-
   void selectFloor(String? floor) {
     _selectedFloor = floor;
     _selectedPhase = null;
@@ -824,7 +744,6 @@ class ProjectProvider extends ChangeNotifier {
     _saveContextPrefs();
     notifyListeners();
   }
-
   void selectPhase(String? phase, String? phaseId) {
     _selectedPhase = phase;
     _selectedPhaseId = phaseId;
@@ -833,14 +752,12 @@ class ProjectProvider extends ChangeNotifier {
     _saveContextPrefs();
     notifyListeners();
   }
-
   void selectActivity(String? activity, [String? activityId]) {
     _selectedActivity = activity;
     _selectedActivityId = activityId;
     _saveContextPrefs();
     notifyListeners();
   }
-
   Future<bool> updateProjectProgress(String id, double progress) async {
     debugPrint('[DEBUG] updateProjectProgress: id=$id, progress=$progress');
     final idx = _projects.indexWhere((p) => p.id == id);
@@ -875,7 +792,6 @@ class ProjectProvider extends ChangeNotifier {
       return false;
     }
   }
-
   Future<bool> toggleActivityCompletion(
     String projectId,
     String activityId, {
@@ -895,12 +811,10 @@ class ProjectProvider extends ChangeNotifier {
       );
       return false;
     }
-
     final project = _projects[projectIndex];
     final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
     bool found = false;
     DateTime? stampedDate;
-
     for (var p = 0; p < phases.length; p++) {
       final phase = phases[p];
       final activities = List<ProjectActivity>.from(phase.activities);
@@ -927,14 +841,12 @@ class ProjectProvider extends ChangeNotifier {
         break;
       }
     }
-
     if (!found) {
       debugPrint(
         '[DEBUG] toggleActivityCompletion: activity $activityId not found in phases',
       );
       return false;
     }
-
     final total = phases.fold<int>(0, (sum, p) => sum + p.totalCount);
     final done = phases.fold<int>(0, (sum, p) => sum + p.completedCount);
     final updated = project.copyWith(
@@ -942,11 +854,9 @@ class ProjectProvider extends ChangeNotifier {
       progress:
           manualProgress ?? (total == 0 ? project.progress : done / total),
     );
-
     _projects[projectIndex] = updated;
     if (_selectedProject?.id == projectId) _selectedProject = updated;
     notifyListeners();
-
     if (stampedDate != null) {
       await _saveCompletedAt(projectId, activityId, stampedDate);
     }
@@ -962,7 +872,6 @@ class ProjectProvider extends ChangeNotifier {
         photos: photos,
       );
     }
-
     try {
       debugPrint(
         '[DEBUG] toggleActivityCompletion: sending PUT to /projects/$projectId...',
@@ -1007,7 +916,6 @@ class ProjectProvider extends ChangeNotifier {
       return false;
     }
   }
-
   Future<bool> markActivityComplete(
     String projectId,
     String activityId,
@@ -1019,7 +927,6 @@ class ProjectProvider extends ChangeNotifier {
       completedAt: completionDate,
     );
   }
-
   Future<bool> updateActivityBudget(
     String projectId,
     String activityId, {
@@ -1035,11 +942,9 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('[DEBUG] updateActivityBudget: project not found in list');
       return false;
     }
-
     final project = _projects[projectIndex];
     final phases = List<ProjectPhase>.from(project.selectedPhases ?? []);
     bool found = false;
-
     for (var p = 0; p < phases.length; p++) {
       final phase = phases[p];
       final activities = List<ProjectActivity>.from(phase.activities);
@@ -1056,19 +961,16 @@ class ProjectProvider extends ChangeNotifier {
         break;
       }
     }
-
     if (!found) {
       dev.log(
         '[DEBUG] updateActivityBudget: activity $activityId not found in phases',
       );
       return false;
     }
-
     final updated = project.copyWith(selectedPhases: phases);
     _projects[projectIndex] = updated;
     if (_selectedProject?.id == projectId) _selectedProject = updated;
     notifyListeners();
-
     try {
       dev.log(
         '[DEBUG] updateActivityBudget: sending PUT to /projects/$projectId...',
@@ -1113,7 +1015,6 @@ class ProjectProvider extends ChangeNotifier {
       return false;
     }
   }
-
   Future<void> addEntry(
     EntryModel entry, {
     String? brand,
@@ -1124,7 +1025,6 @@ class ProjectProvider extends ChangeNotifier {
     String rawType = 'Materials';
     if (entry.type == EntryType.labour) rawType = 'Wages';
     if (entry.type == EntryType.equipment) rawType = 'Expense';
-
     final payload = {
       'title': entry.description.isNotEmpty ? entry.description : 'New Entry',
       'type': rawType,
@@ -1138,13 +1038,11 @@ class ProjectProvider extends ChangeNotifier {
       'paymentMode': 'Cash',
       'paidAmount': 0,
     };
-
     final success = await ApiService.addMaterial(payload);
     if (!success) {
       dev.log('Failed to save entry to backend.');
       return;
     }
-
     final updatedEntry = EntryModel(
       id: entry.id,
       projectId: entry.projectId,
@@ -1160,22 +1058,18 @@ class ProjectProvider extends ChangeNotifier {
       activity: entry.activity,
       activityId: entry.activityId,
       createdBy: UserSession.userId,
-
       approvalStatus: 'Pending',
       paymentStatus: 'Pending',
       paymentDate: null,
     );
-
     _entries.add(updatedEntry);
     await _persistEntries();
     notifyListeners();
   }
-
   Future<void> _persistEntries() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEntriesKey, EntryModel.encodeList(_entries));
   }
-
   Future<void> _persistProjects() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1187,12 +1081,10 @@ class ProjectProvider extends ChangeNotifier {
       dev.log('Persisting projects error: $e');
     }
   }
-
   void _savePhases() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('phases', PhaseModel.encodeList(_phases));
   }
-
   void addPhase(String name) {
     _phases.add(
       PhaseModel(
@@ -1204,7 +1096,6 @@ class ProjectProvider extends ChangeNotifier {
     _savePhases();
     notifyListeners();
   }
-
   void renamePhase(String id, String newName) {
     final index = _phases.indexWhere((p) => p.id == id);
     if (index != -1) {
@@ -1217,12 +1108,10 @@ class ProjectProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
-
   void clear() {
     _projects = [];
     _entries = [];

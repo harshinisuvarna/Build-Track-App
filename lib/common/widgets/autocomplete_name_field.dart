@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-
 class AutocompleteNameField extends StatefulWidget {
   const AutocompleteNameField({
     super.key,
@@ -11,28 +10,20 @@ class AutocompleteNameField extends StatefulWidget {
     required this.onSuggestionSelected,
     this.errorText,
   });
-
   final TextEditingController controller;
   final String hint;
-
   final List<Map<String, dynamic>> suggestions;
-
   final ValueChanged<String> onChanged;
   final void Function(Map<String, dynamic> tx) onSuggestionSelected;
   final String? errorText;
-
   @override
   State<AutocompleteNameField> createState() => _AutocompleteNameFieldState();
 }
-
 class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
   final _focusNode = FocusNode();
-
   List<Map<String, dynamic>> _filtered = [];
   bool _showSuggestions = false;
-
   static const int _maxSuggestions = 10;
-
   @override
   void initState() {
     super.initState();
@@ -43,7 +34,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       'suggestions pool: ${widget.suggestions.length}',
     );
   }
-
   @override
   void didUpdateWidget(AutocompleteNameField old) {
     super.didUpdateWidget(old);
@@ -52,7 +42,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
         '[AutocompleteNameField] suggestions updated: '
         '${widget.suggestions.length} records',
       );
-
       if (widget.controller.text.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -62,7 +51,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       }
     }
   }
-
   @override
   void dispose() {
     widget.controller.removeListener(_onTextChanged);
@@ -70,7 +58,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     _focusNode.dispose();
     super.dispose();
   }
-
   void _onTextChanged() {
     final text = widget.controller.text;
     debugPrint(
@@ -79,13 +66,11 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     );
     _computeFiltered(text);
   }
-
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       debugPrint(
         '[AutocompleteNameField] focus lost — scheduling suggestion collapse',
       );
-
       Future.delayed(const Duration(milliseconds: 180), () {
         if (mounted && !_focusNode.hasFocus) {
           setState(() {
@@ -100,10 +85,8 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       }
     }
   }
-
   void _computeFiltered(String query) {
     final q = query.trim().toLowerCase();
-
     if (q.isEmpty) {
       setState(() {
         _filtered = [];
@@ -112,10 +95,8 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       debugPrint('[AutocompleteNameField] query empty — suggestions hidden');
       return;
     }
-
     final startsWith = <Map<String, dynamic>>[];
     final contains = <Map<String, dynamic>>[];
-
     for (final s in widget.suggestions) {
       final title = (s['title'] ?? s['name'] ?? '')
           .toString()
@@ -128,24 +109,20 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
       }
       if (startsWith.length + contains.length >= _maxSuggestions) break;
     }
-
     setState(() {
       _filtered = [...startsWith, ...contains].take(_maxSuggestions).toList();
       _showSuggestions = _focusNode.hasFocus;
     });
-
     debugPrint(
       '[AutocompleteNameField] query="$q" '
       '→ ${_filtered.length} matches '
       '(${startsWith.length} starts-with, ${contains.length} contains)',
     );
   }
-
   void _onSelectSuggestion(Map<String, dynamic> tx) {
     setState(() {
       _showSuggestions = false;
     });
-
     widget.controller.removeListener(_onTextChanged);
     final name = (tx['title'] ?? tx['name'] ?? '').toString().trim();
     widget.controller.text = name;
@@ -154,7 +131,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     debugPrint('[AutocompleteNameField] selected: "$name"');
     widget.onSuggestionSelected(tx);
   }
-
   @override
   Widget build(BuildContext context) {
     final query = widget.controller.text.trim();
@@ -166,9 +142,7 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     );
     final showAddNew = !hasExactMatch && query.isNotEmpty;
     final totalRows = items.length + (showAddNew ? 1 : 0);
-
     final showDropdown = _showSuggestions && totalRows > 0;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -198,7 +172,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
               hintStyle: const TextStyle(color: AppColors.textLight),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
               isDense: true,
-
               suffixIcon: widget.suggestions.isNotEmpty
                   ? const Padding(
                       padding: EdgeInsets.only(right: 2),
@@ -251,7 +224,6 @@ class _AutocompleteNameFieldState extends State<AutocompleteNameField> {
     );
   }
 }
-
 class _SuggestionDropdown extends StatelessWidget {
   const _SuggestionDropdown({
     required this.items,
@@ -260,13 +232,11 @@ class _SuggestionDropdown extends StatelessWidget {
     required this.onSelect,
     required this.onAddNew,
   });
-
   final List<Map<String, dynamic>> items;
   final String query;
   final bool showAddNew;
   final void Function(Map<String, dynamic>) onSelect;
   final VoidCallback onAddNew;
-
   static String _relativeDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '';
     try {
@@ -289,7 +259,6 @@ class _SuggestionDropdown extends StatelessWidget {
       return '';
     }
   }
-
   static String _rateLabel(Map<String, dynamic> tx) {
     final rate = (tx['rate'] as num?)?.toDouble() ?? 0.0;
     if (rate <= 0) return '';
@@ -301,7 +270,6 @@ class _SuggestionDropdown extends StatelessWidget {
         ? '$rateStr / $unit'
         : rateStr;
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -360,7 +328,6 @@ class _SuggestionDropdown extends StatelessWidget {
                 ],
               ),
             ),
-
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
@@ -402,7 +369,6 @@ class _SuggestionDropdown extends StatelessWidget {
     );
   }
 }
-
 class _SuggestionRow extends StatelessWidget {
   const _SuggestionRow({
     required this.title,
@@ -412,14 +378,12 @@ class _SuggestionRow extends StatelessWidget {
     required this.isCurrentProject,
     required this.onTap,
   });
-
   final String title;
   final String unit;
   final String rateLabel;
   final String dateLabel;
   final bool isCurrentProject;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -449,7 +413,6 @@ class _SuggestionRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +465,6 @@ class _SuggestionRow extends StatelessWidget {
                 ],
               ),
             ),
-
             if (unit.isNotEmpty && unit != 'unit' && unit != 'units') ...[
               const SizedBox(width: 8),
               Container(
@@ -527,13 +489,10 @@ class _SuggestionRow extends StatelessWidget {
     );
   }
 }
-
 class _AddNewRow extends StatelessWidget {
   const _AddNewRow({required this.query, required this.onTap});
-
   final String query;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     return InkWell(

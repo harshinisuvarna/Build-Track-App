@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-
 class AppGradients {
   AppGradients._();
   static const LinearGradient primaryButton = LinearGradient(

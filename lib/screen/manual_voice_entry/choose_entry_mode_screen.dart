@@ -3,24 +3,19 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-
 class ChooseEntryModeScreen extends StatefulWidget {
   const ChooseEntryModeScreen({super.key});
-
   @override
   State<ChooseEntryModeScreen> createState() => _ChooseEntryModeScreenState();
 }
-
 class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     with SingleTickerProviderStateMixin {
   String _entryType = 'material';
   Map<String, dynamic> _contextArgs = {};
-
   bool _argsLoaded = false;
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-
   @override
   void initState() {
     super.initState();
@@ -34,19 +29,16 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       _entryType = args['type']?.toString() ?? 'material';
       _contextArgs = Map<String, dynamic>.from(args);
     }
-
     final projectProvider = Provider.of<ProjectProvider>(
       context,
       listen: false,
@@ -59,42 +51,35 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     _contextArgs['phaseId'] = projectProvider.selectedPhaseId;
     _contextArgs['activity'] = projectProvider.selectedActivity;
     _contextArgs['activityId'] = projectProvider.selectedActivityId;
-
     WidgetsBinding.instance.addPostFrameCallback((_) => _animCtrl.forward());
   }
-
   @override
   void dispose() {
     _animCtrl.dispose();
     super.dispose();
   }
-
   static const Map<String, String> _voiceRoutes = {
     'material': '/review-material',
     'labour': '/review-labour',
     'equipment': '/review-equipment',
   };
-
   static const Map<String, String> _manualRoutes = {
     'material': '/add-material',
     'labour': '/add-labour',
     'equipment': '/add-equipment',
   };
-
   void _goVoice() {
     final route = _voiceRoutes[_entryType];
     if (route != null) {
       Navigator.pushNamed(context, route, arguments: _contextArgs);
     }
   }
-
   void _goManual() {
     final route = _manualRoutes[_entryType];
     if (route != null) {
       Navigator.pushNamed(context, route, arguments: _contextArgs);
     }
   }
-
   String get _entryTypeLabel {
     switch (_entryType) {
       case 'labour':
@@ -105,7 +90,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
         return 'Material';
     }
   }
-
   String get _projectName {
     final provider = Provider.of<ProjectProvider>(context);
     return provider.selectedProject?.name ??
@@ -113,7 +97,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
         _contextArgs['projectId']?.toString() ??
         '—';
   }
-
   String get _floor =>
       Provider.of<ProjectProvider>(context).selectedFloor ??
       _contextArgs['floor']?.toString() ??
@@ -126,7 +109,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       Provider.of<ProjectProvider>(context).selectedActivity ??
       _contextArgs['activity']?.toString() ??
       '—';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,7 +136,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                       children: [
                         _buildStepIndicator(),
                         const SizedBox(height: 24),
-
                         const Text(
                           'How do you want\nto add?',
                           style: TextStyle(
@@ -174,10 +155,8 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                           ),
                         ),
                         const SizedBox(height: 24),
-
                         _buildContextBanner(),
                         const SizedBox(height: 28),
-
                         _InteractiveModeCard(
                           icon: Icons.mic_rounded,
                           iconColor: AppColors.primary,
@@ -188,7 +167,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
                           onTap: _goVoice,
                         ),
                         const SizedBox(height: 16),
-
                         _InteractiveModeCard(
                           icon: Icons.edit_outlined,
                           iconColor: const Color(0xFF7C3AED),
@@ -208,7 +186,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       ),
     );
   }
-
   Widget _buildStepIndicator() {
     return Row(
       children: [
@@ -222,7 +199,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       ],
     );
   }
-
   Widget _stepDot(
     int step,
     String label, {
@@ -237,7 +213,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     final Color textColor = (done || active)
         ? Colors.white
         : AppColors.textLight;
-
     return Column(
       children: [
         AnimatedContainer(
@@ -274,7 +249,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       ],
     );
   }
-
   Widget _stepLine({bool done = false}) {
     return Expanded(
       child: Container(
@@ -287,7 +261,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       ),
     );
   }
-
   Widget _buildContextBanner() {
     return Container(
       width: double.infinity,
@@ -347,7 +320,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       ),
     );
   }
-
   Widget _contextRow(IconData icon, String label, String value) {
     return Row(
       children: [
@@ -376,7 +348,6 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
     );
   }
 }
-
 class _InteractiveModeCard extends StatefulWidget {
   const _InteractiveModeCard({
     required this.icon,
@@ -386,24 +357,20 @@ class _InteractiveModeCard extends StatefulWidget {
     required this.subtitle,
     required this.onTap,
   });
-
   final IconData icon;
   final Color iconColor;
   final Color iconBg;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-
   @override
   State<_InteractiveModeCard> createState() => _InteractiveModeCardState();
 }
-
 class _InteractiveModeCardState extends State<_InteractiveModeCard>
     with SingleTickerProviderStateMixin {
   bool _isHovered = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-
   @override
   void initState() {
     super.initState();
@@ -415,13 +382,11 @@ class _InteractiveModeCardState extends State<_InteractiveModeCard>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
   }
-
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final borderColor = _isHovered
@@ -433,7 +398,6 @@ class _InteractiveModeCardState extends State<_InteractiveModeCard>
         : Colors.black.withValues(alpha: 0.04);
     final shadowBlur = _isHovered ? 14.0 : 10.0;
     final shadowOffset = _isHovered ? const Offset(0, 4) : const Offset(0, 3);
-
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),

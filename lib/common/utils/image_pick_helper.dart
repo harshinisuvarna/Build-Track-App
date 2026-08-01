@@ -3,19 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-
 class PickedImage {
   final String path;
   final Future<Uint8List> Function() _readBytes;
-
   PickedImage._({
     required this.path,
     required Future<Uint8List> Function() readBytes,
   }) : _readBytes = readBytes;
-
   Future<Uint8List> readAsBytes() => _readBytes();
 }
-
 Future<PickedImage?> pickImageFromGallery(BuildContext context) async {
   try {
     final picker = ImagePicker();
@@ -35,27 +31,22 @@ Future<PickedImage?> pickImageFromGallery(BuildContext context) async {
     return null;
   }
 }
-
 class PickedAttachment {
   final String name;
   final Uint8List bytes;
   final String mimeType;
-
   const PickedAttachment({
     required this.name,
     required this.bytes,
     required this.mimeType,
   });
-
   bool get isImage =>
       mimeType.startsWith('image/') ||
       name.toLowerCase().endsWith('.jpg') ||
       name.toLowerCase().endsWith('.jpeg') ||
       name.toLowerCase().endsWith('.png') ||
       name.toLowerCase().endsWith('.webp');
-
   ImageProvider? get imageProvider => isImage ? MemoryImage(bytes) : null;
-
   IconData get icon {
     final ext = name.split('.').last.toLowerCase();
     if (ext == 'pdf') return Icons.picture_as_pdf_outlined;
@@ -63,7 +54,6 @@ class PickedAttachment {
     if (ext == 'xls' || ext == 'xlsx') return Icons.table_chart_outlined;
     return Icons.insert_drive_file_outlined;
   }
-
   Color get iconColor {
     final ext = name.split('.').last.toLowerCase();
     if (ext == 'pdf') return const Color(0xFFE53935);
@@ -71,11 +61,8 @@ class PickedAttachment {
     if (ext == 'xls' || ext == 'xlsx') return const Color(0xFF2E7D32);
     return const Color(0xFF6B7280);
   }
-
   Color get iconBg => iconColor.withValues(alpha: 0.10);
-
   String get dataUri => 'data:$mimeType;base64,${_base64Encode(bytes)}';
-
   static String _base64Encode(Uint8List bytes) {
     const chars =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -93,7 +80,6 @@ class PickedAttachment {
     return output.toString();
   }
 }
-
 Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
   try {
     if (!kIsWeb) {
@@ -147,7 +133,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
         );
       }
     }
-
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: [
@@ -167,7 +152,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
     final f = result.files.first;
     final bytes = f.bytes;
     if (bytes == null) return null;
-
     final ext = (f.extension ?? 'bin').toLowerCase();
     final mimeMap = {
       'jpg': 'image/jpeg',
@@ -182,7 +166,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
       'xlsx':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };
-
     return PickedAttachment(
       name: f.name,
       bytes: bytes,
@@ -193,7 +176,6 @@ Future<PickedAttachment?> pickAttachmentDirect(BuildContext context) async {
     return null;
   }
 }
-
 ImageProvider? getProfileImageProvider(String? photoUrl) {
   if (photoUrl == null ||
       photoUrl.isEmpty ||

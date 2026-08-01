@@ -1,9 +1,7 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
-
 enum CtaVariant { primary, secondary, outline }
-
 class PremiumCtaButton extends StatelessWidget {
   const PremiumCtaButton({
     super.key,
@@ -14,23 +12,19 @@ class PremiumCtaButton extends StatelessWidget {
     this.isLoading = false,
     this.variant = CtaVariant.primary,
   });
-
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
   final bool isFullWidth;
   final bool isLoading;
   final CtaVariant variant;
-
   @override
   Widget build(BuildContext context) {
     final isPrimary = variant == CtaVariant.primary;
     final isSecondary = variant == CtaVariant.secondary;
-
     BoxDecoration decoration;
     Color textColor;
     Color spinnerColor;
-
     if (isPrimary) {
       decoration = BoxDecoration(
         gradient: AppGradients.primaryButton,
@@ -72,7 +66,6 @@ class PremiumCtaButton extends StatelessWidget {
       textColor = const Color(0xFF344054);
       spinnerColor = AppColors.primary;
     }
-
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       behavior: HitTestBehavior.opaque,

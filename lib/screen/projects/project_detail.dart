@@ -19,16 +19,13 @@ import 'package:csv/csv.dart';
 import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
-
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({super.key});
   @override
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
 }
-
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final Set<String> _expanded = {};
-
   @override
   void initState() {
     super.initState();
@@ -38,12 +35,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final project = provider.selectedProject;
-
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -68,10 +63,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         ),
       );
     }
-
     final selectedPhases = project.selectedPhases;
     final hasNewTracker = selectedPhases != null && selectedPhases.isNotEmpty;
-
     final int trackerTotal = hasNewTracker
         ? selectedPhases.fold<int>(0, (s, p) => s + p.totalCount)
         : 0;
@@ -81,7 +74,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final double progress = trackerTotal > 0
         ? trackerDone / trackerTotal
         : project.progress;
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -118,18 +110,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       totalCount: trackerTotal,
                     ),
                     const SizedBox(height: 14),
-
                     const AppSectionHeader(title: 'Project Information'),
                     _ProjectInfoCard(project: project),
                     const SizedBox(height: 14),
-
                     if (project.projectType != null &&
                         project.projectType!.isNotEmpty) ...[
                       const AppSectionHeader(title: 'Building Type'),
                       _BuildingTypeCard(project: project),
                       const SizedBox(height: 14),
                     ],
-
                     if ((project.landArea != null &&
                             project.landArea!.isNotEmpty) ||
                         (project.floors != null &&
@@ -140,7 +129,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       _LandFloorsCard(project: project),
                       const SizedBox(height: 14),
                     ],
-
                     if ((project.room1BHK ?? 0) +
                             (project.room2BHK ?? 0) +
                             (project.room3BHK ?? 0) +
@@ -154,22 +142,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       _RoomsBathsCard(project: project),
                       const SizedBox(height: 14),
                     ],
-
                     if (project.selectedFeatures != null &&
                         project.selectedFeatures!.isNotEmpty)
                       ..._buildConfigSections(project.selectedFeatures!),
-
                     const AppSectionHeader(title: 'Timeline & Status'),
                     _ProjectTimelineCard(project: project),
                     const SizedBox(height: 14),
-
                     const AppSectionHeader(title: 'Financial Overview'),
                     _FinancialCard(project: project),
                     const SizedBox(height: 14),
-
                     _CsvImportExportCard(project: project),
                     const SizedBox(height: 14),
-
                     AppSectionHeader(
                       title: 'Execution Tracker',
                       actionLabel: hasNewTracker
@@ -244,14 +227,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         ),
                       ),
                     ],
-
                     _RecentEntriesSection(
                       project: project,
                       provider: provider,
                       currentUserId: UserSession.userId,
                     ),
                     const SizedBox(height: 14),
-
                     const AppSectionHeader(title: 'Actions'),
                     _ActionButtons(project: project),
                   ],
@@ -263,7 +244,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
     );
   }
-
   List<Widget> _buildConfigSections(List<String> features) {
     final addl = _grp(features, _kAddlConfig);
     final utility = _grp(features, _kUtility);
@@ -271,7 +251,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final kitchen = _grp(features, _kKitchen);
     final electrical = _grp(features, _kElectrical);
     final terrace = _grp(features, _kTerrace);
-
     final allKnown = [
       ..._kAddlConfig,
       ..._kUtility,
@@ -282,7 +261,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     ];
     final unknown = features.where((f) => !allKnown.contains(f)).toList();
     final addlAll = [...addl, ...unknown];
-
     Widget sec(String t, List<String> items, IconData icon) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -307,7 +285,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     ];
   }
 }
-
 class _TrackerPhaseCard extends StatelessWidget {
   const _TrackerPhaseCard({
     required this.phase,
@@ -316,19 +293,16 @@ class _TrackerPhaseCard extends StatelessWidget {
     required this.onToggleExpand,
     required this.onToggleActivity,
   });
-
   final ProjectPhase phase;
   final ProjectModel project;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
   final void Function(String activityId) onToggleActivity;
-
   @override
   Widget build(BuildContext context) {
     final done = phase.completedCount;
     final total = phase.totalCount;
     final pct = total > 0 ? done / total : 0.0;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -468,7 +442,6 @@ class _TrackerPhaseCard extends StatelessWidget {
     );
   }
 }
-
 class _TrackerActivityRow extends StatefulWidget {
   const _TrackerActivityRow({
     required this.activity,
@@ -476,19 +449,15 @@ class _TrackerActivityRow extends StatefulWidget {
     required this.phaseName,
     required this.onToggle,
   });
-
   final ProjectActivity activity;
   final ProjectModel project;
   final String phaseName;
   final VoidCallback onToggle;
-
   @override
   State<_TrackerActivityRow> createState() => _TrackerActivityRowState();
 }
-
 class _TrackerActivityRowState extends State<_TrackerActivityRow> {
   bool _isBudgetExpanded = false;
-
   static const _months = [
     'Jan',
     'Feb',
@@ -503,18 +472,15 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     'Nov',
     'Dec',
   ];
-
   String? _completedDateLabel() {
     if (!widget.activity.completed) return null;
     final dt = widget.activity.completedAt;
     if (dt == null) return 'Date not recorded';
-
     if (dt.year == 2000 && dt.month == 1 && dt.day == 1) {
       return 'Date not recorded';
     }
     return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
   }
-
   void _openUpdateProgress(BuildContext context) {
     final floors = widget.project.floors ?? [];
     Navigator.pushNamed(
@@ -537,7 +503,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       }
     });
   }
-
   void _openUpdateBudgetDialog(BuildContext context) {
     final materialController = TextEditingController(
       text: (widget.activity.budgetMaterial ?? 0.0).toStringAsFixed(0),
@@ -548,7 +513,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     final equipmentController = TextEditingController(
       text: (widget.activity.budgetEquipment ?? 0.0).toStringAsFixed(0),
     );
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -611,16 +575,13 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     final lab = double.tryParse(labourController.text) ?? 0.0;
                     final equ =
                         double.tryParse(equipmentController.text) ?? 0.0;
-
                     Navigator.pop(modalContext);
-
                     showDialog(
                       context: context,
                       barrierDismissible: false,
                       builder: (_) =>
                           const Center(child: CircularProgressIndicator()),
                     );
-
                     final success = await context
                         .read<ProjectProvider>()
                         .updateActivityBudget(
@@ -630,7 +591,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                           budgetLabour: lab,
                           budgetEquipment: equ,
                         );
-
                     if (context.mounted) {
                       Navigator.pop(context);
                       if (success) {
@@ -672,7 +632,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       },
     );
   }
-
   Widget _buildDialogTextField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,16 +676,13 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       ],
     );
   }
-
   Widget _buildBudgetSection(BuildContext context) {
     final allocMat = widget.activity.budgetMaterial ?? 0.0;
     final allocLab = widget.activity.budgetLabour ?? 0.0;
     final allocEqu = widget.activity.budgetEquipment ?? 0.0;
-
     final budget =
         widget.activity.budget ??
         ActivityBudget.zero(allocMat, allocLab, allocEqu);
-
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       padding: const EdgeInsets.all(14),
@@ -812,7 +768,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       ),
     );
   }
-
   Widget _buildBudgetItem({
     required String label,
     required ActivityBudgetCategory category,
@@ -825,7 +780,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     final pct = category.progress;
     final isOver = spent > allocated && allocated > 0;
     final barColor = isOver ? const Color(0xFFEF4444) : color;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -890,12 +844,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       ],
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final done = widget.activity.completed;
     final dateLabel = _completedDateLabel();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1071,7 +1023,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       ],
     );
   }
-
   void _showActivityDetails(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1083,7 +1034,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       builder: (_) {
         final maxH = MediaQuery.of(context).size.height * 0.75;
         final formattedDate = _completedDateLabel() ?? 'Completed';
-
         return SafeArea(
           top: false,
           child: ConstrainedBox(
@@ -1105,7 +1055,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1158,7 +1107,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -1182,7 +1130,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               ),
                             ],
                           ),
-
                           if (widget.activity.notes != null &&
                               widget.activity.notes!.trim().isNotEmpty) ...[
                             const SizedBox(height: 20),
@@ -1217,7 +1164,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               ),
                             ),
                           ],
-
                           if ((widget.activity.photos != null &&
                                   widget.activity.photos!.isNotEmpty) ||
                               (widget.activity.photo != null &&
@@ -1235,7 +1181,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                             const SizedBox(height: 8),
                             _buildProgressPhotosList(context, widget.activity),
                           ],
-
                           if ((widget.activity.notes == null ||
                                   widget.activity.notes!.trim().isEmpty) &&
                               (widget.activity.photo == null ||
@@ -1290,7 +1235,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       },
     );
   }
-
   Widget _buildThumbnailImage(String photoUrl) {
     Widget img;
     if (photoUrl.startsWith('data:image/') && photoUrl.contains(';base64,')) {
@@ -1328,7 +1272,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     }
     return ClipRRect(borderRadius: BorderRadius.circular(10), child: img);
   }
-
   Widget _buildProgressPhotosList(
     BuildContext context,
     ProjectActivity activity,
@@ -1336,7 +1279,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     final photos = (activity.photos != null && activity.photos!.isNotEmpty)
         ? activity.photos!
         : [activity.photo!];
-
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -1358,7 +1300,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
       }).toList(),
     );
   }
-
   void _openPhotoGallery(
     BuildContext context,
     List<String> photos,
@@ -1372,7 +1313,6 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
     );
   }
 }
-
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.project,
@@ -1383,7 +1323,6 @@ class _SummaryCard extends StatelessWidget {
   final ProjectModel project;
   final double progress;
   final int doneCount, totalCount;
-
   static const _months = [
     'Jan',
     'Feb',
@@ -1399,7 +1338,6 @@ class _SummaryCard extends StatelessWidget {
     'Dec',
   ];
   String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
-
   static Color _statusColor(String? status) {
     switch (status) {
       case 'Completed':
@@ -1414,7 +1352,6 @@ class _SummaryCard extends StatelessWidget {
         return const Color(0xFF6B7280);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final pct = (progress * 100).toStringAsFixed(1);
@@ -1427,7 +1364,6 @@ class _SummaryCard extends StatelessWidget {
               ? 'In Progress'
               : 'Planning');
     final statusColor = _statusColor(rawStatus);
-
     final allPhases = buildDefaultPhases();
     final selectedNames = project.selectedPhaseNames;
     final phases = (selectedNames == null || selectedNames.isEmpty)
@@ -1442,7 +1378,6 @@ class _SummaryCard extends StatelessWidget {
         break;
       }
     }
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -1576,7 +1511,6 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _chip(String label, Color c, {IconData? icon, bool subtle = false}) =>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1606,7 +1540,6 @@ class _SummaryCard extends StatelessWidget {
           ],
         ),
       );
-
   Widget _infoRow(IconData icon, String text) => Row(
     children: [
       Icon(icon, color: AppColors.textLight, size: 14),
@@ -1621,7 +1554,6 @@ class _SummaryCard extends StatelessWidget {
     ],
   );
 }
-
 class _ProjectInfoCard extends StatelessWidget {
   const _ProjectInfoCard({required this.project});
   final ProjectModel project;
@@ -1711,7 +1643,6 @@ class _ProjectInfoCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildProjectCodeChip(String code) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1773,17 +1704,14 @@ class _ProjectInfoCard extends StatelessWidget {
     );
   }
 }
-
 class _InfoRow {
   const _InfoRow(this.icon, this.label, this.value);
   final IconData icon;
   final String label, value;
 }
-
 class _BuildingTypeCard extends StatelessWidget {
   const _BuildingTypeCard({required this.project});
   final ProjectModel project;
-
   @override
   Widget build(BuildContext context) {
     final raw = project.projectType ?? '';
@@ -1791,7 +1719,6 @@ class _BuildingTypeCard extends StatelessWidget {
     final mainType = parts.isNotEmpty ? parts[0].trim() : raw;
     final subType = parts.length > 1 ? parts[1].trim() : null;
     final IconData mainIcon = _iconForType(mainType);
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -1900,7 +1827,6 @@ class _BuildingTypeCard extends StatelessWidget {
       ),
     );
   }
-
   IconData _iconForType(String type) {
     switch (type) {
       case 'Residential':
@@ -1918,7 +1844,6 @@ class _BuildingTypeCard extends StatelessWidget {
     }
   }
 }
-
 class _LandFloorsCard extends StatelessWidget {
   const _LandFloorsCard({required this.project});
   final ProjectModel project;
@@ -2010,7 +1935,6 @@ class _LandFloorsCard extends StatelessWidget {
     );
   }
 }
-
 class _RoomsBathsCard extends StatelessWidget {
   const _RoomsBathsCard({required this.project});
   final ProjectModel project;
@@ -2099,7 +2023,6 @@ class _RoomsBathsCard extends StatelessWidget {
     );
   }
 }
-
 const _kAddlConfig = [
   'Balcony',
   'Car Parking',
@@ -2164,7 +2087,6 @@ const _kTerrace = [
 ];
 List<String> _grp(List<String> all, List<String> opts) =>
     all.where(opts.contains).toList();
-
 class _FeatureGroupCard extends StatefulWidget {
   const _FeatureGroupCard({
     required this.icon,
@@ -2177,7 +2099,6 @@ class _FeatureGroupCard extends StatefulWidget {
   @override
   State<_FeatureGroupCard> createState() => _FeatureGroupCardState();
 }
-
 class _FeatureGroupCardState extends State<_FeatureGroupCard> {
   bool _open = true;
   @override
@@ -2289,7 +2210,6 @@ class _FeatureGroupCardState extends State<_FeatureGroupCard> {
     );
   }
 }
-
 class _ProjectTimelineCard extends StatelessWidget {
   const _ProjectTimelineCard({required this.project});
   final ProjectModel project;
@@ -2410,7 +2330,6 @@ class _ProjectTimelineCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _dateBox(String label, String val, IconData icon, Color c) => Expanded(
     child: Container(
       padding: const EdgeInsets.all(10),
@@ -2449,7 +2368,6 @@ class _ProjectTimelineCard extends StatelessWidget {
     ),
   );
 }
-
 class _FinancialCard extends StatelessWidget {
   const _FinancialCard({required this.project});
   final ProjectModel project;
@@ -2624,7 +2542,6 @@ class _FinancialCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _frow(String label, String value, Color color, IconData icon) => Row(
     children: [
       Container(
@@ -2652,7 +2569,6 @@ class _FinancialCard extends StatelessWidget {
       ),
     ],
   );
-
   Widget _catRow(String label, double amount, Color c, IconData icon) => Row(
     children: [
       Container(
@@ -2681,7 +2597,6 @@ class _FinancialCard extends StatelessWidget {
     ],
   );
 }
-
 class _RecentEntriesSection extends StatelessWidget {
   const _RecentEntriesSection({
     required this.project,
@@ -2690,24 +2605,19 @@ class _RecentEntriesSection extends StatelessWidget {
   });
   final ProjectModel project;
   final ProjectProvider provider;
-
   final String? currentUserId;
-
   @override
   Widget build(BuildContext context) {
     final isAdmin = UserSession.isAdmin;
     final allEntries = provider.entriesForProject(project.id).toList();
-
     final filtered = allEntries.where((e) {
       if (currentUserId == null || currentUserId!.isEmpty) return false;
       if (e.createdBy != currentUserId) return false;
       if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
-
     filtered.sort((a, b) => b.date.compareTo(a.date));
     final entries = filtered.take(3).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2739,7 +2649,6 @@ class _RecentEntriesSection extends StatelessWidget {
     );
   }
 }
-
 class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry});
   final EntryModel entry;
@@ -2757,7 +2666,6 @@ class _EntryTile extends StatelessWidget {
     'Nov',
     'Dec',
   ];
-
   (Color, IconData) _style(EntryType t) {
     switch (t) {
       case EntryType.material:
@@ -2768,7 +2676,6 @@ class _EntryTile extends StatelessWidget {
         return (const Color(0xFF7B3FE7), Icons.construction_outlined);
     }
   }
-
   void _navigateToDetailFallback(BuildContext context) {
     Navigator.pushNamed(
       context,
@@ -2800,7 +2707,6 @@ class _EntryTile extends StatelessWidget {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _style(entry.type);
@@ -2815,11 +2721,9 @@ class _EntryTile extends StatelessWidget {
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
         );
-
         try {
           final response = await ApiService.get('/transactions');
           if (context.mounted) Navigator.pop(context);
-
           if (response.statusCode == 200) {
             final decoded = json.decode(response.body);
             List<dynamic> raw = [];
@@ -2833,7 +2737,6 @@ class _EntryTile extends StatelessWidget {
                           [])
                       as List<dynamic>;
             }
-
             Map<String, dynamic>? matched;
             for (final t in raw) {
               final tId = t['_id']?.toString() ?? '';
@@ -2842,7 +2745,6 @@ class _EntryTile extends StatelessWidget {
                 break;
               }
             }
-
             if (matched != null) {
               String? statusStr = matched['paymentStatus']?.toString();
               PaymentStatus payStatus = PaymentStatus.pending;
@@ -2852,7 +2754,6 @@ class _EntryTile extends StatelessWidget {
                 if (lower == 'partial') payStatus = PaymentStatus.partial;
                 if (lower == 'overdue') payStatus = PaymentStatus.overdue;
               }
-
               final String rawCat = (matched['category'] ?? '')
                   .toString()
                   .trim()
@@ -2861,7 +2762,6 @@ class _EntryTile extends StatelessWidget {
                   .toString()
                   .trim()
                   .toLowerCase();
-
               String category = 'material';
               if (rawCat == 'labour' ||
                   rawCat == 'wages' ||
@@ -2877,18 +2777,15 @@ class _EntryTile extends StatelessWidget {
                   rawType == 'equipment') {
                 category = 'equipment';
               }
-
               bool isPositive = true;
               if (matched['subType']?.toString().toLowerCase() ==
                   'consumption') {
                 isPositive = false;
               }
-
               final String tId = matched['_id']?.toString() ?? '';
               final String ref = tId.length > 4
                   ? '#${tId.substring(tId.length - 4)}'
                   : '#${tId.isNotEmpty ? tId : DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-
               final Map<String, dynamic> mappedArgs = {
                 ...matched,
                 'id': tId,
@@ -2928,7 +2825,6 @@ class _EntryTile extends StatelessWidget {
                 'subType': matched['subType'] ?? '',
                 'materialType': matched['materialType'] ?? '',
               };
-
               if (context.mounted) {
                 Navigator.pushNamed(
                   context,
@@ -2996,11 +2892,9 @@ class _EntryTile extends StatelessWidget {
     );
   }
 }
-
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.project});
   final ProjectModel project;
-
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -3086,13 +2980,11 @@ class _ActionButtons extends StatelessWidget {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final canAddEntry = RoleManager.canManageExpenses;
     final canEdit = RoleManager.canEditProject;
     final canDelete = RoleManager.canDeleteProject;
-
     if (!canAddEntry && !canEdit && !canDelete) {
       return AppCard(
         child: Row(
@@ -3111,7 +3003,6 @@ class _ActionButtons extends StatelessWidget {
         ),
       );
     }
-
     return Column(
       children: [
         if (canAddEntry) ...[
@@ -3149,7 +3040,6 @@ class _ActionButtons extends StatelessWidget {
     );
   }
 }
-
 class _AllProjectEntriesScreen extends StatelessWidget {
   const _AllProjectEntriesScreen({
     required this.project,
@@ -3157,12 +3047,10 @@ class _AllProjectEntriesScreen extends StatelessWidget {
     this.currentUserId,
     this.isAdmin = false,
   });
-
   final ProjectModel project;
   final ProjectProvider provider;
   final String? currentUserId;
   final bool isAdmin;
-
   @override
   Widget build(BuildContext context) {
     final allEntries = provider.entriesForProject(project.id).toList();
@@ -3172,11 +3060,8 @@ class _AllProjectEntriesScreen extends StatelessWidget {
       if (e.approvalStatus.toLowerCase().trim() != 'approved') return false;
       return true;
     }).toList();
-
     entries.sort((a, b) => b.date.compareTo(a.date));
-
     final canEdit = RoleManager.canEditProject;
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -3188,7 +3073,6 @@ class _AllProjectEntriesScreen extends StatelessWidget {
               isSubScreen: true,
               leftIcon: Icons.arrow_back,
               onLeftTap: () => Navigator.maybePop(context),
-
               rightWidget: canEdit
                   ? IconButton(
                       icon: const Icon(
@@ -3230,34 +3114,27 @@ class _AllProjectEntriesScreen extends StatelessWidget {
     );
   }
 }
-
 class _GalleryDialog extends StatefulWidget {
   final List<String> photos;
   final int initialIndex;
-
   const _GalleryDialog({required this.photos, required this.initialIndex});
-
   @override
   State<_GalleryDialog> createState() => _GalleryDialogState();
 }
-
 class _GalleryDialogState extends State<_GalleryDialog> {
   late int _currentIndex;
   late PageController _pageController;
-
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
   }
-
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -3274,7 +3151,6 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               height: double.infinity,
             ),
           ),
-
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -3325,7 +3201,6 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               );
             },
           ),
-
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
@@ -3334,7 +3209,6 @@ class _GalleryDialogState extends State<_GalleryDialog> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-
           Positioned(
             bottom: 40,
             child: Container(
@@ -3358,18 +3232,14 @@ class _GalleryDialogState extends State<_GalleryDialog> {
     );
   }
 }
-
 class _CsvImportExportCard extends StatefulWidget {
   const _CsvImportExportCard({required this.project});
   final ProjectModel project;
-
   @override
   State<_CsvImportExportCard> createState() => _CsvImportExportCardState();
 }
-
 class _CsvImportExportCardState extends State<_CsvImportExportCard> {
   bool _isUploading = false;
-
   Future<void> _downloadTemplate() async {
     final List<List<dynamic>> csvRows = [
       [
@@ -3387,7 +3257,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         'Total_Amount',
       ],
     ];
-
     if (widget.project.selectedPhases != null &&
         widget.project.selectedPhases!.isNotEmpty) {
       for (final phase in widget.project.selectedPhases!) {
@@ -3397,13 +3266,11 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           final double labAmt = act.budgetLabour ?? 0.0;
           final double eqAmt = act.budgetEquipment ?? 0.0;
           final double totAmt = matAmt + labAmt + eqAmt;
-
           final double qty = act.qty ?? 1.0;
           final String unit = act.unit ?? '';
           final double matRate = act.materialRate ?? 0.0;
           final double labRate = act.labourRate ?? 0.0;
           final double eqRate = act.equipmentRate ?? 0.0;
-
           csvRows.add([
             phase.phaseName,
             slNo++,
@@ -3429,13 +3296,11 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           final double labAmt = act.budgetLabour ?? 0.0;
           final double eqAmt = act.budgetEquipment ?? 0.0;
           final double totAmt = matAmt + labAmt + eqAmt;
-
           final double qty = act.qty ?? 1.0;
           final String unit = act.unit ?? '';
           final double matRate = act.materialRate ?? 0.0;
           final double labRate = act.labourRate ?? 0.0;
           final double eqRate = act.equipmentRate ?? 0.0;
-
           csvRows.add([
             phase.name,
             slNo++,
@@ -3453,11 +3318,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         }
       }
     }
-
     final csvContent = const ListToCsvConverter().convert(csvRows);
     final filename =
         '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
-
     try {
       await saveAndShareCsv(
         csvContent: csvContent,
@@ -3483,7 +3346,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       }
     }
   }
-
   Future<void> _uploadCsv() async {
     setState(() => _isUploading = true);
     try {
@@ -3492,26 +3354,21 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         allowedExtensions: ['csv'],
         withData: true,
       );
-
       if (result == null || result.files.isEmpty) {
         setState(() => _isUploading = false);
         return;
       }
-
       final fileBytes = result.files.first.bytes;
       if (fileBytes == null) {
         throw Exception("Failed to read file data");
       }
-
       final csvString = utf8.decode(fileBytes);
       final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
         csvString,
       );
-
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
-
       final headers = parsedCsv.first
           .map((h) => h.toString().trim().toLowerCase())
           .toList();
@@ -3528,13 +3385,11 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       final eqRateIdx = headers.indexOf('equipment_rate');
       int eqAmtIdx = headers.indexOf('budget_equipment_amount');
       if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
-
       if (phaseIdx == -1 || particularIdx == -1) {
         throw Exception(
           "CSV is missing required 'Phase' or 'Particular' column headers",
         );
       }
-
       double? parseVal(dynamic v) {
         if (v == null) return null;
         if (v is num) return v.toDouble();
@@ -3543,7 +3398,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         final clean = str.replaceAll(RegExp(r'[^\d\.]'), '');
         return double.tryParse(clean);
       }
-
       List<ProjectPhase> updatedPhases = [];
       if (widget.project.selectedPhases != null &&
           widget.project.selectedPhases!.isNotEmpty) {
@@ -3569,21 +3423,17 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           );
         }).toList();
       }
-
       int updatedCount = 0;
       for (int i = 1; i < parsedCsv.length; i++) {
         final row = parsedCsv[i];
         final maxIdx = phaseIdx > particularIdx ? phaseIdx : particularIdx;
         if (row.length <= maxIdx) continue;
-
         final String phaseName = row[phaseIdx].toString().trim();
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
-
         final double? qty = qtyIdx != -1 && qtyIdx < row.length
             ? parseVal(row[qtyIdx])
             : null;
-
         final double? matRate = matRateIdx != -1 && matRateIdx < row.length
             ? parseVal(row[matRateIdx])
             : null;
@@ -3593,7 +3443,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         if (matAmt == null && matRate != null && qty != null) {
           matAmt = qty * matRate;
         }
-
         final double? labRate = labRateIdx != -1 && labRateIdx < row.length
             ? parseVal(row[labRateIdx])
             : null;
@@ -3603,7 +3452,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         if (labAmt == null && labRate != null && qty != null) {
           labAmt = qty * labRate;
         }
-
         final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
             ? parseVal(row[eqRateIdx])
             : null;
@@ -3613,7 +3461,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         if (eqAmt == null && eqRate != null && qty != null) {
           eqAmt = qty * eqRate;
         }
-
         int phaseIndex = updatedPhases.indexWhere(
           (p) => p.phaseName.trim().toLowerCase() == phaseName.toLowerCase(),
         );
@@ -3627,13 +3474,11 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           updatedPhases.add(newPhase);
           phaseIndex = updatedPhases.length - 1;
         }
-
         final phase = updatedPhases[phaseIndex];
         final activities = List<ProjectActivity>.from(phase.activities);
         final actIndex = activities.indexWhere(
           (a) => a.name.trim().toLowerCase() == activityName.toLowerCase(),
         );
-
         if (actIndex != -1) {
           final currentAct = activities[actIndex];
           activities[actIndex] = currentAct.copyWith(
@@ -3661,11 +3506,9 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           );
           activities.add(newAct);
         }
-
         updatedPhases[phaseIndex] = phase.copyWith(activities: activities);
         updatedCount++;
       }
-
       double materialSum = 0;
       double labourSum = 0;
       double equipmentSum = 0;
@@ -3681,7 +3524,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
           labourSum +
           equipmentSum +
           (widget.project.budgetMisc ?? 0.0);
-
       final updatedProject = widget.project.copyWith(
         selectedPhases: updatedPhases,
         budgetMaterial: materialSum,
@@ -3689,9 +3531,7 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
         budgetEquipment: equipmentSum,
         totalBudget: totalSum,
       );
-
       await context.read<ProjectProvider>().updateProject(updatedProject);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3715,7 +3555,6 @@ class _CsvImportExportCardState extends State<_CsvImportExportCard> {
       setState(() => _isUploading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return AppCard(

@@ -8,7 +8,6 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 Future<void> showVoiceConfirmationSheet(
   BuildContext context, {
   String? detectedType,
@@ -23,7 +22,6 @@ Future<void> showVoiceConfirmationSheet(
     builder: (_) => VoiceConfirmationSheet(initialType: detectedType),
   );
 }
-
 class _EntryData {
   String? type;
   String? projectId;
@@ -35,7 +33,6 @@ class _EntryData {
   String? quantity;
   String? unit;
   String? rate;
-
   String? brand;
   String? supplier;
   String? category;
@@ -44,13 +41,11 @@ class _EntryData {
   String? notes;
   String? operator0;
   String? fuelCost;
-
   double get computedAmount {
     final q = double.tryParse(quantity ?? '') ?? 0;
     final r = double.tryParse(rate ?? '') ?? 0;
     return q * r;
   }
-
   String get typeLabel {
     switch (type) {
       case 'material':
@@ -64,7 +59,6 @@ class _EntryData {
     }
   }
 }
-
 enum _StepId {
   entryType,
   project,
@@ -75,20 +69,15 @@ enum _StepId {
   quantity,
   unit,
   rate,
-
   optionals,
-
   review,
 }
-
 class VoiceConfirmationSheet extends StatefulWidget {
   final String? initialType;
   const VoiceConfirmationSheet({super.key, this.initialType});
-
   @override
   State<VoiceConfirmationSheet> createState() => _VoiceConfirmationSheetState();
 }
-
 class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     with TickerProviderStateMixin {
   static const _blue = AppColors.primaryBlue;
@@ -97,24 +86,19 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
   static const _textDark = Color(0xFF0F1724);
   static const _textGray = Color(0xFF5A6B82);
   static const _successGreen = Color(0xFF10B981);
-
   final _entry = _EntryData();
   _StepId _currentStep = _StepId.entryType;
   final _answerCtrl = TextEditingController();
   bool _isSaving = false;
   bool _saveSuccess = false;
   String? _saveError;
-
   final _voiceCtrl = VoiceRecordingController();
   String _sttError = '';
-
   late final AnimationController _pulseCtrl;
   late final AnimationController _waveCtrl;
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
-
   final _textFocusNode = FocusNode();
-
   static const _units = [
     'Bags',
     'Kg',
@@ -130,38 +114,30 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Per Day',
     'Trips',
   ];
-
   static const _paymentModes = ['Cash', 'UPI', 'NEFT', 'Cheque', 'Credit'];
-
   @override
   void initState() {
     super.initState();
-
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-
     _waveCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat();
-
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
-
     _voiceCtrl.addListener(_onVoiceStateChanged);
-
     if (widget.initialType != null) {
       _entry.type = widget.initialType;
       _currentStep = _StepId.project;
     }
   }
-
   @override
   void dispose() {
     _voiceCtrl.removeListener(_onVoiceStateChanged);
@@ -173,7 +149,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     _textFocusNode.dispose();
     super.dispose();
   }
-
   List<_StepId> get _allSteps {
     return [
       _StepId.entryType,
@@ -189,10 +164,8 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       _StepId.review,
     ];
   }
-
   int get _stepIndex => _allSteps.indexOf(_currentStep);
   int get _totalSteps => _allSteps.length;
-
   String get _aiGreeting {
     switch (_currentStep) {
       case _StepId.entryType:
@@ -224,7 +197,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         return 'Great! Here\'s what I understood.';
     }
   }
-
   String get _stepLabel {
     switch (_currentStep) {
       case _StepId.entryType:
@@ -255,7 +227,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         return 'Review';
     }
   }
-
   void _animateTransition(VoidCallback action) {
     _fadeCtrl.reverse().then((_) {
       if (!mounted) return;
@@ -263,7 +234,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       _fadeCtrl.forward();
     });
   }
-
   void _goToNext() {
     _animateTransition(() {
       switch (_currentStep) {
@@ -302,7 +272,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       }
     });
   }
-
   void _goBack() {
     _animateTransition(() {
       final idx = _stepIndex;
@@ -311,7 +280,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       }
     });
   }
-
   void _onVoiceStateChanged() {
     if (!mounted) return;
     debugPrint('STT state: ${_voiceCtrl.engineState}');
@@ -336,7 +304,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         break;
     }
   }
-
   Future<void> _handleTapToAnswer() async {
     if (_voiceCtrl.engineState == VoiceEngineState.listening) {
       debugPrint('Listening stopped');
@@ -349,11 +316,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     await _voiceCtrl.startListening();
     debugPrint('Listening started');
   }
-
   void _processRecognizedText(String text) {
     if (text.isEmpty) return;
     debugPrint('Process: "$text" for step $_currentStep');
-
     setState(() {
       switch (_currentStep) {
         case _StepId.entryType:
@@ -377,7 +342,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             _entry.type = 'equipment';
           }
           break;
-
         case _StepId.project:
           _entry.projectName = text;
           _entry.floor = null;
@@ -401,49 +365,39 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             }
           } catch (_) {}
           break;
-
         case _StepId.floor:
           _entry.floor = text;
           break;
-
         case _StepId.phase:
           _entry.phase = text;
           _entry.activity = null;
           break;
-
         case _StepId.activity:
           _entry.activity = text;
           break;
-
         case _StepId.itemName:
           _entry.itemName = text;
           break;
-
         case _StepId.quantity:
           {
             final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
             _entry.quantity = cleaned.isNotEmpty ? cleaned : text;
             break;
           }
-
         case _StepId.unit:
           _entry.unit = text;
           break;
-
         case _StepId.rate:
           {
             final cleaned = text.replaceAll(RegExp(r'[^0-9.]'), '');
             _entry.rate = cleaned.isNotEmpty ? cleaned : text;
             break;
           }
-
         default:
           break;
       }
     });
-
     debugPrint('Conversation updated.');
-
     if (_currentStep == _StepId.entryType && _entry.type != null) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _goToNext();
@@ -456,11 +410,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       });
     }
   }
-
   Widget _buildTapToAnswerButton() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     final isProcessing = _voiceCtrl.engineState == VoiceEngineState.processing;
-
     return Column(
       children: [
         if (_sttError.isNotEmpty)
@@ -541,11 +493,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   String _mapUnitToBackend(String? rawUnit) {
     if (rawUnit == null || rawUnit.isEmpty) return 'unit';
     final lower = rawUnit.toLowerCase();
-
     if (lower.contains('bag')) return 'bag';
     if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
     if (lower.contains('ton')) return 'ton';
@@ -561,31 +511,25 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     if (lower.contains('rft') || lower.contains('running')) return 'rft';
     if (lower.contains('trip') || lower.contains('truck')) return 'truck';
     if (lower.contains('nos') || lower.contains('piece')) return 'unit';
-
     return 'unit';
   }
-
   Future<void> _saveEntry() async {
     setState(() {
       _isSaving = true;
       _saveError = null;
     });
-
     try {
       final rawType = _entry.type == 'labour'
           ? 'Wages'
           : _entry.type == 'equipment'
           ? 'Expense'
           : 'Materials';
-
       final qty = double.tryParse(_entry.quantity ?? '') ?? 0;
       final rate = double.tryParse(_entry.rate ?? '') ?? 0;
       final amount = qty * rate;
-
       final gstPct = double.tryParse(_entry.gst ?? '') ?? 0;
       final gstAmount = amount * gstPct / 100;
       final totalAmount = amount + gstAmount;
-
       final payload = <String, dynamic>{
         'title': _entry.itemName ?? 'Entry',
         'type': rawType,
@@ -613,9 +557,7 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           'fuelCost': double.tryParse(_entry.fuelCost ?? '') ?? 0,
         'createdBy': UserSession.userId,
       };
-
       final result = await ApiService.addTransaction(payload);
-
       if (result != null) {
         if (mounted) {
           final provider = Provider.of<ProjectProvider>(context, listen: false);
@@ -625,7 +567,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           _isSaving = false;
           _saveSuccess = true;
         });
-
         await Future.delayed(const Duration(milliseconds: 1400));
         if (mounted) Navigator.of(context).pop();
       } else {
@@ -641,12 +582,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       height: screenHeight * 0.92,
@@ -672,7 +611,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildHandle() {
     return Padding(
       padding: const EdgeInsets.only(top: 12, bottom: 4),
@@ -686,7 +624,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -722,7 +659,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
               ],
             ),
           ),
-
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -739,7 +675,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildMicOrb() {
     return AnimatedBuilder(
       animation: _pulseCtrl,
@@ -770,7 +705,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       },
     );
   }
-
   Widget _buildProgressBar() {
     final progress = _totalSteps > 1
         ? (_stepIndex / (_totalSteps - 1)).clamp(0.0, 1.0)
@@ -815,7 +749,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildStepContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
@@ -828,7 +761,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             _buildAnsweredSoFar(),
             const SizedBox(height: 16),
           ],
-
           _buildCurrentStepInput(),
           if (_currentStep != _StepId.review &&
               _currentStep != _StepId.optionals) ...[
@@ -839,7 +771,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildWaveformRow() {
     return AnimatedBuilder(
       animation: _waveCtrl,
@@ -864,15 +795,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       },
     );
   }
-
   Widget _buildAnsweredSoFar() {
     final chips = <Widget>[];
-
     void addChip(IconData icon, String? val) {
       if (val == null || val.isEmpty) return;
       chips.add(_AnswerChip(icon: icon, value: val));
     }
-
     addChip(
       Icons.category_outlined,
       _entry.typeLabel != 'Entry' ? _entry.typeLabel : null,
@@ -882,19 +810,15 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     addChip(Icons.construction_outlined, _entry.phase);
     addChip(Icons.task_outlined, _entry.activity);
     addChip(Icons.inventory_2_outlined, _entry.itemName);
-
     if (_entry.quantity != null && _entry.rate != null) {
       addChip(
         Icons.calculate_outlined,
         '₹${_formatAmount(_entry.computedAmount)}',
       );
     }
-
     if (chips.isEmpty) return const SizedBox.shrink();
-
     return Wrap(spacing: 8, runSpacing: 8, children: chips);
   }
-
   Widget _buildEntryTypeStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -929,7 +853,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildTypeCard(String type, IconData icon, String label, String sub) {
     final selected = _entry.type == type;
     return Expanded(
@@ -991,11 +914,9 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildProjectStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final projects = provider.projects;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1014,7 +935,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 setState(() {
                   _entry.projectId = p.id;
                   _entry.projectName = p.name;
-
                   _entry.floor = null;
                   _entry.phase = null;
                   _entry.activity = null;
@@ -1026,7 +946,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildFloorStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
@@ -1036,7 +955,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           : _placeholderProject(),
     );
     final floors = project.floors ?? ['Ground'];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1065,21 +983,18 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildPhaseStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
       (p) => p.id == _entry.projectId,
       orElse: () => _placeholderProject(),
     );
-
     final phases =
         project.selectedPhases
             ?.map((p) => p.phaseName)
             .where((n) => n.isNotEmpty)
             .toList() ??
         _defaultPhases;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1111,14 +1026,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildActivityStep() {
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     final project = provider.projects.firstWhere(
       (p) => p.id == _entry.projectId,
       orElse: () => _placeholderProject(),
     );
-
     List<String> activities = [];
     if (project.selectedPhases != null && _entry.phase != null) {
       final phaseObj = project.selectedPhases!
@@ -1129,7 +1042,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       }
     }
     if (activities.isEmpty) activities = _defaultActivities;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1160,14 +1072,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildItemNameStep() {
     final suggestions = _entry.type == 'material'
         ? _materialSuggestions
         : _entry.type == 'labour'
         ? _labourSuggestions
         : _equipmentSuggestions;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1205,7 +1115,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildQuantityStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1227,7 +1136,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildUnitStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1266,7 +1174,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildRateStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1290,7 +1197,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildAmountPreview() {
     final q = double.tryParse(_entry.quantity ?? '') ?? 0;
     final r = double.tryParse(_entry.rate ?? '') ?? 0;
@@ -1338,14 +1244,12 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildOptionalsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionLabel('OPTIONAL — SKIP ANYTIME'),
         const SizedBox(height: 12),
-
         if (_entry.type == 'material') ...[
           _buildOptionalField(
             'Brand',
@@ -1367,7 +1271,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           ),
           _buildOptionalGst(),
         ],
-
         if (_entry.type == 'equipment') ...[
           _buildOptionalField(
             'Operator Name',
@@ -1383,7 +1286,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             keyboardType: TextInputType.number,
           ),
         ],
-
         _buildPaymentModeField(),
         _buildOptionalField(
           'Notes',
@@ -1392,7 +1294,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
           (v) => setState(() => _entry.notes = v),
           maxLines: 3,
         ),
-
         const SizedBox(height: 20),
         _buildGradientButton(
           label: 'Continue to Review',
@@ -1404,7 +1305,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildOptionalField(
     String label,
     IconData icon,
@@ -1447,7 +1347,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildOptionalGst() {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1486,7 +1385,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildPaymentModeField() {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1531,12 +1429,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildReviewStep() {
     if (_saveSuccess) {
       return _buildSuccessState();
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1603,7 +1499,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
                 'Total Amount',
                 '₹${_formatAmount(_entry.computedAmount)}',
               ),
-
               if ((_entry.gst ?? '').isNotEmpty) ...[
                 const SizedBox(height: 4),
                 _reviewRow('GST', '${_entry.gst}%'),
@@ -1627,7 +1522,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             ],
           ),
         ),
-
         if (_saveError != null) ...[
           const SizedBox(height: 14),
           Container(
@@ -1651,16 +1545,13 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
             ),
           ),
         ],
-
         const SizedBox(height: 20),
-
         _buildOutlinedButton(
           label: 'Edit',
           icon: Icons.edit_outlined,
           onTap: _goBack,
         ),
         const SizedBox(height: 12),
-
         _isSaving
             ? _buildLoadingButton()
             : _buildGradientButton(
@@ -1671,7 +1562,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildSuccessState() {
     return Center(
       child: Column(
@@ -1708,7 +1598,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _reviewRow(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -1740,7 +1629,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _reviewRowAmount(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1768,7 +1656,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildCurrentStepInput() {
     switch (_currentStep) {
       case _StepId.entryType:
@@ -1795,7 +1682,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
         return _buildReviewStep();
     }
   }
-
   Widget _buildSectionLabel(String text) {
     return Text(
       text,
@@ -1807,7 +1693,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildSelectableCard({
     required IconData icon,
     required String title,
@@ -1878,7 +1763,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildPill(
     String label, {
     required bool selected,
@@ -1916,7 +1800,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildCustomTextField({
     required String hint,
     required void Function(String) onSubmit,
@@ -1958,7 +1841,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildTypedTextField({
     required String label,
     required String hint,
@@ -2021,7 +1903,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ],
     );
   }
-
   Widget _buildGradientButton({
     required String label,
     required IconData icon,
@@ -2065,7 +1946,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildOutlinedButton({
     required String label,
     required IconData icon,
@@ -2102,7 +1982,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildSkipButton({
     required String label,
     required VoidCallback onTap,
@@ -2122,7 +2001,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildLoadingButton() {
     return Container(
       width: double.infinity,
@@ -2155,7 +2033,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   Widget _buildEmptyHint(String message) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2169,7 +2046,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       ),
     );
   }
-
   String _formatAmount(double amount) {
     if (amount >= 10000000) {
       return '${(amount / 10000000).toStringAsFixed(2)} Cr';
@@ -2188,7 +2064,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     }
     return amount.toStringAsFixed(0);
   }
-
   ProjectModel _placeholderProject() {
     return ProjectModel(
       id: '',
@@ -2203,7 +2078,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
       location: '',
     );
   }
-
   static const _defaultPhases = [
     'Foundation & Plinth Work',
     'Floor Construction',
@@ -2212,7 +2086,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Site Preparation',
     'Pre-Construction',
   ];
-
   static const _defaultActivities = [
     'Column Casting',
     'Slab Casting',
@@ -2225,7 +2098,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Waterproofing',
     'Landscaping',
   ];
-
   static const _materialSuggestions = [
     'Cement',
     'Steel',
@@ -2243,7 +2115,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Windows',
     'Glass',
   ];
-
   static const _labourSuggestions = [
     'Mason',
     'Helper',
@@ -2256,7 +2127,6 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Fabricator',
     'Welder',
   ];
-
   static const _equipmentSuggestions = [
     'JCB',
     'Tractor',
@@ -2268,13 +2138,10 @@ class _VoiceConfirmationSheetState extends State<VoiceConfirmationSheet>
     'Water Tanker',
   ];
 }
-
 class _AnswerChip extends StatelessWidget {
   final IconData icon;
   final String value;
-
   const _AnswerChip({required this.icon, required this.value});
-
   @override
   Widget build(BuildContext context) {
     return Container(

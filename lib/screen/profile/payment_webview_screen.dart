@@ -3,24 +3,18 @@ import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-
 class PaymentWebViewScreen extends StatefulWidget {
   final Map<String, dynamic> paymentParams;
-
   const PaymentWebViewScreen({super.key, required this.paymentParams});
-
   @override
   State<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();
 }
-
 class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
@@ -37,17 +31,14 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
           },
           onNavigationRequest: (NavigationRequest request) {
             final url = request.url;
-
             if (url.startsWith('buildtrack://payment/')) {
               final isSuccess = url.contains('/success');
               _handlePaymentReturn(isSuccess);
               return NavigationDecision.prevent;
             }
-
             if (url.contains('/api/subscriptions/callback')) {
               return NavigationDecision.navigate;
             }
-
             return NavigationDecision.navigate;
           },
         ),
@@ -57,11 +48,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         baseUrl: 'https://build-track.onrender.com/',
       );
   }
-
   String _buildPaymentHtml() {
     final p = widget.paymentParams;
     final airpayUrl = p['airpayUrl']?.toString() ?? '';
-
     final StringBuffer inputFields = StringBuffer();
     p.forEach((key, value) {
       if (key != 'airpayUrl') {
@@ -77,7 +66,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         );
       }
     });
-
     return '''
 <!DOCTYPE html>
 <html>
@@ -126,13 +114,10 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 </html>
 ''';
   }
-
   void _handlePaymentReturn(bool isSuccess) {
     context.read<SubscriptionProvider>().handlePaymentResult(isSuccess);
-
     if (mounted) Navigator.of(context).pop(isSuccess);
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,7 +155,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-
           if (_isLoading)
             Container(
               color: Colors.white,

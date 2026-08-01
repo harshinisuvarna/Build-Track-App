@@ -3,34 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 import 'package:http/http.dart' as http;
 import 'package:buildtrack_mobile/config/api_config.dart';
-
 class SignaturePage extends StatefulWidget {
   final String token;
-
   const SignaturePage({Key? key, required this.token}) : super(key: key);
-
   @override
   State<SignaturePage> createState() => _SignaturePageState();
 }
-
 class _SignaturePageState extends State<SignaturePage> {
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.black,
     exportBackgroundColor: Colors.transparent,
   );
-
   bool _isLoading = true;
   bool _isSubmitting = false;
   Map<String, dynamic>? _transaction;
   String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
     _fetchTransaction();
   }
-
   Future<void> _fetchTransaction() async {
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/esign/details/${widget.token}'));
@@ -54,21 +47,17 @@ class _SignaturePageState extends State<SignaturePage> {
       });
     }
   }
-
   Future<void> _submitSignature() async {
     if (_signatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a signature')));
       return;
     }
-
     setState(() => _isSubmitting = true);
-
     try {
       final signatureImage = await _signatureController.toPngBytes();
       if (signatureImage == null) return;
       final base64Signature = base64Encode(signatureImage);
       final dataUri = 'data:image/png;base64,$base64Signature';
-
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/esign/submit'),
         headers: {'Content-Type': 'application/json'},
@@ -77,7 +66,6 @@ class _SignaturePageState extends State<SignaturePage> {
           'signatureData': dataUri
         }),
       );
-
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receipt signed successfully!')));
         setState(() {
@@ -93,26 +81,22 @@ class _SignaturePageState extends State<SignaturePage> {
       setState(() => _isSubmitting = false);
     }
   }
-
   @override
   void dispose() {
     _signatureController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Sign Receipt')),
         body: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 18))),
       );
     }
-
     if (_transaction?['eSignStatus'] == 'Signed') {
       return Scaffold(
         appBar: AppBar(title: const Text('Receipt Signed')),
@@ -128,7 +112,6 @@ class _SignaturePageState extends State<SignaturePage> {
         ),
       );
     }
-
     return Scaffold(
       appBar: AppBar(title: const Text('Review & Sign Receipt'), centerTitle: true),
       body: SingleChildScrollView(
@@ -202,7 +185,6 @@ class _SignaturePageState extends State<SignaturePage> {
       ),
     );
   }
-
   Widget _buildRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

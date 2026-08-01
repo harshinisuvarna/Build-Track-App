@@ -5,25 +5,20 @@ import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-
 class AdminOverviewScreen extends StatefulWidget {
   const AdminOverviewScreen({super.key});
-
   @override
   State<AdminOverviewScreen> createState() => _AdminOverviewScreenState();
 }
-
 class _AdminOverviewScreenState extends State<AdminOverviewScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _transactions = [];
   bool _loadingUsers = true;
   bool _loadingTx = true;
   String? _usersError;
   String? _txError;
-
   @override
   void initState() {
     super.initState();
@@ -31,13 +26,11 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
     _loadUsers();
     _loadTransactions();
   }
-
   @override
   void dispose() {
     _tabCtrl.dispose();
     super.dispose();
   }
-
   Future<void> _loadUsers() async {
     setState(() {
       _loadingUsers = true;
@@ -67,7 +60,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
       });
     }
   }
-
   Future<void> _loadTransactions() async {
     setState(() {
       _loadingTx = true;
@@ -99,7 +91,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (!RoleManager.canViewTeamAccess) {
@@ -182,7 +173,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
         ),
       );
     }
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -255,7 +245,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
       ),
     );
   }
-
   Widget _buildUsersTab() {
     if (_loadingUsers) {
       return const Center(
@@ -302,7 +291,6 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
       ),
     );
   }
-
   Widget _buildTransactionsTab() {
     if (_loadingTx) {
       return const Center(
@@ -343,12 +331,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen>
     );
   }
 }
-
 class _UserCard extends StatelessWidget {
   const _UserCard({required this.user, this.onEdit});
   final Map<String, dynamic> user;
   final VoidCallback? onEdit;
-
   @override
   Widget build(BuildContext context) {
     final name = user['name']?.toString() ?? 'Unknown';
@@ -357,7 +343,6 @@ class _UserCard extends StatelessWidget {
     final permissions = (user['permissions'] as List?)?.cast<String>() ?? [];
     final projectIds = (user['projectIds'] as List?)?.cast<String>() ?? [];
     final isAdminUser = role.toLowerCase() == 'admin';
-
     Color roleColor;
     Color roleBg;
     switch (role.toLowerCase()) {
@@ -373,7 +358,6 @@ class _UserCard extends StatelessWidget {
         roleColor = const Color(0xFFD97706);
         roleBg = const Color(0xFFFEF3C7);
     }
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -441,7 +425,6 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               if (!isAdminUser && onEdit != null) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -529,17 +512,14 @@ class _UserCard extends StatelessWidget {
     );
   }
 }
-
 class _TxCard extends StatelessWidget {
   const _TxCard({required this.tx});
   final Map<String, dynamic> tx;
-
   String _fmt(double v) {
     if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(1)}L';
     if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(0)}K';
     return '₹${v.toStringAsFixed(0)}';
   }
-
   @override
   Widget build(BuildContext context) {
     final title = tx['title']?.toString() ?? 'Untitled';
@@ -553,7 +533,6 @@ class _TxCard extends StatelessWidget {
         (tx['project'] is Map ? tx['project']['projectName'] : null)
             ?.toString() ??
         'No Project';
-
     String dateStr = '';
     final rawDate = tx['date'] ?? tx['createdAt'];
     if (rawDate != null) {
@@ -576,7 +555,6 @@ class _TxCard extends StatelessWidget {
         dateStr = '${d.day} ${months[d.month - 1]}';
       } catch (_) {}
     }
-
     Color statusColor;
     Color statusBg;
     switch (approvalStatus.toLowerCase()) {
@@ -592,7 +570,6 @@ class _TxCard extends StatelessWidget {
         statusColor = const Color(0xFFD97706);
         statusBg = const Color(0xFFFEF3C7);
     }
-
     IconData icon;
     Color iconColor;
     switch (type.toLowerCase()) {
@@ -608,7 +585,6 @@ class _TxCard extends StatelessWidget {
         icon = Icons.category_outlined;
         iconColor = AppColors.primary;
     }
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

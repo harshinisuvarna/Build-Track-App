@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-
 import '../../common/themes/app_theme.dart';
 import '../../common/themes/app_colors.dart';
 import '../../common/widgets/app_widgets.dart';
@@ -10,7 +9,6 @@ import '../../controller/project_provider.dart';
 import '../../models/project_model.dart';
 import '../../controller/report_provider.dart';
 import 'dart:math' as math;
-
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -19,37 +17,30 @@ class MetricCard extends StatelessWidget {
     required this.value,
     required this.change,
   });
-
   final IconData icon;
   final String label;
   final String value;
   final double change;
-
   @override
   Widget build(BuildContext context) {
     final safeChange = (change.isNaN || change.isInfinite) ? 0.0 : change;
-
     final isNeutral = safeChange == 0.0;
     final isGood = safeChange < 0.0;
-
     final subColor = isNeutral
         ? AppColors.textLight
         : isGood
         ? AppColors.success
         : AppColors.error;
-
     final subIcon = isNeutral
         ? Icons.remove
         : isGood
         ? Icons.trending_down
         : Icons.trending_up;
-
     final subText = isNeutral
         ? 'On Track'
         : isGood
         ? '${safeChange.abs().toStringAsFixed(0)}% Saving'
         : '+${safeChange.toStringAsFixed(0)}% Over';
-
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -112,13 +103,10 @@ class MetricCard extends StatelessWidget {
     );
   }
 }
-
 class MetricGrid extends StatelessWidget {
   const MetricGrid({super.key, required this.report, required this.period});
-
   final ReportModel report;
   final String period;
-
   @override
   Widget build(BuildContext context) {
     final totalTarget =
@@ -126,12 +114,10 @@ class MetricGrid extends StatelessWidget {
         report.targetLabour +
         report.targetEquipment +
         report.targetMisc;
-
     double pct(double actual, double target) {
       if (target <= 0) return 0;
       return ((actual / target) - 1) * 100;
     }
-
     final cards = [
       _M(
         Icons.credit_card_outlined,
@@ -158,7 +144,6 @@ class MetricGrid extends StatelessWidget {
         pct(report.equipmentCost, report.targetEquipment),
       ),
     ];
-
     return Column(
       children: [
         Row(
@@ -208,7 +193,6 @@ class MetricGrid extends StatelessWidget {
     );
   }
 }
-
 class _M {
   const _M(this.icon, this.label, this.value, this.change);
   final IconData icon;
@@ -216,12 +200,9 @@ class _M {
   final String value;
   final double change;
 }
-
 class ChartSection extends StatelessWidget {
   const ChartSection({super.key, required this.report});
-
   final ReportModel report;
-
   @override
   Widget build(BuildContext context) {
     final categories = [
@@ -246,7 +227,6 @@ class ChartSection extends StatelessWidget {
         'target': report.targetMisc.isNaN ? 0.0 : report.targetMisc,
       },
     ];
-
     final actualSpots = List.generate(
       categories.length,
       (i) => FlSpot(i.toDouble(), categories[i]['actual'] as double),
@@ -255,14 +235,12 @@ class ChartSection extends StatelessWidget {
       categories.length,
       (i) => FlSpot(i.toDouble(), categories[i]['target'] as double),
     );
-
     final allValues = [
       ...categories.map((e) => e['actual'] as double),
       ...categories.map((e) => e['target'] as double),
     ];
     final maxRaw = allValues.reduce((a, b) => a > b ? a : b);
     final maxY = maxRaw <= 0 ? 1000.0 : maxRaw * 1.25;
-
     double niceInterval(double max) {
       if (max <= 0) return 1;
       final raw = max / 4;
@@ -280,11 +258,8 @@ class ChartSection extends StatelessWidget {
       }
       return niceResidual * magnitude;
     }
-
     final leftInterval = niceInterval(maxY);
-
     final roundedMaxY = (maxY / leftInterval).ceil() * leftInterval;
-
     String formatY(double value) {
       if (value >= 100000) {
         return '₹${(value / 100000).toStringAsFixed(value % 100000 == 0 ? 0 : 1)}L';
@@ -293,19 +268,16 @@ class ChartSection extends StatelessWidget {
       }
       return '₹${value.toInt()}';
     }
-
     final widestLabelLength = formatY(roundedMaxY).length;
     final dynamicReservedSize = (widestLabelLength * 7.0 + 14).clamp(
       44.0,
       72.0,
     );
-
     final isExceeded = categories.any(
       (e) =>
           (e['actual'] as double) > (e['target'] as double) &&
           (e['target'] as double) > 0,
     );
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -431,19 +403,15 @@ class ChartSection extends StatelessWidget {
       ),
     );
   }
-
   Widget _dot(Color c) => Container(
     width: 10,
     height: 10,
     decoration: BoxDecoration(color: c, shape: BoxShape.circle),
   );
 }
-
 class ProjectSelector extends StatelessWidget {
   const ProjectSelector({super.key, required this.provider});
-
   final ReportProvider provider;
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -468,7 +436,6 @@ class ProjectSelector extends StatelessWidget {
       ),
     );
   }
-
   void _showSheet(BuildContext context) {
     final projectProvider = context.read<ProjectProvider>();
     final realProjects = projectProvider.projects;
@@ -483,17 +450,13 @@ class ProjectSelector extends StatelessWidget {
     );
   }
 }
-
 class _ProjectPickerSheet extends StatelessWidget {
   const _ProjectPickerSheet({required this.provider, required this.projects});
-
   final ReportProvider provider;
   final List<ProjectModel> projects;
-
   @override
   Widget build(BuildContext context) {
     final maxSheetHeight = MediaQuery.of(context).size.height * 0.60;
-
     return SafeArea(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxSheetHeight),
@@ -505,7 +468,6 @@ class _ProjectPickerSheet extends StatelessWidget {
             children: [
               Text('Select Project', style: AppTheme.heading3),
               const SizedBox(height: 8),
-
               ListTile(
                 title: const Text('All Active Projects'),
                 leading: const Icon(Icons.grid_view),
@@ -515,10 +477,8 @@ class _ProjectPickerSheet extends StatelessWidget {
                   Navigator.pop(context);
                 },
               ),
-
               const Divider(height: 1),
               const SizedBox(height: 8),
-
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
@@ -589,14 +549,11 @@ class _ProjectPickerSheet extends StatelessWidget {
     );
   }
 }
-
 class CategoryBudgetSection extends StatelessWidget {
   const CategoryBudgetSection({super.key});
-
   @override
   Widget build(BuildContext context) {
     final report = context.watch<ReportProvider>().report;
-
     final items = [
       {
         'label': 'Material',
@@ -620,7 +577,6 @@ class CategoryBudgetSection extends StatelessWidget {
           'target': report.targetMisc,
         },
     ];
-
     return AppCard(
       margin: EdgeInsets.zero,
       child: Column(
@@ -645,13 +601,11 @@ class CategoryBudgetSection extends StatelessWidget {
             final remaining = hasTarget
                 ? (target - actual).clamp(0.0, double.infinity)
                 : 0.0;
-
             final color = isOver
                 ? AppColors.error
                 : barValue >= 0.75
                 ? AppColors.warning
                 : AppColors.primary;
-
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -741,17 +695,14 @@ class CategoryBudgetSection extends StatelessWidget {
     );
   }
 }
-
 class EfficiencyBanner extends StatelessWidget {
   const EfficiencyBanner({
     super.key,
     required this.note,
     required this.isExceeded,
   });
-
   final String note;
   final bool isExceeded;
-
   @override
   Widget build(BuildContext context) {
     return Container(

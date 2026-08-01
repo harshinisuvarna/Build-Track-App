@@ -1,13 +1,10 @@
 import 'dart:ui' as ui;
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-
 class NurofinBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-
     final baseGradient = ui.Gradient.linear(
       rect.topLeft,
       rect.bottomRight,
@@ -20,7 +17,6 @@ class NurofinBackgroundPainter extends CustomPainter {
       [0.0, 0.3, 0.65, 1.0],
     );
     canvas.drawRect(rect, Paint()..shader = baseGradient);
-
     final center2 = Offset(
       size.width * (0.55 + 1) / 2,
       size.height * (-0.3 + 1) / 2,
@@ -37,7 +33,6 @@ class NurofinBackgroundPainter extends CustomPainter {
       [0.0, 0.45, 1.0],
     );
     canvas.drawRect(rect, Paint()..shader = glow2);
-
     final center3 = Offset(
       size.width * (-0.9 + 1) / 2,
       size.height * (-0.85 + 1) / 2,
@@ -54,7 +49,6 @@ class NurofinBackgroundPainter extends CustomPainter {
       [0.0, 0.5, 1.0],
     );
     canvas.drawRect(rect, Paint()..shader = glow3);
-
     final center4 = Offset(
       size.width * (0.85 + 1) / 2,
       size.height * (0.9 + 1) / 2,
@@ -72,16 +66,12 @@ class NurofinBackgroundPainter extends CustomPainter {
     );
     canvas.drawRect(rect, Paint()..shader = glow4);
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 class NurofinBackground extends StatelessWidget {
   const NurofinBackground({super.key, required this.child});
-
   final Widget child;
-
   @override
   Widget build(BuildContext context) {
     return CustomPaint(painter: NurofinBackgroundPainter(), child: child);

@@ -4,23 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/config/api_config.dart';
 import 'package:flutter/foundation.dart';
-
 class ApiService {
   static List<ProjectModel>? mockProjects;
-
   static String get baseUrl => ApiConfig.baseUrl;
-
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
-
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
-
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
@@ -32,7 +26,6 @@ class ApiService {
     debugPrint('Body: ${response.body}');
     return response;
   }
-
   static Future<http.Response> post(
     String endpoint,
     Map<String, dynamic> body,
@@ -48,7 +41,6 @@ class ApiService {
     debugPrint('Body: ${response.body}');
     return response;
   }
-
   static Future<http.Response> put(
     String endpoint,
     Map<String, dynamic> body,
@@ -64,7 +56,6 @@ class ApiService {
     debugPrint('Body: ${response.body}');
     return response;
   }
-
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
@@ -76,22 +67,18 @@ class ApiService {
     debugPrint('Body: ${response.body}');
     return response;
   }
-
   static Future<List<ProjectModel>> fetchProjects() async {
     if (mockProjects != null) return mockProjects!;
     try {
       final response = await get('/projects');
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
         List<dynamic> rawList = [];
         if (decoded is List) {
           rawList = decoded;
         } else if (decoded is Map) {
           rawList = decoded['projects'] ?? decoded['data'] ?? [];
         }
-
         List<ProjectModel> validProjects = [];
         for (var item in rawList) {
           try {
@@ -104,7 +91,6 @@ class ApiService {
             }
           }
         }
-
         return validProjects;
       } else if (response.statusCode == 401) {
         if (kDebugMode) {
@@ -124,11 +110,9 @@ class ApiService {
       return [];
     }
   }
-
   static Future<ProjectModel?> addProject(Map<String, dynamic> payload) async {
     try {
       final response = await post('/projects', payload);
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
         final Map<String, dynamic> projectJson =
@@ -151,7 +135,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<ProjectModel?> fetchProjectById(String id) async {
     try {
       final response = await get('/projects/$id');
@@ -171,7 +154,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<List<dynamic>> fetchMaterials({String? projectId}) async {
     try {
       String endpoint = '/transactions?filterByViewAccess=true&limit=10000';
@@ -179,7 +161,6 @@ class ApiService {
         endpoint += '&project=$projectId';
       }
       final response = await get(endpoint);
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         if (decoded is List) {
@@ -212,18 +193,15 @@ class ApiService {
       return [];
     }
   }
-
   static Future<bool> addMaterial(Map<String, dynamic> payload) async {
     try {
       final response = await post('/transactions', payload);
-
       if (kDebugMode) {
         debugPrint('=== SERVER RESPONSE DEBUG ===');
         debugPrint('Status Code: ${response.statusCode}');
         debugPrint('Response Body: ${response.body}');
         debugPrint('=============================');
       }
-
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       if (kDebugMode) {
@@ -232,7 +210,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<Map<String, dynamic>?> addTransactionsBulk(
     List<Map<String, dynamic>> payloads,
   ) async {
@@ -240,14 +217,12 @@ class ApiService {
       final response = await post('/transactions/bulk', {
         'transactions': payloads,
       });
-
       if (kDebugMode) {
         debugPrint('=== BULK UPLOAD SERVER RESPONSE ===');
         debugPrint('Status Code: ${response.statusCode}');
         debugPrint('Response Body: ${response.body}');
         debugPrint('===================================');
       }
-
       if (response.statusCode == 207 ||
           response.statusCode == 200 ||
           response.statusCode == 201) {
@@ -261,7 +236,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<Map<String, dynamic>?> addTransaction(
     Map<String, dynamic> payload,
   ) async {
@@ -284,7 +258,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<bool> updateTransactionPayment(
     String id,
     Map<String, dynamic> payload,
@@ -305,7 +278,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> updateTransaction(
     String id,
     Map<String, dynamic> payload,
@@ -325,7 +297,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> deleteTransaction(String id) async {
     try {
       final response = await delete('/transactions/$id');
@@ -341,7 +312,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> deleteProject(String id) async {
     try {
       final response = await delete('/projects/$id');
@@ -357,7 +327,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<Map<String, dynamic>?> fetchTransactionById(String id) async {
     try {
       final response = await get('/transactions/$id');
@@ -380,22 +349,17 @@ class ApiService {
       return null;
     }
   }
-
   static Future<List<dynamic>> fetchInventory(String projectId) async {
     try {
       String endpoint = '/transactions?limit=10000&filterByViewAccess=true';
       if (projectId.isNotEmpty) endpoint += '&project=$projectId';
-
       final response = await get(endpoint);
-
       if (kDebugMode) {
         debugPrint('fetchInventory status: ${response.statusCode}');
         debugPrint('fetchInventory body: ${response.body}');
       }
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
         List<dynamic> raw = [];
         if (decoded is List) {
           raw = decoded;
@@ -408,9 +372,7 @@ class ApiService {
                       [])
                   as List<dynamic>;
         }
-
         final Map<String, Map<String, dynamic>> grouped = {};
-
         for (final t in raw) {
           final String rawType = (t['type'] ?? '')
               .toString()
@@ -419,7 +381,6 @@ class ApiService {
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
-
           final String approvalStatus = (t['approvalStatus'] ?? '')
               .toString()
               .toLowerCase()
@@ -427,7 +388,6 @@ class ApiService {
           if (approvalStatus != 'approved') {
             continue;
           }
-
           final String itemName =
               (t['title'] ?? t['materialName'] ?? t['name'] ?? 'Unknown')
                   .toString()
@@ -456,18 +416,15 @@ class ApiService {
               tabType = 'equipment';
             }
           }
-
           String unit = (t['unit'] ?? '').toString().trim();
           if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
             unit = '';
           }
           final String key = '$itemName||$tabType||$unit';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-
           final bool isPositive =
               t['subType']?.toString().toLowerCase() != 'consumption' &&
               t['materialType']?.toString().toLowerCase() != 'usage';
-
           if (grouped.containsKey(key)) {
             if (isPositive) {
               grouped[key]!['purchased'] =
@@ -494,7 +451,6 @@ class ApiService {
             };
           }
         }
-
         for (final item in grouped.values) {
           final txs = item['transactions'] as List<dynamic>;
           txs.sort((a, b) {
@@ -503,7 +459,6 @@ class ApiService {
             return dateB.toString().compareTo(dateA.toString());
           });
         }
-
         if (kDebugMode) {
           debugPrint('fetchInventory grouped items: ${grouped.length}');
         }
@@ -524,7 +479,6 @@ class ApiService {
       return [];
     }
   }
-
   static Future<void> addInventoryItem({
     required String materialName,
     required double purchased,
@@ -557,7 +511,6 @@ class ApiService {
       rethrow;
     }
   }
-
   static Future<List<dynamic>> searchMaterials({
     String? query,
     String? category,
@@ -575,9 +528,7 @@ class ApiService {
         if (category.toLowerCase() == 'equipment') backendType = 'Expense';
         endpoint += 'type=$backendType&';
       }
-
       final response = await get(endpoint);
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         List<dynamic> raw = [];
@@ -588,9 +539,7 @@ class ApiService {
               (decoded['transactions'] ?? decoded['data'] ?? [])
                   as List<dynamic>;
         }
-
         final Map<String, Map<String, dynamic>> grouped = {};
-
         for (final t in raw) {
           final String rawType = (t['type'] ?? '')
               .toString()
@@ -599,7 +548,6 @@ class ApiService {
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
-
           final String approvalStatus = (t['approvalStatus'] ?? '')
               .toString()
               .toLowerCase()
@@ -635,18 +583,15 @@ class ApiService {
               tabType = 'equipment';
             }
           }
-
           String unit = (t['unit'] ?? '').toString().trim();
           if (unit.toLowerCase() == 'units' || unit.toLowerCase() == 'unit') {
             unit = '';
           }
           final String key = '$itemName||$tabType||$unit';
           final double qty = (t['quantity'] ?? t['purchased'] ?? 0).toDouble();
-
           final bool isPositive =
               t['subType']?.toString().toLowerCase() != 'consumption' &&
               t['materialType']?.toString().toLowerCase() != 'usage';
-
           if (grouped.containsKey(key)) {
             if (isPositive) {
               grouped[key]!['purchased'] =
@@ -673,7 +618,6 @@ class ApiService {
             };
           }
         }
-
         for (final item in grouped.values) {
           final txs = item['transactions'] as List<dynamic>;
           txs.sort((a, b) {
@@ -682,7 +626,6 @@ class ApiService {
             return dateB.toString().compareTo(dateA.toString());
           });
         }
-
         return grouped.values.toList();
       } else {
         throw Exception('Search failed with status: ${response.statusCode}');
@@ -694,7 +637,6 @@ class ApiService {
       return [];
     }
   }
-
   static Future<List<dynamic>> fetchDailyTasks() async {
     try {
       final response = await get('/tasks/daily');
@@ -713,7 +655,6 @@ class ApiService {
       return [];
     }
   }
-
   static Future<String?> resetPassword(String email) async {
     try {
       final response = await post('/auth/forgot-password', {'email': email});
@@ -728,7 +669,6 @@ class ApiService {
       rethrow;
     }
   }
-
   static Future<void> confirmResetPassword({
     required String token,
     required String password,
@@ -747,7 +687,6 @@ class ApiService {
       rethrow;
     }
   }
-
   static Future<List<dynamic>> fetchRecentTransactions({
     required String projectId,
     required String type,
@@ -755,11 +694,9 @@ class ApiService {
   }) async {
     try {
       String url = '/transactions?project=$projectId&type=$type&limit=5';
-
       if (userId != null && userId.isNotEmpty) {
         url += '&createdBy=$userId';
       }
-
       final response = await get(url);
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -777,7 +714,6 @@ class ApiService {
       return [];
     }
   }
-
   static Future<List<Map<String, dynamic>>> fetchSuggestions({
     required String projectId,
     required String type,
@@ -802,7 +738,6 @@ class ApiService {
           }
         }
       } catch (_) {}
-
       List<dynamic> globalTxs = [];
       try {
         String globalUrl = '/transactions?limit=10000&type=$type';
@@ -819,11 +754,9 @@ class ApiService {
           }
         }
       } catch (_) {}
-
       final Map<String, Map<String, dynamic>> byTitle = {};
       final Map<String, int> frequency = {};
       final Map<String, bool> isCurrentProject = {};
-
       for (final rawTx in projectTxs) {
         final tx = rawTx as Map<String, dynamic>;
         final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
@@ -831,7 +764,6 @@ class ApiService {
         final key = title.toLowerCase();
         frequency[key] = (frequency[key] ?? 0) + 1;
         isCurrentProject[key] = true;
-
         if (!byTitle.containsKey(key)) {
           byTitle[key] = Map<String, dynamic>.from(tx);
         } else {
@@ -842,7 +774,6 @@ class ApiService {
           }
         }
       }
-
       for (final rawTx in globalTxs) {
         final tx = rawTx as Map<String, dynamic>;
         final title = (tx['title'] ?? tx['name'] ?? '').toString().trim();
@@ -861,26 +792,21 @@ class ApiService {
           frequency[key] = (frequency[key] ?? 0) + 1;
         }
       }
-
       final entries = byTitle.entries.toList()
         ..sort((a, b) {
           final aKey = a.key;
           final bKey = b.key;
-
           final aProj = isCurrentProject[aKey] == true ? 1 : 0;
           final bProj = isCurrentProject[bKey] == true ? 1 : 0;
           if (aProj != bProj) return bProj - aProj;
-
           final aDate = a.value['date']?.toString() ?? '';
           final bDate = b.value['date']?.toString() ?? '';
           final dateCmp = bDate.compareTo(aDate);
           if (dateCmp != 0) return dateCmp;
-
           final aFreq = frequency[aKey] ?? 0;
           final bFreq = frequency[bKey] ?? 0;
           return bFreq - aFreq;
         });
-
       final result = <Map<String, dynamic>>[];
       for (final e in entries.take(50)) {
         final record = Map<String, dynamic>.from(e.value)
@@ -888,7 +814,6 @@ class ApiService {
           ..['\$isCurrentProject'] = isCurrentProject[e.key] ?? false;
         result.add(record);
       }
-
       if (kDebugMode) {
         debugPrint(
           'fetchSuggestions [$type]: ${result.length} unique suggestions',
@@ -903,7 +828,6 @@ class ApiService {
       return [];
     }
   }
-
   static Future<Map<String, dynamic>?> fetchPendingApprovals() async {
     try {
       final response = await get('/approvals/pending');
@@ -920,7 +844,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<bool> assignSupervisorOversight(
     String supervisorId,
     List<String> roles,
@@ -935,17 +858,14 @@ class ApiService {
       return false;
     }
   }
-
   static Future<Map<String, dynamic>?> fetchApprovalsHistory({
     String? projectId,
   }) async {
     try {
       String endpoint = '/approvals/history';
-
       if (projectId != null && projectId.isNotEmpty) {
         endpoint += '?project=$projectId';
       }
-
       final response = await get(endpoint);
       if (kDebugMode) {
         debugPrint('fetchApprovalsHistory status: ${response.statusCode}');
@@ -960,7 +880,6 @@ class ApiService {
       return null;
     }
   }
-
   static Future<bool> approveTransaction(String txId) async {
     try {
       final response = await put('/transactions/$txId/approve', {});
@@ -970,7 +889,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> rejectTransaction(String txId, String reason) async {
     try {
       final response = await put('/transactions/$txId/reject', {
@@ -982,7 +900,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> approveProjectUpdate(String updateId) async {
     try {
       final response = await put('/project-updates/$updateId/approve', {});
@@ -992,7 +909,6 @@ class ApiService {
       return false;
     }
   }
-
   static Future<bool> rejectProjectUpdate(
     String updateId,
     String reason,
@@ -1007,48 +923,38 @@ class ApiService {
       return false;
     }
   }
-
   static Future<List<dynamic>> fetchMyRecentEntries({String? projectId}) async {
     try {
       String url = '/transactions?limit=10&filterByViewAccess=true';
-
       if (projectId != null && projectId.isNotEmpty) {
         url += '&project=$projectId';
       }
-
       final response = await get(url);
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         final List<dynamic> rawEntries = decoded is List
             ? decoded
             : (decoded['transactions'] ?? decoded['data'] ?? [])
                   as List<dynamic>;
-
         final filtered = rawEntries.where((entry) {
           if (entry is! Map<String, dynamic>) return false;
-
           final type = (entry['type'] ?? '').toString().toLowerCase().trim();
           final approvalStatus = (entry['approvalStatus'] ?? '')
               .toString()
               .toLowerCase()
               .trim();
-
           if (type == 'income' || type == 'revenue') return false;
           if (approvalStatus == 'rejected') return false;
           if (approvalStatus != 'approved') {
             return false;
           }
-
           return true;
         }).toList();
-
         filtered.sort((a, b) {
           final aDate = (a['date'] ?? a['createdAt'] ?? '').toString();
           final bDate = (b['date'] ?? b['createdAt'] ?? '').toString();
           return bDate.compareTo(aDate);
         });
-
         return filtered.take(10).toList();
       }
     } catch (e) {
@@ -1056,9 +962,6 @@ class ApiService {
     }
     return [];
   }
-
-  // --- E-Signature Methods ---
-
   static Future<Map<String, dynamic>?> requestEsignature(
       String clientEmail, Map<String, dynamic> meta) async {
     try {
@@ -1074,7 +977,6 @@ class ApiService {
     }
     return null;
   }
-
   static Future<Map<String, dynamic>?> checkEsignatureStatus(String requestId) async {
     try {
       final response = await get('/esign/status/$requestId');
@@ -1086,7 +988,6 @@ class ApiService {
     }
     return null;
   }
-  
   static Future<Map<String, dynamic>?> getEsignatureDetails(String token) async {
     try {
       final response = await get('/esign/details/$token');
@@ -1098,7 +999,6 @@ class ApiService {
     }
     return null;
   }
-
   static Future<bool> submitEsignature(String token, String signatureData) async {
     try {
       final response = await post(

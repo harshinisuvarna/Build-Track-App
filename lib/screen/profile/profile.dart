@@ -14,10 +14,8 @@ import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
 import 'package:provider/provider.dart';
-
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
@@ -25,12 +23,10 @@ class ProfileUserData {
     required this.role,
     this.profilePhoto,
   });
-
   final String name;
   final String email;
   final String role;
   final String? profilePhoto;
-
   factory ProfileUserData.fromJson(Map<String, dynamic> json) {
     return ProfileUserData(
       name: json['name']?.toString() ?? 'Unknown',
@@ -39,35 +35,28 @@ class ProfileUserData {
       profilePhoto: json['profilePhoto']?.toString(),
     );
   }
-
   static ProfileUserData get sessionFallback => ProfileUserData(
     name: UserSession.userId.isNotEmpty ? UserSession.userId : 'Guest User',
     email: '${UserSession.userId}@buildtrack.app',
     role: UserSession.roleLabel,
   );
 }
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
-
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   Uint8List? _avatarBytes;
-
   ProfileUserData? _user;
   bool _isLoadingProfile = true;
   String? _profileError;
-
   @override
   void initState() {
     super.initState();
     _fetchProfile();
   }
-
   Future<void> _fetchProfile() async {
     setState(() {
       _isLoadingProfile = true;
@@ -78,12 +67,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
         final userJson = decoded['user'] ?? decoded;
         final data = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
-
         UserSession.fromLoginResponse(Map<String, dynamic>.from(userJson));
-
         setState(() {
           _user = data;
           _isLoadingProfile = false;
@@ -104,12 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     }
   }
-
   Future<void> _showImageOptions() async {
     final hasPhoto =
         _avatarBytes != null ||
         (_user?.profilePhoto != null && _user!.profilePhoto!.isNotEmpty);
-
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -151,13 +135,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Future<void> _removeProfilePhoto() async {
     try {
       final response = await ApiService.put('/users/profile/photo', {
         'profilePhoto': 'delete',
       });
-
       if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,11 +150,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         final decoded = json.decode(response.body);
         final userJson = decoded['user'] ?? decoded;
-
         await UserSession.fromLoginResponse(
           Map<String, dynamic>.from(userJson),
         );
-
         setState(() {
           _avatarBytes = null;
           _user = ProfileUserData.fromJson(userJson as Map<String, dynamic>);
@@ -195,7 +175,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
   Future<void> _pickImage() async {
     final picked = await pickImageFromGallery(context);
     debugPrint('picked: $picked');
@@ -206,17 +185,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     await _uploadProfilePhoto(bytes, picked.path);
   }
-
   Future<void> _uploadProfilePhoto(Uint8List bytes, String path) async {
     try {
       final base64Image = base64Encode(bytes);
       final ext = path.split('.').last.toLowerCase();
       final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-
       final response = await ApiService.put('/users/profile/photo', {
         'profilePhoto': 'data:$mimeType;base64,$base64Image',
       });
-
       if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -225,7 +201,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-
         await _fetchProfile();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -234,7 +209,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.red,
           ),
         );
-
         if (mounted) {
           setState(() {
             _avatarBytes = null;
@@ -254,7 +228,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return AppSubScreenLayout(
@@ -273,24 +246,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _ErrorBanner(message: _profileError!),
                   const SizedBox(height: 12),
                 ],
-
                 _buildProfileCard(_user!),
                 const SizedBox(height: AppTheme.spacingLg),
-
                 SubscriptionCard(showUpgradeButton: RoleManager.isAdmin),
                 const SizedBox(height: AppTheme.spacingLg),
-
                 _buildSettingsCard(),
                 const SizedBox(height: AppTheme.spacingLg),
-
                 if (RoleManager.canViewTeamAccess) ...[
                   _buildTeamAccessSection(),
                   const SizedBox(height: AppTheme.spacingLg),
                 ],
-
                 _buildActions(),
                 const SizedBox(height: AppTheme.spacingLg),
-
                 Text(
                   'BuildTrack Version 2.4.0 (2024)',
                   style: AppTheme.caption.copyWith(color: Colors.grey.shade600),
@@ -299,7 +266,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
-
   Widget _buildProfileCard(ProfileUserData user) {
     return Container(
       width: double.infinity,
@@ -342,7 +308,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Widget _buildAvatar(String? photoUrl) {
     ImageProvider? imageProvider;
     if (_avatarBytes != null) {
@@ -350,7 +315,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else if (photoUrl != null && photoUrl.isNotEmpty) {
       imageProvider = getProfileImageProvider(photoUrl);
     }
-
     return Stack(
       children: [
         GestureDetector(
@@ -389,7 +353,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
   Widget _buildRoleBadge(String role) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -412,7 +375,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Widget _buildSettingsCard() {
     return AppCard(
       padding: EdgeInsets.zero,
@@ -432,7 +394,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '/edit-profile',
                 arguments: _user,
               );
-
               _fetchProfile();
             },
             showDivider: true,
@@ -461,7 +422,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Widget _buildSettingsTile({
     required IconData icon,
     required String label,
@@ -518,7 +478,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
   Widget _buildActions() {
     return AppButton(
       label: 'Logout',
@@ -527,7 +486,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onPressed: _onLogoutPressed,
     );
   }
-
   void _onLogoutPressed() async {
     await AuthService.logout();
     if (mounted) {
@@ -537,7 +495,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
-
   Widget _buildTeamAccessSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,7 +510,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
   Widget _teamAccessCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -638,7 +594,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Widget _teamIllustration() {
     const purple = AppColors.primaryPurple;
     const purpleLight = AppColors.primaryLightBlue;
@@ -721,7 +676,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   Widget _adminNotice() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -763,11 +717,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
   final String message;
-
   @override
   Widget build(BuildContext context) {
     return Container(

@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/autocomplete_name_field.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
@@ -16,18 +15,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
-
 class AddEquipmentScreen extends StatefulWidget {
   const AddEquipmentScreen({super.key});
-
   @override
   State<AddEquipmentScreen> createState() => _AddEquipmentScreenState();
 }
-
 class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _requestEsign = false;
   final TextEditingController _clientEmailCtrl = TextEditingController();
-
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -41,7 +36,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   List<String> _floors = [];
   List<String> _phases = [];
   List<String> _activities = [];
-
   final _nameCtrl = TextEditingController();
   final _typeCtrl = TextEditingController();
   final _operatorCtrl = TextEditingController();
@@ -49,7 +43,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String? _selectedUnit;
   final _rateCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
-
   bool _isSaving = false;
   bool _isEditing = false;
   String? _editingTransactionId;
@@ -59,12 +52,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
   bool _isLoadingRecent = false;
-
   List<Map<String, dynamic>> _suggestions = [];
-
   bool _isWithGst = false;
   final _gstCtrl = TextEditingController();
-
   bool _isAddAndPay = false;
   bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
@@ -74,13 +64,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String _paymentMethod = 'Cash';
   final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
-
   String? _floorWarning;
   String? _phaseWarning;
   String? _activityWarning;
-
   final _scrollCtrl = ScrollController();
-
   String? _nameError;
   String? _qtyError;
   String? _rateError;
@@ -89,7 +76,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String? _phaseError;
   String? _activityError;
   String? _unitError;
-
   String _safeString(dynamic val) {
     if (val == null) return '';
     if (val is String) return val.trim();
@@ -105,7 +91,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return val.toString().trim();
   }
-
   String _extractString(Map<String, dynamic> data, List<String> keys) {
     for (final key in keys) {
       final val = data[key];
@@ -125,7 +110,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return '';
   }
-
   double _parseDouble(dynamic val) {
     if (val == null) return 0.0;
     if (val is num) return val.toDouble();
@@ -134,17 +118,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return 0.0;
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       _isEditing = args['isEditing'] as bool? ?? false;
-
       if (_isEditing && (args['status'] as String?) == 'approved') {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.maybePop(context);
@@ -154,7 +135,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         });
         return;
       }
-
       if (_isEditing) {
         debugPrint('EDIT RECORD args');
         debugPrint(args.toString());
@@ -173,7 +153,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         final preFloor = projectProvider.selectedFloor;
         final prePhase = projectProvider.selectedPhase;
         final preActivity = projectProvider.selectedActivity;
-
         if (preProjectId != null &&
             preProjectId.isNotEmpty &&
             preFloor != null &&
@@ -218,13 +197,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             _selectedProjectId = routeProjectId;
           }
         }
-
         _isDuplicate = args['isDuplicate'] as bool? ?? false;
         _sourceTransactionId = args['sourceTransactionId']?.toString();
-
         final prefill = args['prefill'] as String?;
         if (prefill != null) _nameCtrl.text = prefill;
-
         if (_isDuplicate && _sourceTransactionId != null) {
           final txId = _sourceTransactionId!;
           final routeData = Map<String, dynamic>.from(args);
@@ -232,7 +208,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             _fetchAndRestoreDuplicate(txId, argsData: routeData);
           });
         }
-
         final latest = args['latestRecord'] as Map<String, dynamic>?;
         if (latest != null) {
           final pId = latest['projectId'] ?? latest['project'];
@@ -284,16 +259,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           }
         }
       }
-
       if (args['openPayment'] == true) _isAddAndPay = true;
     } else {
       _selectedProjectId ??= UserSession.projectId;
     }
-
     if (_selectedProjectId != null && !_isEditing) {
       _loadRecentEntries();
     }
-
     if (_duplicateContext != null) {
       final contextToRestore = Map<String, dynamic>.from(_duplicateContext!);
       _duplicateContext = null;
@@ -302,7 +274,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       });
     }
   }
-
   void _applyUnitFromRaw(String rawUnit) {
     if (rawUnit == 'day' || rawUnit == 'days') {
       _selectedUnit = 'Day';
@@ -321,11 +292,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _selectedUnit = rawUnit[0].toUpperCase() + rawUnit.substring(1);
     }
   }
-
   Future<void> _selectProject(String? projectId) async {
     _selectedProjectId = projectId;
   }
-
   Future<void> _loadFloors(String? projectId) async {
     final projectProvider = Provider.of<ProjectProvider>(
       context,
@@ -337,7 +306,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             (p) => p?.id == projectId,
             orElse: () => null,
           );
-
     const List<String> defaultFloors = [
       'Basement',
       'Ground Floor',
@@ -346,7 +314,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       '3rd Floor',
       'Terrace',
     ];
-
     if (project != null) {
       _floors = (project.floors?.isNotEmpty == true)
           ? List<String>.from(project.floors!)
@@ -355,7 +322,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _floors = [];
     }
   }
-
   Future<void> _loadPhases(String? floor) async {
     final projectProvider = Provider.of<ProjectProvider>(
       context,
@@ -367,16 +333,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             (p) => p?.id == _selectedProjectId,
             orElse: () => null,
           );
-
     if (project == null) {
       _phases = [];
       return;
     }
-
     final List<ProjectPhase>? projectPhases = project.selectedPhases;
     final bool hasNewWorkflow =
         projectPhases != null && projectPhases.isNotEmpty;
-
     if (hasNewWorkflow) {
       _phases = projectPhases
           .where((p) => p.activities.isNotEmpty)
@@ -394,7 +357,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _phases = visiblePhases.map((p) => p.name).toList();
     }
   }
-
   Future<void> _loadActivities(dynamic phase) async {
     final projectProvider = Provider.of<ProjectProvider>(
       context,
@@ -406,12 +368,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             (p) => p?.id == _selectedProjectId,
             orElse: () => null,
           );
-
     if (project == null || phase == null) {
       _activities = [];
       return;
     }
-
     final String phaseName = phase is String
         ? phase
         : (phase is Map
@@ -419,11 +379,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ?.toString() ??
                     ''
               : phase.toString());
-
     final List<ProjectPhase>? projectPhases = project.selectedPhases;
     final bool hasNewWorkflow =
         projectPhases != null && projectPhases.isNotEmpty;
-
     if (hasNewWorkflow) {
       final ProjectPhase? selPhase = projectPhases
           .cast<ProjectPhase?>()
@@ -441,7 +399,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           : <String>[];
     }
   }
-
   String? _derivePhaseId(dynamic phaseNameOrObj) {
     if (_selectedProjectId == null) return null;
     String? phaseName;
@@ -467,7 +424,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return null;
   }
-
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -487,7 +443,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return null;
   }
-
   Future<void> _fetchAndRestoreEdit(
     String txId, {
     Map<String, dynamic>? argsData,
@@ -496,7 +451,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     debugPrint('========== EDIT ENTRY — LAYER 1: ROUTE ARGS ==========');
     debugPrint('txId: $txId');
     debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
-
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
@@ -568,7 +522,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         'PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}',
       );
     }
-
     debugPrint(
       '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
     );
@@ -582,7 +535,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         debugPrint('API RESPONSE: null');
       }
     }
-
     debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
     Map<String, dynamic>? latest;
     if (apiData != null) {
@@ -595,7 +547,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('SOURCE: NONE — aborting');
       return;
     }
-
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -662,15 +613,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           latest['paymentMode'] ?? latest['paymentMethod'] ?? 'Cash';
       _existingPaidAmount = _parseDouble(latest['paidAmount']);
     }
-    
     if (latest['paymentHistory'] != null && latest['paymentHistory'] is List) {
       _paymentHistory = List<Map<String, dynamic>>.from(
         (latest['paymentHistory'] as List).map((x) => Map<String, dynamic>.from(x))
       );
     }
-    
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
-
     final contextToRestore = {
       'projectId': _selectedProjectId,
       'floor': _extractString(latest, [
@@ -690,13 +638,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ]),
       'activityId': (latest['activityId'] ?? '').toString(),
     };
-
     debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
-
     await _restoreDuplicateEntry(contextToRestore);
   }
-
   Future<void> _fetchAndRestoreDuplicate(
     String txId, {
     Map<String, dynamic>? argsData,
@@ -705,7 +650,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     debugPrint('========== DUPLICATE ENTRY — LAYER 1: ROUTE ARGS ==========');
     debugPrint('txId: $txId');
     debugPrint('argsData keys: ${argsData?.keys.join(', ') ?? 'null'}');
-
     if (argsData != null) {
       final pId = argsData['projectId'] ?? argsData['project'];
       if (pId != null) {
@@ -763,7 +707,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         'PREFILL from args done. projectId=$_selectedProjectId name=${_nameCtrl.text}',
       );
     }
-
     debugPrint(
       '========== LAYER 2: API FETCH (fetchTransactionById) ==========',
     );
@@ -777,7 +720,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         debugPrint('API RESPONSE: null');
       }
     }
-
     debugPrint('========== LAYER 3: SOURCE SELECTION ==========');
     Map<String, dynamic>? latest;
     if (apiData != null) {
@@ -790,7 +732,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       debugPrint('SOURCE: NONE — aborting');
       return;
     }
-
     debugPrint(
       '========== LAYER 4: REPOPULATE CONTROLLERS FROM API ==========',
     );
@@ -847,15 +788,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               : freshGst.toString())
         : '0';
     _isWithGst = latest['isWithGst'] == true || latest['isWithGst'] == 'true';
-    
     if (latest['paymentHistory'] != null && latest['paymentHistory'] is List) {
       _paymentHistory = List<Map<String, dynamic>>.from(
         (latest['paymentHistory'] as List).map((x) => Map<String, dynamic>.from(x))
       );
     }
-    
     debugPrint('REPOPULATED controllers from API. name=${_nameCtrl.text}');
-
     final contextToRestore = {
       'projectId': _selectedProjectId,
       'floor': _extractString(latest, [
@@ -875,19 +813,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ]),
       'activityId': (latest['activityId'] ?? '').toString(),
     };
-
     debugPrint('========== LAYER 5: CONTEXT TO RESTORE ==========');
     debugPrint('contextToRestore: $contextToRestore');
-
     await _restoreDuplicateEntry(contextToRestore);
   }
-
   Future<void> _restoreDuplicateEntry(Map<String, dynamic> latest) async {
     debugPrint('');
     debugPrint('========== RESTORE DUPLICATE ENTRY ==========');
     debugPrint('RAW INPUT: ${jsonEncode(latest)}');
     debugPrint('INPUT KEYS: ${latest.keys.join(', ')}');
-
     final projectProvider = Provider.of<ProjectProvider>(
       context,
       listen: false,
@@ -895,7 +829,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     if (projectProvider.projects.isEmpty) {
       await projectProvider.load();
     }
-
     final pId = latest['projectId'] ?? latest['project'];
     String? resolvedProjectId;
     if (pId != null) {
@@ -904,7 +837,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           : pId.toString();
     }
     debugPrint('resolvedProjectId => $resolvedProjectId');
-
     final String floorName = _extractString(latest, [
       'floor',
       'floorName',
@@ -915,7 +847,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     final String floorId = (latest['floorId'] ?? '').toString();
     debugPrint('floorName => "$floorName"');
     debugPrint('floorId   => "$floorId"');
-
     final String phaseName = _extractString(latest, [
       'phase',
       'phaseName',
@@ -924,7 +855,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     final String phaseId = (latest['phaseId'] ?? '').toString();
     debugPrint('phaseName => "$phaseName"');
     debugPrint('phaseId   => "$phaseId"');
-
     final String activityName = _extractString(latest, [
       'activity',
       'activityName',
@@ -933,37 +863,30 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     final String activityId = (latest['activityId'] ?? '').toString();
     debugPrint('activityName => "$activityName"');
     debugPrint('activityId   => "$activityId"');
-
     final ProjectModel? project = resolvedProjectId == null
         ? null
         : projectProvider.projects.cast<ProjectModel?>().firstWhere(
             (p) => p?.id == resolvedProjectId,
             orElse: () => null,
           );
-
     if (project != null) {
       debugPrint('PROJECT FOUND: ${project.name} (${project.id})');
     } else {
       debugPrint('PROJECT NOT FOUND for ID: $resolvedProjectId');
     }
-
     await _selectProject(resolvedProjectId);
     debugPrint('PROJECT => $_selectedProjectId');
-
     _floorWarning = null;
     _phaseWarning = null;
     _activityWarning = null;
-
     await _loadFloors(resolvedProjectId);
     debugPrint('FLOORS LOADED: $_floors');
-
     String? resolvedFloor;
     if (floorName.isNotEmpty) {
       resolvedFloor = floorName;
     } else if (floorId.isNotEmpty) {
       resolvedFloor = floorId;
     }
-
     if (resolvedFloor != null) {
       final floorFound = _floors.any((f) => f.toString() == resolvedFloor);
       if (!floorFound) {
@@ -982,10 +905,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     } else {
       debugPrint('FLOOR => NO DATA (both name and ID empty)');
     }
-
     await _loadPhases(_selectedFloor);
     debugPrint('PHASES LOADED: $_phases');
-
     String? resolvedPhase;
     String? resolvedPhaseId;
     if (phaseName.isNotEmpty) {
@@ -1010,7 +931,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         );
       }
     }
-
     if (resolvedPhase != null) {
       final phaseFound = _phases.any((p) => p.toString() == resolvedPhase);
       if (!phaseFound) {
@@ -1029,10 +949,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     } else {
       debugPrint('PHASE => NO DATA (both name and ID empty)');
     }
-
     await _loadActivities(_selectedPhase);
     debugPrint('ACTIVITIES LOADED: $_activities');
-
     String? resolvedActivity;
     String? resolvedActivityId;
     if (activityName.isNotEmpty) {
@@ -1065,7 +983,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         );
       }
     }
-
     if (resolvedActivity != null) {
       final activityFound = _activities.any(
         (a) => a.toString() == resolvedActivity,
@@ -1088,7 +1005,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     } else {
       debugPrint('ACTIVITY => NO DATA (both name and ID empty)');
     }
-
     if (resolvedFloor != null && !_floors.any((f) => f == resolvedFloor)) {
       debugPrint(
         '!!! TYPE/STRING MISMATCH: floor "$resolvedFloor" not in _floors after insert',
@@ -1105,17 +1021,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         '!!! TYPE/STRING MISMATCH: activity "$resolvedActivity" not in _activities after insert',
       );
     }
-
     debugPrint('========== RESTORATION COMPLETE ==========');
     debugPrint('PROJECT => $_selectedProjectId');
     debugPrint('FLOOR   => $_selectedFloor  ($_selectedFloorId)');
     debugPrint('PHASE   => $_selectedPhase  ($_selectedPhaseId)');
     debugPrint('ACTIVITY => $_selectedActivity  ($_selectedActivityId)');
     debugPrint('');
-
     setState(() {});
   }
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -1130,21 +1043,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _scrollCtrl.dispose();
     super.dispose();
   }
-
   double _subtotal() {
     final qty = double.tryParse(_qtyCtrl.text) ?? 0;
     final rate = double.tryParse(_rateCtrl.text) ?? 0;
     return qty * rate;
   }
-
   double _gstAmount() {
     if (!_isWithGst) return 0;
     final gstPct = double.tryParse(_gstCtrl.text) ?? 0;
     return _subtotal() * gstPct / 100;
   }
-
   double _finalTotal() => _subtotal() + _gstAmount();
-
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -1157,7 +1066,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       }
     });
   }
-
   bool _validate() {
     debugPrint(
       '[VALIDATE] projectId=$_selectedProjectId floor=$_selectedFloor phase=$_selectedPhase activity=$_selectedActivity unit=$_selectedUnit',
@@ -1175,7 +1083,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _rateError = (rate == null || rate <= 0)
           ? 'Rental processing rate index mandatory > 0'
           : null;
-
       _projectError = _selectedProjectId == null
           ? 'Please select a Project.'
           : null;
@@ -1187,7 +1094,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ? 'Please select an Activity.'
           : null;
       _unitError = _selectedUnit == null ? 'Please select a Unit.' : null;
-
       ok =
           _nameError == null &&
           _qtyError == null &&
@@ -1198,16 +1104,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           _activityError == null &&
           _unitError == null;
     });
-
     if (!ok) _scrollToFirstError();
     return ok;
   }
-
   Future<void> _save(BuildContext ctx) async {
     if (!_validate()) return;
-
     setState(() => _isSaving = true);
-
     final payload = <String, dynamic>{
       "title": _nameCtrl.text.trim(),
       "type": "Expense",
@@ -1251,7 +1153,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       if (_sourceTransactionId != null)
         "sourceTransactionId": _sourceTransactionId,
     };
-
     if (_isEditing) {
       if (_paymentHistory.isNotEmpty) {
         payload["paymentHistory"] = _paymentHistory.map((p) {
@@ -1298,7 +1199,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         payload['requestEsign'] = true;
         payload['clientEmail'] = _clientEmailCtrl.text.trim();
       }
-
       payload["paymentStatus"] = totalPaid >= _finalTotal()
           ? "Paid"
           : totalPaid > 0
@@ -1346,18 +1246,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         payload["paymentReceipt"] = receiptDataUri;
       }
     }
-
     if (_attachment != null) {
       payload["attachments"] = [_attachment!.dataUri];
     }
-
     debugPrint('===== SAVE PAYLOAD =====');
     debugPrint(payload.toString());
     debugPrint('========================');
     debugPrint(
       'SAVE PATH CHECK: _isEditing=$_isEditing  _editingTransactionId=$_editingTransactionId  condition=${_isEditing && _editingTransactionId != null}',
     );
-
     final bool success;
     if (_isEditing && _editingTransactionId != null) {
       debugPrint('>>> SAVE PATH: updateTransaction($_editingTransactionId)');
@@ -1371,9 +1268,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       );
       success = await ApiService.addMaterial(payload);
     }
-
     if (!mounted) return;
-
     if (success) {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId!);
       context.read<ProjectProvider>().load();
@@ -1398,16 +1293,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     } else {
       _snack('Error saving to server. Please try again.');
     }
-
     setState(() => _isSaving = false);
   }
-
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
     );
   }
-
   Future<void> _loadRecentEntries() async {
     if (_selectedProjectId == null) {
       setState(() {
@@ -1417,7 +1309,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
     setState(() => _isLoadingRecent = true);
-
     final recentFuture = ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
       type: 'Expense',
@@ -1428,10 +1319,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       type: 'Expense',
       userId: UserSession.userId,
     );
-
     final recentTxs = await recentFuture;
     final suggestions = await suggestionFuture;
-
     if (mounted) {
       setState(() {
         _recentEntries = recentTxs.take(5).toList();
@@ -1440,7 +1329,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       });
     }
   }
-
   void _showRecentEntriesSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -1540,7 +1428,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             tx['operator']?.toString() ??
                             tx['remarks']?.toString() ??
                             '';
-
                         String dateStr = '';
                         final rawDate = tx['date'] ?? tx['createdAt'];
                         if (rawDate != null) {
@@ -1553,7 +1440,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         final String rateStr = rate > 0
                             ? '₹${rate % 1 == 0 ? rate.toInt() : rate}/$unit'
                             : '';
-
                         return Material(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -1668,7 +1554,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       },
     );
   }
-
   void _prefillFromRecent(Map<String, dynamic> tx) {
     setState(() {
       _nameCtrl.text = tx['title']?.toString() ?? '';
@@ -1684,7 +1569,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           ? (gstVal % 1 == 0 ? gstVal.toInt().toString() : gstVal.toString())
           : '0';
       _isWithGst = tx['isWithGst'] == true || tx['isWithGst'] == 'true';
-
       _existingPaidAmount = 0.0;
       _isAddAndPay = false;
       _recordPaymentNow = false;
@@ -1693,7 +1577,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _paymentAmountCtrl.clear();
     });
   }
-
   String _monthName(int month) {
     const months = [
       'Jan',
@@ -1711,7 +1594,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     ];
     return (month >= 1 && month <= 12) ? months[month - 1] : '';
   }
-
   Widget _buildPaymentSection() {
     return EntrySectionCard(
       child: Column(
@@ -1792,7 +1674,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ],
           ),
-          
           if (!_isEditing) ...[
             const SizedBox(height: 16),
             CheckboxListTile(
@@ -1871,7 +1752,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
     );
   }
-  
   double _calculateTotalPaidFromHistory() {
     double total = 0.0;
     for (var p in _paymentHistory) {
@@ -1879,7 +1759,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
     return total;
   }
-  
   Widget _buildHistoryItem(Map<String, dynamic> payment, int index) {
     final amount = _parseDouble(payment['amount']);
     final method = (payment['method'] ?? payment['paymentMode'] ?? 'Cash').toString();
@@ -1894,7 +1773,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       } catch (_) {}
     }
     final note = (payment['note'] ?? '').toString();
-    
     return GestureDetector(
       onTap: () async {
         final result = await showPaymentSheet(
@@ -1999,7 +1877,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
     );
   }
-
   Widget _buildPaymentSummary() {
     final amount = (_paymentResult!['amount'] as double?) ?? 0.0;
     final method = (_paymentResult!['method'] as String?) ?? 'Cash';
@@ -2100,7 +1977,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
     );
   }
-
   Widget _summaryChip(IconData icon, String value, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -2142,7 +2018,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ),
     );
   }
-
   Widget _calcRow(String label, String value, {bool muted = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2166,11 +2041,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       ],
     );
   }
-
   @override
   Widget build(BuildContext context) {
     context.watch<ProjectProvider>().projects;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.gradientStart,
@@ -2269,7 +2142,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
-
                     if (_floorWarning != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
@@ -2372,7 +2244,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           ),
                         ),
                       ),
-
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2386,7 +2257,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           const SizedBox(height: 20),
                           const Divider(color: Color(0xFFF0EEF8)),
                           const SizedBox(height: 16),
-
                           const EntryFieldLabel('Date', required: true),
                           const SizedBox(height: 8),
                           GestureDetector(
@@ -2423,7 +2293,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 }
                               });
                             },
-
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 0,
@@ -2464,7 +2333,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel(
                             'Equipment Name',
                             required: true,
@@ -2479,7 +2347,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             errorText: _nameError,
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel('Unit', required: true),
                           const SizedBox(height: 8),
                           UnitSelectorField(
@@ -2493,7 +2360,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             error: _unitError,
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel('Quantity', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2505,7 +2371,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             error: _qtyError,
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel('Rate (₹)', required: true),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2517,7 +2382,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             error: _rateError,
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel('Amount (₹)'),
                           const SizedBox(height: 8),
                           Container(
@@ -2578,7 +2442,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-
                           Row(
                             children: [
                               const Expanded(
@@ -2604,7 +2467,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-
                           const EntryFieldLabel(
                             'Machinery Sub-Class / Model (Optional)',
                           ),
@@ -2614,7 +2476,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             hint: 'e.g. Earthmoving, Material Handling',
                           ),
                           const SizedBox(height: 20),
-
                           const EntryFieldLabel('Operator / Vendor (Optional)'),
                           const SizedBox(height: 8),
                           EntryUnderlineField(
@@ -2622,7 +2483,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             hint: 'e.g. Sunil Mehta (Shree Balaji Logistics)',
                           ),
                           const SizedBox(height: 22),
-
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -2850,14 +2710,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             ),
                           ),
                           const SizedBox(height: 18),
-
                           const EntryFieldLabel('Notes (Optional)'),
                           const SizedBox(height: 8),
                           EntryNotesField(controller: _notesCtrl),
                         ],
                       ),
                     ),
-
                     CostSummaryCard(
                       totalAmount: _finalTotal(),
                       label: _isWithGst
@@ -2877,7 +2735,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ],
                       ],
                     ),
-
                     EntrySectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2898,11 +2755,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         ],
                       ),
                     ),
-
                     if (RoleManager.canApprovePayments)
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
-
                     if (_selectedProjectId != null &&
                         !_isEditing &&
                         !_isDatePickerOpen) ...[
@@ -2991,7 +2846,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         const SizedBox(height: 8),
                       ],
                     ],
-
                     EntrySubmitButton(
                       label: RoleManager.canApprovePayments
                           ? 'Save Equipment Entry'

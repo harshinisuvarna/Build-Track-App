@@ -4,12 +4,9 @@ import 'package:buildtrack_mobile/common/controllers/voice_recording_controller.
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:flutter/material.dart';
-
 export 'package:buildtrack_mobile/common/controllers/voice_recording_controller.dart'
     show VoiceEngineState, VoiceRecordingController;
-
 typedef VoiceEntryState = VoiceEngineState;
-
 class ExtractedField {
   const ExtractedField({
     required this.icon,
@@ -26,7 +23,6 @@ class ExtractedField {
   final bool isHighlight;
   final double confidence;
 }
-
 class VoiceMicButton extends StatefulWidget {
   const VoiceMicButton({
     super.key,
@@ -37,17 +33,14 @@ class VoiceMicButton extends StatefulWidget {
   final VoiceEngineState state;
   final VoidCallback? onTap;
   final double size;
-
   @override
   State<VoiceMicButton> createState() => _VoiceMicButtonState();
 }
-
 class _VoiceMicButtonState extends State<VoiceMicButton>
     with TickerProviderStateMixin {
   late AnimationController _pulseCtrl;
   late AnimationController _spinCtrl;
   late Animation<double> _pulseAnim;
-
   @override
   void initState() {
     super.initState();
@@ -64,14 +57,12 @@ class _VoiceMicButtonState extends State<VoiceMicButton>
       duration: const Duration(milliseconds: 1100),
     )..repeat();
   }
-
   @override
   void dispose() {
     _pulseCtrl.dispose();
     _spinCtrl.dispose();
     super.dispose();
   }
-
   LinearGradient _gradient(VoiceEngineState s) {
     if (s == VoiceEngineState.parsed) {
       return const LinearGradient(
@@ -90,19 +81,16 @@ class _VoiceMicButtonState extends State<VoiceMicButton>
     }
     return AppGradients.primaryButton;
   }
-
   Color _shadowColor(VoiceEngineState s) {
     if (s == VoiceEngineState.parsed) return const Color(0xFF16A34A);
     if (s == VoiceEngineState.error) return const Color(0xFFDC2626);
     return AppColors.primary;
   }
-
   IconData _icon(VoiceEngineState s) {
     if (s == VoiceEngineState.parsed) return Icons.check_rounded;
     if (s == VoiceEngineState.error) return Icons.mic_off_rounded;
     return Icons.mic_rounded;
   }
-
   @override
   Widget build(BuildContext context) {
     final s = widget.state;
@@ -166,7 +154,6 @@ class _VoiceMicButtonState extends State<VoiceMicButton>
     );
   }
 }
-
 class VoiceStatusHeader extends StatelessWidget {
   const VoiceStatusHeader({
     super.key,
@@ -175,31 +162,26 @@ class VoiceStatusHeader extends StatelessWidget {
     this.confidence = 98.4,
     this.timestamp,
     this.onMicTap,
-
     this.partialTranscript = '',
     this.elapsedDisplay = '00:00',
     this.onStop,
     this.onCancel,
   });
-
   final VoiceEngineState state;
   final String entryTypeLabel;
   final double confidence;
   final String? timestamp;
   final VoidCallback? onMicTap;
-
   final String partialTranscript;
   final String elapsedDisplay;
   final VoidCallback? onStop;
   final VoidCallback? onCancel;
-
   static String _fmtNow() {
     final dt = DateTime.now();
     final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final m = dt.minute.toString().padLeft(2, '0');
     return '$h:$m ${dt.hour >= 12 ? "PM" : "AM"}';
   }
-
   (String label, Color text, Color bg) _resolveState() {
     switch (state) {
       case VoiceEngineState.parsed:
@@ -230,13 +212,11 @@ class VoiceStatusHeader extends StatelessWidget {
         );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final ts = timestamp ?? _fmtNow();
     final (statusText, textColor, bgColor) = _resolveState();
     final isActive = state == VoiceEngineState.listening;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 14),
@@ -410,7 +390,6 @@ class VoiceStatusHeader extends StatelessWidget {
               ],
             ),
           ),
-
           if (isActive) ...[
             const Divider(height: 1, color: Color(0xFFF0EEF8)),
             Padding(
@@ -450,7 +429,6 @@ class VoiceStatusHeader extends StatelessWidget {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
               child: Row(
@@ -508,7 +486,6 @@ class VoiceStatusHeader extends StatelessWidget {
     );
   }
 }
-
 class ExtractedDataSummaryCard extends StatefulWidget {
   const ExtractedDataSummaryCard({
     super.key,
@@ -516,27 +493,22 @@ class ExtractedDataSummaryCard extends StatefulWidget {
     this.subtitle = 'Review the detected values below',
     this.animateReveal = false,
   });
-
   final List<ExtractedField> fields;
   final String subtitle;
   final bool animateReveal;
-
   @override
   State<ExtractedDataSummaryCard> createState() =>
       _ExtractedDataSummaryCardState();
 }
-
 class _ExtractedDataSummaryCardState extends State<ExtractedDataSummaryCard> {
   int _visibleCount = 0;
   Timer? _revealTimer;
-
   @override
   void initState() {
     super.initState();
     _visibleCount = widget.animateReveal ? 0 : widget.fields.length;
     if (widget.animateReveal) _startReveal();
   }
-
   @override
   void didUpdateWidget(covariant ExtractedDataSummaryCard old) {
     super.didUpdateWidget(old);
@@ -547,7 +519,6 @@ class _ExtractedDataSummaryCardState extends State<ExtractedDataSummaryCard> {
       _visibleCount = widget.fields.length;
     }
   }
-
   void _startReveal() {
     _revealTimer?.cancel();
     _revealTimer = Timer.periodic(const Duration(milliseconds: 280), (t) {
@@ -558,19 +529,16 @@ class _ExtractedDataSummaryCardState extends State<ExtractedDataSummaryCard> {
       setState(() => _visibleCount++);
     });
   }
-
   @override
   void dispose() {
     _revealTimer?.cancel();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final detected = widget.fields
         .where((f) => !f.isEmpty && f.value.isNotEmpty)
         .length;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -707,18 +675,15 @@ class _ExtractedDataSummaryCardState extends State<ExtractedDataSummaryCard> {
     );
   }
 }
-
 class _FieldRow extends StatelessWidget {
   const _FieldRow({required this.field, this.isLast = false});
   final ExtractedField field;
   final bool isLast;
-
   Color _confidenceColor(double c) {
     if (c >= 0.85) return const Color(0xFF16A34A);
     if (c >= 0.5) return const Color(0xFFF59E0B);
     return const Color(0xFFEF4444);
   }
-
   @override
   Widget build(BuildContext context) {
     final empty = field.isEmpty || field.value.trim().isEmpty;
@@ -813,20 +778,16 @@ class _FieldRow extends StatelessWidget {
     );
   }
 }
-
 class ExtractionProcessingCard extends StatefulWidget {
   const ExtractionProcessingCard({super.key, required this.stages});
   final List<String> stages;
-
   @override
   State<ExtractionProcessingCard> createState() =>
       _ExtractionProcessingCardState();
 }
-
 class _ExtractionProcessingCardState extends State<ExtractionProcessingCard> {
   int _completed = 0;
   Timer? _timer;
-
   @override
   void initState() {
     super.initState();
@@ -838,13 +799,11 @@ class _ExtractionProcessingCardState extends State<ExtractionProcessingCard> {
       setState(() => _completed++);
     });
   }
-
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -925,21 +884,17 @@ class _ExtractionProcessingCardState extends State<ExtractionProcessingCard> {
     );
   }
 }
-
 class ExpandableTranscript extends StatefulWidget {
   const ExpandableTranscript({super.key, required this.transcript});
   final String transcript;
-
   @override
   State<ExpandableTranscript> createState() => _ExpandableTranscriptState();
 }
-
 class _ExpandableTranscriptState extends State<ExpandableTranscript>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
   late AnimationController _ctrl;
   late Animation<double> _fade;
-
   @override
   void initState() {
     super.initState();
@@ -949,13 +904,11 @@ class _ExpandableTranscriptState extends State<ExpandableTranscript>
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
   }
-
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
   }
-
   void _toggle() {
     setState(() => _expanded = !_expanded);
     if (_expanded) {
@@ -964,7 +917,6 @@ class _ExpandableTranscriptState extends State<ExpandableTranscript>
       _ctrl.reverse();
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(

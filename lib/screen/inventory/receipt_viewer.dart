@@ -8,31 +8,25 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:buildtrack_mobile/config/api_config.dart';
-
 class ReceiptViewerScreen extends StatefulWidget {
   const ReceiptViewerScreen({super.key});
-
   @override
   State<ReceiptViewerScreen> createState() => _ReceiptViewerScreenState();
 }
-
 class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
   bool _isDownloading = false;
   final TransformationController _transformationController =
       TransformationController();
   TapDownDetails? _doubleTapDetails;
-
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   @override
   void dispose() {
     _transformationController.dispose();
     super.dispose();
   }
-
   bool _isImageFile(String path) {
     final lower = path.toLowerCase();
     if (lower.endsWith('.jpg') ||
@@ -52,7 +46,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     }
     return false;
   }
-
   String _normalizeUrl(String url) {
     if (url.startsWith('/')) {
       final base = ApiConfig.baseUrl.replaceAll('/api', '');
@@ -60,7 +53,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     }
     return url;
   }
-
   String _getFileName(String path) {
     if (path.startsWith('data:image/')) {
       return 'Base64 Image';
@@ -73,18 +65,15 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
     } catch (_) {}
     return path.split('/').last;
   }
-
   Future<void> _downloadAndOpenFile(
     String url, {
     bool open = true,
     bool share = false,
   }) async {
     if (_isDownloading) return;
-
     setState(() {
       _isDownloading = true;
     });
-
     try {
       final String actionText = share
           ? 'Sharing'
@@ -95,7 +84,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
           duration: const Duration(seconds: 2),
         ),
       );
-
       File file;
       final normalizedUrl = _normalizeUrl(url);
       if (normalizedUrl.startsWith('http://') ||
@@ -106,7 +94,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
             'Failed to download file (Status: ${response.statusCode})',
           );
         }
-
         final tempDir = await getTemporaryDirectory();
         String fileName = url.split('/').last;
         if (fileName.contains('?')) {
@@ -115,7 +102,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
         if (!fileName.contains('.')) {
           fileName = 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
         }
-
         file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(response.bodyBytes);
       } else {
@@ -124,9 +110,7 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
           throw const FileSystemException('Local file does not exist');
         }
       }
-
       if (!mounted) return;
-
       if (share) {
         final xFile = XFile(file.path);
         await SharePlus.instance.share(
@@ -168,7 +152,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       }
     }
   }
-
   Widget _buildImageWidget(String receipt) {
     final normalizedReceipt = _normalizeUrl(receipt);
     if (normalizedReceipt.startsWith('http://') ||
@@ -230,12 +213,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     final String receipt = args['receipt'] as String? ?? 'receipt.pdf';
-
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -248,7 +229,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       ),
     );
   }
-
   Widget _buildTopBar(BuildContext context, String receipt) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -272,12 +252,10 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
       ),
     );
   }
-
   Widget _buildReceiptView(BuildContext context, String receipt) {
     final normalizedReceipt = _normalizeUrl(receipt);
     final isPdf = normalizedReceipt.toLowerCase().endsWith('.pdf');
     final isImage = _isImageFile(normalizedReceipt);
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -359,7 +337,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: Container(
               width: double.infinity,
@@ -409,7 +386,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                               ),
                             ),
                           ),
-
                           Positioned(
                             bottom: 16,
                             right: 16,
@@ -459,7 +435,6 @@ class _ReceiptViewerScreenState extends State<ReceiptViewerScreen> {
                               ),
                             ),
                           ),
-
                           Positioned(
                             top: 12,
                             left: 0,

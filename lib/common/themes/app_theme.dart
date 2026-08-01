@@ -1,22 +1,17 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 class AppTheme {
   AppTheme._();
-
   static const double spacingXs = 4;
   static const double spacingSm = 8;
   static const double spacingMd = 16;
   static const double spacingLg = 24;
   static const double spacingXl = 32;
-
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 16;
   static const double radiusXl = 24;
-
   static const Color primary = AppColors.primaryBlue;
   static const Color primaryLight = AppColors.primaryLightBlue;
   static const Color secondary = AppColors.primaryPurple;
@@ -31,7 +26,6 @@ class AppTheme {
   static const Color textLight = AppColors.textSecondary;
   static const Color border = AppColors.cardBorder;
   static const Color divider = AppColors.divider;
-
   static final List<BoxShadow> premiumShadow = [
     BoxShadow(
       color: Colors.black.withValues(alpha: .05),
@@ -39,24 +33,20 @@ class AppTheme {
       offset: const Offset(0, 4),
     ),
   ];
-
   static const List<BoxShadow> cardShadows = [
     BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
   ];
-
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [AppColors.bgBase1, AppColors.bgBase3, AppColors.bgBase4],
   );
-
   static final BoxDecoration cardDecoration = BoxDecoration(
     color: AppColors.cardBg,
     borderRadius: BorderRadius.circular(16),
     border: Border.all(color: AppColors.cardBorder, width: 0.5),
     boxShadow: premiumShadow,
   );
-
   static final ButtonStyle primaryButton = ElevatedButton.styleFrom(
     backgroundColor: AppColors.primaryBlue,
     foregroundColor: Colors.white,
@@ -65,7 +55,6 @@ class AppTheme {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
   );
-
   static final ButtonStyle outlineButton = OutlinedButton.styleFrom(
     foregroundColor: AppColors.primaryBlue,
     minimumSize: const Size.fromHeight(48),
@@ -73,7 +62,6 @@ class AppTheme {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
   );
-
   static final TextStyle heading1 = GoogleFonts.inter(
     fontSize: 32,
     fontWeight: FontWeight.w900,
@@ -81,7 +69,6 @@ class AppTheme {
     letterSpacing: -0.5,
     height: 1.1,
   );
-
   static final TextStyle heading2 = GoogleFonts.inter(
     fontSize: 22,
     fontWeight: FontWeight.w800,
@@ -89,7 +76,6 @@ class AppTheme {
     letterSpacing: -0.3,
     height: 1.2,
   );
-
   static final TextStyle heading3 = GoogleFonts.inter(
     fontSize: 17,
     fontWeight: FontWeight.w700,
@@ -97,14 +83,12 @@ class AppTheme {
     letterSpacing: -0.2,
     height: 1.2,
   );
-
   static final TextStyle bodyLarge = GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textMedium,
     height: 1.45,
   );
-
   static final TextStyle body = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
@@ -112,20 +96,17 @@ class AppTheme {
     height: 1.5,
     letterSpacing: 0.1,
   );
-
   static final TextStyle caption = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
   );
-
   static final TextStyle label = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: AppColors.textSecondary,
     letterSpacing: 0.3,
   );
-
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(

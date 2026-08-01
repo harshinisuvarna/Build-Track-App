@@ -1,31 +1,24 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/inventory_model.dart';
-
 class InventoryProvider extends ChangeNotifier {
   List<InventoryItem> _inventory = [];
   bool _isLoading = false;
   String _error = '';
-
   List<InventoryItem> get inventory => _inventory;
   bool get isLoading => _isLoading;
   String get error => _error;
-
   List<InventoryItem> get lowStockAlerts {
     return _inventory
         .where((item) => item.closingStock < item.threshold)
         .toList();
   }
-
   List<InventoryItem> get materialInventory =>
       _inventory.where((item) => item.category == 'material').toList();
-
   List<InventoryItem> get labourInventory =>
       _inventory.where((item) => item.category == 'labour').toList();
-
   List<InventoryItem> get equipmentInventory =>
       _inventory.where((item) => item.category == 'equipment').toList();
-
   Future<void> addToInventory({
     required String materialName,
     required double quantity,
@@ -43,19 +36,16 @@ class InventoryProvider extends ChangeNotifier {
         category: category,
         threshold: threshold,
       );
-
       await loadInventory(projectId);
     } catch (e) {
       _error = 'Could not add to inventory: $e';
       notifyListeners();
     }
   }
-
   Future<void> loadInventory(String projectId) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
-
     try {
       final rawData = await ApiService.fetchInventory(projectId);
       debugPrint('RAW INVENTORY JSON');
@@ -68,7 +58,6 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   Future<void> performSearch(
     String query,
     String category, {
@@ -77,7 +66,6 @@ class InventoryProvider extends ChangeNotifier {
     _isLoading = true;
     _error = '';
     notifyListeners();
-
     try {
       final rawData = await ApiService.searchMaterials(
         query: query,
@@ -94,7 +82,6 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   void clear() {
     _inventory = [];
     _isLoading = false;

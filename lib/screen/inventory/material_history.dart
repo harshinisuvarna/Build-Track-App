@@ -1,13 +1,11 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
-
 class CementHistoryScreen extends StatefulWidget {
   const CementHistoryScreen({super.key});
   @override
   State<CementHistoryScreen> createState() => _CementHistoryScreenState();
 }
-
 class _CementHistoryScreenState extends State<CementHistoryScreen> {
   static const primaryBlue = AppColors.primary;
   static const purple = AppColors.primary;
@@ -107,7 +105,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
-
   Widget _buildStockCard() {
     return Container(
       width: double.infinity,
@@ -170,7 +167,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ),
     );
   }
-
   Widget _stockBadge(IconData icon, String label) {
     return Row(
       children: [
@@ -188,7 +184,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-
   Widget _buildMovementHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,7 +232,6 @@ class _CementHistoryScreenState extends State<CementHistoryScreen> {
       ],
     );
   }
-
   Widget _movementItem({
     required IconData icon,
     required Color iconBg,

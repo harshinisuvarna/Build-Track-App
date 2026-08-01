@@ -1,7 +1,5 @@
 enum EntryType { material, labour, equipment }
-
 enum EntryStatus { pending, approved, rejected }
-
 class Entry {
   Entry({
     required this.id,
@@ -34,7 +32,6 @@ class Entry {
         return 'Equipment';
     }
   }
-
   String get statusLabel {
     switch (status) {
       case EntryStatus.pending:
@@ -45,7 +42,6 @@ class Entry {
         return 'Rejected';
     }
   }
-
   factory Entry.fromMap(Map<String, dynamic> map) {
     return Entry(
       id: map['id'] as String,
@@ -80,7 +76,6 @@ class Entry {
       if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
     };
   }
-
   Entry copyWith({
     EntryStatus? status,
     String? approvedBy,
@@ -97,7 +92,6 @@ class Entry {
       approvedAt: approvedAt ?? this.approvedAt,
     );
   }
-
   @override
   String toString() =>
       'Entry(id: $id, type: $typeLabel, status: $statusLabel, project: $projectId)';

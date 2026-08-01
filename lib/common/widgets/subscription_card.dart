@@ -3,17 +3,13 @@ import 'package:buildtrack_mobile/common/widgets/premium_cta_button.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class SubscriptionCard extends StatelessWidget {
   const SubscriptionCard({super.key, this.showUpgradeButton = true});
-
   final bool showUpgradeButton;
-
   @override
   Widget build(BuildContext context) {
     final sub = context.watch<SubscriptionProvider>();
     final plan = sub.currentPlan;
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -120,7 +116,6 @@ class SubscriptionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -141,7 +136,6 @@ class SubscriptionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 if (sub.renewalDate != null) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -162,7 +156,6 @@ class SubscriptionCard extends StatelessWidget {
                     ],
                   ),
                 ],
-
                 if (showUpgradeButton) ...[
                   const SizedBox(height: 18),
                   const Divider(color: Colors.white24, height: 1),
@@ -191,7 +184,6 @@ class SubscriptionCard extends StatelessWidget {
       ),
     );
   }
-
   LinearGradient _gradientFor(SubscriptionPlan plan) {
     switch (plan) {
       case SubscriptionPlan.free:
@@ -236,7 +228,6 @@ class SubscriptionCard extends StatelessWidget {
         );
     }
   }
-
   Color _shadowColorFor(SubscriptionPlan plan) {
     switch (plan) {
       case SubscriptionPlan.free:
@@ -253,7 +244,6 @@ class SubscriptionCard extends StatelessWidget {
         return Colors.black.withValues(alpha: 0.4);
     }
   }
-
   String _fmtDate(DateTime d) {
     const months = [
       'Jan',
@@ -272,12 +262,10 @@ class SubscriptionCard extends StatelessWidget {
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 }
-
 class _LimitChip extends StatelessWidget {
   const _LimitChip({required this.icon, required this.label});
   final IconData icon;
   final String label;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -304,11 +292,9 @@ class _LimitChip extends StatelessWidget {
     );
   }
 }
-
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
   final SubscriptionStatus status;
-
   @override
   Widget build(BuildContext context) {
     final label = switch (status) {

@@ -4,23 +4,18 @@ import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
-
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
   final _tokenCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
-
   bool _isLoading = false;
   bool _obscurePass = true;
-
   bool _step2 = false;
-
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -28,7 +23,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _newPassCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -58,7 +52,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
-
   Widget _buildHeader() {
     return Column(
       children: [
@@ -94,7 +87,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ],
     );
   }
-
   Widget _buildStep1Form() {
     return AppTextField(
       label: 'Email Address',
@@ -104,7 +96,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       keyboardType: TextInputType.emailAddress,
     );
   }
-
   Widget _buildStep2Form() {
     return Column(
       children: [
@@ -132,7 +123,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ],
     );
   }
-
   Widget _buildActions() {
     return Column(
       children: [
@@ -172,7 +162,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ],
     );
   }
-
   Future<void> _onSendLink() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
@@ -199,11 +188,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   Future<void> _onSetPassword() async {
     final token = _tokenCtrl.text.trim();
     final password = _newPassCtrl.text.trim();
-
     if (token.isEmpty) {
       _showSnack('Please paste the token from your email', isError: true);
       return;
@@ -212,7 +199,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _showSnack('Password must be at least 6 characters', isError: true);
       return;
     }
-
     setState(() => _isLoading = true);
     try {
       await ApiService.confirmResetPassword(token: token, password: password);
@@ -226,7 +212,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

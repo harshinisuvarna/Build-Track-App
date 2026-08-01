@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
@@ -9,7 +8,6 @@ import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/report_model.dart';
-
 import 'package:buildtrack_mobile/screen/reports/report_widgets.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
@@ -20,20 +18,16 @@ import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
 class ReportInsightsScreen extends StatefulWidget {
   const ReportInsightsScreen({super.key});
   @override
   State<ReportInsightsScreen> createState() => _ReportInsightsScreenState();
 }
-
 class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
-
   List<dynamic> _inventoryItems = [];
   String? _lastInventoryProjectId;
-
   Future<void> _loadInventory(String projectId) async {
     if (_lastInventoryProjectId == projectId) return;
     _lastInventoryProjectId = projectId;
@@ -45,7 +39,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       _inventoryItems = items;
     });
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
@@ -53,7 +46,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final passedProjectName = args?['projectName'];
     final isAll = passedProjectName == 'All Active Projects';
-
     ProjectModel? project;
     if (isAll) {
       final totalBudget = provider.projects.fold(
@@ -88,7 +80,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
             )
           : provider.selectedProject;
     }
-
     if (provider.isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -97,7 +88,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         ),
       );
     }
-
     if (project == null) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -121,19 +111,14 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         ),
       );
     }
-
     final report = _buildReportForProject(provider, project.id, isAll);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInventory(project!.id);
     });
-
     final phases = project.selectedPhases ?? [];
-
     final allEntries = isAll
         ? provider.entries
         : provider.entriesForProject(project.id);
-
     final filteredEntries = allEntries
         .where(
           (e) =>
@@ -141,19 +126,16 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
               !e.date.isAfter(_toDate.add(const Duration(days: 1))),
         )
         .toList();
-
     final categoryCosts = {
       'Material': report.materialCost,
       'Labour': report.labourCost,
       'Equipment': report.equipmentCost,
     };
-
     final categoryBudgets = {
       'Material': report.targetMaterial,
       'Labour': report.targetLabour,
       'Equipment': report.targetEquipment,
     };
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       floatingActionButton: _ExportFab(
@@ -193,7 +175,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
                         _toDate = to;
                       }),
                     ),
-
                     const SizedBox(height: 10),
                     _ProjectSummaryCard(project: project, report: report),
                     const SizedBox(height: 14),
@@ -241,20 +222,16 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       ),
     );
   }
-
   ReportModel _buildReportForProject(
     ProjectProvider provider,
     String projectId,
     bool isAll,
   ) {
     if (provider.projects.isEmpty) return ReportModel.empty();
-
     final targetProjects = isAll
         ? provider.projects
         : provider.projects.where((p) => p.id == projectId).toList();
-
     if (targetProjects.isEmpty) return ReportModel.empty();
-
     double material = 0, labour = 0, equipment = 0;
     for (final p in targetProjects) {
       for (final entry in provider.entriesForProject(p.id)) {
@@ -271,7 +248,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
         }
       }
     }
-
     double targetMaterial = 0,
         targetLabour = 0,
         targetEquipment = 0,
@@ -282,12 +258,10 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
       targetEquipment += p.budgetEquipment ?? 0;
       targetMisc += p.budgetMisc ?? 0;
     }
-
     final total = material + labour + equipment;
     final totalTarget =
         targetMaterial + targetLabour + targetEquipment + targetMisc;
     final isOver = totalTarget > 0 && total > totalTarget;
-
     return ReportModel(
       totalCost: total,
       materialCost: material,
@@ -308,7 +282,6 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
           : 'Project is within budget',
     );
   }
-
   void _showExportSheet(
     BuildContext context,
     ProjectModel project,
@@ -340,21 +313,17 @@ class _ReportInsightsScreenState extends State<ReportInsightsScreen> {
     );
   }
 }
-
 class _DateRangeRow extends StatelessWidget {
   const _DateRangeRow({
     required this.fromDate,
     required this.toDate,
     required this.onChanged,
   });
-
   final DateTime fromDate;
   final DateTime toDate;
   final void Function(DateTime from, DateTime to) onChanged;
-
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -418,11 +387,9 @@ class _DateRangeRow extends StatelessWidget {
     );
   }
 }
-
 class _ExportFab extends StatelessWidget {
   const _ExportFab({required this.onTap});
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -460,7 +427,6 @@ class _ExportFab extends StatelessWidget {
     );
   }
 }
-
 class _ExportSheet extends StatefulWidget {
   const _ExportSheet({
     required this.project,
@@ -473,7 +439,6 @@ class _ExportSheet extends StatefulWidget {
     required this.fromDate,
     required this.toDate,
   });
-
   final ProjectModel project;
   final ReportModel report;
   final Map<String, double> categoryCosts;
@@ -483,11 +448,9 @@ class _ExportSheet extends StatefulWidget {
   final List<dynamic> inventoryItems;
   final DateTime fromDate;
   final DateTime toDate;
-
   @override
   State<_ExportSheet> createState() => _ExportSheetState();
 }
-
 class _ExportSheetState extends State<_ExportSheet> {
   bool _includeCostBreakdown = true;
   bool _includeCategoryChart = true;
@@ -495,13 +458,10 @@ class _ExportSheetState extends State<_ExportSheet> {
   bool _includeActivityProgress = true;
   bool _includeInventory = true;
   bool _isGenerating = false;
-
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
   String get _dateRangeLabel =>
       '${_fmt(widget.fromDate)} – ${_fmt(widget.toDate)}';
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -526,7 +486,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-
               Row(
                 children: [
                   Container(
@@ -568,7 +527,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -602,7 +560,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-
               const Text(
                 'INCLUDE IN REPORT',
                 style: TextStyle(
@@ -613,7 +570,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 ),
               ),
               const SizedBox(height: 10),
-
               _toggle(
                 'Cost Breakdown',
                 'Total material, labour & equipment costs',
@@ -621,7 +577,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 _includeCostBreakdown,
                 (v) => setState(() => _includeCostBreakdown = v),
               ),
-
               _toggle(
                 'Category Chart',
                 'Visual chart + table of budget vs actual',
@@ -651,7 +606,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                 (v) => setState(() => _includeInventory = v),
               ),
               const SizedBox(height: 20),
-
               Row(
                 children: [
                   Expanded(
@@ -681,7 +635,6 @@ class _ExportSheetState extends State<_ExportSheet> {
       ),
     );
   }
-
   Widget _toggle(
     String title,
     String subtitle,
@@ -748,7 +701,6 @@ class _ExportSheetState extends State<_ExportSheet> {
       ),
     );
   }
-
   Widget _actionButton({
     required IconData icon,
     required String label,
@@ -807,7 +759,6 @@ class _ExportSheetState extends State<_ExportSheet> {
       ),
     );
   }
-
   Future<Uint8List> _buildPdfBytes() {
     return _ReportPdfBuilder.build(
       project: widget.project,
@@ -826,21 +777,18 @@ class _ExportSheetState extends State<_ExportSheet> {
       includeInventory: _includeInventory,
     );
   }
-
   Future<void> _previewPdf() async {
     Navigator.pop(context);
     final bytes = await _buildPdfBytes();
     if (!mounted) return;
     await Printing.layoutPdf(onLayout: (_) async => bytes);
   }
-
   Future<void> _sharePdf() async {
     setState(() => _isGenerating = true);
     try {
       final bytes = await _buildPdfBytes();
       final fileName =
           'buildtrack_${widget.project.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-
       if (kIsWeb) {
         if (!mounted) return;
         Navigator.pop(context);
@@ -888,18 +836,15 @@ class _ExportSheetState extends State<_ExportSheet> {
     }
   }
 }
-
 class _ReportPdfBuilder {
   static String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
   static String _fmtAmt(double v) {
     if (v >= 10000000) return '${(v / 10000000).toStringAsFixed(2)} Cr';
     if (v >= 100000) return '${(v / 100000).toStringAsFixed(2)} L';
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)} K';
     return v.toStringAsFixed(0);
   }
-
   static Future<Uint8List> build({
     required ProjectModel project,
     required ReportModel report,
@@ -917,20 +862,16 @@ class _ReportPdfBuilder {
     required bool includeInventory,
   }) async {
     final doc = pw.Document();
-
     final primaryColor = PdfColor.fromHex('#5B5FCF');
     final lightBg = PdfColor.fromHex('#F5F6FA');
     final textDark = PdfColor.fromHex('#1A1D3A');
     final textGray = PdfColor.fromHex('#8A92A6');
-
     final successColor = PdfColor.fromHex('#2E7D32');
     final errorColor = PdfColor.fromHex('#C62828');
     final targetBarColor = PdfColor.fromHex('#EF9A9A');
-
     final totalSpent = categoryCosts.values.fold(0.0, (s, v) => s + v);
     final totalBudget = categoryBudgets.values.fold(0.0, (s, v) => s + v);
     final isOver = totalBudget > 0 && totalSpent > totalBudget;
-
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -1045,7 +986,6 @@ class _ReportPdfBuilder {
             ),
           ),
           pw.SizedBox(height: 20),
-
           if (includeCostBreakdown) ...[
             _sectionTitle('Cost Summary', primaryColor),
             pw.SizedBox(height: 10),
@@ -1076,7 +1016,6 @@ class _ReportPdfBuilder {
             ),
             pw.SizedBox(height: 20),
           ],
-
           if (includeCategoryChart) ...[
             _sectionTitle('Spend vs Budget by Category', primaryColor),
             pw.SizedBox(height: 10),
@@ -1166,7 +1105,6 @@ class _ReportPdfBuilder {
             ),
             pw.SizedBox(height: 20),
           ],
-
           if (includeEntryLog && entries.isNotEmpty) ...[
             _sectionTitle(
               'Entry Log (${entries.length} entries)',
@@ -1239,7 +1177,6 @@ class _ReportPdfBuilder {
               ],
             ),
           ],
-
           if (includeEntryLog && entries.isEmpty) ...[
             _sectionTitle('Entry Log', primaryColor),
             pw.SizedBox(height: 10),
@@ -1248,7 +1185,6 @@ class _ReportPdfBuilder {
               style: pw.TextStyle(fontSize: 10, color: textGray),
             ),
           ],
-
           if (includeActivityProgress) ...[
             pw.SizedBox(height: 20),
             _sectionTitle('Activity Progress', primaryColor),
@@ -1318,7 +1254,6 @@ class _ReportPdfBuilder {
                 );
               }),
           ],
-
           if (includeInventory) ...[
             pw.SizedBox(height: 20),
             _sectionTitle('Inventory Status', primaryColor),
@@ -1388,10 +1323,8 @@ class _ReportPdfBuilder {
         ],
       ),
     );
-
     return doc.save();
   }
-
   static pw.Widget _sectionTitle(String title, PdfColor color) => pw.Container(
     padding: const pw.EdgeInsets.symmetric(vertical: 6),
     decoration: pw.BoxDecoration(
@@ -1407,7 +1340,6 @@ class _ReportPdfBuilder {
       ),
     ),
   );
-
   static pw.Widget _summaryBox(
     String label,
     String value,
@@ -1446,7 +1378,6 @@ class _ReportPdfBuilder {
       ),
     ),
   );
-
   static pw.Widget _tCell(String text, {bool bold = false, PdfColor? color}) =>
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -1459,7 +1390,6 @@ class _ReportPdfBuilder {
           ),
         ),
       );
-
   static pw.Widget _categoryChart(
     Map<String, double> categoryCosts,
     Map<String, double> categoryBudgets,
@@ -1474,7 +1404,6 @@ class _ReportPdfBuilder {
         ? 1.0
         : allValues.reduce((a, b) => a > b ? a : b);
     final safeMax = maxVal <= 0 ? 1.0 : maxVal;
-
     return pw.Container(
       padding: const pw.EdgeInsets.all(14),
       decoration: pw.BoxDecoration(
@@ -1533,18 +1462,15 @@ class _ReportPdfBuilder {
       ),
     );
   }
-
   static pw.Widget _legendDot(PdfColor color) => pw.Container(
     width: 8,
     height: 8,
     decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
   );
 }
-
 class _ExportDetailsHintCard extends StatelessWidget {
   const _ExportDetailsHintCard({required this.onTap});
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1624,12 +1550,10 @@ class _ExportDetailsHintCard extends StatelessWidget {
     );
   }
 }
-
 class _ProjectSummaryCard extends StatelessWidget {
   final ProjectModel project;
   final ReportModel report;
   const _ProjectSummaryCard({required this.project, required this.report});
-
   @override
   Widget build(BuildContext context) {
     final totalTarget =
@@ -1637,13 +1561,10 @@ class _ProjectSummaryCard extends StatelessWidget {
         report.targetLabour +
         report.targetEquipment +
         report.targetMisc;
-
     final spentPct = totalTarget > 0
         ? (report.totalCost / totalTarget).clamp(0.0, 1.0)
         : project.progress;
-
     final isOver = totalTarget > 0 && report.totalCost > totalTarget;
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1694,7 +1615,6 @@ class _ProjectSummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1740,18 +1660,15 @@ class _ProjectSummaryCard extends StatelessWidget {
     );
   }
 }
-
 class _CategoryBreakdownCard extends StatelessWidget {
   final ProjectModel project;
   final Map<String, double> categoryCosts;
   final Map<String, double> categoryBudgets;
-
   const _CategoryBreakdownCard({
     required this.project,
     required this.categoryCosts,
     required this.categoryBudgets,
   });
-
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -1768,7 +1685,6 @@ class _CategoryBreakdownCard extends StatelessWidget {
               : pct >= 0.6
               ? AppColors.warning
               : AppColors.primary;
-
           return InkWell(
             onTap: () => Navigator.pushNamed(
               context,

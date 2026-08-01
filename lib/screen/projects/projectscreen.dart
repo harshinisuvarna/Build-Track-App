@@ -7,14 +7,12 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 enum _ProjectStatus {
   planning,
   inProgress,
   onHold,
   completed,
   cancelled;
-
   static _ProjectStatus fromString(String? raw) {
     switch ((raw ?? '').toLowerCase().replaceAll(' ', '').replaceAll('_', '')) {
       case 'planning':
@@ -31,7 +29,6 @@ enum _ProjectStatus {
         return _ProjectStatus.inProgress;
     }
   }
-
   String get label {
     switch (this) {
       case _ProjectStatus.planning:
@@ -46,7 +43,6 @@ enum _ProjectStatus {
         return 'Cancelled';
     }
   }
-
   Color get bg {
     switch (this) {
       case _ProjectStatus.planning:
@@ -61,7 +57,6 @@ enum _ProjectStatus {
         return const Color(0xFFFFEBEE);
     }
   }
-
   Color get border {
     switch (this) {
       case _ProjectStatus.planning:
@@ -76,7 +71,6 @@ enum _ProjectStatus {
         return const Color(0xFFE53935);
     }
   }
-
   Color get text {
     switch (this) {
       case _ProjectStatus.planning:
@@ -92,12 +86,9 @@ enum _ProjectStatus {
     }
   }
 }
-
 class ProjectStatusChip extends StatelessWidget {
   const ProjectStatusChip({super.key, required this.statusRaw});
-
   final String? statusRaw;
-
   @override
   Widget build(BuildContext context) {
     final status = _ProjectStatus.fromString(statusRaw);
@@ -127,24 +118,18 @@ class ProjectStatusChip extends StatelessWidget {
     );
   }
 }
-
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
-
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
-
     final canCreate = RoleManager.canCreateProject;
-
     return Scaffold(
       backgroundColor: bgColor,
-
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () => Navigator.push(
@@ -175,7 +160,6 @@ class ProjectsScreen extends StatelessWidget {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
   Widget _buildBody(BuildContext context, ProjectProvider provider) {
     if (provider.isLoading) {
       return const Center(
@@ -268,7 +252,6 @@ class ProjectsScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _projectCard(
     BuildContext context,
     ProjectModel p,
@@ -318,7 +301,6 @@ class ProjectsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-
               Text(
                 p.location,
                 style: const TextStyle(
@@ -328,7 +310,6 @@ class ProjectsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-
               Text(
                 '${p.formattedSpent} of ${p.formattedBudget}',
                 style: const TextStyle(
@@ -338,7 +319,6 @@ class ProjectsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -371,9 +351,6 @@ class ProjectsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              // const Divider(color: Color(0xFFEEF0F5), height: 1),
-              // const SizedBox(height: 12),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: InkWell(

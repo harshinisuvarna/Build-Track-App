@@ -5,31 +5,25 @@ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:buildtrack_mobile/models/task_model.dart';
 import 'package:buildtrack_mobile/services/task_service.dart';
-
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
-
 class _NotificationsScreenState extends State<NotificationsScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   List<TaskModel> _tasks = [];
   bool _isLoadingTasks = true;
-
   @override
   void initState() {
     super.initState();
     _fetchTasks();
   }
-
   Future<void> _fetchTasks() async {
     try {
       final tasks = await TaskService.getDailyTasks();
@@ -47,13 +41,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final inventoryProvider = context.watch<InventoryProvider>();
     final alerts = inventoryProvider.lowStockAlerts;
     final isLoading = inventoryProvider.isLoading;
-
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -104,7 +96,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-
                     if (isLoading)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 30),
@@ -227,7 +218,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-
   Widget _dynamicInventoryWarningCard({
     required String title,
     required String body,
@@ -313,7 +303,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-
   Widget _dynamicTaskWarningCard({
     required String title,
     required String body,

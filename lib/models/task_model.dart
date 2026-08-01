@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 class TaskModel {
   final String id;
   final String title;
@@ -16,7 +15,6 @@ class TaskModel {
   final String? activityName;
   final String status;
   final String time;
-
   TaskModel({
     required this.id,
     required this.title,
@@ -34,7 +32,6 @@ class TaskModel {
     this.status = 'Not Started',
     this.time = 'Today',
   });
-
   factory TaskModel.fromJson(Map<String, dynamic> j) {
     return TaskModel(
       id: j['_id']?.toString() ?? '',
@@ -59,7 +56,6 @@ class TaskModel {
       time: j['time']?.toString() ?? 'Today',
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -79,7 +75,6 @@ class TaskModel {
       'time': time,
     };
   }
-
   static List<TaskModel> decodeList(String raw) {
     final decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
