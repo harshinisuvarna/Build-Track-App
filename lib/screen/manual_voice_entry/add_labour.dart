@@ -47,12 +47,9 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   bool _isEditing = false;
   String? _editingTransactionId;
   bool _argsLoaded = false;
-  bool _isDatePickerOpen = false;
   PickedAttachment? _attachment;
   DateTime _selectedDate = DateTime.now();
   List<dynamic> _recentEntries = [];
-  bool _isLoadingRecent = false;
-  List<Map<String, dynamic>> _suggestions = [];
   bool _isAddAndPay = false;
   bool _recordPaymentNow = false;
   Map<String, dynamic>? _paymentResult;
@@ -60,7 +57,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   final _paymentAmountCtrl = TextEditingController();
   final _paymentNoteCtrl = TextEditingController();
   String _paymentMethod = 'Cash';
-  final DateTime _paymentDate = DateTime.now();
   double _existingPaidAmount = 0.0;
   final _scrollCtrl = ScrollController();
   String? _nameError;
@@ -226,6 +222,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
   }
   Future<void> _selectProject(String? projectId) async {
     _selectedProjectId = projectId;
+    setState(() {});
   }
   Future<void> _loadFloors(String? projectId) async {
     final projectProvider = Provider.of<ProjectProvider>(
@@ -980,6 +977,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     _paymentAmountCtrl.dispose();
     _paymentNoteCtrl.dispose();
     _scrollCtrl.dispose();
+    _clientEmailCtrl.dispose();
     super.dispose();
   }
   double _totalCost() {
@@ -1130,7 +1128,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
           : totalPaid > 0
           ? "Partial"
           : "Pending";
-      payload["paymentDate"] = _paymentDate.toUtc().toIso8601String();
+      payload["paymentDate"] = DateTime.now().toUtc().toIso8601String();
       if (_paymentNoteCtrl.text.trim().isNotEmpty) {
         payload["notes"] = _paymentNoteCtrl.text.trim();
       }
@@ -1890,28 +1888,17 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
     if (_selectedProjectId == null) {
       setState(() {
         _recentEntries = [];
-        _suggestions = [];
       });
       return;
     }
-    setState(() => _isLoadingRecent = true);
-    final recentFuture = ApiService.fetchRecentTransactions(
+    final recentTxs = await ApiService.fetchRecentTransactions(
       projectId: _selectedProjectId!,
       type: 'Wages',
       userId: UserSession.userId,
     );
-    final suggestionFuture = ApiService.fetchSuggestions(
-      projectId: _selectedProjectId!,
-      type: 'Wages',
-      userId: UserSession.userId,
-    );
-    final recentTxs = await recentFuture;
-    final suggestions = await suggestionFuture;
     if (mounted) {
       setState(() {
         _recentEntries = recentTxs.take(5).toList();
-        _suggestions = suggestions;
-        _isLoadingRecent = false;
       });
     }
   }
@@ -2185,7 +2172,6 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () async {
-                              setState(() => _isDatePickerOpen = true);
                               final picked = await showDatePicker(
                                 context: context,
                                 initialDate: _selectedDate,
@@ -2203,9 +2189,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                 ),
                               );
                               if (!mounted) return;
-                              setState(() {
-                                _isDatePickerOpen = false;
-                                if (picked != null) {
+                              if (picked != null) {
+                                setState(() {
                                   _selectedDate = DateTime(
                                     picked.year,
                                     picked.month,
@@ -2214,8 +2199,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                                     _selectedDate.minute,
                                     _selectedDate.second,
                                   );
-                                }
-                              });
+                                });
+                              }
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -2262,7 +2247,7 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                           AutocompleteNameField(
                             controller: _nameCtrl,
                             hint: 'e.g. Mason, Carpenter, Steel Fixer',
-                            suggestions: _suggestions,
+                            suggestions: const [],
                             onChanged: (_) => setState(() => _nameError = null),
                             onSuggestionSelected: _prefillFromRecent,
                             errorText: _nameError,
@@ -2463,16 +2448,8 @@ class _AddLabourScreenState extends State<AddLabourScreen> {
                       _buildPaymentSection(),
                     const SizedBox(height: 4),
                     if (_selectedProjectId != null &&
-                        !_isEditing &&
-                        !_isDatePickerOpen) ...[
-                      if (_isLoadingRecent)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      else if (_recentEntries.isNotEmpty) ...[
+                        !_isEditing) ...[
+                      if (_recentEntries.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         GestureDetector(
                           onTap: _showRecentEntriesSheet,
