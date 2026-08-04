@@ -3,25 +3,19 @@ import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-
 enum VoiceEngineState { idle, listening, processing, parsed, error }
-
 class VoiceRecordingController extends ChangeNotifier {
   VoiceRecordingController({
     this.listenForSeconds = 45,
     this.pauseForSeconds = 6,
   });
-
   final int listenForSeconds;
   final int pauseForSeconds;
-
   final SpeechToText _stt = SpeechToText();
   bool _sttInitialised = false;
   bool _initialising = false;
-
   VoiceEngineState get engineState => _engineState;
   VoiceEngineState _engineState = VoiceEngineState.idle;
-
   String get partialTranscript {
     final acc = _finalTranscript.trim();
     final part = _partialTranscript.trim();
@@ -29,31 +23,21 @@ class VoiceRecordingController extends ChangeNotifier {
     if (part.isEmpty) return acc;
     return '$acc $part';
   }
-
   String _partialTranscript = '';
-
   String get finalTranscript => _finalTranscript;
   String _finalTranscript = '';
-
   int get elapsedSeconds => _elapsedSeconds;
   int _elapsedSeconds = 0;
-
   String get errorMessage => _errorMessage;
   String _errorMessage = '';
-
   bool get isListening => _engineState == VoiceEngineState.listening;
-
   double get soundLevel => _soundLevel;
   double _soundLevel = 0.0;
-
   Timer? _sessionTimer;
   Timer? _forceParsedTimer;
-
   bool _parsedEmitted = false;
-
   String _accumulatedTranscript = '';
   DateTime? _lastResultTime;
-
   Future<bool> _ensureInitialised() async {
     if (_sttInitialised) return true;
     if (_initialising) return false;
@@ -81,17 +65,14 @@ class VoiceRecordingController extends ChangeNotifier {
     _initialising = false;
     return _sttInitialised;
   }
-
   Future<bool> preInitialize() async {
     debugPrint('[VOICE INITIALIZATION] Pre-initialize triggered.');
     return _ensureInitialised();
   }
-
   void _onSoundLevel(double level) {
     _soundLevel = level;
     notifyListeners();
   }
-
   Future<void> startListening() async {
     debugPrint(
       '[VOICE START] startListening() requested. Current state: $_engineState',
@@ -100,10 +81,8 @@ class VoiceRecordingController extends ChangeNotifier {
       debugPrint('[VOICE START] Already listening. Request ignored.');
       return;
     }
-
     _forceParsedTimer?.cancel();
     _parsedEmitted = false;
-
     _partialTranscript = '';
     _finalTranscript = '';
     _accumulatedTranscript = '';
@@ -113,7 +92,6 @@ class VoiceRecordingController extends ChangeNotifier {
     debugPrint(
       '[VOICE TIMER] Reset: elapsedSeconds = 0, lastResultTime = $_lastResultTime',
     );
-
     final ready = await _ensureInitialised();
     if (!ready) {
       _errorMessage = 'Microphone permission denied or not available.';
@@ -121,7 +99,6 @@ class VoiceRecordingController extends ChangeNotifier {
       _setEngineState(VoiceEngineState.error);
       return;
     }
-
     try {
       if (_stt.isListening) {
         debugPrint(
@@ -136,18 +113,15 @@ class VoiceRecordingController extends ChangeNotifier {
     } catch (e) {
       debugPrint('[VOICE START] Failed to cancel active STT: $e');
     }
-
     _setEngineState(VoiceEngineState.listening);
     _sessionTimer?.cancel();
     debugPrint('[VOICE TIMER] Stop: previous timer cancelled if any.');
-
     debugPrint('[VOICE TIMER] Start: periodic 1s timer started.');
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       _elapsedSeconds++;
       debugPrint(
         '[VOICE TIMER] Tick: $_elapsedSeconds seconds. STT isListening: ${_stt.isListening}, EngineState: $_engineState',
       );
-
       if (_engineState == VoiceEngineState.listening && _elapsedSeconds > 1) {
         if (!_stt.isListening) {
           final silenceDuration = DateTime.now().difference(
@@ -169,7 +143,6 @@ class VoiceRecordingController extends ChangeNotifier {
       }
       notifyListeners();
     });
-
     try {
       debugPrint('[VOICE START] Calling stt.listen()...');
       await _stt.listen(
@@ -193,7 +166,6 @@ class VoiceRecordingController extends ChangeNotifier {
       _setEngineState(VoiceEngineState.error);
     }
   }
-
   Future<void> stopListening() async {
     debugPrint(
       '[VOICE STOP] stopListening() requested. Current state: $_engineState',
@@ -208,7 +180,6 @@ class VoiceRecordingController extends ChangeNotifier {
     debugPrint('[VOICE STOP] stt.stop() called.');
     _setEngineState(VoiceEngineState.processing);
   }
-
   Future<void> cancelListening() async {
     debugPrint(
       '[VOICE CANCEL] cancelListening() requested. Current state: $_engineState',
@@ -226,7 +197,6 @@ class VoiceRecordingController extends ChangeNotifier {
     debugPrint('[VOICE TIMER] Reset: elapsedSeconds = 0');
     _setEngineState(VoiceEngineState.idle);
   }
-
   void reset() {
     debugPrint('[VOICE RESET] reset() requested. Current state: $_engineState');
     _forceParsedTimer?.cancel();
@@ -241,7 +211,6 @@ class VoiceRecordingController extends ChangeNotifier {
     debugPrint('[VOICE TIMER] Reset: elapsedSeconds = 0');
     _setEngineState(VoiceEngineState.idle);
   }
-
   Future<void> resetEngine() async {
     debugPrint('[VOICE RESET ENGINE] resetEngine() requested.');
     _forceParsedTimer?.cancel();
@@ -260,13 +229,11 @@ class VoiceRecordingController extends ChangeNotifier {
     await _stt.cancel();
     debugPrint('[VOICE RESET ENGINE] resetEngine: done (state=$_engineState)');
   }
-
   void _onResult(SpeechRecognitionResult result) {
     if (_engineState != VoiceEngineState.listening &&
         _engineState != VoiceEngineState.processing) {
       return;
     }
-
     final recognized = result.recognizedWords.trim();
     if (recognized.isNotEmpty) {
       _lastResultTime = DateTime.now();
@@ -274,7 +241,6 @@ class VoiceRecordingController extends ChangeNotifier {
         '[VOICE RESULT] Speech detected! Updating _lastResultTime to $_lastResultTime',
       );
     }
-
     if (result.finalResult) {
       debugPrint('[VOICE RESULT] Final segment result: "$recognized"');
       if (recognized.isNotEmpty) {
@@ -305,7 +271,6 @@ class VoiceRecordingController extends ChangeNotifier {
     }
     notifyListeners();
   }
-
   void _onSttStatus(String status) {
     debugPrint('[VOICE STATUS CHANGES] Status changed: $status');
     if (status == 'done' ||
@@ -316,7 +281,6 @@ class VoiceRecordingController extends ChangeNotifier {
       debugPrint(
         '[VOICE STATUS CHANGES] Non-listening status detected: $status. Checking if we should auto-restart...',
       );
-
       if (_engineState == VoiceEngineState.listening) {
         final silenceDuration = DateTime.now().difference(
           _lastResultTime ?? DateTime.now(),
@@ -324,7 +288,6 @@ class VoiceRecordingController extends ChangeNotifier {
         debugPrint(
           '[VOICE STATUS CHANGES] Silence duration: ${silenceDuration.inSeconds}s (max allowed pauseFor: $pauseForSeconds s)',
         );
-
         if (silenceDuration < Duration(seconds: pauseForSeconds) &&
             _elapsedSeconds < 90) {
           debugPrint(
@@ -346,7 +309,6 @@ class VoiceRecordingController extends ChangeNotifier {
       }
     }
   }
-
   void _handleRecognitionStopped() {
     debugPrint(
       '[VOICE STATUS CHANGES] _handleRecognitionStopped called. EngineState: $_engineState, isListening: ${_stt.isListening}',
@@ -356,14 +318,12 @@ class VoiceRecordingController extends ChangeNotifier {
       '[VOICE TIMER] Stop: timer stopped inside _handleRecognitionStopped.',
     );
     _forceParsedTimer?.cancel();
-
     if (_finalTranscript.isEmpty && _partialTranscript.isNotEmpty) {
       debugPrint(
         '[VOICE STATUS CHANGES] Using partial transcript as final: "$_partialTranscript"',
       );
       _finalTranscript = _partialTranscript;
     }
-
     if (_finalTranscript.isNotEmpty) {
       _setEngineState(VoiceEngineState.processing);
       _emitParsed();
@@ -371,7 +331,6 @@ class VoiceRecordingController extends ChangeNotifier {
       _setEngineState(VoiceEngineState.idle);
     }
   }
-
   Future<void> _restartListeningInternal() async {
     if (_engineState != VoiceEngineState.listening) {
       debugPrint(
@@ -379,7 +338,6 @@ class VoiceRecordingController extends ChangeNotifier {
       );
       return;
     }
-
     debugPrint('[VOICE AUTO RESTART] Restarting native speech recognizer...');
     try {
       await _stt.listen(
@@ -401,12 +359,10 @@ class VoiceRecordingController extends ChangeNotifier {
       debugPrint('[VOICE AUTO RESTART] Failed to restart STT: $e');
     }
   }
-
   void _onSttError(SpeechRecognitionError error) {
     debugPrint(
       '[VOICE ERROR] Error callback: permanent=${error.permanent}, errorMsg=${error.errorMsg}',
     );
-
     if (_engineState == VoiceEngineState.listening) {
       if (error.errorMsg == 'error_speech_timeout' ||
           error.errorMsg == 'error_no_match' ||
@@ -417,7 +373,6 @@ class VoiceRecordingController extends ChangeNotifier {
         debugPrint(
           '[VOICE TIMEOUT] Error ${error.errorMsg}. Silence duration: ${silenceDuration.inSeconds}s',
         );
-
         if (silenceDuration < Duration(seconds: pauseForSeconds) &&
             _elapsedSeconds < 90) {
           debugPrint(
@@ -428,11 +383,9 @@ class VoiceRecordingController extends ChangeNotifier {
         }
       }
     }
-
     _sessionTimer?.cancel();
     debugPrint('[VOICE TIMER] Stop: timer stopped due to error.');
     _forceParsedTimer?.cancel();
-
     if (error.errorMsg == 'error_no_match' ||
         error.errorMsg == 'error_speech_timeout' ||
         error.errorMsg == 'error_client') {
@@ -446,11 +399,9 @@ class VoiceRecordingController extends ChangeNotifier {
       }
       return;
     }
-
     _errorMessage = _friendlyError(error.errorMsg);
     _setEngineState(VoiceEngineState.error);
   }
-
   void _emitParsed() {
     if (_parsedEmitted) {
       debugPrint(
@@ -467,14 +418,12 @@ class VoiceRecordingController extends ChangeNotifier {
     }
     _setEngineState(VoiceEngineState.parsed);
   }
-
   void _setEngineState(VoiceEngineState s) {
     if (_engineState == s) return;
     debugPrint('[VOICE STATE TRANSITION] State change: $_engineState -> $s');
     _engineState = s;
     notifyListeners();
   }
-
   String _friendlyError(String raw) {
     switch (raw) {
       case 'error_audio':
@@ -489,13 +438,11 @@ class VoiceRecordingController extends ChangeNotifier {
         return 'Voice error: $raw';
     }
   }
-
   String get elapsedDisplay {
     final m = (_elapsedSeconds ~/ 60).toString().padLeft(2, '0');
     final s = (_elapsedSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
-
   @override
   void dispose() {
     _forceParsedTimer?.cancel();

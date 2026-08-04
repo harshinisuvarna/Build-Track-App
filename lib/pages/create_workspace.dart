@@ -5,25 +5,20 @@ import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-
 class CreateWorkspaceScreen extends StatefulWidget {
   const CreateWorkspaceScreen({super.key});
-
   @override
   State<CreateWorkspaceScreen> createState() => _CreateWorkspaceScreenState();
 }
-
 class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
-
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -33,7 +28,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     _confirmCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return AppScrollLayout(
@@ -58,7 +52,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ),
     );
   }
-
   Widget _buildHeader() {
     return Column(
       children: [
@@ -105,7 +98,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
   Widget _buildForm() {
     return Column(
       children: [
@@ -193,7 +185,6 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
   Widget _buildActions() {
     return Column(
       children: [
@@ -227,46 +218,39 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
-
   void _onCreatePressed() async {
     final name = _nameCtrl.text.trim();
     final company = _companyCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     final confirm = _confirmCtrl.text;
-
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
-
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address')),
       );
       return;
     }
-
     if (pass.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password must be at least 6 characters')),
       );
       return;
     }
-
     if (pass != confirm) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
-
     final payload = {
       'name': name,
       'companyName': company,
@@ -274,16 +258,12 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       'password': pass,
       'role': 'Admin',
     };
-
     try {
       final response = await ApiService.post('/auth/register', payload);
-
       if (!mounted) return;
-
       setState(() {
         _isLoading = false;
       });
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

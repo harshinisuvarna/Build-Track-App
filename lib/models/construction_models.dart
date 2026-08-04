@@ -3,7 +3,6 @@ class ConstructionActivity {
   final String name;
   final bool isCustom;
   bool isSelected;
-
   double? qty;
   String? unit;
   double? materialRate;
@@ -12,11 +11,9 @@ class ConstructionActivity {
   double? labourAmount;
   double? equipmentRate;
   double? equipmentAmount;
-
   double? budgetMaterial;
   double? budgetLabour;
   double? budgetEquipment;
-
   ConstructionActivity({
     required this.key,
     required this.name,
@@ -35,13 +32,11 @@ class ConstructionActivity {
     this.budgetEquipment,
   });
 }
-
 class ConstructionActivityGroup {
   final String name;
   final List<ConstructionActivity> activities;
   ConstructionActivityGroup({required this.name, required this.activities});
 }
-
 class ConstructionPhase {
   final String name;
   final bool isCustom;
@@ -49,7 +44,6 @@ class ConstructionPhase {
   final List<ConstructionActivityGroup> groups;
   bool isExpanded;
   bool isSelected;
-
   ConstructionPhase({
     required this.name,
     this.isCustom = false,
@@ -59,19 +53,15 @@ class ConstructionPhase {
     this.isSelected = false,
   }) : activities = activities ?? [],
        groups = groups ?? [];
-
   List<ConstructionActivity> get allActivities => [
     ...activities,
     ...groups.expand((g) => g.activities),
   ];
-
   int get selectedCount => allActivities.where((a) => a.isSelected).length;
   int get totalCount => allActivities.length;
 }
-
 ConstructionActivity _a(String phase, String group, String name) =>
     ConstructionActivity(key: '$phase::$group::$name', name: name);
-
 List<ConstructionPhase> buildDefaultPhases() => [
   ConstructionPhase(
     name: 'Pre-Construction',
@@ -88,7 +78,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Pre-Construction', 'General', 'Temporary Site Setup'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Site Preparation',
     activities: [
@@ -101,7 +90,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Site Preparation', 'General', 'Labour Shed Setup'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Foundation & Plinth Work',
     activities: [
@@ -174,7 +162,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       ),
     ],
   ),
-
   ConstructionPhase(
     name: 'Floor Construction',
     activities: [
@@ -214,7 +201,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Floor Construction', 'General', 'Curing - Slab'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Finishing Work',
     activities: [
@@ -250,7 +236,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Finishing Work', 'General', 'Cleaning & Site Finishing'),
     ],
   ),
-
   ConstructionPhase(
     name: 'External Works',
     activities: [
@@ -266,7 +251,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('External Works', 'General', 'External Plumbing Work'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Material Master',
     activities: [
@@ -293,7 +277,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Material Master', 'General', 'Waterproofing Materials'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Labour Master',
     activities: [
@@ -311,7 +294,6 @@ List<ConstructionPhase> buildDefaultPhases() => [
       _a('Labour Master', 'General', 'Interior Worker'),
     ],
   ),
-
   ConstructionPhase(
     name: 'Equipment Master',
     activities: [

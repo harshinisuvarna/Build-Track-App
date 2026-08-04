@@ -11,40 +11,32 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/models/task_model.dart';
 import 'package:buildtrack_mobile/services/task_service.dart';
-
 class UpdateProgressScreen extends StatefulWidget {
   const UpdateProgressScreen({super.key});
   @override
   State<UpdateProgressScreen> createState() => _UpdateProgressScreenState();
 }
-
 class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedPhaseName;
   String? _selectedActivityName;
-
   String? _prefillActivityId;
   bool _argsLoaded = false;
   bool _launchedFromTracker = false;
-
   final TextEditingController _notesCtrl = TextEditingController();
   late double _completionProgress;
   DateTime _selectedDate = DateTime.now();
   DateTime? _completionDate;
   List<PhotoAttachment> _attachments = [];
-
   late final List<ConstructionPhase> _catalogue;
-
   List<TaskModel> _dailyTasks = [];
   bool _isLoadingTasks = true;
   final Set<String> _completedTaskIds = {};
-
   static const _months = [
     'January',
     'February',
@@ -59,7 +51,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     'November',
     'December',
   ];
-
   @override
   void initState() {
     super.initState();
@@ -69,7 +60,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     _completionProgress = provider.selectedProject?.progress ?? 0.0;
     _fetchDailyTasks();
   }
-
   Future<void> _fetchDailyTasks() async {
     try {
       final tasks = await TaskService.getDailyTasks();
@@ -83,7 +73,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       if (mounted) setState(() => _isLoadingTasks = false);
     }
   }
-
   Future<void> _showEditTaskDialog(
     BuildContext context,
     TaskModel task,
@@ -97,7 +86,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       text: task.description,
     );
     bool saving = false;
-
     await showDialog(
       context: context,
       builder: (ctx) {
@@ -215,16 +203,13 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       },
     );
   }
-
   void _loadActivityDetails() {
     if (_selectedProjectId == null || _selectedActivityName == null) return;
-
     final provider = context.read<ProjectProvider>();
     final project = provider.projects.cast<ProjectModel?>().firstWhere(
       (p) => p?.id == _selectedProjectId,
       orElse: () => null,
     );
-
     if (project != null) {
       final matchedAct = project.selectedPhases
           ?.expand((ph) => ph.activities)
@@ -236,7 +221,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                     act?.name == _selectedActivityName),
             orElse: () => null,
           );
-
       if (matchedAct != null) {
         setState(() {
           if (matchedAct.notes != null && matchedAct.notes!.trim().isNotEmpty) {
@@ -262,13 +246,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       }
     }
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       final projectId = args['projectId'] as String?;
@@ -277,20 +259,17 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       final activityId = args['activityId'] as String?;
       final floor = args['floor'] as String?;
       final floors = args['projectFloors'] as List<String>?;
-
       if (projectId != null && phaseName != null && activityName != null) {
         _launchedFromTracker = true;
         _selectedProjectId = projectId;
         _selectedPhaseName = phaseName;
         _selectedActivityName = activityName;
         _prefillActivityId = activityId;
-
         if (floor != null && floor.isNotEmpty) {
           _selectedFloor = floor;
         } else if (floors != null && floors.isNotEmpty) {
           _selectedFloor = floors.first;
         }
-
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           final provider = context.read<ProjectProvider>();
@@ -301,7 +280,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
           if (project != null) {
             setState(() {
               _completionProgress = project.progress;
-
               _loadActivityDetails();
             });
           }
@@ -309,13 +287,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       }
     }
   }
-
   @override
   void dispose() {
     _notesCtrl.dispose();
     super.dispose();
   }
-
   List<String> _phasesFor(ProjectModel? project) {
     if (project == null) return [];
     if (project.selectedPhaseNames != null &&
@@ -324,7 +300,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     }
     return _catalogue.map((p) => p.name).toList();
   }
-
   List<String> _activitiesFor(String? phaseName) {
     if (phaseName == null) return [];
     final match = _catalogue.cast<ConstructionPhase?>().firstWhere(
@@ -334,7 +309,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     if (match == null) return [];
     return match.allActivities.map((a) => a.name).toList();
   }
-
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(
@@ -347,7 +321,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     ),
   );
-
   Widget _sectionTitle(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: Text(
@@ -360,7 +333,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     ),
   );
-
   Widget _dropdownCard<T>({
     required T? value,
     required String hint,
@@ -419,7 +391,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -446,7 +417,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           (p) => p?.id == _selectedProjectId,
                           orElse: () => null,
                         );
-
                   final floors = (selProject?.floors?.isNotEmpty ?? false)
                       ? List<String>.from(selProject!.floors!)
                       : [
@@ -460,10 +430,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                       !floors.contains(_selectedFloor)) {
                     floors.add(_selectedFloor!);
                   }
-
                   final phaseNames = _phasesFor(selProject);
                   final activityNames = _activitiesFor(_selectedPhaseName);
-
                   return SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -474,7 +442,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           _buildTrackerContextBanner(),
                           const SizedBox(height: 16),
                         ],
-
                         _buildContextCard(
                           projects: projects,
                           floors: floors,
@@ -482,28 +449,21 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                           activityNames: activityNames,
                         ),
                         const SizedBox(height: 20),
-
                         if (_selectedPhaseName != null &&
                             _selectedFloor != null) ...[
                           _buildStageSummaryCard(),
                           const SizedBox(height: 20),
                         ],
-
                         _buildTaskChecklist(),
                         const SizedBox(height: 20),
-
                         _buildExecutionNotes(),
                         const SizedBox(height: 20),
-
                         _buildDateField(),
                         const SizedBox(height: 20),
-
                         _buildPhotoUpload(),
                         const SizedBox(height: 20),
-
                         _buildMaterialConsumption(context, provider),
                         const SizedBox(height: 32),
-
                         _buildSaveButton(context, provider),
                         const SizedBox(height: 16),
                       ],
@@ -517,7 +477,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _buildTrackerContextBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -574,7 +533,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _buildContextCard({
     required List<ProjectModel> projects,
     required List<String> floors,
@@ -625,7 +583,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ],
           ),
           const SizedBox(height: 20),
-
           _sectionLabel('Project'),
           _launchedFromTracker
               ? _lockedField(
@@ -662,7 +619,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   }),
                 ),
           const SizedBox(height: 16),
-
           _sectionLabel('Floor / Zone'),
           _dropdownCard<String>(
             value: _selectedFloor,
@@ -684,7 +640,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                   }),
           ),
           const SizedBox(height: 16),
-
           _sectionLabel('Phase'),
           _launchedFromTracker
               ? _lockedField(_selectedPhaseName ?? 'Phase')
@@ -708,7 +663,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                         }),
                 ),
           const SizedBox(height: 16),
-
           _sectionLabel('Activity'),
           _launchedFromTracker
               ? _lockedField(_selectedActivityName ?? 'Activity')
@@ -743,7 +697,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _lockedField(String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -772,7 +725,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _buildStageSummaryCard() {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -885,7 +837,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _buildTaskChecklist() {
     if (_isLoadingTasks) {
       return const Padding(
@@ -893,7 +844,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
         child: Center(child: CircularProgressIndicator(color: primaryBlue)),
       );
     }
-
     final relevantTasks = _dailyTasks.where((task) {
       if (_selectedProjectId != null && task.project != _selectedProjectId) {
         return false;
@@ -910,11 +860,9 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       }
       return true;
     }).toList();
-
     if (relevantTasks.isEmpty) {
       return const SizedBox.shrink();
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -996,7 +944,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ],
     );
   }
-
   Widget _buildExecutionNotes() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1029,7 +976,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ],
     );
   }
-
   Widget _buildDateField() {
     final updateDateStr =
         '${_months[_selectedDate.month - 1]} ${_selectedDate.day}, ${_selectedDate.year}';
@@ -1172,7 +1118,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ],
     );
   }
-
   Widget _buildPhotoUpload() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1343,7 +1288,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ],
     );
   }
-
   Widget _buildMaterialConsumption(
     BuildContext context,
     ProjectProvider provider,
@@ -1429,7 +1373,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ),
     );
   }
-
   Widget _materialTag(String label, String qty) {
     return Row(
       children: [
@@ -1470,14 +1413,12 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
       ],
     );
   }
-
   Widget _buildSaveButton(BuildContext context, ProjectProvider provider) {
     final label =
         (_launchedFromTracker && _prefillActivityId != null) ||
             _selectedActivityName != null
         ? 'Mark as Done & Submit'
         : 'Submit Progress Update';
-
     return GestureDetector(
       onTap: () async {
         final project =
@@ -1486,7 +1427,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
               (p) => p?.id == _selectedProjectId,
               orElse: () => null,
             );
-
         String? targetActivityId = _prefillActivityId;
         if (targetActivityId == null &&
             _selectedActivityName != null &&
@@ -1502,10 +1442,8 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             targetActivityId = matchedAct.id;
           }
         }
-
         final targetProjectId = _selectedProjectId ?? project?.id;
         bool success = false;
-
         if (_prefillActivityId != null) {
           await provider.markActivityComplete(
             _selectedProjectId!,
@@ -1513,7 +1451,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             _selectedDate,
           );
         }
-
         for (final taskId in _completedTaskIds) {
           try {
             await TaskService.updateTaskStatus(taskId, 'Completed');
@@ -1521,9 +1458,7 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             debugPrint('Failed to complete task $taskId: $e');
           }
         }
-
         if (!mounted) return;
-
         if (targetProjectId != null && targetActivityId != null) {
           success = await provider.toggleActivityCompletion(
             targetProjectId,
@@ -1542,7 +1477,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             _completionProgress,
           );
         }
-
         if (context.mounted) {
           if (success) {
             final months = [
@@ -1561,7 +1495,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
             ];
             final dateLabel =
                 '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
-
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
@@ -1587,7 +1520,6 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
                 duration: const Duration(seconds: 3),
               ),
             );
-
             Navigator.maybePop(context);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1655,14 +1587,11 @@ class _UpdateProgressScreenState extends State<UpdateProgressScreen> {
     );
   }
 }
-
 class PhotoAttachment {
   final PickedAttachment? localAttachment;
   final String? remoteUrl;
-
   PhotoAttachment.local(this.localAttachment) : remoteUrl = null;
   PhotoAttachment.remote(this.remoteUrl) : localAttachment = null;
-
   bool get isImage {
     if (localAttachment != null) {
       return localAttachment!.isImage;
@@ -1676,14 +1605,12 @@ class PhotoAttachment {
         url.endsWith('.webp') ||
         url.endsWith('.gif');
   }
-
   String get dataUri {
     if (localAttachment != null) {
       return localAttachment!.dataUri;
     }
     return remoteUrl!;
   }
-
   ImageProvider get imageProvider {
     if (localAttachment != null) {
       return localAttachment!.imageProvider!;
@@ -1695,17 +1622,14 @@ class PhotoAttachment {
     }
     return NetworkImage(url);
   }
-
   IconData get icon {
     if (localAttachment != null) return localAttachment!.icon;
     return Icons.insert_drive_file_outlined;
   }
-
   Color get iconColor {
     if (localAttachment != null) return localAttachment!.iconColor;
     return const Color(0xFF6B7280);
   }
-
   Color get iconBg {
     if (localAttachment != null) return localAttachment!.iconBg;
     return const Color(0xFFF3F4F6);

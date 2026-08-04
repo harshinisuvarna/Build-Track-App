@@ -5,22 +5,16 @@ import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
 import 'project_provider.dart';
-
 enum AiReportState { initial, loading, results, error }
-
 class ApiException implements Exception {
   final String message;
   final int statusCode;
   final String responseBody;
-
   ApiException(this.message, this.statusCode, this.responseBody);
-
   @override
   String toString() => 'ApiException: $message (Status: $statusCode)';
 }
-
 class AiReportResult {
   final String summary;
   final Map<String, dynamic> metrics;
@@ -33,7 +27,6 @@ class AiReportResult {
   final Map<String, dynamic>? charts;
   final List<Map<String, dynamic>> alerts;
   final List<Map<String, dynamic>> projectBreakdown;
-
   AiReportResult({
     required this.summary,
     required this.metrics,
@@ -47,11 +40,9 @@ class AiReportResult {
     this.alerts = const [],
     this.projectBreakdown = const [],
   });
-
   factory AiReportResult.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
     final table = data['table'] as Map<String, dynamic>? ?? {};
-
     return AiReportResult(
       summary: data['summary']?.toString() ?? '',
       metrics: data['metrics'] as Map<String, dynamic>? ?? {},
@@ -86,30 +77,23 @@ class AiReportResult {
     );
   }
 }
-
 class AiChatReportProvider extends ChangeNotifier {
   AiChatReportProvider({
     required this.projectProvider,
     required this.authToken,
     required this.baseUrl,
   });
-
   final ProjectProvider projectProvider;
   final String authToken;
   final String baseUrl;
-
   AiReportState _state = AiReportState.initial;
   AiReportState get state => _state;
-
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
-
   AiReportResult? _result;
   AiReportResult? get result => _result;
-
   String _currentQuery = '';
   String get currentQuery => _currentQuery;
-
   final List<String> _recentSearches = [
     'Show material usage',
     'Low stock materials',
@@ -118,34 +102,27 @@ class AiChatReportProvider extends ChangeNotifier {
     'Budget health',
   ];
   List<String> get recentSearches => List.unmodifiable(_recentSearches);
-
   Future<void> sendQuery(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
-
     if (!_recentSearches.contains(trimmed)) {
       _recentSearches.insert(0, trimmed);
       if (_recentSearches.length > 5) {
         _recentSearches.removeLast();
       }
     }
-
     _currentQuery = trimmed;
     _state = AiReportState.loading;
     _errorMessage = null;
     notifyListeners();
-
     try {
       final uri = Uri.parse('$baseUrl/api/reports/dashboard/query');
       final projectId = projectProvider.selectedProject?.id ?? 'all';
-
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
       };
-
       final payloadStr = jsonEncode({'query': trimmed, 'projectId': projectId});
-
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] REQUEST SENDING');
       debugPrint('==============================');
@@ -153,22 +130,17 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('URL: $uri');
       debugPrint('Headers: $headers');
       debugPrint('Payload: $payloadStr');
-
       final stopWatch = Stopwatch()..start();
-
       final response = await http
           .post(uri, headers: headers, body: payloadStr)
           .timeout(const Duration(seconds: 45));
-
       stopWatch.stop();
-
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] RESPONSE RECEIVED');
       debugPrint('==============================');
       debugPrint('Elapsed Time: ${stopWatch.elapsedMilliseconds}ms');
       debugPrint('HTTP Status: ${response.statusCode}');
       debugPrint('Response Body: ${response.body}');
-
       if (response.statusCode != 200) {
         throw ApiException(
           'Server returned ${response.statusCode}',
@@ -176,7 +148,6 @@ class AiChatReportProvider extends ChangeNotifier {
           response.body,
         );
       }
-
       final decoded = jsonDecode(response.body);
       _result = AiReportResult.fromJson(decoded);
       _state = AiReportState.results;
@@ -184,7 +155,6 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('\n==============================');
       debugPrint('[FLUTTER] EXCEPTION CAUGHT');
       debugPrint('==============================');
-
       if (e is ApiException) {
         debugPrint('Status Code: ${e.statusCode}');
         debugPrint('Response Body: ${e.responseBody}');
@@ -193,14 +163,11 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('Request URL: $baseUrl/api/reports/dashboard/query');
       debugPrint('Request Payload: {"query": "$trimmed"}');
       debugPrint('Stack Trace:\n$stackTrace');
-
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       _state = AiReportState.error;
     }
-
     notifyListeners();
   }
-
   void resetToInitial() {
     _state = AiReportState.initial;
     _result = null;
@@ -208,13 +175,10 @@ class AiChatReportProvider extends ChangeNotifier {
     _currentQuery = '';
     notifyListeners();
   }
-
   Future<void> exportCsv() async {
     if (_result == null || _result!.tableRows.isEmpty) return;
-
     try {
       List<List<dynamic>> csvData = [];
-
       if (_result!.tableType == 'inventory') {
         csvData.add(['Material', 'Quantity', 'Unit', 'Status']);
         for (var row in _result!.tableRows) {
@@ -236,15 +200,12 @@ class AiChatReportProvider extends ChangeNotifier {
           csvData.add(rowData);
         }
       }
-
       String csvString = const ListToCsvConverter().convert(csvData);
-
       final directory = await getTemporaryDirectory();
       final path =
           '${directory.path}/report_${DateTime.now().millisecondsSinceEpoch}.csv';
       final file = File(path);
       await file.writeAsString(csvString);
-
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(path)],
@@ -255,7 +216,6 @@ class AiChatReportProvider extends ChangeNotifier {
       debugPrint('Export Error: $e');
     }
   }
-
   Future<void> shareSummary() async {
     if (_result == null) return;
     try {

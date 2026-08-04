@@ -5,14 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
-
 class AppTopBar extends StatelessWidget {
   final String title;
   final IconData? leftIcon;
   final VoidCallback? onLeftTap;
   final Widget? rightWidget;
   final bool isSubScreen;
-
   const AppTopBar({
     super.key,
     required this.title,
@@ -21,10 +19,8 @@ class AppTopBar extends StatelessWidget {
     this.rightWidget,
     this.isSubScreen = false,
   });
-
   static const _primaryBlue = AppColors.primary;
   static const _textDark = AppColors.textDark;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -66,13 +62,10 @@ class AppTopBar extends StatelessWidget {
     );
   }
 }
-
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key});
-
   static const _primaryBlue = AppColors.primary;
   static const _textGray = AppColors.textLight;
-
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavController>();
@@ -127,7 +120,6 @@ class AppBottomNav extends StatelessWidget {
       ),
     );
   }
-
   Widget _navItem(
     BuildContext context,
     NavController nav,
@@ -164,7 +156,6 @@ class AppBottomNav extends StatelessWidget {
       ),
     );
   }
-
   Widget _entryButton(BuildContext context, NavController nav) {
     final isActive = nav.currentRoute == '/add-entry';
     return InkWell(
@@ -204,12 +195,9 @@ class AppBottomNav extends StatelessWidget {
     );
   }
 }
-
 class ProfileAvatar extends StatelessWidget {
   final double radius;
-
   const ProfileAvatar({super.key, this.radius = 18});
-
   @override
   Widget build(BuildContext context) {
     context.watch<UserSession>();

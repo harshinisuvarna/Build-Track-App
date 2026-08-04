@@ -15,25 +15,17 @@ import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
 import 'package:flutter/material.dart';
-
 class AddEntryScreen extends StatefulWidget {
   const AddEntryScreen({super.key});
-
   @override
   State<AddEntryScreen> createState() => _AddEntryScreenState();
 }
-
 class _AddEntryScreenState extends State<AddEntryScreen> {
-  bool _requestEsign = false;
-  final TextEditingController _clientEmailCtrl = TextEditingController();
-
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   bool _isUploadingCsv = false;
-
   List<String> _customColumns = [
     'Date',
     'Project',
@@ -55,18 +47,14 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     'Payment Status',
     'Notes',
   ];
-
   late Map<String, bool> _columnVisibility;
-
   @override
   void initState() {
     super.initState();
     _columnVisibility = {for (var c in _customColumns) c: true};
   }
-
   List<Map<String, dynamic>> get _entries {
     final items = <Map<String, dynamic>>[];
-
     if (RoleManager.canManageExpenses) {
       items.add({
         'icon': Icons.category,
@@ -76,7 +64,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'type': 'material',
       });
     }
-
     if (RoleManager.canAddEntries) {
       items.add({
         'icon': Icons.people,
@@ -86,7 +73,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'type': 'labour',
       });
     }
-
     if (RoleManager.canManageEquipmentMaster) {
       items.add({
         'icon': Icons.precision_manufacturing,
@@ -96,10 +82,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         'type': 'equipment',
       });
     }
-
     return items;
   }
-
   void _navigateToContext(BuildContext context, String type) {
     Navigator.pushNamed(
       context,
@@ -107,12 +91,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       arguments: {'type': type},
     );
   }
-
   Future<void> _downloadCsvTemplate(String type) async {
     final List<List<dynamic>> csvRows = [];
     String filename = '';
     String shareText = '';
-
     if (type == 'material') {
       csvRows.add([
         'Date',
@@ -178,7 +160,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       filename = 'all_entries_template.csv';
       shareText = 'Download Consolidated All Entries CSV Template';
     }
-
     final csvContent = const ListToCsvConverter().convert(csvRows);
     try {
       await saveAndShareCsv(
@@ -207,7 +188,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       }
     }
   }
-
   Future<void> _uploadCsv() async {
     setState(() => _isUploadingCsv = true);
     try {
@@ -216,30 +196,24 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         allowedExtensions: ['csv'],
         withData: true,
       );
-
       if (result == null || result.files.isEmpty) {
         setState(() => _isUploadingCsv = false);
         return;
       }
-
       final fileBytes = result.files.first.bytes;
       if (fileBytes == null) {
         throw Exception("Failed to read file data");
       }
-
       final csvString = utf8.decode(fileBytes);
       final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
         csvString,
       );
-
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
-
       final headers = parsedCsv.first
           .map((h) => h.toString().trim().toLowerCase())
           .toList();
-
       String detectedType = '';
       if (headers.contains('type')) {
         detectedType = 'all';
@@ -257,14 +231,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           "Could not detect entry type. CSV headers must contain 'Type', 'Material / Item', 'Labour Type', or 'Equipment Name'.",
         );
       }
-
       final dateIdx = headers.indexOf('date');
       final projIdx = headers.indexOf('project');
       final floorIdx = headers.indexOf('floor');
       final phaseIdx = headers.indexOf('phase');
       final activityIdx = headers.indexOf('activity');
       final notesIdx = headers.indexOf('notes');
-
       final typeIdx = headers.indexOf('type');
       final nameIdx = headers.indexOf('name');
       final catOrTradeIdx = headers.contains('category / trade')
@@ -284,7 +256,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       final paymentStatusIdx = headers.contains('payment status')
           ? headers.indexOf('payment status')
           : headers.indexOf('payment_status');
-
       final materialItemIdx = headers.contains('material / item')
           ? headers.indexOf('material / item')
           : headers.indexOf('material_item');
@@ -296,7 +267,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       final matSupplierIdx = headers.indexOf('supplier');
       final matIsWithGstIdx = headers.indexOf('iswithgst');
       final matGstPctIdx = headers.indexOf('gstpercentage');
-
       final labourTypeIdx = headers.contains('labour type')
           ? headers.indexOf('labour type')
           : headers.indexOf('labour_type');
@@ -312,7 +282,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       final labOvertimeIdx = headers.contains('overtime amount')
           ? headers.indexOf('overtime amount')
           : headers.indexOf('overtime_amount');
-
       final eqNameIdx = headers.contains('equipment name')
           ? headers.indexOf('equipment name')
           : headers.indexOf('equipment_name');
@@ -327,7 +296,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           : headers.indexOf('operator_vendor');
       final eqIsWithGstIdx = headers.indexOf('iswithgst');
       final eqGstPctIdx = headers.indexOf('gstpercentage');
-
       if (detectedType == 'all' && (typeIdx == -1 || nameIdx == -1)) {
         throw Exception(
           "CSV missing required 'Type' or 'Name' columns for consolidated import",
@@ -342,7 +310,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       if (detectedType == 'equipment' && eqNameIdx == -1) {
         throw Exception("CSV missing required 'Equipment Name' column");
       }
-
       final projectProvider = Provider.of<ProjectProvider>(
         context,
         listen: false,
@@ -351,38 +318,31 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         await projectProvider.load();
       }
       final projects = projectProvider.projects;
-
       double parseDouble(dynamic v) {
         if (v == null) return 0.0;
         if (v is num) return v.toDouble();
         final clean = v.toString().trim().replaceAll(RegExp(r'[^\d\.]'), '');
         return double.tryParse(clean) ?? 0.0;
       }
-
       bool parseBool(dynamic v) {
         if (v == null) return false;
         final s = v.toString().trim().toLowerCase();
         return s == 'true' || s == 'yes' || s == '1';
       }
-
       String parseString(dynamic v) {
         if (v == null) return '';
         return v.toString().trim();
       }
-
       int successCount = 0;
       int materialCount = 0;
       int labourCount = 0;
       int equipmentCount = 0;
       int failedCount = 0;
       final List<String> errorMessages = [];
-
       StateSetter? dialogSetState;
       String progressText = "Preparing import...";
       double progressValue = 0.0;
-
       if (!mounted) return;
-
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -427,7 +387,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           );
         },
       );
-
       void updateProgress(String text, double value) {
         progressText = text;
         progressValue = value;
@@ -435,7 +394,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           dialogSetState!(() {});
         }
       }
-
       final totalRows = parsedCsv.length - 1;
       List<Map<String, dynamic>> bulkPayloads = [];
       for (int i = 1; i < parsedCsv.length; i++) {
@@ -446,10 +404,8 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             )) {
           continue;
         }
-
         final rowNum = i + 1;
         updateProgress("Processing row $i of $totalRows...", i / totalRows);
-
         try {
           final dateStr = dateIdx != -1 && dateIdx < row.length
               ? parseString(row[dateIdx])
@@ -460,7 +416,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           final notes = notesIdx != -1 && notesIdx < row.length
               ? parseString(row[notesIdx])
               : '';
-
           final csvProjName = projIdx != -1 && projIdx < row.length
               ? parseString(row[projIdx])
               : '';
@@ -471,7 +426,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 p?.id == csvProjName,
             orElse: () => null,
           );
-
           if (matchedProject == null) {
             if (csvProjName.isNotEmpty) {
               throw Exception(
@@ -480,15 +434,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             }
             matchedProject = projectProvider.selectedProject;
           }
-
           if (matchedProject == null) {
             throw Exception(
               "Row $rowNum: No project provided in the CSV, and no active project selected in the app.",
             );
           }
-
           final projectId = matchedProject.id;
-
           final csvFloor = floorIdx != -1 && floorIdx < row.length
               ? parseString(row[floorIdx])
               : '';
@@ -499,7 +450,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               matchedProject.floors!.isNotEmpty) {
             resolvedFloor = matchedProject.floors!.first;
           }
-
           final csvPhase = phaseIdx != -1 && phaseIdx < row.length
               ? parseString(row[phaseIdx])
               : '';
@@ -522,7 +472,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             }
             phaseName ??= csvPhase;
           }
-
           final csvActivity = activityIdx != -1 && activityIdx < row.length
               ? parseString(row[activityIdx])
               : '';
@@ -557,9 +506,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             }
             activityName ??= csvActivity;
           }
-
           final Map<String, dynamic> payload = {};
-
           if (detectedType == 'all') {
             final rowType = typeIdx != -1 && typeIdx < row.length
                 ? parseString(row[typeIdx]).toLowerCase()
@@ -567,7 +514,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             final name = nameIdx != -1 && nameIdx < row.length
                 ? parseString(row[nameIdx])
                 : '';
-
             var resolvedRowType = rowType;
             if (resolvedRowType.isEmpty) {
               final hasSubtype =
@@ -582,7 +528,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   supplierOrOperatorIdx != -1 &&
                   supplierOrOperatorIdx < row.length &&
                   parseString(row[supplierOrOperatorIdx]).isNotEmpty;
-
               if (hasSubtype) {
                 resolvedRowType = 'material';
               } else if (hasOvertime) {
@@ -593,7 +538,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 resolvedRowType = 'material';
               }
             }
-
             var resolvedName = name;
             if (resolvedName.isEmpty) {
               resolvedName =
@@ -604,7 +548,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                         ? 'Equipment Entry'
                         : 'Material Entry');
             }
-
             final unit = unitIdx != -1 && unitIdx < row.length
                 ? parseString(row[unitIdx]).toLowerCase()
                 : 'unit';
@@ -634,7 +577,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             final overtime = otIdx != -1 && otIdx < row.length
                 ? parseDouble(row[otIdx])
                 : 0.0;
-
             String resolvedStatus = 'Pending';
             if (paymentStatusIdx != -1 && paymentStatusIdx < row.length) {
               final statusStr = parseString(
@@ -651,7 +593,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 resolvedStatus = 'Pending';
               }
             }
-
             if (resolvedRowType == 'material' ||
                 resolvedRowType == 'materials') {
               final subtypeVal = subtypeIdx != -1 && subtypeIdx < row.length
@@ -673,7 +614,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   : (unit == 'kg' || unit == 'kgs')
                   ? 'kg'
                   : 'unit';
-
               final double subtotal = qty * rate;
               final double gstAmount = isWithGst
                   ? (subtotal * gstPercentage / 100)
@@ -682,7 +622,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               final double paidAmt = resolvedStatus == 'Paid'
                   ? finalAmount
                   : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
-
               payload.addAll({
                 "title": resolvedName,
                 "type": "Materials",
@@ -720,7 +659,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                     "activityId": ?activityId,
                   },
               });
-
               bulkPayloads.add(payload);
               materialCount++;
             } else if (resolvedRowType == 'labour' ||
@@ -736,7 +674,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               final double paidAmt = resolvedStatus == 'Paid'
                   ? finalAmount
                   : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
-
               payload.addAll({
                 "title": resolvedName,
                 "type": "Wages",
@@ -760,7 +697,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "paymentMode": "Cash",
                 "worker": resolvedName,
               });
-
               bulkPayloads.add(payload);
               labourCount++;
             } else if (resolvedRowType == 'equipment' ||
@@ -783,7 +719,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               final double paidAmt = resolvedStatus == 'Paid'
                   ? finalAmount
                   : (resolvedStatus == 'Partial' ? finalAmount / 2 : 0.0);
-
               payload.addAll({
                 "title": resolvedName,
                 "type": "Expense",
@@ -810,7 +745,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 "paidAmount": paidAmt,
                 "paymentMode": "Cash",
               });
-
               bulkPayloads.add(payload);
               equipmentCount++;
             } else {
@@ -823,7 +757,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             if (name.isEmpty) {
               throw Exception("Row $rowNum: Material / Item name is empty");
             }
-
             final unit = matUnitIdx != -1 && matUnitIdx < row.length
                 ? parseString(row[matUnitIdx]).toLowerCase()
                 : 'unit';
@@ -836,7 +769,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 : (unit == 'kg' || unit == 'kgs')
                 ? 'kg'
                 : 'unit';
-
             final qty = matQtyIdx != -1 && matQtyIdx < row.length
                 ? parseDouble(row[matQtyIdx])
                 : 1.0;
@@ -860,13 +792,11 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 matGstPctIdx != -1 && matGstPctIdx < row.length
                 ? parseDouble(row[matGstPctIdx])
                 : 0.0;
-
             final double subtotal = qty * rate;
             final double gstAmount = isWithGst
                 ? (subtotal * gstPercentage / 100)
                 : 0.0;
             final double finalAmount = subtotal + gstAmount;
-
             payload.addAll({
               "title": name,
               "type": "Materials",
@@ -903,7 +833,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                   "activityId": ?activityId,
                 },
             });
-
             bulkPayloads.add(payload);
             materialCount++;
           } else if (detectedType == 'labour') {
@@ -911,7 +840,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             if (name.isEmpty) {
               throw Exception("Row $rowNum: Labour Type (name) is empty");
             }
-
             final unit = labUnitIdx != -1 && labUnitIdx < row.length
                 ? parseString(row[labUnitIdx]).toLowerCase()
                 : 'hour';
@@ -922,7 +850,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 : (unit == 'sqft' || unit == 'sq.ft')
                 ? 'sqft'
                 : 'unit';
-
             final qty = labQtyIdx != -1 && labQtyIdx < row.length
                 ? parseDouble(row[labQtyIdx])
                 : 1.0;
@@ -940,7 +867,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 ? parseDouble(row[labOvertimeIdx])
                 : 0.0;
             final double finalAmount = (qty * rate) + overtime;
-
             payload.addAll({
               "title": name,
               "type": "Wages",
@@ -963,7 +889,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "paymentMode": "Cash",
               "worker": name,
             });
-
             bulkPayloads.add(payload);
             labourCount++;
           } else if (detectedType == 'equipment') {
@@ -971,7 +896,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             if (name.isEmpty) {
               throw Exception("Row $rowNum: Equipment Name is empty");
             }
-
             final unit = eqUnitIdx != -1 && eqUnitIdx < row.length
                 ? parseString(row[eqUnitIdx]).toLowerCase()
                 : 'hour';
@@ -985,7 +909,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       unit == 'truck')
                 ? 'truck'
                 : 'unit';
-
             final qty = eqQtyIdx != -1 && eqQtyIdx < row.length
                 ? parseDouble(row[eqQtyIdx])
                 : 1.0;
@@ -1006,13 +929,11 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             final gstPercentage = eqGstPctIdx != -1 && eqGstPctIdx < row.length
                 ? parseDouble(row[eqGstPctIdx])
                 : 0.0;
-
             final double subtotal = qty * rate;
             final double gstAmount = isWithGst
                 ? (subtotal * gstPercentage / 100)
                 : 0.0;
             final double finalAmount = subtotal + gstAmount;
-
             payload.addAll({
               "title": name,
               "type": "Expense",
@@ -1038,7 +959,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               "paymentStatus": "Pending",
               "paymentMode": "Cash",
             });
-
             bulkPayloads.add(payload);
             equipmentCount++;
           }
@@ -1047,11 +967,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           errorMessages.add(e.toString());
         }
       }
-
       if (bulkPayloads.isNotEmpty) {
         successCount = 0;
         failedCount = 0;
-
         updateProgress(
           "Uploading ${bulkPayloads.length} entries in bulk...",
           0.9,
@@ -1080,11 +998,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           errorMessages.add("Bulk upload error: $e");
         }
       }
-
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
-
       if (mounted) {
         final activeProjId = projectProvider.selectedProject?.id;
         if (activeProjId != null) {
@@ -1092,7 +1008,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         }
         context.read<ProjectProvider>().load();
       }
-
       if (mounted) {
         showDialog(
           context: context,
@@ -1201,7 +1116,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       setState(() => _isUploadingCsv = false);
     }
   }
-
   Widget _buildCsvImportCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1360,7 +1274,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1402,14 +1315,12 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                       style: AppTheme.body.copyWith(color: textGray),
                     ),
                     const SizedBox(height: 24),
-
                     const AppSectionHeader(title: 'Entry Type'),
                     ...List.generate(
                       _entries.length,
                       (i) => _entryCard(context, i),
                     ),
                     const SizedBox(height: 24),
-
                     _buildCsvImportCard(context),
                   ],
                 ),
@@ -1421,11 +1332,9 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
   Widget _entryCard(BuildContext context, int index) {
     final entry = _entries[index];
     final String type = entry['type'] as String;
-
     final Map<String, Color> iconColors = {
       'material': primaryBlue,
       'labour': primaryBlue,
@@ -1438,7 +1347,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     };
     final Color iconColor = iconColors[type] ?? primaryBlue;
     final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);
-
     return AppCard(
       onTap: () => _navigateToContext(context, type),
       child: Row(
@@ -1484,7 +1392,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
       ),
     );
   }
-
   Future<void> _openCustomizeColumnsSheet() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -1497,7 +1404,6 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         );
       },
     );
-
     if (result != null) {
       setState(() {
         _customColumns = List<String>.from(result['columns'] as List);
@@ -1514,32 +1420,26 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     }
   }
 }
-
 class CustomizeTemplateSheet extends StatefulWidget {
   final List<String> initialColumns;
   final Map<String, bool> initialVisibility;
-
   const CustomizeTemplateSheet({
     super.key,
     required this.initialColumns,
     required this.initialVisibility,
   });
-
   @override
   State<CustomizeTemplateSheet> createState() => _CustomizeTemplateSheetState();
 }
-
 class _CustomizeTemplateSheetState extends State<CustomizeTemplateSheet> {
   late List<String> _columns;
   late Map<String, bool> _visibility;
-
   @override
   void initState() {
     super.initState();
     _columns = List.from(widget.initialColumns);
     _visibility = Map.from(widget.initialVisibility);
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(

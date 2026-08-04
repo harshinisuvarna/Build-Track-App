@@ -44,23 +44,17 @@ import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
 import 'package:buildtrack_mobile/screen/approvals/approvals_screen.dart';
 import 'package:buildtrack_mobile/screen/inventory/fulfillment_payment_screen.dart';
 import 'package:buildtrack_mobile/screen/admin/admin_overview_screen.dart';
-
 void main() {
   runZonedGuarded(
     () async {
       debugPrint('App Started');
-
       WidgetsFlutterBinding.ensureInitialized();
       debugPrint('Flutter Initialized');
-
       await UserSession.loadFromPrefs();
-
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final isLoggedIn = token != null && token.isNotEmpty;
-
       final projectProvider = ProjectProvider();
-
       if (isLoggedIn) {
         debugPrint('API Initialized: Endpoint is ${ApiService.baseUrl}');
         await projectProvider.load().timeout(
@@ -74,14 +68,11 @@ void main() {
           'API Initialized: Endpoint is ${ApiService.baseUrl} (not logged in)',
         );
       }
-
       debugPrint('Providers Initialized');
-
       runApp(
         MultiProvider(
           providers: [
             ChangeNotifierProvider<UserSession>.value(value: UserSession()),
-
             ChangeNotifierProvider(create: (_) => NavController()),
             ChangeNotifierProvider.value(value: projectProvider),
             ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
@@ -96,19 +87,15 @@ void main() {
     },
   );
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key, required this.isLoggedIn});
-
   final bool isLoggedIn;
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BuildTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-
       initialRoute: isLoggedIn ? '/home' : '/',
       onGenerateInitialRoutes: (initialRouteName) {
         debugPrint('Navigation Started');
@@ -143,9 +130,7 @@ class MyApp extends StatelessWidget {
         '/reports': (_) => const ReportsScreen(),
         '/assign-role': (_) => const AssignRolesScreen(),
         '/assign-task': (_) => const AssignTaskScreen(),
-
         '/project-detail': (_) => const ProjectDetailScreen(),
-
         '/notifications': (_) => const NotificationsScreen(),
         '/approvals': (_) => const ApprovalsScreen(),
         '/admin-overview': (_) => const AdminOverviewScreen(),
@@ -157,20 +142,16 @@ class MyApp extends StatelessWidget {
         '/project-report': (_) => const ProjectReportScreen(),
         '/cement-history': (_) => const CementHistoryScreen(),
         '/receipt-viewer': (_) => const ReceiptViewerScreen(),
-
         '/review-material': (_) => const AiVoiceEntryScreen(),
         '/review-labour': (_) => const AiVoiceEntryScreen(),
         '/review-equipment': (_) => const AiVoiceEntryScreen(),
-
         '/add-material': (_) => const AddMaterialScreen(),
         '/add-labour': (_) => const AddLabourScreen(),
         '/add-equipment': (_) => const AddEquipmentScreen(),
         '/fulfillment-payment': (_) => const FulfillmentPaymentScreen(),
       },
-
       onGenerateRoute: (settings) {
         final name = settings.name ?? '';
-        
         if (name.startsWith('/sign-receipt')) {
           final uri = Uri.parse(name);
           final token = uri.queryParameters['token'] ?? '';
@@ -178,7 +159,6 @@ class MyApp extends StatelessWidget {
             builder: (context) => SignaturePage(token: token),
           );
         }
-
         if (!RoleManager.canNavigate(name)) {
           return MaterialPageRoute(
             builder: (context) {

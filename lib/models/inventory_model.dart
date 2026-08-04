@@ -8,7 +8,6 @@ class InventoryItem {
   final String unit;
   final String category;
   final List<dynamic> transactions;
-
   InventoryItem({
     required this.id,
     required this.name,
@@ -20,14 +19,12 @@ class InventoryItem {
     this.category = 'material',
     this.transactions = const [],
   });
-
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     final String rawCat = (json['category'] ?? '')
         .toString()
         .trim()
         .toLowerCase();
     final String rawType = (json['type'] ?? '').toString().trim().toLowerCase();
-
     String category = 'material';
     if (rawCat == 'labour' ||
         rawCat == 'wages' ||
@@ -43,7 +40,6 @@ class InventoryItem {
         rawType == 'equipment') {
       category = 'equipment';
     }
-
     return InventoryItem(
       id: json['_id'] ?? '',
       name:

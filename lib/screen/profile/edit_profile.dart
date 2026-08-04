@@ -9,34 +9,27 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'profile.dart';
-
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
-
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
-
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
-
   Uint8List? _selectedImageBytes;
   String? _selectedImagePath;
   String? _initialPhotoUrl;
   bool _deletePhoto = false;
   bool _isSaving = false;
   bool _isLoadingInitial = true;
-
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController();
     _emailCtrl = TextEditingController();
-
     WidgetsBinding.instance.addPostFrameCallback((_) => _initFields());
   }
-
   void _initFields() {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ProfileUserData) {
@@ -47,13 +40,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameCtrl.text = UserSession.userId.isNotEmpty ? UserSession.userId : '';
       _emailCtrl.text = '';
       _initialPhotoUrl = UserSession.profilePhoto;
-
       _fetchProfile();
       return;
     }
     setState(() => _isLoadingInitial = false);
   }
-
   Future<void> _fetchProfile() async {
     try {
       final response = await ApiService.get('/users/profile');
@@ -70,12 +61,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) setState(() => _isLoadingInitial = false);
     }
   }
-
   Future<void> _showImageOptions() async {
     final hasPhoto =
         _selectedImageBytes != null ||
         (_initialPhotoUrl != null && _initialPhotoUrl!.isNotEmpty);
-
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -122,7 +111,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-
   Future<void> _pickImage() async {
     final picked = await pickImageFromGallery(context);
     if (picked == null || !mounted) return;
@@ -133,11 +121,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _deletePhoto = false;
     });
   }
-
   Future<void> _onSave() async {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
-
     if (name.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -150,9 +136,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       return;
     }
-
     setState(() => _isSaving = true);
-
     try {
       if (_deletePhoto) {
         final photoResponse = await ApiService.put('/users/profile/photo', {
@@ -167,7 +151,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ? _selectedImagePath!.split('.').last.toLowerCase()
             : 'jpg';
         final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-
         final photoResponse = await ApiService.put('/users/profile/photo', {
           'profilePhoto': 'data:$mimeType;base64,$base64Image',
         });
@@ -175,24 +158,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           throw Exception('Failed to upload profile photo');
         }
       }
-
       final payload = <String, dynamic>{
         'name': name,
         if (email.isNotEmpty) 'email': email,
       };
-
       final response = await ApiService.put('/users/profile', payload);
-
       if (!mounted) return;
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         final userJson = decoded['user'] ?? decoded;
-
         await UserSession.fromLoginResponse(
           Map<String, dynamic>.from(userJson),
         );
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile updated successfully'),
@@ -220,14 +197,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
-
   @override
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return AppSubScreenLayout(
@@ -244,7 +219,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: AppTheme.spacingLg),
-
                 Center(
                   child: Stack(
                     children: [
@@ -304,16 +278,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: AppTheme.spacingXl),
-
                 AppTextField(
                   label: 'Full Name',
                   controller: _nameCtrl,
                   hint: 'Enter your name',
                   prefixIcon: Icons.person_outline,
                 ),
-
                 AppTextField(
                   label: 'Email Address',
                   controller: _emailCtrl,
@@ -321,9 +292,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   prefixIcon: Icons.mail_outline,
                   keyboardType: TextInputType.emailAddress,
                 ),
-
                 const SizedBox(height: AppTheme.spacingXl),
-
                 _isSaving
                     ? const Center(
                         child: CircularProgressIndicator(
@@ -335,7 +304,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         icon: Icons.check_outlined,
                         onPressed: _onSave,
                       ),
-
                 const SizedBox(height: AppTheme.spacingLg),
               ],
             ),

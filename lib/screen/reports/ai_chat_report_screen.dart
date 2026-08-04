@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../common/themes/app_colors.dart';
 import '../../common/themes/app_theme.dart';
 import '../../common/widgets/common_widgets.dart';
@@ -8,26 +7,20 @@ import '../../controller/ai_chat_report_provider.dart';
 import '../../controller/project_provider.dart';
 import '../../services/auth_service.dart';
 import '../../config/api_config.dart';
-
 class AiChatReportScreen extends StatefulWidget {
   const AiChatReportScreen({super.key});
-
   @override
   State<AiChatReportScreen> createState() => _AiChatReportScreenState();
 }
-
 class _AiChatReportScreenState extends State<AiChatReportScreen> {
   String? token;
   bool loading = true;
-
   static String get baseUrl => ApiConfig.baseUrl.replaceAll('/api', '');
-
   @override
   void initState() {
     super.initState();
     loadToken();
   }
-
   Future<void> loadToken() async {
     final t = await AuthService.getToken();
     if (mounted) {
@@ -37,7 +30,6 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -48,7 +40,6 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
         ),
       );
     }
-
     if (token == null || token!.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.gradientStart,
@@ -76,7 +67,6 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
         ),
       );
     }
-
     return ChangeNotifierProvider(
       create: (ctx) => AiChatReportProvider(
         projectProvider: ctx.read<ProjectProvider>(),
@@ -87,33 +77,26 @@ class _AiChatReportScreenState extends State<AiChatReportScreen> {
     );
   }
 }
-
 class _AiDashboardView extends StatefulWidget {
   const _AiDashboardView();
-
   @override
   State<_AiDashboardView> createState() => _AiDashboardViewState();
 }
-
 class _AiDashboardViewState extends State<_AiDashboardView> {
   final _searchController = TextEditingController();
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-
   void _submitSearch(BuildContext context, String query) {
     if (query.trim().isEmpty) return;
     FocusScope.of(context).unfocus();
     context.read<AiChatReportProvider>().sendQuery(query);
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AiChatReportProvider>();
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -138,7 +121,6 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
                     )
                   : null,
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Container(
@@ -188,14 +170,12 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
                 ),
               ),
             ),
-
             Expanded(child: _buildContent(provider)),
           ],
         ),
       ),
     );
   }
-
   Widget _buildContent(AiChatReportProvider provider) {
     switch (provider.state) {
       case AiReportState.initial:
@@ -223,11 +203,9 @@ class _AiDashboardViewState extends State<_AiDashboardView> {
     }
   }
 }
-
 class _InitialState extends StatelessWidget {
   const _InitialState({required this.onPromptSelected});
   final ValueChanged<String> onPromptSelected;
-
   final List<String> quickPrompts = const [
     'Show material usage',
     'Compare project costs',
@@ -236,11 +214,9 @@ class _InitialState extends StatelessWidget {
     'Equipment usage',
     'Monthly spending',
   ];
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AiChatReportProvider>();
-
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
@@ -259,7 +235,6 @@ class _InitialState extends StatelessWidget {
               )
               .toList(),
         ),
-
         if (provider.recentSearches.isNotEmpty) ...[
           const SizedBox(height: 32),
           Text(
@@ -283,12 +258,10 @@ class _InitialState extends StatelessWidget {
     );
   }
 }
-
 class _PromptCard extends StatelessWidget {
   const _PromptCard({required this.prompt, required this.onTap});
   final String prompt;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -319,10 +292,8 @@ class _PromptCard extends StatelessWidget {
     );
   }
 }
-
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -358,7 +329,6 @@ class _LoadingState extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildSkeletonBox({required double height, double? width}) {
     return Container(
       height: height,
@@ -370,12 +340,10 @@ class _LoadingState extends StatelessWidget {
     );
   }
 }
-
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.error, required this.onRetry});
   final String error;
   final VoidCallback onRetry;
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -412,25 +380,20 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-
 class _ResultsState extends StatefulWidget {
   const _ResultsState({required this.result, required this.onActionTap});
   final AiReportResult result;
   final ValueChanged<String> onActionTap;
-
   @override
   State<_ResultsState> createState() => _ResultsStateState();
 }
-
 class _ResultsStateState extends State<_ResultsState> {
   late List<String> _visibleColumns;
-
   @override
   void initState() {
     super.initState();
     _visibleColumns = List.from(widget.result.columns);
   }
-
   @override
   void didUpdateWidget(covariant _ResultsState oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -438,11 +401,9 @@ class _ResultsStateState extends State<_ResultsState> {
       _visibleColumns = List.from(widget.result.columns);
     }
   }
-
   void _showCustomizeColumnsDialog() {
     List<String> tempActive = List.from(_visibleColumns);
     List<String> tempAll = List.from(widget.result.columns);
-
     showDialog(
       context: context,
       builder: (context) {
@@ -499,7 +460,6 @@ class _ResultsStateState extends State<_ResultsState> {
                             }
                             final item = tempAll.removeAt(oldIndex);
                             tempAll.insert(newIndex, item);
-
                             final newTempActive = <String>[];
                             for (final col in tempAll) {
                               if (tempActive.contains(col)) {
@@ -512,7 +472,6 @@ class _ResultsStateState extends State<_ResultsState> {
                         itemBuilder: (context, index) {
                           final col = tempAll[index];
                           final isChecked = tempActive.contains(col);
-
                           return ListTile(
                             key: ValueKey(col),
                             contentPadding: EdgeInsets.zero,
@@ -616,12 +575,10 @@ class _ResultsStateState extends State<_ResultsState> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AiChatReportProvider>();
     final result = widget.result;
-
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
@@ -671,7 +628,6 @@ class _ResultsStateState extends State<_ResultsState> {
               }).toList(),
             ),
           ),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
@@ -725,9 +681,7 @@ class _ResultsStateState extends State<_ResultsState> {
             ),
           ),
         ),
-
         const SizedBox(height: 16),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -751,7 +705,6 @@ class _ResultsStateState extends State<_ResultsState> {
             ],
           ),
         ),
-
         if (result.totalAmount != null || result.rowCount != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -780,9 +733,7 @@ class _ResultsStateState extends State<_ResultsState> {
               ],
             ),
           ),
-
         const SizedBox(height: 24),
-
         if (result.projectBreakdown.length > 1)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -804,7 +755,6 @@ class _ResultsStateState extends State<_ResultsState> {
                     ) {
                       final item = result.projectBreakdown[index];
                       final isTop = index == 0;
-
                       final val =
                           (item['totalAmount'] as num?)?.toDouble() ?? 0;
                       final valStr = val > 0
@@ -852,7 +802,6 @@ class _ResultsStateState extends State<_ResultsState> {
               ],
             ),
           ),
-
         if (result.tableRows.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -898,9 +847,7 @@ class _ResultsStateState extends State<_ResultsState> {
               ),
             ),
           ),
-
         const SizedBox(height: 32),
-
         if (result.actions.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -935,17 +882,14 @@ class _ResultsStateState extends State<_ResultsState> {
       ],
     );
   }
-
   String _formatCurrency(double v) {
     if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(2)}Cr';
     if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(2)}L';
     if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(1)}K';
     return '₹${v.toStringAsFixed(0)}';
   }
-
   Widget _buildTransactionTable() {
     final result = widget.result;
-
     double grandTotal = 0;
     for (final r in result.tableRows) {
       final p = r['Amount (INR)'] ?? r['price'];
@@ -953,10 +897,8 @@ class _ResultsStateState extends State<_ResultsState> {
           ? p.toDouble()
           : (double.tryParse(p?.toString() ?? '') ?? 0);
     }
-
     const double colHash = 36;
     const double rowPadH = 16;
-
     double getColWidth(String colName) {
       if (colName == 'Amount (INR)') return 104;
       if (colName == 'Description' ||
@@ -971,12 +913,10 @@ class _ResultsStateState extends State<_ResultsState> {
       }
       return 120;
     }
-
     double tableWidth = colHash + (rowPadH * 2);
     for (final col in _visibleColumns) {
       tableWidth += getColWidth(col);
     }
-
     const headerBg = Color(0xFFF1F3F8);
     const headerTextStyle = TextStyle(
       fontSize: 11,
@@ -991,7 +931,6 @@ class _ResultsStateState extends State<_ResultsState> {
       height: 1.4,
     );
     const dividerColor = Color(0xFFE2E8F0);
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SizedBox(
@@ -1023,7 +962,6 @@ class _ResultsStateState extends State<_ResultsState> {
                   ..._visibleColumns.map((colName) {
                     final isAmount = colName == 'Amount (INR)';
                     final width = getColWidth(colName);
-
                     return SizedBox(
                       width: width,
                       child: Align(
@@ -1042,11 +980,9 @@ class _ResultsStateState extends State<_ResultsState> {
                 ],
               ),
             ),
-
             ...List.generate(result.tableRows.length, (index) {
               final r = result.tableRows[index];
               final isEven = index.isEven;
-
               return Container(
                 decoration: BoxDecoration(
                   color: isEven ? Colors.white : const Color(0xFFFAFBFD),
@@ -1076,10 +1012,8 @@ class _ResultsStateState extends State<_ResultsState> {
                       final isAmount = colName == 'Amount (INR)';
                       final width = getColWidth(colName);
                       final val = r[colName];
-
                       String displayVal;
                       TextStyle style = cellTextStyle;
-
                       if (isAmount) {
                         final parsed = (val is num)
                             ? val.toDouble()
@@ -1099,7 +1033,6 @@ class _ResultsStateState extends State<_ResultsState> {
                           );
                         }
                       }
-
                       return SizedBox(
                         width: width,
                         child: Align(
@@ -1120,7 +1053,6 @@ class _ResultsStateState extends State<_ResultsState> {
                 ),
               );
             }),
-
             Container(
               decoration: const BoxDecoration(
                 color: Color(0xFFF1F3F8),
@@ -1139,13 +1071,11 @@ class _ResultsStateState extends State<_ResultsState> {
               child: Row(
                 children: [
                   SizedBox(width: colHash),
-
                   Builder(
                     builder: (context) {
                       double spanWidth = 0;
                       double amountWidth = 0;
                       bool hasAmount = false;
-
                       for (final col in _visibleColumns) {
                         if (col == 'Amount (INR)') {
                           hasAmount = true;
@@ -1154,7 +1084,6 @@ class _ResultsStateState extends State<_ResultsState> {
                           spanWidth += getColWidth(col);
                         }
                       }
-
                       return Row(
                         children: [
                           SizedBox(
@@ -1200,7 +1129,6 @@ class _ResultsStateState extends State<_ResultsState> {
       ),
     );
   }
-
   Widget _buildInventoryTable() {
     return DataTable(
       headingTextStyle: AppTheme.label.copyWith(
@@ -1222,7 +1150,6 @@ class _ResultsStateState extends State<_ResultsState> {
         Color statusColor = AppColors.success;
         if (severity == 'critical') statusColor = AppColors.error;
         if (severity == 'low') statusColor = Colors.orange;
-
         return DataRow(
           cells: [
             DataCell(Text(r['name']?.toString() ?? '-')),
@@ -1251,7 +1178,6 @@ class _ResultsStateState extends State<_ResultsState> {
     );
   }
 }
-
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.title,
@@ -1261,7 +1187,6 @@ class _MetricCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-
   @override
   Widget build(BuildContext context) {
     return Container(

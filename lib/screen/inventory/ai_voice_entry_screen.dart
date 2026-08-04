@@ -8,10 +8,8 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class VoiceResponseModel {
   final String status;
-
   final String? entryType;
   final String? transcript;
   final String? partialTranscript;
@@ -24,7 +22,6 @@ class VoiceResponseModel {
   final double? confidence;
   final String? errorMessage;
   final String? welcomeMessage;
-
   const VoiceResponseModel({
     this.status = 'idle',
     this.entryType,
@@ -40,7 +37,6 @@ class VoiceResponseModel {
     this.errorMessage,
     this.welcomeMessage,
   });
-
   VoiceResponseModel copyWith({
     String? status,
     String? entryType,
@@ -70,14 +66,12 @@ class VoiceResponseModel {
     errorMessage: errorMessage ?? this.errorMessage,
     welcomeMessage: welcomeMessage ?? this.welcomeMessage,
   );
-
   bool get hasField => detectedFields.isNotEmpty;
   bool fieldHasValue(String key) =>
       detectedFields.containsKey(key) &&
       detectedFields[key] != null &&
       '${detectedFields[key]}'.trim().isNotEmpty;
 }
-
 abstract final class VoiceStatus {
   static const String idle = 'idle';
   static const String listening = 'listening';
@@ -90,13 +84,10 @@ abstract final class VoiceStatus {
   static const String completed = 'completed';
   static const String error = 'error';
 }
-
 class _ExtractedData {
   final Map<String, dynamic> _map;
   final ProjectProvider? _projectProvider;
-
   _ExtractedData(this._map, [this._projectProvider]);
-
   String? get itemName => _map['Item Name'] as String?;
   set itemName(String? v) => _map['Item Name'] = v;
   double? get quantity => _map['Quantity'] as double?;
@@ -107,32 +98,26 @@ class _ExtractedData {
   set rate(double? v) => _map['Rate'] = v;
   String? get brand => _map['Brand'] as String?;
   set brand(String? v) => _map['Brand'] = v;
-
   String? get projectId => _projectProvider != null
       ? _projectProvider.selectedProject?.id
       : _map['Project ID'] as String?;
   set projectId(String? v) => _map['Project ID'] = v;
-
   String? get projectName => _projectProvider != null
       ? _projectProvider.selectedProject?.name
       : _map['Project Name'] as String?;
   set projectName(String? v) => _map['Project Name'] = v;
-
   String? get floor => _projectProvider != null
       ? _projectProvider.selectedFloor
       : _map['Floor'] as String?;
   set floor(String? v) => _map['Floor'] = v;
-
   String? get phase => _projectProvider != null
       ? _projectProvider.selectedPhase
       : _map['Phase'] as String?;
   set phase(String? v) => _map['Phase'] = v;
-
   String? get phaseId => _projectProvider != null
       ? _projectProvider.selectedPhaseId
       : _map['Phase ID'] as String?;
   set phaseId(String? v) => _map['Phase ID'] = v;
-
   String? get activity => _projectProvider != null
       ? _projectProvider.selectedActivity
       : _map['Activity'] as String?;
@@ -155,7 +140,6 @@ class _ExtractedData {
   set equipmentType(String? v) => _map['Equipment Type'] = v;
   String? get vendorName => _map['Vendor Name'] as String?;
   set vendorName(String? v) => _map['Vendor Name'] = v;
-
   double getComputedAmount(String entryType) {
     if (entryType == 'labour') {
       final qty = (workerCount ?? 1) * (hours ?? quantity ?? 0);
@@ -166,7 +150,6 @@ class _ExtractedData {
     }
     return (quantity ?? 0) * (rate ?? 0);
   }
-
   bool get hasItemName => itemName != null && itemName!.trim().isNotEmpty;
   bool get hasQuantity => quantity != null && quantity! > 0;
   bool get hasUnit => unit != null && unit!.trim().isNotEmpty;
@@ -180,18 +163,14 @@ class _ExtractedData {
   bool get hasHours => hours != null && hours! > 0;
   bool get hasFuelCost => fuelCost != null;
 }
-
 class _BlinkingCursor extends StatefulWidget {
   const _BlinkingCursor();
-
   @override
   State<_BlinkingCursor> createState() => _BlinkingCursorState();
 }
-
 class _BlinkingCursorState extends State<_BlinkingCursor>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-
   @override
   void initState() {
     super.initState();
@@ -200,13 +179,11 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
       duration: const Duration(milliseconds: 500),
     )..repeat(reverse: true);
   }
-
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
@@ -215,132 +192,101 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
     );
   }
 }
-
 class _DetectedField {
   final String label;
   final String value;
   _DetectedField({required this.label, required this.value});
 }
-
 class AiVoiceEntryScreen extends StatefulWidget {
   const AiVoiceEntryScreen({super.key});
-
   @override
   State<AiVoiceEntryScreen> createState() => _AiVoiceEntryScreenState();
 }
-
 class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     with TickerProviderStateMixin {
   late String _entryType;
-
   VoiceResponseModel _response = const VoiceResponseModel();
-
   final Map<String, dynamic> _detectedFields = {};
-
   _ExtractedData get _data => _ExtractedData(
     _detectedFields,
     Provider.of<ProjectProvider>(context, listen: false),
   );
   String _rawTranscript = '';
-
   String _status = VoiceStatus.idle;
-
   String? _fieldToAsk() {
     final missing = _getStillNeededFieldsFor(_data);
     debugPrint('[AI DEBUG] _fieldToAsk: missingFields=$missing');
     if (missing.isEmpty) return null;
     return missing.first;
   }
-
   String? get _activeField {
     if (_status != VoiceStatus.waitingForUser) return null;
     return _fieldToAsk();
   }
-
   String? _saveError;
   String? _savedEntryId;
-
   bool _isEditing = false;
   final Map<String, TextEditingController> _editControllers = {};
   Map<String, dynamic>? _savedEditFields;
   String? _editError;
-
   String _backendQuestion = '';
   List<String> _backendSuggestions = const [];
-
   bool _isProcessing = false;
-
   late final VoiceRecordingController _voiceCtrl;
   bool _isListeningForAnswer = false;
   String _partialAnswer = '';
-
   bool _showKeyboardInput = false;
   final _textCtrl = TextEditingController();
   final _focusNode = FocusNode();
-
   final _scrollCtrl = ScrollController();
-
   late final AnimationController _micPulseCtrl;
   late final AnimationController _bubbleCtrl;
   late final AnimationController _micOrbCtrl;
   late final AnimationController _waveCtrl;
-
   List<ProjectModel> get _projects {
     final projects = Provider.of<ProjectProvider>(
       context,
       listen: false,
     ).projects;
-
     debugPrint(
       "AI PROJECTS: ${projects.map((e) => "${e.name} (${e.id})").toList()}",
     );
-
     return projects;
   }
-
   int _processingStage = 0;
   Timer? _processingTimer;
   Timer? _answerTimeoutTimer;
-
   @override
   void initState() {
     super.initState();
-
     _micPulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
-
     _bubbleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat();
-
     _micOrbCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
-
     _waveCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
-
     _voiceCtrl = VoiceRecordingController();
     _voiceCtrl.addListener(_onVoiceChanged);
     _voiceCtrl.preInitialize();
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _entryType = (args?['type'] as String?) ?? 'material';
-
     _rebuildResponse();
   }
-
   @override
   void dispose() {
     _voiceCtrl.removeListener(_onVoiceChanged);
@@ -357,14 +303,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _disposeEditControllers();
     super.dispose();
   }
-
   void _cancelAllTimers() {
     _processingTimer?.cancel();
     _processingTimer = null;
     _answerTimeoutTimer?.cancel();
     _answerTimeoutTimer = null;
   }
-
   void _startAnswerTimeout() {
     _answerTimeoutTimer?.cancel();
     _answerTimeoutTimer = Timer(const Duration(seconds: 30), () {
@@ -374,7 +318,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
   }
-
   void _speechFailed() {
     if (!mounted) return;
     _cancelAllTimers();
@@ -386,28 +329,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
   }
-
   void _onVoiceChanged() {
     if (!mounted) return;
-
     final state = _voiceCtrl.engineState;
     final text = _voiceCtrl.finalTranscript.trim().isNotEmpty
         ? _voiceCtrl.finalTranscript.trim()
         : _voiceCtrl.partialTranscript.trim();
     final partial = _voiceCtrl.partialTranscript;
-
     if (_partialAnswer != partial) {
       setState(() => _partialAnswer = partial);
       debugPrint('[VOICE] Partial: "$partial"');
     }
-
     debugPrint(
       '[UI LISTENING STATE CHANGES] onVoiceChanged: EngineState=$state, STT.isListening=${_voiceCtrl.isListening}, UIStatus=$_status, isListeningForAnswer=$_isListeningForAnswer',
     );
-
     if (state == VoiceEngineState.parsed) {
       debugPrint('[VOICE] Parsed: finalTranscript="$text"');
-
       if (_status == VoiceStatus.listening && _rawTranscript.isEmpty) {
         if (text.isNotEmpty) {
           debugPrint('[VOICE] Setting rawTranscript from parsed: "$text"');
@@ -419,7 +356,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
         return;
       }
-
       if (_isListeningForAnswer) {
         if (_isProcessing) {
           debugPrint('[VOICE] Parsed while processing — ignoring');
@@ -436,11 +372,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
         return;
       }
-
       setState(() => _rebuildResponse());
       return;
     }
-
     if (state == VoiceEngineState.error) {
       debugPrint('[VOICE ERROR] Engine error: ${_voiceCtrl.errorMessage}');
       if (mounted) {
@@ -453,7 +387,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
       return;
     }
-
     if (state == VoiceEngineState.idle) {
       if (_isListeningForAnswer) {
         if (_isProcessing) {
@@ -473,7 +406,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     }
-
     if (state == VoiceEngineState.processing &&
         text.isNotEmpty &&
         _rawTranscript.isEmpty) {
@@ -484,7 +416,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
   }
-
   void _unstickListening() {
     if (!mounted) return;
     setState(() {
@@ -492,7 +423,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
   }
-
   void _restartInitialRecording() {
     if (!mounted) return;
     setState(() {
@@ -500,7 +430,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
   }
-
   Future<void> _startInitialRecording() async {
     if (_isProcessing || _voiceCtrl.engineState == VoiceEngineState.listening) {
       debugPrint(
@@ -519,7 +448,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     await _voiceCtrl.startListening();
     if (mounted) setState(() {});
   }
-
   Future<void> _stopInitialRecording() async {
     if (_voiceCtrl.engineState != VoiceEngineState.listening) {
       debugPrint(
@@ -533,7 +461,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     debugPrint("Waveform stopped");
     await _voiceCtrl.stopListening();
   }
-
   Future<void> _stopAndAnalyze() async {
     if (_isProcessing) {
       debugPrint(
@@ -541,23 +468,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       );
       return;
     }
-
     debugPrint('[VOICE] Stop & Analyze pressed');
     await _voiceCtrl.stopListening();
-
     await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
-
     final transcript = _voiceCtrl.finalTranscript.trim().isNotEmpty
         ? _voiceCtrl.finalTranscript.trim()
         : _voiceCtrl.partialTranscript.trim();
-
     debugPrint('[VOICE] Stop & Analyze: transcript="$transcript"');
-
     if (transcript.isNotEmpty) {
       _rawTranscript = transcript;
     }
-
     if (mounted && _rawTranscript.isNotEmpty) {
       _beginAiProcessing();
     } else if (mounted) {
@@ -566,7 +487,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _startInitialRecording();
     }
   }
-
   void _resetCurrentEntryData() {
     setState(() {
       _data.itemName = null;
@@ -589,7 +509,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
   }
-
   Future<void> _cancelRecording() async {
     debugPrint('[VOICE] Cancel recording pressed');
     if (_isProcessing) {
@@ -598,17 +517,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       );
       return;
     }
-
     await _voiceCtrl.cancelListening();
-
     _resetCurrentEntryData();
-
     setState(() {
       _status = VoiceStatus.idle;
       _rebuildResponse();
     });
   }
-
   void _beginAiProcessing() {
     if (_isProcessing) {
       debugPrint('[AI] Already processing — ignoring duplicate request');
@@ -616,19 +531,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     _isProcessing = true;
     debugPrint('[AI] PROCESSING: begin, transcript="$_rawTranscript"');
-
     _cancelAllTimers();
     if (!mounted) {
       _isProcessing = false;
       return;
     }
-
     setState(() {
       _status = VoiceStatus.processing;
       _processingStage = 0;
       _rebuildResponse();
     });
-
     _processingTimer = Timer.periodic(const Duration(milliseconds: 600), (t) {
       if (!mounted) {
         t.cancel();
@@ -649,7 +561,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         });
       }
     });
-
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted || _status != VoiceStatus.processing) return;
       debugPrint('[AI] Processing timeout (5s) — forcing extraction');
@@ -675,12 +586,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
   }
-
   void _finishExtraction() {
     debugPrint('[AI] === _finishExtraction ===');
     debugPrint('[AI] Raw transcript: "$_rawTranscript"');
     debugPrint('[AI] Detected fields before: $_detectedFields');
-
     try {
       if (_rawTranscript.isNotEmpty) {
         _parseTranscriptInto(_data, _rawTranscript);
@@ -689,22 +598,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       debugPrint('[AI ERROR] _finishExtraction parse: $e');
       debugPrint('[AI ERROR] $stack');
     }
-
     debugPrint('[AI] Detected fields after: $_detectedFields');
     final missing = _getStillNeededFieldsFor(_data);
     debugPrint('[AI] Missing fields: $missing');
-
     _isProcessing = false;
-
     if (missing.isEmpty && _detectedFields.isNotEmpty) {
       debugPrint('[AI] All fields collected — showing review');
       _goToSummary();
       return;
     }
-
     _advanceToNextMissingField();
   }
-
   _ExtractedData get _currentData {
     if ((_status == VoiceStatus.listening || _status == VoiceStatus.idle) &&
         _voiceCtrl.isListening &&
@@ -714,7 +618,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         tempMap,
         Provider.of<ProjectProvider>(context, listen: false),
       );
-
       _parseTranscriptInto(temp, _partialAnswer);
       return temp;
     } else if (_status == VoiceStatus.waitingForUser &&
@@ -729,10 +632,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     return _data;
   }
-
   void _parseTranscriptInto(_ExtractedData data, String text) {
     final t = text.toLowerCase().trim();
-
     if (_entryType == 'material') {
       const labourKeywords = [
         'mason',
@@ -797,12 +698,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
     }
-
     final numMatch = RegExp(r'(\d+\.?\d*)').firstMatch(t);
     if (numMatch != null) {
       data.quantity = double.tryParse(numMatch.group(0) ?? '');
     }
-
     const unitMap = {
       'bag': 'Bags',
       'bags': 'Bags',
@@ -843,7 +742,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         break;
       }
     }
-
     final rateMatch = RegExp(
       r'(?:rate|at|per unit|@)\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
     ).firstMatch(t);
@@ -857,7 +755,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.rate = double.tryParse(priceMatch.group(1) ?? '');
       }
     }
-
     const brands = [
       'ultratech',
       'ambuja',
@@ -888,7 +785,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         break;
       }
     }
-
     if (_entryType == 'material') {
       const materials = {
         'cement': 'Cement',
@@ -923,7 +819,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
     }
-
     if (_entryType == 'labour') {
       const trades = {
         'masonry': 'Masonry',
@@ -951,20 +846,17 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           break;
         }
       }
-
       final workerMatch = RegExp(
         r'(\d+)\s*(?:mason|worker|carpenter|plumber|electrician|helper|labor|labour|painter|welder|man|men)s?',
       ).firstMatch(t);
       if (workerMatch != null) {
         data.workerCount = int.tryParse(workerMatch.group(1) ?? '');
       }
-
       final hoursMatch = RegExp(r'(\d+\.?\d*)\s*(?:hour|hr)s?').firstMatch(t);
       if (hoursMatch != null) {
         data.hours = double.tryParse(hoursMatch.group(1) ?? '');
         data.unit = 'Hours';
       }
-
       final nameMatch = RegExp(
         r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b',
       ).firstMatch(text);
@@ -978,7 +870,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.itemName = '${data.workerCount} Workers';
       }
     }
-
     if (_entryType == 'equipment') {
       const equipment = {
         'jcb': 'JCB Excavator',
@@ -1004,13 +895,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           break;
         }
       }
-
       final hoursMatch = RegExp(r'(\d+\.?\d*)\s*(?:hour|hr)s?').firstMatch(t);
       if (hoursMatch != null) {
         data.quantity = double.tryParse(hoursMatch.group(1) ?? '');
         data.unit = 'Hours';
       }
-
       final fuelMatch = RegExp(
         r'(?:fuel|diesel)\s*(?:of|cost|rate|is)?\s*(?:rs\.?|rupees?|₹)?\s*(\d+\.?\d*)',
       ).firstMatch(t);
@@ -1025,7 +914,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
     }
-
     if (data.floor == null || data.floor!.trim().isEmpty) {
       if (t.contains('basement')) {
         data.floor = 'Basement';
@@ -1041,7 +929,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         data.floor = 'Terrace';
       }
     }
-
     if (data.phase == null || data.phase!.trim().isEmpty) {
       const phaseKeywords = [
         'foundation',
@@ -1060,7 +947,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
     }
-
     if (data.activity == null || data.activity!.trim().isEmpty) {
       const activityKeywords = {
         'column casting': 'Column Casting',
@@ -1085,7 +971,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
       }
     }
-
     if (!data.hasProject) {
       for (final proj in _projects) {
         if (t.contains(proj.name.toLowerCase())) {
@@ -1096,53 +981,43 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
   }
-
   void _advanceToNextMissingField() {
     if (_isProcessing) {
       debugPrint('[AI] Already processing — not advancing');
       return;
     }
     _isProcessing = true;
-
     final missing = _getStillNeededFieldsFor(_data);
     debugPrint('[AI] _advanceToNextMissingField: missingFields=$missing');
     debugPrint('[AI] Detected: $_detectedFields');
-
     if (missing.isEmpty && _detectedFields.isNotEmpty) {
       debugPrint('[AI] All fields collected → review screen');
       _isProcessing = false;
       _goToSummary();
       return;
     }
-
     if (missing.isEmpty) {
       debugPrint('[AI] No data and no missing fields — restarting');
       _isProcessing = false;
       _speechFailed();
       return;
     }
-
     final field = _fieldToAsk();
     final question = field != null ? _questionForField(field) : '';
     debugPrint('[AI] Next question: "$question" (field=$field)');
-
     _isProcessing = false;
     if (!mounted) return;
-
     setState(() {
       _status = VoiceStatus.waitingForUser;
       _rebuildResponse();
     });
     _scrollToBottom();
   }
-
   void _rebuildResponse() {
     final missing = _getStillNeededFieldsFor(_data);
-
     final allFields = _getAllFieldsFor();
     final total = allFields.length;
     final completed = total - missing.length;
-
     String? question;
     List<String> suggestions = [];
     if (_status == VoiceStatus.waitingForUser && missing.isNotEmpty) {
@@ -1158,10 +1033,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         '[AI DEBUG] _rebuildResponse: question="$question" for field=$field',
       );
     }
-
     _backendQuestion = question ?? '';
     _backendSuggestions = suggestions;
-
     debugPrint('[AI DEBUG] ===== _rebuildResponse =====');
     debugPrint(
       '[UI LISTENING STATE CHANGES] rebuildResponse: status=$_status, progress=$completed/$total',
@@ -1173,7 +1046,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     debugPrint('[AI DEBUG] Total fields: $total');
     debugPrint('[AI DEBUG] Completed fields: $completed');
     debugPrint('[AI DEBUG] Progress: $completed/$total');
-
     _response = VoiceResponseModel(
       status: _status,
       entryType: _entryType,
@@ -1188,7 +1060,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       errorMessage: _saveError,
     );
   }
-
   List<String> _getAllFieldsFor() {
     if (_entryType == 'material') {
       return ['Material', 'Quantity', 'Unit', 'Rate'];
@@ -1198,7 +1069,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return ['Equipment Name', 'Hours', 'Rate'];
     }
   }
-
   String _questionForField(String field) {
     switch (field) {
       case 'Project':
@@ -1235,7 +1105,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return '';
     }
   }
-
   List<String> _suggestionsForField(String field) {
     switch (field) {
       case 'Project':
@@ -1297,7 +1166,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return [];
     }
   }
-
   Future<void> _startAnswerListening() async {
     if (_isProcessing) {
       debugPrint('[VOICE] Processing in progress — not starting listening');
@@ -1309,10 +1177,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (mounted) setState(() {});
     debugPrint('[VOICE] _startAnswerListening: started, status=$_status');
   }
-
   Future<void> _stopAnswerListening() async {
     debugPrint('[VOICE] _stopAnswerListening tapped');
-
     if (_isProcessing) {
       debugPrint('[VOICE] Already processing — ignoring stop');
       return;
@@ -1320,28 +1186,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _isProcessing = true;
     _answerTimeoutTimer?.cancel();
     debugPrint('[VOICE] _stopAnswerListening: LOCKED processing');
-
     try {
       await _voiceCtrl.stopListening();
       debugPrint('[VOICE] _stopAnswerListening: mic stopped');
-
       await Future.delayed(const Duration(milliseconds: 250));
       if (!mounted) {
         _isProcessing = false;
         return;
       }
-
       final answer = _voiceCtrl.finalTranscript.trim().isNotEmpty
           ? _voiceCtrl.finalTranscript.trim()
           : _voiceCtrl.partialTranscript.trim();
       debugPrint('[VOICE] _stopAnswerListening: captured answer="$answer"');
-
       await _voiceCtrl.resetEngine();
       debugPrint('[VOICE] _stopAnswerListening: engine reset');
-
       _isListeningForAnswer = false;
       _cancelAllTimers();
-
       if (answer.isNotEmpty) {
         final field = _activeField;
         if (field != null) {
@@ -1355,7 +1215,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           '[VOICE] _stopAnswerListening: empty transcript — still advancing',
         );
       }
-
       if (!mounted) {
         _isProcessing = false;
         return;
@@ -1364,12 +1223,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         _partialAnswer = '';
         _rebuildResponse();
       });
-
       final missing = _getStillNeededFieldsFor(_data);
       debugPrint(
         '[VOICE] After answer: detected=$_detectedFields, missing=$missing',
       );
-
       Future.delayed(const Duration(milliseconds: 300), () {
         _isProcessing = false;
         debugPrint('[VOICE] _stopAnswerListening: releasing processing lock');
@@ -1398,7 +1255,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     }
   }
-
   void _handleVoiceAnswer(String text) {
     if (_isProcessing) {
       debugPrint('[AI] Already processing answer — ignoring duplicate');
@@ -1426,7 +1282,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
   }
-
   void _handleTypedAnswer(String text) {
     if (text.trim().isEmpty) return;
     if (_isProcessing) {
@@ -1452,7 +1307,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       if (mounted) _advanceToNextMissingField();
     });
   }
-
   void _applyAnswerForField(String field, String text) {
     setState(() {
       _applyAnswerForFieldToMap(_detectedFields, field, text);
@@ -1462,7 +1316,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       );
     });
   }
-
   void _applyAnswerForFieldToMap(
     Map<String, dynamic> fields,
     String field,
@@ -1485,7 +1338,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           data.projectName = text.trim();
         }
         break;
-
       case 'Floor':
         if (t.contains('ground') || t == 'g') {
           data.floor = 'Ground Floor';
@@ -1503,15 +1355,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           data.floor = text.trim();
         }
         break;
-
       case 'Phase':
         data.phase = text.trim();
         break;
-
       case 'Activity':
         data.activity = text.trim();
         break;
-
       case 'Labour Type':
         data.workType = text.trim();
         if (data.workerCount != null) {
@@ -1520,7 +1369,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           data.itemName = '${data.workType} Team';
         }
         break;
-
       case 'Worker Count':
         final num = RegExp(r'(\d+)').firstMatch(t);
         if (num != null) {
@@ -1530,7 +1378,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           data.itemName = '${data.workerCount} ${data.workType}s';
         }
         break;
-
       case 'Hours':
         final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
         if (num != null) {
@@ -1542,11 +1389,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
         }
         break;
-
       case 'Equipment':
         data.itemName = text.trim();
         break;
-
       case 'Fuel':
         if (t.contains('no') ||
             t.contains('none') ||
@@ -1560,14 +1405,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           }
         }
         break;
-
       case 'Quantity':
         final num = RegExp(r'(\d+\.?\d*)').firstMatch(t);
         if (num != null) {
           data.quantity = double.tryParse(num.group(0) ?? '');
         }
         break;
-
       case 'Unit':
         const unitMap = {
           'bag': 'Bags',
@@ -1603,22 +1446,18 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         }
         if (!found) data.unit = text.trim();
         break;
-
       case 'Rate':
         final rateNum = RegExp(r'(\d+\.?\d*)').firstMatch(t);
         if (rateNum != null) {
           data.rate = double.tryParse(rateNum.group(0) ?? '');
         }
         break;
-
       case 'Brand':
         data.brand = text.trim();
         break;
-
       default:
         break;
     }
-
     if (text.isNotEmpty) {
       final tempFields = <String, dynamic>{};
       final tempData = _ExtractedData(tempFields);
@@ -1630,7 +1469,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       });
     }
   }
-
   void _goToSummary() {
     if (!mounted) return;
     _cancelAllTimers();
@@ -1642,7 +1480,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     });
     _scrollToBottom();
   }
-
   String? _derivePhaseId(String? phaseName) {
     if (phaseName == null || phaseName.isEmpty || _data.projectId == null) {
       return null;
@@ -1657,7 +1494,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     return null;
   }
-
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -1676,11 +1512,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     return null;
   }
-
   String _mapUnitToBackend(String? rawUnit) {
     if (rawUnit == null || rawUnit.isEmpty) return 'unit';
     final lower = rawUnit.toLowerCase();
-
     if (lower.contains('bag')) return 'bag';
     if (lower.contains('kg') || lower.contains('kilo')) return 'kg';
     if (lower.contains('ton')) return 'ton';
@@ -1696,10 +1530,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     if (lower.contains('rft') || lower.contains('running')) return 'rft';
     if (lower.contains('trip') || lower.contains('truck')) return 'truck';
     if (lower.contains('nos') || lower.contains('piece')) return 'unit';
-
     return 'unit';
   }
-
   Future<void> _saveEntry() async {
     if (_isProcessing) {
       debugPrint('[AI] Already saving — ignoring duplicate');
@@ -1708,27 +1540,23 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _isProcessing = true;
     _cancelAllTimers();
     if (!mounted) return;
-
     setState(() {
       _status = VoiceStatus.saving;
       _saveError = null;
       _rebuildResponse();
     });
-
     try {
       final String txType = _entryType == 'labour'
           ? 'Wages'
           : _entryType == 'equipment'
           ? 'Expense'
           : 'Materials';
-
       final double qty = _entryType == 'labour'
           ? ((_data.workerCount ?? 1) * (_data.hours ?? 1)).toDouble()
           : (_data.quantity ?? 0);
       final double rate = _data.rate ?? 0;
       final double fuel = _data.fuelCost ?? 0;
       final double totalAmount = (qty * rate) + fuel;
-
       final payload = <String, dynamic>{
         'title':
             _data.itemName ??
@@ -1764,19 +1592,15 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           'fuelCost': fuel,
         'createdBy': UserSession.userId,
       };
-
       final result = await ApiService.addTransaction(payload);
-
       if (result != null) {
         final serverTx = result['transaction'] ?? result;
         _savedEntryId =
             serverTx?['_id']?.toString() ??
             'VOICE-${DateTime.now().millisecondsSinceEpoch}';
-
         if (mounted) {
           await Provider.of<ProjectProvider>(context, listen: false).load();
         }
-
         _isProcessing = false;
         if (!mounted) return;
         setState(() {
@@ -1805,12 +1629,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       });
     }
   }
-
   void _enterEditMode() {
     _savedEditFields = Map<String, dynamic>.from(_detectedFields);
     _editError = null;
     _editControllers.clear();
-
     _editControllers['project'] = TextEditingController(
       text: _data.projectName ?? _data.projectId ?? '',
     );
@@ -1818,7 +1640,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     _editControllers['activity'] = TextEditingController(
       text: _data.activity ?? '',
     );
-
     if (_entryType == 'material') {
       _editControllers['phase'] = TextEditingController(
         text: _data.phase ?? '',
@@ -1848,14 +1669,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         text: _data.hasQuantity ? '${_data.quantity}' : '',
       );
     }
-
     _editControllers['rate'] = TextEditingController(
       text: _data.hasRate ? '${_data.rate}' : '',
     );
-
     setState(() => _isEditing = true);
   }
-
   void _cancelEdit() {
     if (_savedEditFields != null) {
       _detectedFields.clear();
@@ -1869,27 +1687,22 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _rebuildResponse();
     });
   }
-
   void _disposeEditControllers() {
     for (final ctrl in _editControllers.values) {
       ctrl.dispose();
     }
     _editControllers.clear();
   }
-
   void _saveEditChanges() {
     _editError = null;
-
     if (!_isEditValid()) {
       setState(() => _editError = 'Please complete all required fields.');
       return;
     }
-
     _data.projectName = _editControllers['project']!.text.trim();
     _data.projectId = _editControllers['project']!.text.trim();
     _data.floor = _editControllers['floor']!.text.trim();
     _data.activity = _editControllers['activity']!.text.trim();
-
     if (_entryType == 'material') {
       _data.phase = _editControllers['phase']!.text.trim();
       _data.itemName = _editControllers['material']!.text.trim();
@@ -1907,21 +1720,16 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       _data.quantity = hrs;
       _data.hours = hrs;
     }
-
     _data.rate = double.tryParse(_editControllers['rate']!.text) ?? 0;
-
     _disposeEditControllers();
     _savedEditFields = null;
-
     setState(() {
       _isEditing = false;
       _rebuildResponse();
     });
   }
-
   bool _isEditValid() {
     if (_editControllers['project']?.text.trim().isEmpty ?? true) return false;
-
     if (_entryType == 'material') {
       if (_editControllers['material']?.text.trim().isEmpty ?? true) {
         return false;
@@ -1949,14 +1757,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return false;
       }
     }
-
     if ((double.tryParse(_editControllers['rate']?.text ?? '') ?? 0) <= 0) {
       return false;
     }
-
     return true;
   }
-
   double _getLiveEditAmount() {
     final rateText = _editControllers['rate']?.text ?? '';
     final rate = double.tryParse(rateText) ?? 0;
@@ -1974,7 +1779,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       return hours * rate;
     }
   }
-
   Widget _buildEditField({
     required String label,
     required TextEditingController controller,
@@ -2017,7 +1821,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildEditFormFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2111,7 +1914,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ],
     );
   }
-
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -2123,7 +1925,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       }
     });
   }
-
   List<String> _getStillNeededFieldsFor(_ExtractedData d) {
     final list = <String>[];
     if (_entryType == 'material') {
@@ -2143,7 +1944,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     return list;
   }
-
   List<_DetectedField> _getDetectedFieldsWithLabels(_ExtractedData d) {
     final list = <_DetectedField>[];
     if (_entryType == 'material') {
@@ -2207,7 +2007,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     }
     return list;
   }
-
   Map<String, dynamic> _getVoiceFields(String entryType, _ExtractedData d) {
     if (entryType == 'material') {
       return {
@@ -2231,14 +2030,12 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       };
     }
   }
-
   bool _isVoiceFieldPresent(String key, dynamic val) {
     if (val == null) return false;
     if (val is String) return val.trim().isNotEmpty;
     if (val is num) return val > 0;
     return false;
   }
-
   bool get _isProjectContextSelected {
     final hasProj = _data.projectId != null && _data.projectId!.isNotEmpty;
     final hasFloor = _data.floor != null && _data.floor!.trim().isNotEmpty;
@@ -2246,11 +2043,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final hasAct = _data.activity != null && _data.activity!.trim().isNotEmpty;
     return hasProj && hasFloor && hasPhase && hasAct;
   }
-
   @override
   Widget build(BuildContext context) {
     Provider.of<ProjectProvider>(context);
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FC),
       body: SafeArea(
@@ -2276,11 +2071,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildTopBar() {
     String title = 'BuildTrack AI';
     String subtitle = 'AI Voice Entry';
-
     switch (_response.status) {
       case VoiceStatus.listening:
       case VoiceStatus.idle:
@@ -2316,9 +2109,7 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         subtitle = 'Something went wrong';
         break;
     }
-
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -2372,7 +2163,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildStatusBadge(bool isListening) {
     final statusText = isListening ? 'Listening' : 'Ready';
     final color = isListening ? const Color(0xFFEF4444) : AppColors.textLight;
@@ -2382,7 +2172,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     final borderColor = isListening
         ? const Color(0xFFFCA5A5)
         : const Color(0xFFE2E8F0);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -2412,11 +2201,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildMainBody() {
     Widget content;
     final curData = _currentData;
-
     switch (_response.status) {
       case VoiceStatus.processing:
       case VoiceStatus.thinking:
@@ -2448,23 +2235,19 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         );
         break;
     }
-
     return SingleChildScrollView(
       controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
       child: content,
     );
   }
-
   Widget _buildVoiceListeningCard() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     if (!isListening) return const SizedBox.shrink();
-
     final hasContent = _partialAnswer.isNotEmpty || _rawTranscript.isNotEmpty;
     final displayText = hasContent
         ? (_partialAnswer.isNotEmpty ? _partialAnswer : _rawTranscript)
         : 'Listening for voice input...';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -2523,14 +2306,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildLiveWaveform() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     if (!isListening) return const SizedBox.shrink();
-
     final level = _voiceCtrl.soundLevel;
     final vol = ((level + 2.0) / 12.0).clamp(0.1, 1.0);
-
     return AnimatedBuilder(
       animation: _waveCtrl,
       builder: (_, _) {
@@ -2547,7 +2327,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 4.0,
                 32.0,
               );
-
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 100),
                 margin: const EdgeInsets.symmetric(horizontal: 2.0),
@@ -2568,7 +2347,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       },
     );
   }
-
   Widget _buildAiUnderstandingPanel(_ExtractedData currentData) {
     final voiceFields = _getVoiceFields(_entryType, currentData);
     final total = voiceFields.length;
@@ -2576,10 +2354,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     voiceFields.forEach((key, val) {
       if (_isVoiceFieldPresent(key, val)) completed++;
     });
-
     final progress = total > 0 ? completed / total : 0.0;
     final isComplete = completed >= total;
-
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -2655,7 +2431,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               final displayVal = e.value is num
                   ? (e.value as num).toStringAsFixed(e.value % 1 == 0 ? 0 : 2)
                   : e.value?.toString() ?? '';
-
               return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -2704,16 +2479,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildMissingInformationPanel(_ExtractedData currentData) {
     final voiceFields = _getVoiceFields(_entryType, currentData);
     final missing = voiceFields.entries
         .where((e) => !_isVoiceFieldPresent(e.key, e.value))
         .map((e) => e.key)
         .toList();
-
     if (missing.isEmpty) return const SizedBox.shrink();
-
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -2809,7 +2581,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildExampleHintCard() {
     String example = "";
     if (_entryType == 'material') {
@@ -2819,7 +2590,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
     } else {
       example = '"JCB excavator worked 6 hours at 1200 rupees per hour"';
     }
-
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -2866,11 +2636,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildAiQuestionCard() {
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
     if (!isAskingStep) return const SizedBox.shrink();
-
     final field = _fieldToAsk();
     final question = _response.question?.isNotEmpty == true
         ? _response.question!
@@ -2882,7 +2650,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       '[AI DEBUG] _buildAiQuestionCard: showing question="$question" for field=$field',
     );
     final confirmed = _getDetectedFieldsWithLabels(_data).take(3).toList();
-
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
@@ -2919,7 +2686,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ],
             ),
           ),
-
           if (confirmed.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -2964,7 +2730,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 ],
               ),
             ),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Divider(
@@ -2972,7 +2737,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               height: 1,
             ),
           ),
-
           Padding(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -2990,7 +2754,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
               ),
             ),
           ),
-
           if (suggestions.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 10),
@@ -3022,7 +2785,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildSuggestionsChips(List<String> options) {
     return Wrap(
       spacing: 6,
@@ -3057,16 +2819,13 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
           .toList(),
     );
   }
-
   Widget _buildProcessingCard() {
     final stages = <String>[];
     final states = <bool>[];
-
     final hasMaterial = _data.hasItemName;
     final hasQuantity = _data.hasQuantity;
     final hasUnit = _data.hasUnit;
     final hasRate = _data.hasRate;
-
     if (_entryType == 'material') {
       stages.add(hasMaterial ? 'Material identified' : 'Finding material');
       states.add(hasMaterial);
@@ -3099,7 +2858,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       stages.add(hasRate ? 'Rate detected' : 'Detecting rate');
       states.add(hasRate);
     }
-
     return Column(
       children: [
         Container(
@@ -3213,11 +2971,9 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                 final label = stages[i];
                 final isCompleted = i < _processingStage;
                 final isCurrent = i == _processingStage;
-
                 Widget indicator;
                 Color textColor;
                 FontWeight fontWeight;
-
                 if (isCompleted) {
                   if (states[i]) {
                     indicator = const Icon(
@@ -3264,7 +3020,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                   textColor = AppColors.textLight;
                   fontWeight = FontWeight.w500;
                 }
-
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10.0),
                   child: Row(
@@ -3322,13 +3077,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ],
     );
   }
-
   Widget _buildSummaryCard() {
     final isSaving = _response.status == VoiceStatus.saving;
     final amount = _isEditing
         ? _getLiveEditAmount()
         : _data.getComputedAmount(_entryType);
-
     final details = <Map<String, String>>[
       {
         'label': 'Project',
@@ -3382,7 +3135,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         'highlight': 'true',
       },
     ];
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -3662,7 +3414,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildBottomInputArea() {
     if (_response.status == VoiceStatus.completed) {
       return const SizedBox.shrink();
@@ -3675,13 +3426,11 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         _response.status == VoiceStatus.thinking) {
       return const SizedBox.shrink();
     }
-
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     final isInitialVoice =
         _response.status == VoiceStatus.listening ||
         _response.status == VoiceStatus.idle;
     final isAskingStep = _response.status == VoiceStatus.waitingForUser;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -3721,12 +3470,10 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
                         flex: 3,
                         child: _buildRecordingStatusLeft(isListening),
                       ),
-
                       Expanded(
                         flex: 2,
                         child: _buildLargeMicButtonRedesigned(isListening),
                       ),
-
                       Expanded(
                         flex: 3,
                         child: _buildStopAnalyzeButtonRight(isListening),
@@ -3869,7 +3616,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildRecordingStatusLeft(bool isListening) {
     if (!_isProjectContextSelected) {
       return const Column(
@@ -3896,7 +3642,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         ],
       );
     }
-
     if (!isListening) {
       return const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3932,7 +3677,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         ],
       );
     }
-
     return AnimatedBuilder(
       animation: _waveCtrl,
       builder: (context, _) {
@@ -3976,10 +3720,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       },
     );
   }
-
   Widget _buildLargeMicButtonRedesigned(bool isListening) {
     final isEnabled = _isProjectContextSelected;
-
     return Center(
       child: GestureDetector(
         onTap: isEnabled
@@ -4012,10 +3754,8 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildStopAnalyzeButtonRight(bool isListening) {
     final isEnabled = isListening;
-
     return Align(
       alignment: Alignment.centerRight,
       child: SizedBox(
@@ -4045,7 +3785,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildRedStopAnalyzeButton() {
     return OutlinedButton(
       onPressed: _stopAndAnalyze,
@@ -4061,7 +3800,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildCancelRecordingButton() {
     return OutlinedButton(
       onPressed: _cancelRecording,
@@ -4078,7 +3816,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _buildMicWithWaves() {
     final isListening = _voiceCtrl.engineState == VoiceEngineState.listening;
     return Row(
@@ -4124,7 +3861,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ],
     );
   }
-
   Widget _buildWaveSide({required bool isLeft}) {
     return AnimatedBuilder(
       animation: _waveCtrl,
@@ -4149,7 +3885,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       },
     );
   }
-
   Widget _buildSmallMicListening() {
     return AnimatedBuilder(
       animation: _voiceCtrl,
@@ -4183,7 +3918,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       },
     );
   }
-
   Widget _buildSuccessCard() {
     final now = DateTime.now();
     final dateStr =
@@ -4192,7 +3926,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         '${(now.hour % 12 == 0 ? 12 : now.hour % 12)}'
         ':${now.minute.toString().padLeft(2, '0')}'
         ' ${now.hour >= 12 ? 'PM' : 'AM'}';
-
     return Column(
       children: [
         Container(
@@ -4303,7 +4036,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ],
     );
   }
-
   Widget _buildErrorCard() {
     return Container(
       margin: const EdgeInsets.only(top: 14),
@@ -4327,7 +4059,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ),
     );
   }
-
   Widget _successDetailRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -4351,7 +4082,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
       ],
     );
   }
-
   String get _hintForCurrentStep {
     final field = _activeField;
     if (field == null) return 'Type your answer...';
@@ -4386,7 +4116,6 @@ class _AiVoiceEntryScreenState extends State<AiVoiceEntryScreen>
         return 'Type your answer...';
     }
   }
-
   String _monthName(int m) {
     const months = [
       'Jan',

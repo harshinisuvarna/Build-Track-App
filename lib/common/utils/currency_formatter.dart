@@ -2,7 +2,6 @@ double? parseAmount(String input) {
   final cleaned = input.replaceAll('₹', '').replaceAll(',', '').trim();
   return double.tryParse(cleaned);
 }
-
 String formatCurrency(num amount) {
   if (amount == 0) return '₹0.00';
   if (amount >= 10000000) {

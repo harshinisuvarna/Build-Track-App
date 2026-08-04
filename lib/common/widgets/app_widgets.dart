@@ -2,7 +2,6 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_gradients.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:flutter/material.dart';
-
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -13,14 +12,12 @@ class AppCard extends StatelessWidget {
     this.borderRadius = AppTheme.radiusLg,
     this.onTap,
   });
-
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
   final Color color;
   final double borderRadius;
   final VoidCallback? onTap;
-
   @override
   Widget build(BuildContext context) {
     final card = Container(
@@ -39,9 +36,7 @@ class AppCard extends StatelessWidget {
       ),
       child: Padding(padding: padding, child: child),
     );
-
     if (onTap == null) return card;
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -49,9 +44,7 @@ class AppCard extends StatelessWidget {
     );
   }
 }
-
 enum AppButtonVariant { primary, secondary, outline, danger }
-
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -62,19 +55,16 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.enabled = true,
   });
-
   final String label;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final IconData? icon;
   final bool isLoading;
   final bool enabled;
-
   @override
   Widget build(BuildContext context) {
     final (bg, fg, border) = _resolveColors();
     final isPrimary = variant == AppButtonVariant.primary;
-
     return SizedBox(
       width: double.infinity,
       child: AnimatedOpacity(
@@ -149,7 +139,6 @@ class AppButton extends StatelessWidget {
       ),
     );
   }
-
   (Color bg, Color fg, Color border) _resolveColors() {
     switch (variant) {
       case AppButtonVariant.primary:
@@ -167,7 +156,6 @@ class AppButton extends StatelessWidget {
     }
   }
 }
-
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -185,7 +173,6 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.enabled = true,
   });
-
   final String label;
   final TextEditingController controller;
   final String? hint;
@@ -199,7 +186,6 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
   final bool enabled;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -233,7 +219,6 @@ class AppTextField extends StatelessWidget {
     );
   }
 }
-
 class AppDropdownField<T> extends StatelessWidget {
   const AppDropdownField({
     super.key,
@@ -243,13 +228,11 @@ class AppDropdownField<T> extends StatelessWidget {
     required this.onChanged,
     this.hint,
   });
-
   final String label;
   final T? value;
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?> onChanged;
   final String? hint;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -289,14 +272,10 @@ class AppDropdownField<T> extends StatelessWidget {
     );
   }
 }
-
 enum AppStatus { completed, inProgress, notStarted, delayed, issue }
-
 class AppStatusBadge extends StatelessWidget {
   const AppStatusBadge({super.key, required this.status});
-
   final AppStatus status;
-
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = _resolve();
@@ -312,7 +291,6 @@ class AppStatusBadge extends StatelessWidget {
       ),
     );
   }
-
   (String label, Color bg, Color fg) _resolve() {
     switch (status) {
       case AppStatus.completed:
@@ -336,7 +314,6 @@ class AppStatusBadge extends StatelessWidget {
     }
   }
 }
-
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,
@@ -344,11 +321,9 @@ class AppSectionHeader extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
-
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -373,12 +348,9 @@ class AppSectionHeader extends StatelessWidget {
     );
   }
 }
-
 class AppDivider extends StatelessWidget {
   const AppDivider({super.key, this.verticalPadding = AppTheme.spacingMd});
-
   final double verticalPadding;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -387,7 +359,6 @@ class AppDivider extends StatelessWidget {
     );
   }
 }
-
 class AppProgressBar extends StatelessWidget {
   const AppProgressBar({
     super.key,
@@ -395,11 +366,9 @@ class AppProgressBar extends StatelessWidget {
     required this.percent,
     this.color = AppTheme.secondary,
   });
-
   final String label;
   final double percent;
   final Color color;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -445,7 +414,6 @@ class AppProgressBar extends StatelessWidget {
     );
   }
 }
-
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
     super.key,
@@ -454,12 +422,10 @@ class AppEmptyState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
-
   final String message;
   final IconData icon;
   final String? actionLabel;
   final VoidCallback? onAction;
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -485,12 +451,9 @@ class AppEmptyState extends StatelessWidget {
     );
   }
 }
-
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});
-
   final String status;
-
   Color get _color {
     switch (status) {
       case 'approved':
@@ -501,7 +464,6 @@ class StatusBadge extends StatelessWidget {
         return AppColors.badgeWarningText;
     }
   }
-
   Color get _bg {
     switch (status) {
       case 'approved':
@@ -512,7 +474,6 @@ class StatusBadge extends StatelessWidget {
         return AppColors.badgeWarningBg;
     }
   }
-
   IconData get _icon {
     switch (status) {
       case 'approved':
@@ -523,7 +484,6 @@ class StatusBadge extends StatelessWidget {
         return Icons.hourglass_empty_outlined;
     }
   }
-
   String get _label {
     switch (status) {
       case 'approved':
@@ -534,7 +494,6 @@ class StatusBadge extends StatelessWidget {
         return 'PENDING';
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(

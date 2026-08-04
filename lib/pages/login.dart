@@ -1,42 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/services/auth_service.dart';
-
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
   static const _bgColor = Color(0xFFF0EEFF);
-
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-
   bool _obscurePass = true;
   bool _loading = false;
-
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
     return Scaffold(
       backgroundColor: _bgColor,
       resizeToAvoidBottomInset: false,
@@ -74,7 +64,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
   Widget _buildHeader() {
     return Column(
       children: [
@@ -87,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
   Widget _buildForm() {
     return Column(
       children: [
@@ -115,7 +103,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
   Widget _buildActions() {
     return Column(
       children: [
@@ -160,23 +147,18 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
   Future<void> _login() async {
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text.trim();
-
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Enter email and password')));
       return;
     }
-
     setState(() => _loading = true);
-
     try {
       final data = await AuthService.login(email, password);
-
       if (data != null) {
         if (mounted) {
           context.read<SubscriptionProvider>().fetchStatus();
@@ -196,7 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
   Widget _buildFooter() {
     return Text('Privacy Policy • Terms of Service', style: AppTheme.caption);
   }

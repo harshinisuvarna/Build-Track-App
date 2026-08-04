@@ -1,28 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 enum UserRole { admin, supervisor, mason }
-
 class UserSession extends ChangeNotifier {
   static final UserSession _instance = UserSession._();
   factory UserSession() => _instance;
   UserSession._();
-
   static const String _kSessionKey = 'buildtrack_user_session';
-
   static String _userId = '';
   static UserRole _role = UserRole.mason;
   static String? _profilePhoto;
-
   static String _rawRoleName = '';
   static List<String> _overseesRoles = [];
-
   static List<String> _projectIds = [];
-
   static String get projectId =>
       _projectIds.isNotEmpty ? _projectIds.first : '';
-
   static set projectId(String value) {
     if (value.isEmpty) {
       _projectIds = [];
@@ -31,10 +23,8 @@ class UserSession extends ChangeNotifier {
     }
     _instance.notifyListeners();
   }
-
   static List<String> _permissions = [];
   static bool _initialized = false;
-
   static String get userId => _userId;
   static UserRole get role => _role;
   static List<String> get projectIds => List.unmodifiable(_projectIds);
@@ -42,16 +32,13 @@ class UserSession extends ChangeNotifier {
   static List<String> get permissions => List.unmodifiable(_permissions);
   static bool get isInitialized => _initialized;
   static String? get profilePhoto => _profilePhoto;
-
   static bool get isAdmin => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
   static bool get isMason => _role == UserRole.mason;
-
   static bool hasProjectAccess(String pid) {
     if (isAdmin) return true;
     return _projectIds.any((id) => id.trim() == pid.trim());
   }
-
   static String get roleLabel {
     if (_rawRoleName.isNotEmpty) return _rawRoleName;
     switch (_role) {
@@ -63,19 +50,15 @@ class UserSession extends ChangeNotifier {
         return 'Mason';
     }
   }
-
   static bool hasPermission(String key) {
     if (isAdmin) return true;
     return _permissions.contains(key);
   }
-
   static Future<void> fromLoginResponse(Map<String, dynamic> user) async {
     _userId = user['id']?.toString() ?? '';
-
     final rawRoleStr = user['role']?.toString() ?? '';
     _rawRoleName = _toDisplayName(rawRoleStr);
     _role = _parseRole(rawRoleStr);
-
     final rawIds = user['projectIds'];
     if (rawIds is List) {
       _projectIds = rawIds
@@ -86,53 +69,41 @@ class UserSession extends ChangeNotifier {
       final legacyId = user['projectId']?.toString() ?? '';
       _projectIds = legacyId.isNotEmpty ? [legacyId] : [];
     }
-
     final raw = user['permissions'];
     if (raw is List) {
       _permissions = raw.map((e) => e.toString()).toList();
     } else {
       _permissions = [];
     }
-
     final rawOversees = user['overseesRoles'];
     if (rawOversees is List) {
       _overseesRoles = rawOversees.map((e) => e.toString()).toList();
     } else {
       _overseesRoles = [];
     }
-
     _profilePhoto = user['profilePhoto']?.toString();
-
     _initialized = true;
     await _persist();
     _instance.notifyListeners();
-
     debugPrint(
       '[UserSession] fromLoginResponse → '
       'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds permissions=$_permissions',
     );
   }
-
   static Future<void> loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kSessionKey);
-
       if (raw == null || raw.isEmpty) {
         _initialized = true;
         _instance.notifyListeners();
         return;
       }
-
       final data = json.decode(raw) as Map<String, dynamic>;
-
       _userId = data['id']?.toString() ?? '';
       _profilePhoto = data['profilePhoto']?.toString();
-
       _role = _parseRole(data['role']?.toString());
-
       _rawRoleName = data['rawRoleName']?.toString() ?? _enumToDisplay(_role);
-
       final rawProj = data['projectIds'];
       if (rawProj is List) {
         _projectIds = rawProj.map((e) => e.toString()).toList();
@@ -140,24 +111,20 @@ class UserSession extends ChangeNotifier {
         final legacyId = data['projectId']?.toString() ?? '';
         _projectIds = legacyId.isNotEmpty ? [legacyId] : [];
       }
-
       final rawPerms = data['permissions'];
       if (rawPerms is List) {
         _permissions = rawPerms.map((e) => e.toString()).toList();
       } else {
         _permissions = [];
       }
-
       final rawOversees = data['overseesRoles'];
       if (rawOversees is List) {
         _overseesRoles = rawOversees.map((e) => e.toString()).toList();
       } else {
         _overseesRoles = [];
       }
-
       _initialized = true;
       _instance.notifyListeners();
-
       debugPrint(
         '[UserSession] loadFromPrefs → '
         'role=$roleLabel (_raw=$_rawRoleName) projectIds=$_projectIds',
@@ -168,7 +135,6 @@ class UserSession extends ChangeNotifier {
       _instance.notifyListeners();
     }
   }
-
   static Future<void> clear() async {
     _userId = '';
     _role = UserRole.mason;
@@ -178,14 +144,11 @@ class UserSession extends ChangeNotifier {
     _permissions = [];
     _profilePhoto = null;
     _initialized = false;
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kSessionKey);
-
     _instance.notifyListeners();
     debugPrint('[UserSession] cleared');
   }
-
   static void set({
     required String userId,
     required UserRole role,
@@ -198,7 +161,6 @@ class UserSession extends ChangeNotifier {
   }) {
     _userId = userId;
     _role = role;
-
     _rawRoleName = rawRoleName.isNotEmpty ? rawRoleName : _enumToDisplay(role);
     _profilePhoto = profilePhoto;
     final merged = List<String>.from(projectIds);
@@ -211,11 +173,9 @@ class UserSession extends ChangeNotifier {
     _initialized = true;
     _instance.notifyListeners();
   }
-
   static String _toDisplayName(String? roleStr) {
     if (roleStr == null || roleStr.trim().isEmpty) return 'Worker';
     final trimmed = roleStr.trim();
-
     switch (trimmed.toLowerCase()) {
       case 'admin':
         return 'Admin';
@@ -229,7 +189,6 @@ class UserSession extends ChangeNotifier {
         return trimmed[0].toUpperCase() + trimmed.substring(1);
     }
   }
-
   static String _enumToDisplay(UserRole role) {
     switch (role) {
       case UserRole.admin:
@@ -240,7 +199,6 @@ class UserSession extends ChangeNotifier {
         return 'Mason';
     }
   }
-
   static UserRole _parseRole(String? roleStr) {
     switch (roleStr?.toLowerCase().trim()) {
       case 'admin':
@@ -258,7 +216,6 @@ class UserSession extends ChangeNotifier {
         return UserRole.mason;
     }
   }
-
   static Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -279,14 +236,12 @@ class UserSession extends ChangeNotifier {
       debugPrint('[UserSession] _persist error: $e');
     }
   }
-
   static void simulateAdmin() => set(
     userId: 'sim_admin',
     role: UserRole.admin,
     projectIds: ['proj_001'],
     rawRoleName: 'Admin',
   );
-
   static void simulateSupervisor() => set(
     userId: 'sim_sup',
     role: UserRole.supervisor,
@@ -314,7 +269,6 @@ class UserSession extends ChangeNotifier {
       'mark_paid',
     ],
   );
-
   static void simulateMason() => set(
     userId: 'sim_mason',
     role: UserRole.mason,
@@ -332,7 +286,6 @@ class UserSession extends ChangeNotifier {
       'add_entries',
     ],
   );
-
   static void simulateContractor() => set(
     userId: 'sim_contractor',
     role: UserRole.mason,

@@ -10,13 +10,11 @@ import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
-
 class TransactionLogsScreen extends StatefulWidget {
   const TransactionLogsScreen({super.key});
   @override
   State<TransactionLogsScreen> createState() => _TransactionLogsScreenState();
 }
-
 class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   static const primaryBlue = AppColors.primary;
   static const purple = AppColors.primary;
@@ -32,9 +30,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
   bool _isGeneral = false;
   String? _filterProjectId;
   bool _hasPassedProject = false;
-
   final Map<String, bool> _collapsedGroups = {};
-
   Color _getCategoryColor(String category) {
     switch (category) {
       case 'labour':
@@ -45,7 +41,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return primaryBlue;
     }
   }
-
   Color _getCategoryBg(String category) {
     switch (category) {
       case 'labour':
@@ -56,7 +51,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return const Color(0xFFEEF0FF);
     }
   }
-
   List<Map<String, dynamic>> get _filteredLogs {
     final visible = EntryPermissions.filterMaps(_allLogs);
     switch (_filterIndex) {
@@ -68,7 +62,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return List.from(visible);
     }
   }
-
   int get _totalAdded {
     return _allLogs.where((l) => l['isPositive'] == true).fold(0, (sum, l) {
       final v =
@@ -83,7 +76,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       return sum + v;
     });
   }
-
   int get _totalUsed {
     return _allLogs.where((l) => l['isPositive'] == false).fold(0, (sum, l) {
       final v =
@@ -98,9 +90,7 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       return sum + v;
     });
   }
-
   Color _typeColor() => _getCategoryColor(_itemType);
-
   IconData _typeIcon() {
     switch (_itemType) {
       case 'labour':
@@ -111,7 +101,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return Icons.inventory_2_outlined;
     }
   }
-
   String get _unitLabel {
     if (_allLogs.isNotEmpty) {
       final String rawUnit = (_allLogs.first['unit'] ?? '')
@@ -133,7 +122,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return 'units';
     }
   }
-
   PaymentStatus _mapPaymentStatus(String? statusStr) {
     if (statusStr == null) return PaymentStatus.pending;
     final lower = statusStr.trim().toLowerCase();
@@ -142,7 +130,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     if (lower == 'overdue') return PaymentStatus.overdue;
     return PaymentStatus.pending;
   }
-
   String _formatDate(dynamic dateStr) {
     if (dateStr == null) return '';
     try {
@@ -166,7 +153,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       return dateStr.toString();
     }
   }
-
   DateTime? _parseFormattedDate(String s) {
     const months = {
       'Jan': 1,
@@ -189,10 +175,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       final y = int.tryParse(parts[2]);
       if (m != null && d != null && y != null) return DateTime(y, m, d);
     }
-
     return DateTime.tryParse(s);
   }
-
   String _smartLabel(String dateStr) {
     if (dateStr.isEmpty) return 'Older';
     final dt = _parseFormattedDate(dateStr);
@@ -207,7 +191,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     if (day.isAfter(weekAgo)) return 'This Week';
     return 'Older';
   }
-
   String _formatRelativeTime(dynamic dateStr) {
     if (dateStr == null) return '';
     try {
@@ -227,7 +210,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       return dateStr.toString();
     }
   }
-
   Map<String, List<Map<String, dynamic>>> _groupByDate(
     List<Map<String, dynamic>> logs,
   ) {
@@ -242,7 +224,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     groups.removeWhere((_, v) => v.isEmpty);
     return groups;
   }
-
   String get _addRoute {
     switch (_itemType) {
       case 'labour':
@@ -253,7 +234,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return '/add-material';
     }
   }
-
   String get _primaryActionLabel {
     switch (_itemType) {
       case 'labour':
@@ -264,12 +244,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         return 'Add More';
     }
   }
-
   Future<void> _fetchRealLogs() async {
     setState(() {
       _isLoading = true;
     });
-
     try {
       final response = await ApiService.get('/transactions?limit=10000');
       if (response.statusCode == 200) {
@@ -285,17 +263,14 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                       [])
                   as List<dynamic>;
         }
-
         final projectProvider = context.read<ProjectProvider>();
         final String? selectedProjId = _hasPassedProject
             ? _filterProjectId
             : projectProvider.selectedProject?.id;
-
         final List<Map<String, dynamic>> mappedList = [];
         for (final t in raw) {
           final String title = (t['title'] ?? t['materialName'] ?? 'Unknown')
               .toString();
-
           final String rawCat = (t['category'] ?? '')
               .toString()
               .trim()
@@ -304,11 +279,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               .toString()
               .trim()
               .toLowerCase();
-
           if (rawType == 'income' || rawType == 'revenue') {
             continue;
           }
-
           String category = 'material';
           if (rawCat == 'labour' ||
               rawCat == 'wages' ||
@@ -324,7 +297,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               rawType == 'equipment') {
             category = 'equipment';
           }
-
           String pId = '';
           if (t['project'] is Map) {
             pId = t['project']['_id']?.toString() ?? '';
@@ -342,11 +314,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           if (pId.isEmpty) {
             pId = 'p1';
           }
-
           if (selectedProjId != null && selectedProjId.isNotEmpty) {
             if (pId != selectedProjId) continue;
           }
-
           if (!_isGeneral) {
             if (category != _itemType) continue;
             final String transactionItemName =
@@ -358,24 +328,20 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
               continue;
             }
           }
-
           bool isPositive = true;
           if (t['subType']?.toString().toLowerCase() == 'consumption') {
             isPositive = false;
           }
-
           IconData icon = Icons.inventory_2_outlined;
           if (category == 'labour') {
             icon = Icons.people_outline;
           } else if (category == 'equipment') {
             icon = Icons.precision_manufacturing_outlined;
           }
-
           final String tId = t['_id']?.toString() ?? '';
           final String ref = tId.length > 4
               ? '#${tId.substring(tId.length - 4)}'
               : '#${tId.isNotEmpty ? tId : DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-
           mappedList.add({
             'title': title,
             'ref': ref,
@@ -422,7 +388,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             'isWithGst': t['isWithGst'],
           });
         }
-
         final args = ModalRoute.of(context)?.settings.arguments;
         if (args is Map) {
           final newEntry = args['newEntry'] as Map<String, dynamic>?;
@@ -435,7 +400,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             }
           }
         }
-
         setState(() {
           _allLogs = mappedList;
           _isLoading = false;
@@ -452,13 +416,11 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       });
     }
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       final name = args['name'] as String?;
@@ -481,10 +443,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       _itemName = 'Project Logs';
       _isGeneral = true;
     }
-
     _fetchRealLogs();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -540,16 +500,13 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ),
     );
   }
-
   Widget _buildDateGroupedLogs(BuildContext context) {
     final groups = _groupByDate(_filteredLogs);
     final widgets = <Widget>[];
-
     for (final entry in groups.entries) {
       final groupLabel = entry.key;
       final logs = entry.value;
       final collapsed = _collapsedGroups[groupLabel] ?? (groupLabel != 'Today');
-
       widgets.add(
         InkWell(
           onTap: () =>
@@ -606,7 +563,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
           ),
         ),
       );
-
       if (!collapsed) {
         for (final log in logs) {
           widgets.add(
@@ -619,17 +575,14 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         widgets.add(const SizedBox(height: 8));
       }
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets,
     );
   }
-
   Widget _buildSummaryCard() {
     final net = _totalAdded - _totalUsed;
     final color = _typeColor();
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 22),
@@ -705,7 +658,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ),
     );
   }
-
   Widget _summaryBadge(IconData icon, String label, Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -727,11 +679,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ],
     );
   }
-
   Widget _buildPaymentStatusStrip() {
     int fullyPaid = 0, partial = 0, notPaid = 0;
     double fullyPaidTotal = 0, partialTotal = 0, notPaidTotal = 0;
-
     for (final l in _allLogs) {
       final ps = l['paymentStatus'] as PaymentStatus?;
       final bill = l['billAmount'] as double? ?? 0;
@@ -746,7 +696,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         notPaidTotal += bill;
       }
     }
-
     Widget card(
       String label,
       int count,
@@ -818,7 +767,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         ),
       );
     }
-
     return Row(
       children: [
         card(
@@ -850,7 +798,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ],
     );
   }
-
   Widget _buildLogsHeader() {
     const filters = ['All', '+ Added', '- Used'];
     return Row(
@@ -910,7 +857,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ],
     );
   }
-
   Widget _buildEmptyState() {
     String title, subtitle;
     IconData icon;
@@ -1005,11 +951,9 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       ),
     );
   }
-
   String _formatLogAmount(Map<String, dynamic> log) {
     final String amountStr = log['amount'] as String? ?? '';
     if (amountStr.isEmpty) return '';
-
     final String sign = amountStr.startsWith('+')
         ? '+'
         : (amountStr.startsWith('-') ? '-' : '');
@@ -1021,10 +965,8 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
     final String qtyFormatted = qty % 1 == 0
         ? qty.toInt().toString()
         : qty.toString();
-
     final String rawUnit = (log['unit'] ?? '').toString().trim().toLowerCase();
     final String logCategory = log['category'] as String? ?? _itemType;
-
     final bool isInvalidUnit = const [
       'kg',
       'bag',
@@ -1037,7 +979,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
             (logCategory == 'labour' || logCategory == 'equipment'))
         ? ''
         : rawUnit;
-
     if (logCategory == 'labour') {
       String unitLabel = 'workers';
       if (parsedUnit == 'hour' || parsedUnit == 'hours') {
@@ -1081,7 +1022,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
       return '$sign$qtyFormatted $unitLabel';
     }
   }
-
   Widget _logItem(BuildContext context, Map<String, dynamic> log) {
     final isPositive = log['isPositive'] as bool? ?? true;
     final receipt = log['receipt'] as String?;
@@ -1093,12 +1033,10 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
         payStatus == PaymentStatus.pending ||
         payStatus == PaymentStatus.partial ||
         payStatus == PaymentStatus.overdue;
-
     final logCategory = log['category'] as String? ?? _itemType;
     final iconColor = _getCategoryColor(logCategory);
     final iconBg = _getCategoryBg(logCategory);
     final accent = isPositive ? primaryBlue : const Color(0xFFE040FB);
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
@@ -1123,7 +1061,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                 'createdBy': log['createdBy'] ?? '',
                 'projectId': log['projectId'] ?? '',
                 'status': log['status'] ?? 'pending',
-
                 'paymentStatus': payStatus,
                 'billAmount': billAmt,
                 'paidAmount': paidAmt,
@@ -1186,7 +1123,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                           '$_itemName • ${log['ref'] ?? ''}',
                           style: AppTheme.caption.copyWith(color: textGray),
                         ),
-
                         if ((log['supplier'] as String? ?? '').isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Row(
@@ -1246,7 +1182,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
               const Divider(height: 1, color: Color(0xFFF0EEF8)),
               const SizedBox(height: 8),
@@ -1281,7 +1216,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                             if (matchedProj.isNotEmpty) {
                               pName = matchedProj.first.name;
                             }
-
                             final payArgs = {
                               'id': log['id'] ?? '',
                               'projectId': pId,
@@ -1301,7 +1235,6 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
                               'receipt': log['receipt'],
                               'transactionDetails': log,
                             };
-
                             Navigator.pushNamed(
                               context,
                               '/fulfillment-payment',

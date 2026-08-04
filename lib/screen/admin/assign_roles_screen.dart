@@ -9,20 +9,16 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/subscription_provider.dart';
-
 class AssignRolesScreen extends StatefulWidget {
   const AssignRolesScreen({super.key});
-
   @override
   State<AssignRolesScreen> createState() => _AssignRolesScreenState();
 }
-
 class _AssignRolesScreenState extends State<AssignRolesScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _customRoleCtrl = TextEditingController();
-
   static const List<Map<String, dynamic>> _featureRows = [
     {'section': 'Project'},
     {
@@ -41,7 +37,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'edit': 'manage_expenses',
       'delete': 'delete_entry',
     },
-
     {'section': 'Daily Work'},
     {
       'type': 'toggle',
@@ -61,7 +56,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'desc': 'Can file a daily update with photos and checklist',
       'key': 'submit_daily_update',
     },
-
     {'section': 'Approvals & Payments'},
     {
       'type': 'toggle',
@@ -75,7 +69,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'desc': 'Can approve or reject daily progress submissions',
       'key': 'approve_updates',
     },
-
     {'section': 'Visibility'},
     {
       'type': 'table',
@@ -93,7 +86,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'edit': null,
       'delete': null,
     },
-
     {'section': 'Administration'},
     {
       'type': 'table',
@@ -104,7 +96,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       'delete': null,
     },
   ];
-
   final Map<String, bool> _permissions = {
     'view_assigned_project': false,
     'edit_project': false,
@@ -118,32 +109,25 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     'view_payment_reports': false,
     'assign_roles': false,
   };
-
   bool _obscurePass = true;
   String? _selectedRole;
   bool _isLoading = false;
-
   bool _isEditMode = false;
   String? _editingUserId;
-
   final Set<String> _selectedProjectIds = {};
   List<Map<String, String>> _projects = [];
   bool _isLoadingProjects = true;
   String? _projectsError;
-
   final Set<String> _selectedOverseesRoles = {};
   static const _availableRolesToOversee = ['Mason', 'Contractor', 'Labourer'];
   final _customOverseesRoleCtrl = TextEditingController();
-
   static const _customRoleValue = '__custom_role__';
   static const _roles = ['Supervisor', 'Mason', _customRoleValue];
-
   @override
   void initState() {
     super.initState();
     _fetchProjects();
   }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -155,14 +139,11 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       );
     }
   }
-
   void _prefillFromExistingUser(Map<String, dynamic> userData) {
     _isEditMode = true;
     _editingUserId = (userData['_id'] ?? userData['id'])?.toString();
-
     _nameCtrl.text = userData['name']?.toString() ?? '';
     _emailCtrl.text = userData['email']?.toString() ?? '';
-
     final role = userData['role']?.toString() ?? '';
     final isKnownRole = _roles.contains(role);
     if (isKnownRole) {
@@ -171,26 +152,21 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       _selectedRole = _customRoleValue;
       _customRoleCtrl.text = role;
     }
-
     final perms = (userData['permissions'] as List?)?.cast<String>() ?? [];
     for (final key in _permissions.keys) {
       _permissions[key] = perms.contains(key);
     }
-
     final overseesRoles =
         (userData['overseesRoles'] as List?)?.cast<String>() ?? [];
     _selectedOverseesRoles
       ..clear()
       ..addAll(overseesRoles);
-
     final projectIds = (userData['projectIds'] as List?)?.cast<String>() ?? [];
     _selectedProjectIds
       ..clear()
       ..addAll(projectIds);
-
     setState(() {});
   }
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -200,9 +176,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     _customOverseesRoleCtrl.dispose();
     super.dispose();
   }
-
   bool get _isCustomRoleSelected => _selectedRole == _customRoleValue;
-
   Future<void> _fetchProjects() async {
     setState(() {
       _isLoadingProjects = true;
@@ -261,7 +235,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       });
     }
   }
-
   void _applyDefaultPermissionsForRole(String? role) {
     if (role == null) return;
     for (final k in _permissions.keys) {
@@ -294,7 +267,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       if (role != _customRoleValue) _customRoleCtrl.clear();
     });
   }
-
   Future<void> _onAssignPressed() async {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
@@ -302,7 +274,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     final roleToSend = _isCustomRoleSelected
         ? _customRoleCtrl.text.trim()
         : (_selectedRole ?? '').trim();
-
     if (name.isEmpty || email.isEmpty || roleToSend.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -313,7 +284,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       );
       return;
     }
-
     if (!_isEditMode && pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a temporary password.')),
@@ -326,12 +296,10 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       );
       return;
     }
-
     final selectedPermissions = _permissions.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
-
     if (!_isEditMode) {
       final subProvider = context.read<SubscriptionProvider>();
       final response = await ApiService.get('/auth/users');
@@ -354,9 +322,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
         }
       }
     }
-
     setState(() => _isLoading = true);
-
     try {
       if (_isEditMode && _editingUserId != null) {
         final payload = <String, dynamic>{
@@ -366,18 +332,15 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           'permissions': selectedPermissions,
           if (_selectedProjectIds.isNotEmpty)
             'projectIds': _selectedProjectIds.toList(),
-
           'overseesRoles': _selectedOverseesRoles.toList(),
           if (pass.isNotEmpty) 'password': pass,
         };
-
         final response = await ApiService.put(
           '/auth/users/$_editingUserId',
           payload,
         );
         if (!mounted) return;
         setState(() => _isLoading = false);
-
         if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -405,11 +368,9 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           if (_selectedOverseesRoles.isNotEmpty)
             'overseesRoles': _selectedOverseesRoles.toList(),
         };
-
         final response = await ApiService.post('/auth/provision', payload);
         if (!mounted) return;
         setState(() => _isLoading = false);
-
         if (response.statusCode == 200 || response.statusCode == 201) {
           final projCount = _selectedProjectIds.length;
           final projLabel = projCount == 0
@@ -439,13 +400,11 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final isAdmin = RoleManager.canAssignRole;
     final subProvider = context.watch<SubscriptionProvider>();
     final plan = subProvider.currentPlan;
-
     return Scaffold(
       backgroundColor: AppColors.gradientStart,
       body: SafeArea(
@@ -486,7 +445,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _adminBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -512,7 +470,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _subscriptionWarning(SubscriptionPlan plan) {
     final limitStr = plan == SubscriptionPlan.enterprise
         ? 'Unlimited'
@@ -560,7 +517,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _formCard(bool isAdmin) {
     return AppCard(
       padding: const EdgeInsets.all(20),
@@ -653,7 +609,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           ],
           _roleHints(),
           const SizedBox(height: AppTheme.spacingMd),
-
           Text(
             'Permissions',
             style: AppTheme.heading3.copyWith(
@@ -669,13 +624,11 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           const SizedBox(height: 14),
           _buildPermissionsTable(isAdmin),
           const SizedBox(height: AppTheme.spacingMd),
-
           _buildProjectMultiSelect(isAdmin),
         ],
       ),
     );
   }
-
   Widget _buildPermissionsTable(bool isAdmin) {
     return Container(
       decoration: BoxDecoration(
@@ -717,20 +670,16 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
               ],
             ),
           ),
-
           ..._featureRows.asMap().entries.map((entry) {
             final idx = entry.key;
             final row = entry.value;
-
             if (row.containsKey('section')) {
               return _sectionDivider(row['section'] as String);
             }
-
             final type = row['type'] as String;
             final label = row['label'] as String;
             final desc = row['desc'] as String;
             final isLast = idx == _featureRows.length - 1;
-
             if (type == 'table') {
               final viewKey = row['view'] as String?;
               final editKey = row['edit'] as String?;
@@ -759,7 +708,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _colHeader(String label) {
     return SizedBox(
       width: 52,
@@ -775,7 +723,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _sectionDivider(String label) {
     return Container(
       width: double.infinity,
@@ -792,7 +739,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _tableRow({
     required String label,
     required String desc,
@@ -834,11 +780,8 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
                   ],
                 ),
               ),
-
               _permCheckbox(viewKey, isAdmin),
-
               _permCheckbox(editKey, isAdmin),
-
               _permCheckbox(deleteKey, isAdmin),
             ],
           ),
@@ -847,7 +790,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ],
     );
   }
-
   Widget _toggleRow({
     required String label,
     required String desc,
@@ -902,7 +844,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ],
     );
   }
-
   Widget _permCheckbox(String? key, bool isAdmin) {
     if (key == null) {
       return const SizedBox(
@@ -932,7 +873,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _buildProjectMultiSelect(bool isAdmin) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1107,7 +1047,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ],
     );
   }
-
   Widget _roleHints() {
     return Container(
       margin: const EdgeInsets.only(top: 2),
@@ -1134,7 +1073,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _roleHintRow(String role, String desc) {
     return RichText(
       text: TextSpan(
@@ -1162,7 +1100,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _assignButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _onAssignPressed,
@@ -1214,7 +1151,6 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   void _showUpgradeDialog(BuildContext context, String title, String message) {
     showDialog(
       context: context,
@@ -1300,13 +1236,11 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ),
     );
   }
-
   Widget _buildOverseesRolesSelector() {
     final customAdded = _selectedOverseesRoles
         .where((r) => !_availableRolesToOversee.contains(r))
         .toList();
     final allRoles = [..._availableRolesToOversee, ...customAdded];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1388,11 +1322,9 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
       ],
     );
   }
-
   void _addCustomOverseesRole() {
     final value = _customOverseesRoleCtrl.text.trim();
     if (value.isEmpty) return;
-
     final alreadyExists = _selectedOverseesRoles.any(
       (r) => r.toLowerCase() == value.toLowerCase(),
     );

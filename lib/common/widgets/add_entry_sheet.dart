@@ -1,6 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:flutter/material.dart';
-
 class _EntryType {
   final String id;
   final String title;
@@ -9,7 +8,6 @@ class _EntryType {
   final Color iconColor;
   final Color iconBg;
   final String route;
-
   const _EntryType({
     required this.id,
     required this.title,
@@ -20,7 +18,6 @@ class _EntryType {
     required this.route,
   });
 }
-
 const _entryTypes = [
   _EntryType(
     id: 'material',
@@ -50,7 +47,6 @@ const _entryTypes = [
     route: '/add-equipment',
   ),
 ];
-
 void showAddEntryPopup(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -62,25 +58,19 @@ void showAddEntryPopup(BuildContext context) {
     builder: (_) => _AddEntrySheet(parentContext: context),
   );
 }
-
 class _AddEntrySheet extends StatefulWidget {
   final BuildContext parentContext;
   const _AddEntrySheet({required this.parentContext});
-
   @override
   State<_AddEntrySheet> createState() => _AddEntrySheetState();
 }
-
 class _AddEntrySheetState extends State<_AddEntrySheet> {
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   String? _selectedId;
-
   @override
   Widget build(BuildContext context) {
     final maxH = MediaQuery.of(context).size.height * 0.75;
-
     return SafeArea(
       top: false,
       child: ConstrainedBox(
@@ -145,22 +135,18 @@ class _AddEntrySheetState extends State<_AddEntrySheet> {
     );
   }
 }
-
 class _EntryCard extends StatelessWidget {
   final _EntryType type;
   final bool isSelected;
   final VoidCallback onTap;
-
   const _EntryCard({
     required this.type,
     required this.isSelected,
     required this.onTap,
   });
-
   static const primaryBlue = AppColors.primary;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -205,7 +191,6 @@ class _EntryCard extends StatelessWidget {
                   child: Icon(type.icon, color: type.iconColor, size: 26),
                 ),
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

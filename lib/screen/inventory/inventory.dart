@@ -10,25 +10,21 @@ import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/models/inventory_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
 }
-
 class _InventoryScreenState extends State<InventoryScreen> {
   static const Color _blue = AppColors.primary;
   static const Color _bg = AppColors.gradientStart;
   static const Color _dark = AppColors.textDark;
   static const Color _gray = AppColors.textLight;
-
   final _pageController = PageController();
   int _tabIndex = 0;
   final _searchCtrl = TextEditingController();
   String? _selectedProjectId;
   Timer? _debounce;
-
   String _matCategory = 'All';
   String _labCategory = 'All';
   String _eqpCategory = 'All';
@@ -38,7 +34,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   DateTimeRange? _matCustomRange;
   DateTimeRange? _labCustomRange;
   DateTimeRange? _eqpCustomRange;
-
   @override
   void initState() {
     super.initState();
@@ -46,7 +41,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId ?? '');
     });
   }
-
   @override
   void dispose() {
     _debounce?.cancel();
@@ -54,17 +48,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _searchCtrl.dispose();
     super.dispose();
   }
-
   List<_PurchaseRecord> _flatten(List<InventoryItem> items) {
     final records = <_PurchaseRecord>[];
-
     for (final item in items) {
       for (final raw in item.transactions) {
         final tx = raw is Map ? Map<String, dynamic>.from(raw) : null;
         if (tx == null) {
           continue;
         }
-
         final approvalStatus = (tx['approvalStatus'] ?? '')
             .toString()
             .toLowerCase()
@@ -72,7 +63,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (approvalStatus != 'approved') {
           continue;
         }
-
         DateTime date = DateTime.now();
         for (final key in ['date', 'createdAt', 'purchaseDate', 'updatedAt']) {
           final val = tx[key];
@@ -83,7 +73,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             } catch (_) {}
           }
         }
-
         String vendor;
         if (item.category == 'labour') {
           vendor =
@@ -106,25 +95,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
         } else {
           vendor = (tx['supplier'] ?? tx['vendor'] ?? '').toString().trim();
         }
-
         final qty =
             (tx['quantity'] as num?)?.toDouble() ??
             (tx['days'] as num?)?.toDouble() ??
             (tx['hours'] as num?)?.toDouble() ??
             0.0;
-
         final rate =
             (tx['rate'] as num?)?.toDouble() ??
             (tx['dailyWage'] as num?)?.toDouble() ??
             (tx['hourlyRate'] as num?)?.toDouble() ??
             0.0;
-
         double bill = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         if (bill == 0 && qty > 0 && rate > 0) {
           bill = qty * rate;
         }
         final paid = (tx['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
         final sStr = (tx['paymentStatus'] ?? '')
             .toString()
             .toLowerCase()
@@ -139,7 +124,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         } else {
           payStatus = PaymentStatus.pending;
         }
-
         const skipCats = {
           'unknown',
           'material',
@@ -165,10 +149,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
             break;
           }
         }
-
         debugPrint('FLATTEN TX');
         debugPrint(tx.toString());
-
         records.add(
           _PurchaseRecord(
             itemId: item.id,
@@ -190,11 +172,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       }
     }
-
     records.sort((a, b) => b.date.compareTo(a.date));
     return records;
   }
-
   List<_PurchaseRecord> _filterDate(
     List<_PurchaseRecord> records,
     String filter,
@@ -239,14 +219,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
     }).toList();
   }
-
   List<_PurchaseRecord> _filterCat(List<_PurchaseRecord> records, String cat) {
     if (cat == 'All') {
       return records;
     }
     return records.where((r) => r.categoryName == cat).toList();
   }
-
   List<_PurchaseRecord> _filterSearch(
     List<_PurchaseRecord> records,
     String query,
@@ -266,7 +244,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         )
         .toList();
   }
-
   List<_DateGroup> _groupByDate(List<_PurchaseRecord> records) {
     final map = <String, List<_PurchaseRecord>>{};
     for (final r in records) {
@@ -292,7 +269,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     groups.sort((a, b) => b.date.compareTo(a.date));
     return groups;
   }
-
   static String _formatGroupDate(DateTime d) {
     const months = [
       'Jan',
@@ -310,7 +286,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ];
     return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
   }
-
   List<String> _buildChips(List<_PurchaseRecord> records) {
     const skipSet = {
       'unknown',
@@ -333,13 +308,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
     return ['All', ...(cats.toList()..sort())];
   }
-
   List<_KpiData> _buildKpis(List<_PurchaseRecord> records, String type) {
     double totalQty = 0;
     double totalCost = 0;
     double totalPend = 0;
     final vendors = <String>{};
-
     for (final r in records) {
       totalQty += r.quantity;
       totalCost += r.billAmount;
@@ -350,10 +323,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         vendors.add(r.vendor.toLowerCase());
       }
     }
-
     const alertRed = Color(0xFFEF4444);
     const green = Color(0xFF10B981);
-
     if (type == 'labour') {
       return [
         _KpiData('Total Days', _fmtNum(totalQty), Icons.groups_outlined, _blue),
@@ -430,10 +401,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ];
     }
   }
-
   static String _fmtNum(double q) =>
       q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
-
   void _showProjectSelector(BuildContext ctx) {
     final projects = ctx.read<ProjectProvider>().projects;
     final allItems = ['All Active Projects', ...projects.map((p) => p.name)];
@@ -454,7 +423,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -507,7 +475,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       bottomNavigationBar: const AppBottomNav(),
     );
   }
-
   Widget _buildProjectSelector() {
     final projects = context.watch<ProjectProvider>().projects;
     final sel = _selectedProjectId == null
@@ -517,7 +484,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             orElse: () => null,
           );
     final label = sel?.name ?? 'All Active Projects';
-
     return GestureDetector(
       onTap: () => _showProjectSelector(context),
       child: Container(
@@ -581,7 +547,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   String get _searchHint {
     switch (_tabIndex) {
       case 1:
@@ -592,7 +557,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return 'Search by name, vendor, brand…';
     }
   }
-
   Widget _buildSearchBar() {
     return SizedBox(
       height: 48,
@@ -643,7 +607,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   Widget _buildTabBar() {
     const icons = [
       Icons.architecture,
@@ -651,7 +614,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       Icons.construction_outlined,
     ];
     const labels = ['Materials', 'Labour', 'Equipment'];
-
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
@@ -707,7 +669,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
   }
-
   Widget _buildMaterialsTab(BuildContext ctx) {
     final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
@@ -723,7 +684,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
     final groups = _groupByDate(filtered);
     final kpis = _buildKpis(filtered, 'material');
-
     return _TimelineTabContent(
       groups: groups,
       kpis: kpis,
@@ -744,7 +704,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Navigator.pushNamed(ctx, route, arguments: args),
     );
   }
-
   Widget _buildLabourTab(BuildContext ctx) {
     final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
@@ -760,7 +719,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
     final groups = _groupByDate(filtered);
     final kpis = _buildKpis(filtered, 'labour');
-
     return _TimelineTabContent(
       groups: groups,
       kpis: kpis,
@@ -781,7 +739,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Navigator.pushNamed(ctx, route, arguments: args),
     );
   }
-
   Widget _buildEquipmentTab(BuildContext ctx) {
     final provider = ctx.watch<InventoryProvider>();
     if (provider.isLoading) {
@@ -797,7 +754,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
     final groups = _groupByDate(filtered);
     final kpis = _buildKpis(filtered, 'equipment');
-
     return _TimelineTabContent(
       groups: groups,
       kpis: kpis,
@@ -819,7 +775,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 }
-
 class _PurchaseRecord {
   final String itemId;
   final String itemName;
@@ -836,7 +791,6 @@ class _PurchaseRecord {
   final String categoryName;
   final String type;
   final Map<String, dynamic> rawTx;
-
   _PurchaseRecord({
     required this.itemId,
     required this.itemName,
@@ -855,14 +809,12 @@ class _PurchaseRecord {
     required this.rawTx,
   });
 }
-
 class _DateGroup {
   final String label;
   final DateTime date;
   final List<_PurchaseRecord> records;
   _DateGroup({required this.label, required this.date, required this.records});
 }
-
 class _KpiData {
   final String label, value;
   final IconData icon;
@@ -876,7 +828,6 @@ class _KpiData {
     this.isAlert = false,
   });
 }
-
 class _TimelineTabContent extends StatefulWidget {
   final List<_DateGroup> groups;
   final List<_KpiData> kpis;
@@ -891,7 +842,6 @@ class _TimelineTabContent extends StatefulWidget {
   final ValueChanged<String> onChipChange;
   final void Function(String filter, DateTimeRange? custom) onDateFilter;
   final void Function(String route, Map<String, dynamic> args) onNavigate;
-
   const _TimelineTabContent({
     required this.groups,
     required this.kpis,
@@ -907,14 +857,11 @@ class _TimelineTabContent extends StatefulWidget {
     required this.onDateFilter,
     required this.onNavigate,
   });
-
   @override
   State<_TimelineTabContent> createState() => _TimelineTabContentState();
 }
-
 class _TimelineTabContentState extends State<_TimelineTabContent> {
   final Map<String, bool> _collapsed = {};
-
   IconData get _typeIcon {
     switch (widget.type) {
       case 'labour':
@@ -925,7 +872,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
         return Icons.architecture;
     }
   }
-
   List<Widget> _buildSlivers() {
     final slivers = <Widget>[
       SliverToBoxAdapter(
@@ -934,7 +880,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
           child: _KpiStrip(kpis: widget.kpis),
         ),
       ),
-
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -948,7 +893,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
         ),
       ),
     ];
-
     if (widget.groups.isEmpty) {
       slivers.add(
         SliverFillRemaining(
@@ -964,7 +908,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
     } else {
       for (final group in widget.groups) {
         final isCollapsed = _collapsed[group.label] ?? false;
-
         slivers.add(
           SliverPersistentHeader(
             pinned: true,
@@ -978,7 +921,6 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
             ),
           ),
         );
-
         if (!isCollapsed) {
           slivers.add(
             SliverPadding(
@@ -1000,13 +942,10 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
           );
         }
       }
-
       slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 120)));
     }
-
     return slivers;
   }
-
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -1015,29 +954,24 @@ class _TimelineTabContentState extends State<_TimelineTabContent> {
     );
   }
 }
-
 class _DateGroupHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String label;
   final int count;
   final bool collapsed;
   final VoidCallback onToggle;
-
   _DateGroupHeaderDelegate({
     required this.label,
     required this.count,
     required this.collapsed,
     required this.onToggle,
   });
-
   @override
   double get minExtent => 46;
   @override
   double get maxExtent => 46;
-
   @override
   bool shouldRebuild(_DateGroupHeaderDelegate old) =>
       old.label != label || old.count != count || old.collapsed != collapsed;
-
   @override
   Widget build(
     BuildContext context,
@@ -1102,18 +1036,15 @@ class _DateGroupHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 }
-
 class _PurchaseCard extends StatelessWidget {
   final _PurchaseRecord record;
   final String? selectedProjectId;
   final void Function(String route, Map<String, dynamic> args) onNavigate;
-
   const _PurchaseCard({
     required this.record,
     required this.selectedProjectId,
     required this.onNavigate,
   });
-
   String get _qtyLabel {
     switch (record.type) {
       case 'labour':
@@ -1124,7 +1055,6 @@ class _PurchaseCard extends StatelessWidget {
         return 'Qty';
     }
   }
-
   String get _vendorLabel {
     switch (record.type) {
       case 'labour':
@@ -1135,7 +1065,6 @@ class _PurchaseCard extends StatelessWidget {
         return 'Vendor';
     }
   }
-
   String get _addRoute {
     switch (record.type) {
       case 'labour':
@@ -1146,7 +1075,6 @@ class _PurchaseCard extends StatelessWidget {
         return '/add-material';
     }
   }
-
   IconData get _icon {
     if (record.type == 'labour') {
       return Icons.person_outline;
@@ -1181,7 +1109,6 @@ class _PurchaseCard extends StatelessWidget {
     }
     return Icons.inventory_2_outlined;
   }
-
   Color get _iconBg {
     if (record.type == 'labour') {
       return const Color(0xFFEEF2FF);
@@ -1210,7 +1137,6 @@ class _PurchaseCard extends StatelessWidget {
     }
     return const Color(0xFFEEF2FF);
   }
-
   Color get _iconColor {
     if (record.type == 'labour') {
       return AppColors.primaryBlue;
@@ -1239,7 +1165,6 @@ class _PurchaseCard extends StatelessWidget {
     }
     return AppColors.primaryBlue;
   }
-
   String _formatQty() {
     final q = record.quantity;
     final s = q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(1);
@@ -1249,7 +1174,6 @@ class _PurchaseCard extends StatelessWidget {
     }
     return '$s ${record.unit}';
   }
-
   Icon _vendorIcon() {
     if (record.type == 'labour') {
       return const Icon(
@@ -1271,14 +1195,12 @@ class _PurchaseCard extends StatelessWidget {
       color: AppColors.textLight,
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final pending = (record.billAmount - record.paidAmount).clamp(
       0.0,
       double.infinity,
     );
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -1417,7 +1339,6 @@ class _PurchaseCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 if (record.payStatus == PaymentStatus.partial) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -1464,9 +1385,7 @@ class _PurchaseCard extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 10),
-
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1497,11 +1416,9 @@ class _PurchaseCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 10),
                 const Divider(height: 1, color: Color(0xFFF0EEF8)),
                 const SizedBox(height: 10),
-
                 Row(
                   children: [
                     Expanded(
@@ -1559,7 +1476,6 @@ class _PurchaseCard extends StatelessWidget {
                                 selectedProjectId ??
                                 '';
                           }
-
                           final payArgs = {
                             'id': record.txId,
                             'projectId': pId,
@@ -1584,7 +1500,6 @@ class _PurchaseCard extends StatelessWidget {
                                 : null,
                             'transactionDetails': record.rawTx,
                           };
-
                           Navigator.pushNamed(
                             context,
                             '/fulfillment-payment',
@@ -1623,7 +1538,6 @@ class _PurchaseCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _vertDivider() => Container(
     width: 1,
     height: 28,
@@ -1631,12 +1545,10 @@ class _PurchaseCard extends StatelessWidget {
     margin: const EdgeInsets.symmetric(horizontal: 4),
   );
 }
-
 class _MetricCell extends StatelessWidget {
   final String label, value;
   final bool highlight;
   const _MetricCell(this.label, this.value, {this.highlight = false});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1667,27 +1579,22 @@ class _MetricCell extends StatelessWidget {
     );
   }
 }
-
 enum _ActionStyle { primary, secondary, tertiary }
-
 class _PurchaseActionBtn extends StatelessWidget {
   final String label;
   final IconData icon;
   final _ActionStyle style;
   final VoidCallback onTap;
-
   const _PurchaseActionBtn({
     required this.label,
     required this.icon,
     required this.style,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     BoxDecoration deco;
     Color color;
-
     switch (style) {
       case _ActionStyle.primary:
         deco = BoxDecoration(
@@ -1716,7 +1623,6 @@ class _PurchaseActionBtn extends StatelessWidget {
         color = AppColors.textLight;
         break;
     }
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1746,14 +1652,12 @@ class _PurchaseActionBtn extends StatelessWidget {
     );
   }
 }
-
 class _FiltersRow extends StatelessWidget {
   final List<String> chips;
   final String activeChip;
   final String dateFilter;
   final ValueChanged<String> onChip;
   final void Function(String filter, DateTimeRange? custom) onDate;
-
   const _FiltersRow({
     required this.chips,
     required this.activeChip,
@@ -1761,7 +1665,6 @@ class _FiltersRow extends StatelessWidget {
     required this.onChip,
     required this.onDate,
   });
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1819,7 +1722,6 @@ class _FiltersRow extends StatelessWidget {
               }).toList(),
             ),
           ),
-
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -1891,13 +1793,10 @@ class _FiltersRow extends StatelessWidget {
     );
   }
 }
-
 class _DateRangeSheet extends StatelessWidget {
   final String activeFilter;
   final void Function(String filter, DateTimeRange? custom) onSelect;
-
   const _DateRangeSheet({required this.activeFilter, required this.onSelect});
-
   static const List<(String, IconData)> _options = [
     ('All', Icons.all_inclusive),
     ('Today', Icons.today),
@@ -1908,7 +1807,6 @@ class _DateRangeSheet extends StatelessWidget {
     ('Last 3 Months', Icons.date_range_outlined),
     ('This Year', Icons.calendar_today),
   ];
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2047,11 +1945,9 @@ class _DateRangeSheet extends StatelessWidget {
     );
   }
 }
-
 class _KpiStrip extends StatelessWidget {
   final List<_KpiData> kpis;
   const _KpiStrip({required this.kpis});
-
   @override
   Widget build(BuildContext context) {
     if (kpis.length < 4) {
@@ -2084,11 +1980,9 @@ class _KpiStrip extends StatelessWidget {
     );
   }
 }
-
 class _KpiCard extends StatelessWidget {
   final _KpiData data;
   const _KpiCard({required this.data});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2155,19 +2049,16 @@ class _KpiCard extends StatelessWidget {
     );
   }
 }
-
 class _EmptyState extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
   final VoidCallback onAdd;
-
   const _EmptyState({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.onAdd,
   });
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -2247,20 +2138,17 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
 class _ProjectSelectorSheet extends StatelessWidget {
   final List<String> allItems;
   final Map<String, String?> idMap;
   final String? selectedId;
   final void Function(String?) onSelect;
-
   const _ProjectSelectorSheet({
     required this.allItems,
     required this.idMap,
     required this.selectedId,
     required this.onSelect,
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(

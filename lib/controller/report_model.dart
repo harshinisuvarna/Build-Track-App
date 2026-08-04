@@ -1,5 +1,4 @@
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
-
 class ReportModel {
   const ReportModel({
     required this.totalCost,
@@ -16,7 +15,6 @@ class ReportModel {
     this.totalPaid = 0.0,
     this.totalRemaining = 0.0,
   });
-
   final double totalCost;
   final double materialCost;
   final double labourCost;
@@ -30,23 +28,19 @@ class ReportModel {
   final String efficiencyNote;
   final double totalPaid;
   final double totalRemaining;
-
   String get formattedTotal => formatCurrency(totalCost);
   String get formattedMaterial => formatCurrency(materialCost);
   String get formattedLabour => formatCurrency(labourCost);
   String get formattedEquipment => formatCurrency(equipmentCost);
   String get formattedPaid => formatCurrency(totalPaid);
   String get formattedRemaining => formatCurrency(totalRemaining);
-
   double get paymentRatio =>
       totalCost > 0 ? (totalPaid / totalCost).clamp(0.0, 1.0) : 0.0;
-
   bool get isBudgetExceeded {
     final totalTarget =
         targetMaterial + targetLabour + targetEquipment + targetMisc;
     return totalTarget > 0 && totalCost > totalTarget;
   }
-
   factory ReportModel.empty() => const ReportModel(
     totalCost: 0,
     materialCost: 0,

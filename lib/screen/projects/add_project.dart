@@ -12,38 +12,31 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
-
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
   @override
   State<AddProjectScreen> createState() => _AddProjectScreenState();
 }
-
 class _AddProjectScreenState extends State<AddProjectScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   final _scrollController = ScrollController();
   final _formKey = GlobalKey<FormState>();
-
   final _nameCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
-
   final _mapAddressCtrl = TextEditingController();
   final _clientCtrl = TextEditingController();
   final _contractorCtrl = TextEditingController();
   final _engineerCtrl = TextEditingController();
   final _contactCtrl = TextEditingController();
   late final String _projectCode;
-
   String? _mainBuildingType;
   String? _buildingSubType;
   String? _buildingTypeError;
   final _customSubTypeCtrl = TextEditingController();
   bool _isCustomSubType = false;
-
   static const Map<String, List<String>> _buildingSubTypes = {
     'Residential': [
       '1 BHK',
@@ -69,15 +62,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     ],
     'Industrial': ['Factory', 'Warehouse', 'Other (Custom)'],
   };
-
   DateTime? _startDate;
   DateTime? _expectedEndDate;
-
   final _budgetMaterialCtrl = TextEditingController();
   final _budgetLabourCtrl = TextEditingController();
   final _budgetEquipmentCtrl = TextEditingController();
   final _budgetMiscCtrl = TextEditingController();
-
   String _projectStatus = 'Planning';
   final List<String> _statusOptions = [
     'Planning',
@@ -86,7 +76,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Completed',
     'Cancelled',
   ];
-
   bool _cfgBasicInfoExpanded = true;
   bool _cfgBuildingTypeExpanded = true;
   bool _cfgLandExpanded = true;
@@ -97,7 +86,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   bool _cfgKitchenExpanded = false;
   bool _cfgElectricalExpanded = false;
   bool _cfgTerraceExpanded = false;
-
   final _landAreaCtrl = TextEditingController();
   String _landUnit = 'Sq ft';
   final List<String> _selectedFloorChips = [];
@@ -110,7 +98,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Terrace',
     'Head Room',
   ];
-
   int _room1BHKCount = 0,
       _room2BHKCount = 0,
       _room3BHKCount = 0,
@@ -119,7 +106,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       _bathIndianCount = 0,
       _bathCommonCount = 0,
       _bathAttachedCount = 0;
-
   final Set<String> _additionalConfigs = {};
   final List<String> _addlConfigOptions = [
     'Balcony',
@@ -187,11 +173,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     'Overhead Tank',
     'Solar Panels',
   ];
-
   bool _saving = false;
   late List<ConstructionPhase> _phases;
   final _customStageNameCtrl = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -201,7 +185,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         .toString();
     _projectCode = 'CF-$year-$rand';
   }
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -221,7 +204,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     _customSubTypeCtrl.dispose();
     super.dispose();
   }
-
   Future<void> _pickDate({
     required DateTime initial,
     required ValueChanged<DateTime> onPicked,
@@ -246,7 +228,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       });
     }
   }
-
   Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -254,7 +235,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       );
       return;
     }
-
     final subProvider = Provider.of<SubscriptionProvider>(
       context,
       listen: false,
@@ -265,7 +245,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     );
     final maxProjects = subProvider.currentPlan.maxProjects;
     final currentCount = projectProvider.projects.length;
-
     if (maxProjects != -1 && currentCount >= maxProjects) {
       showDialog(
         context: context,
@@ -355,7 +334,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       );
       return;
     }
-
     if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -370,7 +348,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _saving = true);
     try {
       double parseBudget(TextEditingController c) =>
@@ -380,9 +357,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final bEq = parseBudget(_budgetEquipmentCtrl);
       final bMisc = parseBudget(_budgetMiscCtrl);
       final budgetTotal = bMat + bLab + bEq + bMisc;
-
       String? nn(String s) => s.trim().isEmpty ? null : s.trim();
-
       String? effectiveSubType = _buildingSubType;
       if (_isCustomSubType && _customSubTypeCtrl.text.trim().isNotEmpty) {
         effectiveSubType = _customSubTypeCtrl.text.trim();
@@ -393,7 +368,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ? '$_mainBuildingType → $effectiveSubType'
             : _mainBuildingType;
       }
-
       final selectedPhaseNamesList = _phases
           .where((p) => p.isSelected)
           .map((p) => p.name)
@@ -406,11 +380,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final finalFloors = _selectedFloorChips.isEmpty
           ? <String>['Ground']
           : List<String>.from(_selectedFloorChips);
-
       final locationStr = _mapAddressCtrl.text.trim().isNotEmpty
           ? _mapAddressCtrl.text.trim()
           : _cityCtrl.text.trim();
-
       final newProject = ProjectModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameCtrl.text.trim(),
@@ -421,7 +393,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         totalBudget: budgetTotal,
         spentAmount: 0.0,
         startDate: _startDate!,
-
         location: locationStr,
         projectCode: _projectCode,
         mapAddress: nn(_mapAddressCtrl.text),
@@ -487,7 +458,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         budgetMisc: bMisc > 0 ? bMisc : null,
         projectStatus: _projectStatus,
       );
-
       await projectProvider.addProject(newProject);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -508,7 +478,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       if (mounted) setState(() => _saving = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -602,7 +571,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordionCard(
                         title: 'Basic Information',
                         isExpanded: _cfgBasicInfoExpanded,
@@ -778,7 +746,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordionCard(
                         title: 'Building Type',
                         isExpanded: _cfgBuildingTypeExpanded,
@@ -889,7 +856,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordionCard(
                         title: 'Land & Floors',
                         isExpanded: _cfgLandExpanded,
@@ -979,7 +945,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordionCard(
                         title: 'Rooms & Bathrooms',
                         isExpanded: _cfgRoomsExpanded,
@@ -1084,7 +1049,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordionCard(
                         title: 'Additional Configuration',
                         isExpanded: _cfgAddlExpanded,
@@ -1163,7 +1127,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         child: _buildConfigList(_terraceOptions),
                       ),
                       const SizedBox(height: 16),
-
                       _buildSectionCard(
                         title: 'Dates, Budget & Status',
                         icon: Icons.calendar_today_rounded,
@@ -1395,10 +1358,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildCsvImportExportCard(),
                       const SizedBox(height: 16),
-
                       _buildConstructionPhasesCard(),
                     ],
                   ),
@@ -1450,7 +1411,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _groupContainer({
     required IconData icon,
     required String title,
@@ -1487,7 +1447,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildConfigList(List<String> options) {
     return Column(
       children: options
@@ -1508,7 +1467,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           .toList(),
     );
   }
-
   Widget _buildAccordionCard({
     required String title,
     required bool isExpanded,
@@ -1577,7 +1535,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -1629,7 +1586,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _label(String text, {IconData? icon, bool uppercase = false}) {
     final tw = Text(
       uppercase ? text.toUpperCase() : text,
@@ -1650,7 +1606,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ],
     );
   }
-
   Widget _field({
     required TextEditingController controller,
     required String hint,
@@ -1704,7 +1659,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildDropdown({
     required String? value,
     required String hint,
@@ -1751,7 +1705,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildSelectableChip({
     required String label,
     required bool isSelected,
@@ -1781,7 +1734,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildCounterRow(
     String title,
     int value, {
@@ -1847,7 +1799,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ],
     );
   }
-
   Widget _buildCheckboxRow(
     String title,
     bool value,
@@ -1883,7 +1834,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ],
     );
   }
-
   Widget _datePicker({
     DateTime? date,
     String? hint,
@@ -1939,7 +1889,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   Widget _buildConstructionPhasesCard() {
     final int total = _phases.fold(0, (s, p) => s + p.allActivities.length);
     final int done = _phases.fold(0, (s, p) => s + p.selectedCount);
@@ -2072,7 +2021,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ],
     );
   }
-
   Widget _buildPhaseAccordion(int index, ConstructionPhase phase) {
     return Container(
       key: ValueKey('phase_${phase.name}_$index'),
@@ -2302,7 +2250,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   void _showAddCustomStageDialog() {
     _customStageNameCtrl.clear();
     showDialog(
@@ -2375,11 +2322,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   void _showAddCustomActivityDialog(ConstructionPhase phase) {
     final ctrl = TextEditingController();
     final focusNode = FocusNode();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -2459,18 +2404,15 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       focusNode.dispose();
     });
   }
-
   Widget _buildSubscriptionWarning(BuildContext context) {
     final subProvider = context.watch<SubscriptionProvider>();
     final projectProvider = context.watch<ProjectProvider>();
     final plan = subProvider.currentPlan;
     final maxProjects = plan.maxProjects;
     final currentCount = projectProvider.projects.length;
-
     if (maxProjects == -1 || currentCount < maxProjects) {
       return const SizedBox.shrink();
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
@@ -2525,9 +2467,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       ),
     );
   }
-
   bool _isUploadingCsv = false;
-
   Future<void> _downloadTemplate() async {
     final List<List<dynamic>> csvRows = [
       [
@@ -2545,7 +2485,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         'Total_Amount',
       ],
     ];
-
     final defaultPhases = buildDefaultPhases();
     for (final phase in defaultPhases) {
       int slNo = 1;
@@ -2566,10 +2505,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         ]);
       }
     }
-
     final csvContent = const ListToCsvConverter().convert(csvRows);
     const filename = 'project_phases_budget_template.csv';
-
     try {
       await saveAndShareCsv(
         csvContent: csvContent,
@@ -2595,7 +2532,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
     }
   }
-
   Future<void> _uploadCsv() async {
     setState(() => _isUploadingCsv = true);
     try {
@@ -2604,57 +2540,43 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         allowedExtensions: ['csv'],
         withData: true,
       );
-
       if (result == null || result.files.isEmpty) {
         setState(() => _isUploadingCsv = false);
         return;
       }
-
       final fileBytes = result.files.first.bytes;
       if (fileBytes == null) {
         throw Exception("Failed to read file data");
       }
-
       final csvString = utf8.decode(fileBytes);
       final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
         csvString,
       );
-
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
-
       final headers = parsedCsv.first
           .map((h) => h.toString().trim().toLowerCase())
           .toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
-
       int qtyIdx = headers.indexOf('total_qty');
       if (qtyIdx == -1) qtyIdx = headers.indexOf('qty');
-
       final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
-
       int matAmtIdx = headers.indexOf('budget_material_amount');
       if (matAmtIdx == -1) matAmtIdx = headers.indexOf('material_amount');
-
       final labRateIdx = headers.indexOf('labour_rate');
-
       int labAmtIdx = headers.indexOf('budget_labour_amount');
       if (labAmtIdx == -1) labAmtIdx = headers.indexOf('labour_amount');
-
       final eqRateIdx = headers.indexOf('equipment_rate');
-
       int eqAmtIdx = headers.indexOf('budget_equipment_amount');
       if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
-
       if (phaseIdx == -1 || particularIdx == -1) {
         throw Exception(
           "CSV is missing required 'Phase' or 'Particular' column headers",
         );
       }
-
       double? parseVal(dynamic v) {
         if (v == null) return null;
         if (v is num) return v.toDouble();
@@ -2663,49 +2585,41 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         final clean = str.replaceAll(RegExp(r'[^\d\.]'), '');
         return double.tryParse(clean);
       }
-
       int updatedCount = 0;
       double materialSum = 0.0;
       double labourSum = 0.0;
       double equipmentSum = 0.0;
-
       for (int i = 1; i < parsedCsv.length; i++) {
         final row = parsedCsv[i];
         final maxIdx = phaseIdx > particularIdx ? phaseIdx : particularIdx;
         if (row.length <= maxIdx) continue;
-
         final String phaseName = row[phaseIdx].toString().trim();
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
-
         final double? qty = qtyIdx != -1 && qtyIdx < row.length
             ? parseVal(row[qtyIdx])
             : null;
         final String unit = unitIdx != -1 && unitIdx < row.length
             ? row[unitIdx].toString().trim()
             : '';
-
         final double? matRate = matRateIdx != -1 && matRateIdx < row.length
             ? parseVal(row[matRateIdx])
             : null;
         double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length
             ? parseVal(row[matAmtIdx])
             : null;
-
         final double? labRate = labRateIdx != -1 && labRateIdx < row.length
             ? parseVal(row[labRateIdx])
             : null;
         double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length
             ? parseVal(row[labAmtIdx])
             : null;
-
         final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
             ? parseVal(row[eqRateIdx])
             : null;
         double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length
             ? parseVal(row[eqAmtIdx])
             : null;
-
         int phaseIndex = _phases.indexWhere(
           (p) => p.name.trim().toLowerCase() == phaseName.toLowerCase(),
         );
@@ -2716,15 +2630,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           _phases.add(newPhase);
           phaseIndex = _phases.length - 1;
         }
-
         final phase = _phases[phaseIndex];
         phase.isSelected = true;
         phase.isExpanded = true;
-
         final actIndex = phase.allActivities.indexWhere(
           (a) => a.name.trim().toLowerCase() == activityName.toLowerCase(),
         );
-
         if (actIndex != -1) {
           final act = phase.allActivities[actIndex];
           act.isSelected = true;
@@ -2769,7 +2680,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           equipmentSum += eqAmt ?? 0.0;
         }
       }
-
       _budgetMaterialCtrl.text = materialSum > 0
           ? materialSum.toStringAsFixed(0)
           : '';
@@ -2779,9 +2689,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       _budgetEquipmentCtrl.text = equipmentSum > 0
           ? equipmentSum.toStringAsFixed(0)
           : '';
-
       setState(() {});
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2805,7 +2713,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       setState(() => _isUploadingCsv = false);
     }
   }
-
   Widget _buildCsvImportExportCard() {
     return Container(
       padding: const EdgeInsets.all(16),

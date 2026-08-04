@@ -7,7 +7,6 @@ import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
 import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class _PlanInfo {
   const _PlanInfo({
     required this.plan,
@@ -22,7 +21,6 @@ class _PlanInfo {
     required this.maxProjectsLabel,
     this.isHighlighted = false,
   });
-
   final SubscriptionPlan plan;
   final String title;
   final String price;
@@ -35,7 +33,6 @@ class _PlanInfo {
   final String maxProjectsLabel;
   final bool isHighlighted;
 }
-
 const _plans = [
   _PlanInfo(
     plan: SubscriptionPlan.free,
@@ -147,10 +144,8 @@ const _plans = [
     maxProjectsLabel: 'Unlimited',
   ),
 ];
-
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     final sub = context.watch<SubscriptionProvider>();
@@ -167,12 +162,10 @@ class SubscriptionScreen extends StatelessWidget {
                   children: [
                     _buildHero(),
                     const SizedBox(height: 32),
-
                     if (sub.error.isNotEmpty) ...[
                       _ErrorBanner(message: sub.error),
                       const SizedBox(height: 20),
                     ],
-
                     ...List.generate(_plans.length, (i) {
                       final plan = _plans[i];
                       return Padding(
@@ -185,7 +178,6 @@ class SubscriptionScreen extends StatelessWidget {
                         ),
                       );
                     }),
-
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _onRestore(context, sub),
@@ -226,7 +218,6 @@ class SubscriptionScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
@@ -240,7 +231,6 @@ class SubscriptionScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildHero() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -295,7 +285,6 @@ class SubscriptionScreen extends StatelessWidget {
       ],
     );
   }
-
   Future<void> _onUpgrade(
     BuildContext context,
     SubscriptionProvider sub,
@@ -303,27 +292,20 @@ class SubscriptionScreen extends StatelessWidget {
   ) async {
     if (plan.productId == null) return;
     if (sub.currentPlan == plan.plan) return;
-
     final params = await sub.purchase(plan.productId!);
-
     if (!context.mounted) return;
-
     if (params == null) return;
-
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentWebViewScreen(paymentParams: params),
       ),
     );
-
     if (!context.mounted) return;
-
     if (result == true) {
       _showSuccessDialog(context, plan);
     } else {}
   }
-
   Future<void> _onRestore(
     BuildContext context,
     SubscriptionProvider sub,
@@ -348,7 +330,6 @@ class SubscriptionScreen extends StatelessWidget {
       ),
     );
   }
-
   void _showSuccessDialog(BuildContext context, _PlanInfo plan) {
     showDialog(
       context: context,
@@ -412,7 +393,6 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 }
-
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.info,
@@ -420,12 +400,10 @@ class _PlanCard extends StatelessWidget {
     required this.isPurchasing,
     required this.onUpgrade,
   });
-
   final _PlanInfo info;
   final bool isCurrentPlan;
   final bool isPurchasing;
   final VoidCallback onUpgrade;
-
   @override
   Widget build(BuildContext context) {
     final bool isPro = info.isHighlighted;
@@ -597,7 +575,6 @@ class _PlanCard extends StatelessWidget {
       ],
     );
   }
-
   Widget _buildCta() {
     if (isCurrentPlan) {
       return Container(
@@ -620,7 +597,6 @@ class _PlanCard extends StatelessWidget {
         ),
       );
     }
-
     if (info.isHighlighted) {
       return PremiumCtaButton(
         label: info.cta,
@@ -630,7 +606,6 @@ class _PlanCard extends StatelessWidget {
         variant: CtaVariant.primary,
       );
     }
-
     return GestureDetector(
       onTap: isPurchasing ? null : onUpgrade,
       behavior: HitTestBehavior.opaque,
@@ -672,12 +647,10 @@ class _PlanCard extends StatelessWidget {
     );
   }
 }
-
 class _LimitPill extends StatelessWidget {
   const _LimitPill({required this.icon, required this.label});
   final IconData icon;
   final String label;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -704,12 +677,10 @@ class _LimitPill extends StatelessWidget {
     );
   }
 }
-
 class _FeatureItem extends StatelessWidget {
   const _FeatureItem({required this.text, required this.isHighlighted});
   final String text;
   final bool isHighlighted;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -751,11 +722,9 @@ class _FeatureItem extends StatelessWidget {
     );
   }
 }
-
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
   final String message;
-
   @override
   Widget build(BuildContext context) {
     return Container(

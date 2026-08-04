@@ -2,25 +2,20 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/widgets/nurofin_scaffold.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
-
 class ApprovalsScreen extends StatefulWidget {
   const ApprovalsScreen({super.key});
-
   @override
   State<ApprovalsScreen> createState() => _ApprovalsScreenState();
 }
-
 class _ApprovalsScreenState extends State<ApprovalsScreen> {
   bool _isLoading = true;
   List<dynamic> _transactions = [];
   List<dynamic> _projectUpdates = [];
-
   @override
   void initState() {
     super.initState();
     _fetchPendingApprovals();
   }
-
   Future<void> _fetchPendingApprovals() async {
     setState(() => _isLoading = true);
     final data = await ApiService.fetchPendingApprovals();
@@ -32,7 +27,6 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     }
     if (mounted) setState(() => _isLoading = false);
   }
-
   Future<void> _handleApproveTx(String id) async {
     final success = await ApiService.approveTransaction(id);
     if (success) {
@@ -45,7 +39,6 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
       _fetchPendingApprovals();
     }
   }
-
   Future<void> _handleRejectTx(String id) async {
     final success = await ApiService.rejectTransaction(
       id,
@@ -61,7 +54,6 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
       _fetchPendingApprovals();
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return NurofinScaffold(
@@ -111,7 +103,6 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
             ),
     );
   }
-
   Widget _buildTransactionCard(dynamic tx) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

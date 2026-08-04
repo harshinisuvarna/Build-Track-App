@@ -1,13 +1,11 @@
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:flutter/material.dart';
-
 class UploadBox extends StatelessWidget {
   final PickedAttachment? attachment;
   final ValueChanged<PickedAttachment> onPicked;
   final VoidCallback onRemove;
   final String emptyLabel;
   final double height;
-
   const UploadBox({
     super.key,
     required this.attachment,
@@ -16,9 +14,7 @@ class UploadBox extends StatelessWidget {
     this.emptyLabel = 'Tap to attach file',
     this.height = 130,
   });
-
   static const _blue = Color(0xFF4A6CF7);
-
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
@@ -30,7 +26,6 @@ class UploadBox extends StatelessWidget {
           : (attachment!.isImage ? _imagePreview() : _filePreview()),
     );
   }
-
   Widget _emptyState(BuildContext context) {
     return GestureDetector(
       key: const ValueKey('empty'),
@@ -86,12 +81,9 @@ class UploadBox extends StatelessWidget {
       ),
     );
   }
-
   Widget _imagePreview() {
     final provider = attachment!.imageProvider;
-
     if (provider == null) return _filePreview();
-
     return Stack(
       key: const ValueKey('image'),
       children: [
@@ -105,7 +97,6 @@ class UploadBox extends StatelessWidget {
             errorBuilder: (_, _, _) => _fileFallback(),
           ),
         ),
-
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -121,7 +112,6 @@ class UploadBox extends StatelessWidget {
             ),
           ),
         ),
-
         Positioned(
           bottom: 10,
           left: 12,
@@ -136,12 +126,10 @@ class UploadBox extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-
         Positioned(top: 8, right: 8, child: _removeButton()),
       ],
     );
   }
-
   Widget _filePreview() {
     return Container(
       key: const ValueKey('file'),
@@ -199,7 +187,6 @@ class UploadBox extends StatelessWidget {
       ),
     );
   }
-
   Widget _fileFallback() {
     return Container(
       width: double.infinity,
@@ -218,7 +205,6 @@ class UploadBox extends StatelessWidget {
       ),
     );
   }
-
   Widget _removeButton({bool dark = true}) {
     return GestureDetector(
       onTap: onRemove,

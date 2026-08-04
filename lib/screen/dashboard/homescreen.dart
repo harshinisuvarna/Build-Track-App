@@ -19,15 +19,12 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-
 String relativeTimeLabel(DateTime date) {
   final now = DateTime.now();
   final diff = now.difference(date);
-
   if (diff.isNegative) {
     return 'Just now';
   }
-
   if (diff.inMinutes < 1) {
     return 'Just now';
   } else if (diff.inMinutes < 60) {
@@ -56,18 +53,15 @@ String relativeTimeLabel(DateTime date) {
     return '${date.day} ${months[date.month - 1]}';
   }
 }
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
-
 class _HomeScreenState extends State<HomeScreen> {
   void _showEntryOptions(BuildContext context, String type) {
     Navigator.pushNamed(context, '/add-entry');
   }
-
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.white,
@@ -208,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return NurofinScaffold(
@@ -274,18 +267,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
 class _TaskCard extends StatelessWidget {
   final TaskModel task;
   final VoidCallback? onEdit;
   const _TaskCard({required this.task, this.onEdit});
-
   @override
   Widget build(BuildContext context) {
     String displayStatus = task.status;
     Color statusColor = AppColors.primary;
     Color statusBg = AppColors.primary.withValues(alpha: 0.1);
-
     try {
       final projects = context.read<ProjectProvider>().projects;
       final proj = projects.cast<dynamic>().firstWhere(
@@ -312,7 +302,6 @@ class _TaskCard extends StatelessWidget {
     } catch (e) {
       debugPrint('Error calculating task status: $e');
     }
-
     if (displayStatus == 'Completed') {
       statusColor = Colors.green;
       statusBg = Colors.green.withValues(alpha: 0.1);
@@ -320,7 +309,6 @@ class _TaskCard extends StatelessWidget {
       statusColor = Colors.orange;
       statusBg = Colors.orange.withValues(alpha: 0.1);
     }
-
     return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -411,7 +399,6 @@ class _TaskCard extends StatelessWidget {
     );
   }
 }
-
 Future<void> _showEditTaskDialog(
   BuildContext context,
   TaskModel task,
@@ -425,7 +412,6 @@ Future<void> _showEditTaskDialog(
     text: task.description,
   );
   bool saving = false;
-
   await showDialog(
     context: context,
     builder: (ctx) {
@@ -537,30 +523,25 @@ Future<void> _showEditTaskDialog(
     },
   );
 }
-
 class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
   @override
   State<_AdminDashboard> createState() => _AdminDashboardState();
 }
-
 class _AdminDashboardState extends State<_AdminDashboard> {
   static const primaryBlue = AppColors.primary;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   List<dynamic> _revenueEntries = [];
   bool _loadingRevenue = false;
   String? _lastProjectId;
-
   double get _totalRevenueSum {
     return _revenueEntries.fold<double>(0.0, (sum, tx) {
       final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
       return sum + amount;
     });
   }
-
   Future<void> _loadRevenue(String projectId) async {
     setState(() {
       _loadingRevenue = true;
@@ -579,7 +560,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               (decoded['transactions'] ?? decoded['data'] ?? [])
                   as List<dynamic>;
         }
-
         entries.sort((a, b) {
           final dateA =
               DateTime.tryParse(a['date']?.toString() ?? '') ?? DateTime.now();
@@ -587,7 +567,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               DateTime.tryParse(b['date']?.toString() ?? '') ?? DateTime.now();
           return dateB.compareTo(dateA);
         });
-
         if (mounted && projectId == _lastProjectId) {
           setState(() {
             _revenueEntries = entries;
@@ -609,7 +588,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       }
     }
   }
-
   void _showAddRevenueDialog(
     BuildContext context,
     String projectId, {
@@ -643,7 +621,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ? attachments.first.toString()
         : (editingTx?['paymentReceipt']?.toString());
     bool isInflow = editingTx != null ? initialAmt >= 0 : true;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -652,16 +629,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        
         bool isSaving = false;
         bool isEsignPolling = false;
         bool isEsignCompleted = false;
         String esignStatusText = '';
-        String clientEmail = '';
         bool requestEsign = false;
         final clientEmailCtrl = TextEditingController();
         String? newReceiptDataUri;
-
         Future<void> startEsignFlow(StateSetter ss) async {
           final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
           if (amt <= 0) {
@@ -676,7 +650,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             isEsignPolling = true;
             esignStatusText = 'Sending request...';
           });
-          
           final meta = {
             'projectName': 'BuildTrack Revenue',
             'type': titleCtrl.text.isNotEmpty ? titleCtrl.text : 'Revenue',
@@ -685,7 +658,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             'notes': notesCtrl.text.trim(),
             'date': selectedDate.toIso8601String(),
           };
-
           final res = await ApiService.requestEsignature(clientEmailCtrl.text.trim(), meta);
           if (res == null || res['requestId'] == null) {
             ss(() {
@@ -694,17 +666,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             });
             return;
           }
-          
           ss(() {
             esignStatusText = 'Waiting for client to sign...';
           });
-          
           final reqId = res['requestId'];
-          
           while (isEsignPolling) {
             await Future.delayed(const Duration(seconds: 3));
             if (!isEsignPolling) break;
-            
             final statusRes = await ApiService.checkEsignatureStatus(reqId);
             if (statusRes != null && statusRes['status'] == 'signed') {
               ss(() {
@@ -717,7 +685,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             }
           }
         }
-
         return StatefulBuilder(
           builder: (ctx, setModalState) => Padding(
             padding: EdgeInsets.fromLTRB(
@@ -757,7 +724,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   Row(
                     children: [
                       Expanded(
@@ -896,7 +862,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                       }
                     },
                   ),
-
                   if (selectedMode == 'Cash') ...[
                     const SizedBox(height: 16),
                     CheckboxListTile(
@@ -951,7 +916,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                        )
                     ],
                   ],
-
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () async {
@@ -1009,7 +973,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   InkWell(
                     onTap: () async {
                       final img = await pickImageFromGallery(context);
@@ -1265,15 +1228,12 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                 );
                                 return;
                               }
-
                               setModalState(() {
                                 isSaving = true;
                               });
-
                               if (!isInflow) {
                                 amount = -amount;
                               }
-
                               try {
                                 String? base64Image;
                                 if (pickedImage != null) {
@@ -1282,7 +1242,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                   base64Image =
                                       'data:image/jpeg;base64,${base64Encode(bytes)}';
                                 }
-
                                 final payload = {
                                   'title': title,
                                   'type': 'Income',
@@ -1301,10 +1260,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                         ? [existingImageUrl]
                                         : [],
                                 };
-
                                 final bool isEdit = editingTx != null;
                                 final bool success;
-
                                 if (isEdit) {
                                   final txId =
                                       editingTx['_id']?.toString() ??
@@ -1319,7 +1276,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                                       await ApiService.addTransaction(payload);
                                   success = result != null;
                                 }
-
                                 if (success) {
                                   if (context.mounted) {
                                     Navigator.pop(ctx);
@@ -1393,7 +1349,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       },
     );
   }
-
   Widget _buildRevenueHistory(BuildContext context) {
     if (_loadingRevenue) {
       return const Padding(
@@ -1401,13 +1356,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
-
     final project = Provider.of<ProjectProvider>(
       context,
       listen: false,
     ).selectedProject;
     final projectName = project?.name ?? 'Project';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1485,7 +1438,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ],
     );
   }
-
   void _showAllRevenueHistory(
     BuildContext context,
     String projectName,
@@ -1702,7 +1654,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       },
     );
   }
-
   void _showRevenueDetailDialog(
     BuildContext context,
     Map<String, dynamic> tx, {
@@ -1718,26 +1669,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final paymentStatus = tx['paymentStatus']?.toString() ?? 'Paid';
     final rawId = tx['_id']?.toString() ?? tx['id']?.toString() ?? '';
     final refId = rawId.isNotEmpty ? rawId.toUpperCase() : 'N/A';
-    final List<dynamic> attachments = [];
-    if (tx['attachments'] is List) {
-      attachments.addAll(tx['attachments'] as List);
-    }
-    if (tx['paymentReceipt'] != null && tx['paymentReceipt'].toString().isNotEmpty) {
-      attachments.add(tx['paymentReceipt']);
-    }
-    if (tx['receiptImage'] != null && tx['receiptImage'].toString().isNotEmpty) {
-      attachments.add(tx['receiptImage']);
-    }
-    if (tx['screenshotUrl'] != null && tx['screenshotUrl'].toString().isNotEmpty) {
-      attachments.add(tx['screenshotUrl']);
-    }
-    if (tx['receipts'] is List) {
-      for (var r in tx['receipts']) {
-        if (r is Map && r['fileUrl'] != null) {
-          attachments.add(r['fileUrl']);
-        }
-      }
-    }
+    final List<dynamic> attachments = tx['attachments'] is List
+        ? tx['attachments'] as List
+        : [];
 
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
@@ -1745,17 +1679,14 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         date = DateTime.parse(tx['date'].toString());
       } catch (_) {}
     }
-
     final dateStr =
         '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)} ${date.year}';
     final timeStr = _formatTime12Hour(date);
-
     final project = Provider.of<ProjectProvider>(
       context,
       listen: false,
     ).selectedProject;
     final projectName = project?.name ?? 'Project';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2169,7 +2100,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       },
     );
   }
-
   void _shareTransactionReceipt(
     BuildContext context,
     Map<String, dynamic> tx,
@@ -2187,7 +2117,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ? 'Money Out (Expense)'
           : 'Revenue Received (Inflow)';
       final amountPrefix = isOutflow ? '-₹' : '+₹';
-
       final StringBuffer buffer = StringBuffer();
       buffer.writeln('📊 BuildTrack Transaction Receipt');
       buffer.writeln('================================');
@@ -2204,21 +2133,17 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       buffer.writeln(
         'Status: ${tx['paymentStatus']?.toString().toUpperCase() ?? 'PAID'}',
       );
-
       if (tx['notes'] != null && tx['notes'].toString().trim().isNotEmpty) {
         buffer.writeln('Notes: ${tx['notes'].toString().trim()}');
       }
-
       buffer.writeln('================================');
       buffer.writeln('Generated via BuildTrack App');
-
       if (attachments.isNotEmpty) {
         final attachmentUrl = attachments.first.toString();
         if (attachmentUrl.startsWith('http')) {
           buffer.writeln('\nProof of Payment: $attachmentUrl');
         }
       }
-
       await SharePlus.instance.share(
         ShareParams(
           text: buffer.toString(),
@@ -2233,7 +2158,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       }
     }
   }
-
   void _confirmDeleteTransaction(
     BuildContext context,
     Map<String, dynamic> tx,
@@ -2242,7 +2166,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0.0;
     final bool isOutflow = amount < 0;
     final String label = isOutflow ? 'outflow' : 'revenue inflow';
-
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
@@ -2302,7 +2225,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       },
     );
   }
-
   Widget _receiptRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -2336,7 +2258,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   void _showFullScreenImageDialog(BuildContext context, String imageUrl) {
     showDialog(
       context: context,
@@ -2407,7 +2328,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       },
     );
   }
-
   Widget _revenueTile(
     BuildContext context,
     Map<String, dynamic> tx, {
@@ -2420,27 +2340,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final formattedAmt = formatCurrency(absAmount);
     final textColor = isOutflow ? Colors.red : const Color(0xFF2E7D32);
     final paymentMode = tx['paymentMode']?.toString() ?? 'Cash';
-    final List<dynamic> attachments = [];
-    if (tx['attachments'] is List) {
-      attachments.addAll(tx['attachments'] as List);
-    }
-    if (tx['paymentReceipt'] != null && tx['paymentReceipt'].toString().isNotEmpty) {
-      attachments.add(tx['paymentReceipt']);
-    }
-    if (tx['receiptImage'] != null && tx['receiptImage'].toString().isNotEmpty) {
-      attachments.add(tx['receiptImage']);
-    }
-    if (tx['screenshotUrl'] != null && tx['screenshotUrl'].toString().isNotEmpty) {
-      attachments.add(tx['screenshotUrl']);
-    }
-    if (tx['receipts'] is List) {
-      for (var r in tx['receipts']) {
-        if (r is Map && r['fileUrl'] != null) {
-          attachments.add(r['fileUrl']);
-        }
-      }
-    }
-    final hasImage = attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
+    final List<dynamic> attachments = tx['attachments'] is List
+        ? tx['attachments'] as List
+        : [];
+    final hasImage =
+        attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
 
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
@@ -2448,11 +2352,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         date = DateTime.parse(tx['date'].toString());
       } catch (_) {}
     }
-
     final dateStr =
         '${date.day.toString().padLeft(2, '0')} ${_getMonthName(date.month)}';
     final timeStr = _formatTime12Hour(date);
-
     Widget thumbnail;
     if (hasImage) {
       final imageUrl = attachments.first.toString();
@@ -2512,7 +2414,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
       );
     }
-
     return GestureDetector(
       onTap: () {
         _showRevenueDetailDialog(context, tx, onRefresh: onRefresh);
@@ -2585,7 +2486,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   String _getMonthName(int month) {
     const months = [
       'Jan',
@@ -2604,7 +2504,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     if (month < 1 || month > 12) return 'Jan';
     return months[month - 1];
   }
-
   String _formatTime12Hour(DateTime dateTime) {
     final hour = dateTime.hour;
     final minute = dateTime.minute;
@@ -2613,19 +2512,16 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final displayMinute = minute.toString().padLeft(2, '0');
     return '$displayHour:$displayMinute $amPm';
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final project = provider.selectedProject;
-
     if (project != null && project.id != _lastProjectId) {
       _lastProjectId = project.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadRevenue(project.id);
       });
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2818,13 +2714,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ),
         ),
         const SizedBox(height: 16),
-
         Row(
           children: [
             Expanded(
               child: _costCard(
                 'TOTAL COST',
-
                 project != null
                     ? formatCurrency(
                         context.read<ProjectProvider>().totalSpentForProject(
@@ -2917,10 +2811,8 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ],
     );
   }
-
   Widget _buildProjectSelector(BuildContext context, ProjectProvider provider) {
     final selectedName = provider.selectedProject?.name ?? 'Select Project';
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
@@ -3007,7 +2899,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   void _showProjectPicker(BuildContext context, ProjectProvider provider) {
     final projects = provider.projects;
     showModalBottomSheet<void>(
@@ -3111,7 +3002,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   Widget _costCard(
     String label,
     String value,
@@ -3126,7 +3016,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final iconData = isInvoice
         ? Icons.account_balance_wallet_outlined
         : Icons.monetization_on_outlined;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -3224,7 +3113,6 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   Widget _buildSpeakUpdate(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -3329,21 +3217,17 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ),
     );
   }
-
   Widget _buildRecentActivity(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
     final selectedProjectId = provider.selectedProject?.id;
-
     final List<EntryModel> allEntries = selectedProjectId == null
         ? <EntryModel>[]
         : provider
               .entriesForProject(selectedProjectId)
               .where((e) => e.approvalStatus.toLowerCase().trim() != 'rejected')
               .toList();
-
     allEntries.sort((a, b) => b.date.compareTo(a.date));
     final recent = allEntries.take(5).toList();
-
     return Column(
       children: [
         AppSectionHeader(
@@ -3356,13 +3240,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ),
         ),
         const SizedBox(height: 10),
-
         _TeamApprovalHistoryWidget(projectId: selectedProjectId),
         const SizedBox(height: 12),
-
         const AppSectionHeader(title: 'Recent Entries'),
         const SizedBox(height: 8),
-
         if (recent.isEmpty)
           Container(
             width: double.infinity,
@@ -3424,13 +3305,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
       ],
     );
   }
-
   Widget _activityTile(BuildContext context, EntryModel entry) {
     final IconData icon;
     final Color badgeBg;
     final Color badgeColor;
     final String badgeLabel;
-
     switch (entry.type) {
       case EntryType.labour:
         icon = Icons.engineering_rounded;
@@ -3451,12 +3330,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         badgeLabel = 'Material';
         break;
     }
-
     final timeLabel = relativeTimeLabel(entry.date.toLocal());
-
     final title = entry.description.isNotEmpty ? entry.description : badgeLabel;
     final subtitle = '₹${entry.amount.toStringAsFixed(0)} • $timeLabel';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -3548,46 +3424,37 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
 }
-
 class _SupervisorDashboard extends StatefulWidget {
   const _SupervisorDashboard();
   @override
   State<_SupervisorDashboard> createState() => _SupervisorDashboardState();
 }
-
 class _SupervisorDashboardState extends State<_SupervisorDashboard> {
   List<dynamic> _pendingTransactions = [];
   List<dynamic> _historyTransactions = [];
   List<TaskModel> _tasks = [];
   bool _isLoading = true;
   String? _error;
-
   String _activeTab = 'pending';
-
   @override
   void initState() {
     super.initState();
     _loadAll();
   }
-
   Future<void> _loadAll() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
-
     final results = await Future.wait([
       ApiService.fetchPendingApprovals(),
       ApiService.fetchApprovalsHistory(),
       TaskService.getDailyTasks(),
     ]);
-
     if (!mounted) return;
-
     final pendingData = results[0] as Map<String, dynamic>?;
     final historyData = results[1] as Map<String, dynamic>?;
     final tasksData = results[2] as List<TaskModel>;
-
     setState(() {
       _pendingTransactions = (pendingData?['transactions'] as List?) ?? [];
       _historyTransactions = (historyData?['transactions'] as List?) ?? [];
@@ -3598,7 +3465,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       }
     });
   }
-
   Future<void> _handleApprove(String id) async {
     final ok = await ApiService.approveTransaction(id);
     if (!mounted) return;
@@ -3621,7 +3487,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       );
     }
   }
-
   Future<void> _handleReject(String id) async {
     final ok = await ApiService.rejectTransaction(id, 'Rejected by supervisor');
     if (!mounted) return;
@@ -3636,7 +3501,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       _loadAll();
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final pendingCount = _pendingTransactions.length;
@@ -3646,7 +3510,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     final rejectedCount = _historyTransactions
         .where((t) => t['approvalStatus'] == 'Rejected')
         .length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3678,7 +3541,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           ],
         ),
         const SizedBox(height: 16),
-
         Align(
           alignment: Alignment.centerRight,
           child: Row(
@@ -3755,7 +3617,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           ),
         ),
         const SizedBox(height: 24),
-
         const Text(
           'Tasks Assigned',
           style: TextStyle(
@@ -3779,9 +3640,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
               }),
             ),
           ),
-
         const SizedBox(height: 24),
-
         if (_isLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
@@ -3817,7 +3676,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ],
     );
   }
-
   Widget _buildActiveTabContent({
     required int pendingCount,
     required int approvedCount,
@@ -3834,7 +3692,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           emptyIcon: Icons.check_circle_outline,
           emptyColor: AppTheme.success,
         );
-
       case 'rejected':
         final rejected = _historyTransactions
             .where((t) => t['approvalStatus'] == 'Rejected')
@@ -3845,7 +3702,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           emptyIcon: Icons.cancel_outlined,
           emptyColor: AppTheme.error,
         );
-
       default:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3909,7 +3765,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
         );
     }
   }
-
   Widget _buildRecentHistorySection() {
     final combined =
         _historyTransactions
@@ -3928,12 +3783,9 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
                 return DateTime.fromMillisecondsSinceEpoch(0);
               }
             }
-
             return parse(b).compareTo(parse(a));
           });
-
     final recent = combined.take(10).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3977,7 +3829,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ],
     );
   }
-
   Widget _buildHistoryList({
     required List<dynamic> items,
     required String emptyMessage,
@@ -4020,7 +3871,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
         ),
       );
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -4034,7 +3884,6 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
       ],
     );
   }
-
   Widget _summaryChip(
     String count,
     String label,
@@ -4084,18 +3933,15 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
     );
   }
 }
-
 class _PendingTxCard extends StatelessWidget {
   const _PendingTxCard({
     required this.tx,
     required this.onApprove,
     required this.onReject,
   });
-
   final Map<String, dynamic> tx;
   final VoidCallback onApprove;
   final VoidCallback onReject;
-
   @override
   Widget build(BuildContext context) {
     final title = tx['title']?.toString() ?? 'Entry';
@@ -4111,7 +3957,6 @@ class _PendingTxCard extends StatelessWidget {
         (tx['project'] is Map ? tx['project']['projectName'] : null)
             ?.toString() ??
         'Unknown Project';
-
     String dateStr = '';
     final rawDate = tx['date'] ?? tx['createdAt'];
     if (rawDate != null) {
@@ -4134,7 +3979,6 @@ class _PendingTxCard extends StatelessWidget {
         dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
       } catch (_) {}
     }
-
     IconData typeIcon;
     Color typeColor;
     switch (type.toLowerCase()) {
@@ -4150,7 +3994,6 @@ class _PendingTxCard extends StatelessWidget {
         typeIcon = Icons.category_outlined;
         typeColor = AppColors.primary;
     }
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4202,7 +4045,6 @@ class _PendingTxCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-
           Row(
             children: [
               const Icon(
@@ -4240,7 +4082,6 @@ class _PendingTxCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-
           Row(
             children: [
               Expanded(
@@ -4266,11 +4107,9 @@ class _PendingTxCard extends StatelessWidget {
     );
   }
 }
-
 class _HistoryTxCard extends StatelessWidget {
   const _HistoryTxCard({required this.tx});
   final Map<String, dynamic> tx;
-
   @override
   Widget build(BuildContext context) {
     final title = tx['title']?.toString() ?? 'Entry';
@@ -4287,7 +4126,6 @@ class _HistoryTxCard extends StatelessWidget {
     final approvedByName =
         (tx['approvedBy'] is Map ? tx['approvedBy']['name'] : null)?.toString();
     final rejectionReason = tx['rejectionReason']?.toString() ?? '';
-
     String dateStr = '';
     final rawDate = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
     if (rawDate != null) {
@@ -4310,9 +4148,7 @@ class _HistoryTxCard extends StatelessWidget {
         dateStr = '${d.day} ${months[d.month - 1]} ${d.year}';
       } catch (_) {}
     }
-
     final bool isApproved = approvalStatus == 'Approved';
-
     IconData typeIcon;
     Color typeColor;
     switch (type.toLowerCase()) {
@@ -4328,7 +4164,6 @@ class _HistoryTxCard extends StatelessWidget {
         typeIcon = Icons.category_outlined;
         typeColor = AppColors.primary;
     }
-
     final statusColor = isApproved ? const Color(0xFF059669) : Colors.red;
     final statusBg = isApproved
         ? const Color(0xFFD1FAE5)
@@ -4336,7 +4171,6 @@ class _HistoryTxCard extends StatelessWidget {
     final statusIcon = isApproved
         ? Icons.check_circle_rounded
         : Icons.cancel_rounded;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
@@ -4520,20 +4354,16 @@ class _HistoryTxCard extends StatelessWidget {
     );
   }
 }
-
 class _MasonDashboard extends StatefulWidget {
   const _MasonDashboard({required this.onEntryTap});
   final void Function(BuildContext, String) onEntryTap;
-
   @override
   State<_MasonDashboard> createState() => _MasonDashboardState();
 }
-
 class _MasonDashboardState extends State<_MasonDashboard> {
   late Future<List<dynamic>> _recentEntriesFuture;
   List<TaskModel> _tasks = [];
   bool _isLoadingTasks = true;
-
   @override
   void initState() {
     super.initState();
@@ -4543,7 +4373,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
     );
     _loadTasks();
   }
-
   Future<void> _loadTasks() async {
     try {
       final tasks = await TaskService.getDailyTasks();
@@ -4559,7 +4388,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -4591,9 +4419,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
             ],
           ),
         ),
-
         const SizedBox(height: 12),
-
         AppButton(
           label: 'Add Daily Update',
           icon: Icons.add_circle_outline,
@@ -4607,7 +4433,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
           onPressed: () => widget.onEntryTap(context, 'material'),
         ),
         const SizedBox(height: 16),
-
         const Text(
           'Tasks Assigned',
           style: TextStyle(
@@ -4640,16 +4465,13 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                   : null,
             ),
           ),
-
         const SizedBox(height: 24),
-
         AppSectionHeader(
           title: 'Recent Entries',
           actionLabel: 'View All',
           onAction: () => Navigator.pushNamed(context, '/logs'),
         ),
         const SizedBox(height: 8),
-
         FutureBuilder<List<dynamic>>(
           future: _recentEntriesFuture,
           builder: (context, snapshot) {
@@ -4670,7 +4492,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                 ),
               );
             }
-
             final entries = snapshot.data ?? [];
             if (entries.isEmpty) {
               return Container(
@@ -4706,7 +4527,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
                 ),
               );
             }
-
             return Column(
               children: entries
                   .take(5)
@@ -4718,7 +4538,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
       ],
     );
   }
-
   Widget _recentEntryTile(Map<String, dynamic> entry) {
     final title =
         entry['title']?.toString() ??
@@ -4727,7 +4546,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
     final type = entry['type']?.toString() ?? '';
     final amount = (entry['amount'] as num?)?.toDouble() ?? 0.0;
     final approvalStatus = entry['approvalStatus']?.toString() ?? 'Pending';
-
     final rawDate = entry['date'] ?? entry['createdAt'];
     String timeLabel = '';
     if (rawDate != null) {
@@ -4736,7 +4554,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
         timeLabel = relativeTimeLabel(d);
       } catch (_) {}
     }
-
     IconData icon;
     Color iconColor;
     Color iconBg;
@@ -4756,7 +4573,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
         iconColor = AppColors.primary;
         iconBg = const Color(0xFFEEF0FF);
     }
-
     Color statusColor;
     Color statusBg;
     switch (approvalStatus.toLowerCase()) {
@@ -4772,7 +4588,6 @@ class _MasonDashboardState extends State<_MasonDashboard> {
         statusColor = const Color(0xFFD97706);
         statusBg = const Color(0xFFFEF3C7);
     }
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -4855,24 +4670,19 @@ class _MasonDashboardState extends State<_MasonDashboard> {
     );
   }
 }
-
 class ApprovalsAlertWidget extends StatefulWidget {
   const ApprovalsAlertWidget({super.key});
-
   @override
   State<ApprovalsAlertWidget> createState() => _ApprovalsAlertWidgetState();
 }
-
 class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
   int _pendingCount = 0;
   bool _loaded = false;
-
   @override
   void initState() {
     super.initState();
     _loadCount();
   }
-
   Future<void> _loadCount() async {
     final data = await ApiService.fetchPendingApprovals();
     if (mounted) {
@@ -4884,11 +4694,9 @@ class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (_loaded && _pendingCount == 0) return const SizedBox.shrink();
-
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/approvals'),
       child: Container(
@@ -4981,28 +4789,23 @@ class _ApprovalsAlertWidgetState extends State<ApprovalsAlertWidget> {
     );
   }
 }
-
 class _TeamApprovalHistoryWidget extends StatefulWidget {
   final String? projectId;
   const _TeamApprovalHistoryWidget({this.projectId});
-
   @override
   State<_TeamApprovalHistoryWidget> createState() =>
       _TeamApprovalHistoryWidgetState();
 }
-
 class _TeamApprovalHistoryWidgetState
     extends State<_TeamApprovalHistoryWidget> {
   List<dynamic> _history = [];
   bool _loading = true;
   bool _expanded = false;
-
   @override
   void initState() {
     super.initState();
     _load();
   }
-
   @override
   void didUpdateWidget(_TeamApprovalHistoryWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -5015,12 +4818,10 @@ class _TeamApprovalHistoryWidgetState
       _load();
     }
   }
-
   Future<void> _load() async {
     try {
       final data = await ApiService.fetchApprovalsHistory();
       final List<dynamic> all = (data?['transactions'] as List?) ?? [];
-
       final filtered =
           all.where((t) {
             final status = (t['approvalStatus']?.toString() ?? '')
@@ -5028,14 +4829,12 @@ class _TeamApprovalHistoryWidgetState
                 .toLowerCase();
             final isActioned = status == 'approved' || status == 'rejected';
             if (!isActioned) return false;
-
             final createdByRole =
                 (t['createdBy'] is Map ? t['createdBy']['role'] : null)
                     ?.toString()
                     .toLowerCase()
                     .trim();
             if (createdByRole == 'admin') return false;
-
             if (widget.projectId != null &&
                 widget.projectId!.trim().isNotEmpty) {
               String txProjectId = '';
@@ -5051,7 +4850,6 @@ class _TeamApprovalHistoryWidgetState
                 return false;
               }
             }
-
             return true;
           }).toList()..sort((a, b) {
             DateTime parse(dynamic tx) {
@@ -5066,10 +4864,8 @@ class _TeamApprovalHistoryWidgetState
                 return DateTime.fromMillisecondsSinceEpoch(0);
               }
             }
-
             return parse(b).compareTo(parse(a));
           });
-
       final approvedCount = filtered
           .where(
             (t) =>
@@ -5089,7 +4885,6 @@ class _TeamApprovalHistoryWidgetState
         'rawUnscoped=${all.length} filtered=${filtered.length} '
         'approved=$approvedCount rejected=$rejectedCount',
       );
-
       if (mounted) {
         setState(() {
           _history = filtered.take(15).toList();
@@ -5100,7 +4895,6 @@ class _TeamApprovalHistoryWidgetState
       if (mounted) setState(() => _loading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -5114,9 +4908,7 @@ class _TeamApprovalHistoryWidgetState
         ),
       );
     }
-
     final shown = _expanded ? _history : _history.take(3).toList();
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
@@ -5210,7 +5002,6 @@ class _TeamApprovalHistoryWidgetState
       ),
     );
   }
-
   Widget _historyTile(Map<String, dynamic> tx) {
     final title = tx['title']?.toString() ?? 'Entry';
     final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
@@ -5224,7 +5015,6 @@ class _TeamApprovalHistoryWidgetState
     final approvedByName =
         (tx['approvedBy'] is Map ? tx['approvedBy']['name'] : null)?.toString();
     final type = tx['type']?.toString() ?? '';
-
     String dateStr = '';
     final rawDate = tx['approvedAt'] ?? tx['date'] ?? tx['createdAt'];
     if (rawDate != null) {
@@ -5233,13 +5023,11 @@ class _TeamApprovalHistoryWidgetState
         dateStr = relativeTimeLabel(d);
       } catch (_) {}
     }
-
     final isApproved = approvalStatus == 'Approved';
     final statusColor = isApproved ? const Color(0xFF059669) : Colors.red;
     final statusBg = isApproved
         ? const Color(0xFFD1FAE5)
         : const Color(0xFFFFEEEE);
-
     IconData typeIcon;
     Color typeColor;
     switch (type.toLowerCase()) {
@@ -5255,7 +5043,6 @@ class _TeamApprovalHistoryWidgetState
         typeIcon = Icons.category_outlined;
         typeColor = AppColors.primary;
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(

@@ -2,7 +2,6 @@ import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:flutter/material.dart';
-
 class AppLayout extends StatelessWidget {
   const AppLayout({
     super.key,
@@ -17,7 +16,6 @@ class AppLayout extends StatelessWidget {
     this.centerTitle = true,
     this.backgroundColor = AppTheme.background,
   });
-
   final String title;
   final Widget child;
   final List<Widget>? actions;
@@ -28,7 +26,6 @@ class AppLayout extends StatelessWidget {
   final bool showAppBar;
   final bool centerTitle;
   final Color backgroundColor;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,7 +49,6 @@ class AppLayout extends StatelessWidget {
     );
   }
 }
-
 class AppScrollLayout extends StatelessWidget {
   const AppScrollLayout({
     super.key,
@@ -66,7 +62,6 @@ class AppScrollLayout extends StatelessWidget {
     this.showAppBar = true,
     this.backgroundColor = AppTheme.background,
   });
-
   final String title;
   final Widget child;
   final List<Widget>? actions;
@@ -76,7 +71,6 @@ class AppScrollLayout extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final bool showAppBar;
   final Color backgroundColor;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,7 +98,6 @@ class AppScrollLayout extends StatelessWidget {
     );
   }
 }
-
 class AppSubScreenLayout extends StatelessWidget {
   const AppSubScreenLayout({
     super.key,
@@ -123,7 +116,6 @@ class AppSubScreenLayout extends StatelessWidget {
     this.scrollable = false,
     this.backgroundColor = AppTheme.background,
   });
-
   final String title;
   final Widget child;
   final Widget? trailing;
@@ -133,7 +125,6 @@ class AppSubScreenLayout extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final bool scrollable;
   final Color backgroundColor;
-
   @override
   Widget build(BuildContext context) {
     final body = Padding(
@@ -145,7 +136,6 @@ class AppSubScreenLayout extends StatelessWidget {
             )
           : child,
     );
-
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -173,7 +163,6 @@ class AppSubScreenLayout extends StatelessWidget {
     );
   }
 }
-
 class AppTabLayout extends StatelessWidget {
   const AppTabLayout({
     super.key,
@@ -211,7 +200,6 @@ class AppTabLayout extends StatelessWidget {
     this.actions,
     this.backgroundColor = AppTheme.background,
   });
-
   final String title;
   final Widget child;
   final int selectedIndex;
@@ -219,7 +207,6 @@ class AppTabLayout extends StatelessWidget {
   final List<AppTabItem> tabs;
   final List<Widget>? actions;
   final Color backgroundColor;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -241,30 +228,25 @@ class AppTabLayout extends StatelessWidget {
     );
   }
 }
-
 class AppTabItem {
   const AppTabItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
   });
-
   final IconData icon;
   final IconData activeIcon;
   final String label;
 }
-
 class _AppBottomNav extends StatelessWidget {
   const _AppBottomNav({
     required this.selectedIndex,
     required this.onTabChanged,
     required this.tabs,
   });
-
   final int selectedIndex;
   final ValueChanged<int> onTabChanged;
   final List<AppTabItem> tabs;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -327,7 +309,6 @@ class _AppBottomNav extends StatelessWidget {
     );
   }
 }
-
 class AppLoadingOverlay extends StatelessWidget {
   const AppLoadingOverlay({
     super.key,
@@ -335,11 +316,9 @@ class AppLoadingOverlay extends StatelessWidget {
     required this.child,
     this.message,
   });
-
   final bool isLoading;
   final Widget child;
   final String? message;
-
   @override
   Widget build(BuildContext context) {
     return Stack(

@@ -7,20 +7,16 @@ import 'package:buildtrack_mobile/services/task_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:provider/provider.dart';
-
 class AssignTaskScreen extends StatefulWidget {
   final ProjectModel? initialProject;
   const AssignTaskScreen({super.key, this.initialProject});
-
   @override
   State<AssignTaskScreen> createState() => _AssignTaskScreenState();
 }
-
 class _AssignTaskScreenState extends State<AssignTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
   String _description = '';
-
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -28,16 +24,13 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
   String? _selectedPhaseId;
   String? _selectedActivity;
   String? _selectedActivityId;
-
   String? _projectError;
   String? _floorError;
   String? _phaseError;
   String? _activityError;
-
   String? _selectedUserId;
   bool _isLoading = false;
   List<Map<String, dynamic>> _users = [];
-
   @override
   void initState() {
     super.initState();
@@ -56,7 +49,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
       }
     });
   }
-
   Future<void> _fetchUsers() async {
     try {
       final users = await TaskService.getAssignableUsers();
@@ -66,10 +58,8 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
         });
       }
     } catch (e) {
-      // ignore
     }
   }
-
   String? _derivePhaseId(String? phaseName) {
     if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null) {
       return null;
@@ -85,7 +75,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
     }
     return null;
   }
-
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -105,7 +94,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
     }
     return null;
   }
-
   Future<void> _submit() async {
     bool valid = true;
     setState(() {
@@ -113,7 +101,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
       _floorError = null;
       _phaseError = null;
       _activityError = null;
-
       if (_selectedProjectId == null || _selectedProjectId!.isEmpty) {
         _projectError = 'Please select a project';
         valid = false;
@@ -131,18 +118,14 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
         valid = false;
       }
     });
-
     if (!valid) return;
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
-
     setState(() => _isLoading = true);
-
     try {
       final phaseId = _selectedPhaseId ?? _derivePhaseId(_selectedPhase);
       final activityId =
           _selectedActivityId ?? _deriveActivityId(_selectedActivity);
-
       await TaskService.createTask({
         'project': _selectedProjectId,
         'title': _title,
@@ -171,7 +154,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -286,7 +268,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                               },
                             ),
                             const SizedBox(height: 24),
-
                             const Text(
                               'Task Details',
                               style: TextStyle(
@@ -326,7 +307,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                                     onSaved: (val) => _title = val ?? '',
                                   ),
                                   const SizedBox(height: 16),
-
                                   const Text(
                                     'Description (Optional)',
                                     style: TextStyle(
@@ -349,7 +329,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                                     onSaved: (val) => _description = val ?? '',
                                   ),
                                   const SizedBox(height: 16),
-
                                   const Text(
                                     'Assign To',
                                     style: TextStyle(
@@ -389,7 +368,6 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                               ),
                             ),
                             const SizedBox(height: 32),
-
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(

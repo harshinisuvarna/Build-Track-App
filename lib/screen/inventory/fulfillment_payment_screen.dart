@@ -6,18 +6,14 @@ import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/controller/inventory_provider.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
 class FulfillmentPaymentScreen extends StatefulWidget {
   const FulfillmentPaymentScreen({super.key});
-
   @override
   State<FulfillmentPaymentScreen> createState() =>
       _FulfillmentPaymentScreenState();
 }
-
 class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   bool _argsLoaded = false;
-
   late String _entryId;
   late String _projectId;
   late String _projectName;
@@ -31,7 +27,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   late String? _existingReceipt;
   late String? _phase;
   late String? _activity;
-
   late PaymentStatus _selectedStatus;
   String _selectedMethod = 'UPI';
   final _amountCtrl = TextEditingController();
@@ -43,19 +38,15 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
   bool _isSaving = false;
   bool _requestEsign = false;
   final _clientEmailCtrl = TextEditingController();
-
   bool _isEsignPolling = false;
   bool _isEsignCompleted = false;
   String _esignStatusText = '';
-
   Future<void> _startEsignFlow() async {
-    
     final amt = _parseAmount(_amountCtrl.text);
     if (amt == null || amt <= 0) {
       setState(() => _amountError = 'Please enter a valid amount before requesting an E-Signature.');
       return;
     }
-    
     if (_clientEmailCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter client email')));
       return;
@@ -64,7 +55,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       _isEsignPolling = true;
       _esignStatusText = 'Sending request...';
     });
-    
     final meta = {
       'projectName': _projectName,
       'itemName': _itemName,
@@ -78,7 +68,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       'notes': _noteCtrl.text.trim(),
       'date': _selectedPaymentDate.toIso8601String(),
     };
-
     final res = await ApiService.requestEsignature(_clientEmailCtrl.text.trim(), meta);
     if (res == null || res['requestId'] == null) {
       setState(() {
@@ -87,17 +76,13 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       });
       return;
     }
-    
     setState(() {
       _esignStatusText = 'Waiting for client to sign...';
     });
-    
     final reqId = res['requestId'];
-    
     while (_isEsignPolling) {
       await Future.delayed(const Duration(seconds: 3));
       if (!mounted || !_isEsignPolling) break;
-      
       final statusRes = await ApiService.checkEsignatureStatus(reqId);
       if (statusRes != null && statusRes['status'] == 'signed') {
         if (mounted) {
@@ -113,8 +98,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       }
     }
   }
-
-
   static const _pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
     {'label': 'Cash', 'icon': Icons.money_outlined},
@@ -122,17 +105,14 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
     {'label': 'Card', 'icon': Icons.credit_card_outlined},
     {'label': 'Cheque', 'icon': Icons.description_outlined},
   ];
-
   static const Color _kDark = Color(0xFF1E1E2E);
   static const Color _kGray = Color(0xFF6B7280);
   static const Color _kLightBg = Color(0xFFF4F5FF);
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     _entryId = (args['id'] ?? args['entryId'] ?? args['_id'] ?? '').toString();
     _projectId = (args['projectId'] ?? args['project'] ?? '').toString();
@@ -157,17 +137,14 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         (args['outstandingAmount'] as num?)?.toDouble() ??
         (_totalAmount - _alreadyPaid).clamp(0.0, double.infinity);
     _existingReceipt = (args['receipt'] ?? args['screenshotUrl']) as String?;
-
     _selectedStatus = _outstanding > 0
         ? (_alreadyPaid > 0 ? PaymentStatus.partial : PaymentStatus.pending)
         : PaymentStatus.paid;
-
     if (_selectedStatus == PaymentStatus.paid) {
       _amountCtrl.text = _outstanding.toStringAsFixed(0);
     } else if (_selectedStatus == PaymentStatus.pending) {
       _amountCtrl.text = '0';
     }
-
     _selectedMethod =
         args['paymentMethod']?.toString() ??
         args['paymentMode']?.toString() ??
@@ -179,32 +156,26 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         _selectedMethod = 'UPI';
       }
     }
-
     _noteCtrl.text = (args['notes'] ?? args['remarks'] ?? '').toString();
     _uploadedReceipt = _existingReceipt;
-
     final txDetails = args['transactionDetails'] as Map?;
     _phase = (txDetails?['phase'] ?? txDetails?['phaseName'])?.toString();
     _activity = (txDetails?['activity'] ?? txDetails?['activityName'])?.toString();
   }
-
   @override
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
   }
-
   double? _parseAmount(String val) {
     if (val.isEmpty) return null;
     return double.tryParse(val);
   }
-
   Future<void> _handleConfirmPayment() async {
     setState(() {
       _amountError = null;
     });
-
     if (_selectedStatus != PaymentStatus.pending) {
       final raw = _amountCtrl.text.trim();
       final amt = _parseAmount(raw);
@@ -227,32 +198,26 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
         return;
       }
     }
-
     final amount = _selectedStatus == PaymentStatus.paid
         ? _outstanding
         : _selectedStatus == PaymentStatus.pending
         ? 0.0
         : (_parseAmount(_amountCtrl.text.trim()) ?? 0.0);
-
     setState(() {
       _isSaving = true;
     });
-
     try {
       final totalPaid = _alreadyPaid + amount;
       final newStatusVal = _selectedStatus;
-
       final String newStatusStr = newStatusVal == PaymentStatus.paid
           ? 'Paid'
           : newStatusVal == PaymentStatus.partial
           ? 'Partial'
           : 'Pending';
-
       String apiPaymentMode = _selectedMethod;
       if (apiPaymentMode == 'Bank Transfer' || apiPaymentMode == 'Card') {
         apiPaymentMode = 'Bank';
       }
-
       final payload = {
         'paymentStatus': newStatusStr,
         'paidAmount': totalPaid,
@@ -272,18 +237,14 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
           },
         if (_newReceiptDataUri != null) 'paymentReceipt': _newReceiptDataUri,
       };
-
       final success = await ApiService.updateTransactionPayment(
         _entryId,
         payload,
       );
-
       if (success) {
         if (mounted) {
           context.read<ProjectProvider>().load();
-
           context.read<InventoryProvider>().loadInventory(_projectId);
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -298,7 +259,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
               ),
             ),
           );
-
           Navigator.pop(context, true);
         }
       } else {
@@ -336,7 +296,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     String helperText;
@@ -351,11 +310,9 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
           ? 'Remaining: ${formatCurrency(rem)}'
           : 'Full settlement via partial recording';
     }
-
     final double parentW = MediaQuery.of(context).size.width;
     final double chipW = (parentW - 40) / 2;
     final double fullW = parentW - 32;
-
     return Scaffold(
       backgroundColor: _kLightBg,
       body: SafeArea(
@@ -396,7 +353,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -509,7 +465,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'PAYMENT STATUS',
                       style: TextStyle(
@@ -564,7 +519,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'ACTUAL AMOUNT PAID (₹)',
                       style: TextStyle(
@@ -651,7 +605,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'PAYMENT METHOD',
                       style: TextStyle(
@@ -724,7 +677,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                             style: const TextStyle(fontSize: 14, color: _kDark, fontWeight: FontWeight.w500),
                           ),
                         ),
-
                       if (_requestEsign && !_isEsignCompleted) ...[
                         const SizedBox(height: 8),
                         SizedBox(
@@ -761,11 +713,8 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                            )
                          )
                       ],
-                      
                     ],
                     const SizedBox(height: 20),
-
-
                     Padding(
                       padding: const EdgeInsets.only(top: 5, left: 2),
                       child: Text(
@@ -783,7 +732,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'PAYMENT RECEIPT',
                       style: TextStyle(
@@ -902,7 +850,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'PAYMENT DATE',
                       style: TextStyle(
@@ -970,7 +917,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'REMARKS / REFERENCE NUMBER',
                       style: TextStyle(
@@ -990,7 +936,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
                 ),
               ),
             ),
-
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: const BoxDecoration(
@@ -1094,7 +1039,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       ),
     );
   }
-
   Widget _buildStatusCard(
     PaymentStatus status,
     String label,
@@ -1131,7 +1075,6 @@ class _FulfillmentPaymentScreenState extends State<FulfillmentPaymentScreen> {
       ),
     );
   }
-
   Widget _buildMethodChip(
     String label,
     IconData icon,

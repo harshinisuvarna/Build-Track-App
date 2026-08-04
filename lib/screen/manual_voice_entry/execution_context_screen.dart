@@ -5,17 +5,13 @@ import 'package:buildtrack_mobile/controller/project_provider.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class ExecutionContextScreen extends StatefulWidget {
   const ExecutionContextScreen({super.key});
-
   @override
   State<ExecutionContextScreen> createState() => _ExecutionContextScreenState();
 }
-
 class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
   String _entryType = 'material';
-
   String? _selectedProjectId;
   String? _selectedFloor;
   String? _selectedFloorId;
@@ -23,25 +19,20 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
   String? _selectedPhaseId;
   String? _selectedActivity;
   String? _selectedActivityId;
-
   String? _projectError;
   String? _floorError;
   String? _phaseError;
   String? _activityError;
-
   bool _argsLoaded = false;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_argsLoaded) return;
     _argsLoaded = true;
-
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       _entryType = args['type']?.toString() ?? 'material';
     }
-
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     _selectedProjectId = provider.selectedProject?.id;
     _selectedFloor = provider.selectedFloor;
@@ -51,7 +42,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     _selectedActivity = provider.selectedActivity;
     _selectedActivityId = provider.selectedActivityId;
   }
-
   bool get _canContinue =>
       _selectedProjectId != null &&
       _selectedProjectId!.isNotEmpty &&
@@ -61,7 +51,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       _selectedPhase!.isNotEmpty &&
       _selectedActivity != null &&
       _selectedActivity!.isNotEmpty;
-
   String? _derivePhaseId(String? phaseName) {
     if (phaseName == null || phaseName.isEmpty || _selectedProjectId == null) {
       return null;
@@ -77,7 +66,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     }
     return null;
   }
-
   String? _deriveActivityId(String? activityName) {
     if (activityName == null ||
         activityName.isEmpty ||
@@ -97,7 +85,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     }
     return null;
   }
-
   void _onContinue() {
     bool valid = true;
     setState(() {
@@ -105,7 +92,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       _floorError = null;
       _phaseError = null;
       _activityError = null;
-
       if (_selectedProjectId == null || _selectedProjectId!.isEmpty) {
         _projectError = 'Please select a project';
         valid = false;
@@ -123,13 +109,10 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
         valid = false;
       }
     });
-
     if (!valid) return;
-
     final phaseId = _selectedPhaseId ?? _derivePhaseId(_selectedPhase);
     final activityId =
         _selectedActivityId ?? _deriveActivityId(_selectedActivity);
-
     final provider = Provider.of<ProjectProvider>(context, listen: false);
     if (_selectedProjectId != provider.selectedProject?.id) {
       final project = provider.projects.firstWhere(
@@ -140,7 +123,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     provider.selectFloor(_selectedFloor);
     provider.selectPhase(_selectedPhase, phaseId);
     provider.selectActivity(_selectedActivity, activityId);
-
     Navigator.pushNamed(
       context,
       '/choose-entry-mode',
@@ -156,7 +138,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       },
     );
   }
-
   String get _entryTypeLabel {
     switch (_entryType) {
       case 'labour':
@@ -167,7 +148,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
         return 'Material';
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,7 +206,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     const Text(
                       'Where is this\nwork happening?',
                       style: TextStyle(
@@ -247,10 +226,8 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     _buildStepIndicator(),
                     const SizedBox(height: 24),
-
                     ExecutionContextCard(
                       selectedProjectId: _selectedProjectId,
                       selectedFloor: _selectedFloor,
@@ -334,14 +311,12 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                 ),
               ),
             ),
-
             _buildBottomBar(),
           ],
         ),
       ),
     );
   }
-
   Widget _buildStepIndicator() {
     return Row(
       children: [
@@ -355,7 +330,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       ],
     );
   }
-
   Widget _stepDot(
     int step,
     String label, {
@@ -370,7 +344,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     final Color textColor = (done || active)
         ? Colors.white
         : AppColors.textLight;
-
     return Column(
       children: [
         AnimatedContainer(
@@ -407,7 +380,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       ],
     );
   }
-
   Widget _stepLine({bool done = false}) {
     return Expanded(
       child: Container(
@@ -420,7 +392,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
       ),
     );
   }
-
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -465,7 +436,6 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
                   ],
                 ),
               ),
-
             SizedBox(
               width: double.infinity,
               height: 52,

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/controller/role_manager.dart';
-
 class NavController extends ChangeNotifier {
   String _currentRoute = '/home';
   String get currentRoute => _currentRoute;
-
   int get index {
     switch (_currentRoute) {
       case '/home':
@@ -21,7 +19,6 @@ class NavController extends ChangeNotifier {
         return 0;
     }
   }
-
   bool isRouteEnabled(String route) {
     if (route == '/home') return true;
     if (route == '/projects') return RoleManager.canViewProjects;
@@ -30,16 +27,12 @@ class NavController extends ChangeNotifier {
     if (route == '/reports') return RoleManager.canViewReports;
     return false;
   }
-
   void setRoute(String route, BuildContext context) {
     if (!isRouteEnabled(route)) return;
-
     _currentRoute = route;
     notifyListeners();
-
     Navigator.pushNamedAndRemoveUntil(context, route, (r) => false);
   }
-
   List<String> get routes {
     final items = <String>['/home'];
     if (RoleManager.canViewProjects) items.add('/projects');
@@ -48,7 +41,6 @@ class NavController extends ChangeNotifier {
     if (RoleManager.canViewReports) items.add('/reports');
     return items;
   }
-
   void setIndex(int newIndex, BuildContext context) {
     final routeMap = {
       0: '/home',

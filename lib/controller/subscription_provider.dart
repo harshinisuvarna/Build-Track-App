@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 enum SubscriptionPlan { free, starter, growth, pro, business, enterprise }
-
 extension SubscriptionPlanX on SubscriptionPlan {
   String get label {
     switch (this) {
@@ -21,7 +19,6 @@ extension SubscriptionPlanX on SubscriptionPlan {
         return 'Enterprise';
     }
   }
-
   String get badge {
     switch (this) {
       case SubscriptionPlan.free:
@@ -38,7 +35,6 @@ extension SubscriptionPlanX on SubscriptionPlan {
         return 'ENTERPRISE';
     }
   }
-
   int get maxUsers {
     switch (this) {
       case SubscriptionPlan.free:
@@ -55,7 +51,6 @@ extension SubscriptionPlanX on SubscriptionPlan {
         return 999999;
     }
   }
-
   int get maxProjects {
     switch (this) {
       case SubscriptionPlan.free:
@@ -72,7 +67,6 @@ extension SubscriptionPlanX on SubscriptionPlan {
         return -1;
     }
   }
-
   static SubscriptionPlan fromString(String? value) {
     switch (value?.toLowerCase().trim()) {
       case 'starter':
@@ -90,9 +84,7 @@ extension SubscriptionPlanX on SubscriptionPlan {
     }
   }
 }
-
 enum SubscriptionStatus { active, expired, unknown }
-
 class SubscriptionProvider extends ChangeNotifier {
   SubscriptionPlan _currentPlan = SubscriptionPlan.free;
   SubscriptionStatus _status = SubscriptionStatus.unknown;
@@ -100,24 +92,18 @@ class SubscriptionProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _error = '';
   DateTime? _expiryDate;
-
   SubscriptionPlan get currentPlan => _currentPlan;
   SubscriptionStatus get status => _status;
   bool get isPurchasing => _isPurchasing;
   bool get isLoading => _isLoading;
   String get error => _error;
   DateTime? get expiryDate => _expiryDate;
-
   DateTime? get renewalDate => _expiryDate;
-
   bool get isPaid => _currentPlan != SubscriptionPlan.free;
-
   Map<String, dynamic>? _pendingPaymentParams;
   Map<String, dynamic>? get pendingPaymentParams => _pendingPaymentParams;
-
   Future<void> fetchStatus() async {
     await _loadPersistedSubscription();
-
     if (_currentPlan != SubscriptionPlan.free ||
         _status != SubscriptionStatus.unknown) {
       _isLoading = false;
@@ -125,25 +111,21 @@ class SubscriptionProvider extends ChangeNotifier {
       _fetchStatusFromNetwork();
       return;
     }
-
     _isLoading = true;
     _error = '';
     notifyListeners();
     await _fetchStatusFromNetwork();
   }
-
   Future<void> _fetchStatusFromNetwork() async {
     try {
       final data = await BillingService.fetchStatus();
       if (data != null && data['hasSubscription'] == true) {
         _currentPlan = SubscriptionPlanX.fromString(data['plan']?.toString());
-
         if (data['endDate'] != null) {
           _expiryDate = DateTime.tryParse(data['endDate'].toString());
         } else {
           _expiryDate = null;
         }
-
         if (_expiryDate != null && _expiryDate!.isAfter(DateTime.now())) {
           _status = SubscriptionStatus.active;
         } else if (_expiryDate != null) {
@@ -166,13 +148,11 @@ class SubscriptionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   Future<Map<String, dynamic>?> purchase(String productId) async {
     if (_isPurchasing) return null;
     _isPurchasing = true;
     _error = '';
     notifyListeners();
-
     try {
       final params = await BillingService.initiatePayment(productId);
       if (params == null) {
@@ -189,7 +169,6 @@ class SubscriptionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   Future<void> restore() async {
     _isLoading = true;
     _error = '';
@@ -206,7 +185,6 @@ class SubscriptionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   Future<void> handlePaymentResult(bool success) async {
     _pendingPaymentParams = null;
     if (success) {
@@ -216,12 +194,10 @@ class SubscriptionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   void clearError() {
     _error = '';
     notifyListeners();
   }
-
   void clear() {
     _currentPlan = SubscriptionPlan.free;
     _status = SubscriptionStatus.unknown;
@@ -230,7 +206,6 @@ class SubscriptionProvider extends ChangeNotifier {
     _pendingPaymentParams = null;
     notifyListeners();
   }
-
   Future<void> _persistSubscription() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -248,14 +223,12 @@ class SubscriptionProvider extends ChangeNotifier {
       debugPrint('Persist subscription error: $e');
     }
   }
-
   Future<void> _loadPersistedSubscription() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final planStr = prefs.getString('buildtrack_subscription_plan');
       final statusStr = prefs.getString('buildtrack_subscription_status');
       final expiryStr = prefs.getString('buildtrack_subscription_expiry');
-
       if (planStr != null) {
         _currentPlan = SubscriptionPlan.values.firstWhere(
           (e) => e.name == planStr,

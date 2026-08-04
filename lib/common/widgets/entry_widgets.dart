@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/common/utils/currency_formatter.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
-
 const Map<String, List<String>> kInventoryUnits = {
   'Weight': ['kg', 'ton', 'gram'],
   'Volume': ['litre', 'm³', 'cum'],
@@ -17,19 +16,16 @@ const Map<String, List<String>> kInventoryUnits = {
   'Length': ['ft', 'sq.ft', 'meter', 'rmt'],
   'Construction': ['bundle', 'drum', 'pallet', 'set', 'coil'],
 };
-
 const Map<String, List<String>> kLabourUnits = {
   'Time Based': ['Day', 'Hour', 'Week', 'Month'],
   'Area Based': ['Sq ft', 'Sq meter', 'Rmt'],
   'Job Based': ['Job Basis', 'Contract', 'Lump Sum'],
 };
-
 const Map<String, List<String>> kEquipmentUnits = {
   'Time Based': ['Hour', 'Day', 'Week', 'Month'],
   'Trip Based': ['Trip', 'Load', 'Shift'],
   'Fixed': ['Job Basis', 'Lump Sum'],
 };
-
 const List<String> kAllInventoryUnits = [
   'kg',
   'ton',
@@ -53,7 +49,6 @@ const List<String> kAllInventoryUnits = [
   'set',
   'coil',
 ];
-
 String normalizeUnit(String raw) {
   final s = raw.trim().toLowerCase();
   const aliases = <String, String>{
@@ -105,12 +100,10 @@ String normalizeUnit(String raw) {
   };
   return aliases[s] ?? s;
 }
-
 const _kBlue = AppColors.primary;
 const _kGray = AppColors.textLight;
 const _kDark = AppColors.textDark;
 const _kRed = AppColors.error;
-
 class EntrySectionCard extends StatelessWidget {
   const EntrySectionCard({
     super.key,
@@ -121,7 +114,6 @@ class EntrySectionCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry margin;
   final EdgeInsetsGeometry padding;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -143,7 +135,6 @@ class EntrySectionCard extends StatelessWidget {
     );
   }
 }
-
 class EntryCardHeader extends StatelessWidget {
   const EntryCardHeader({
     super.key,
@@ -193,7 +184,6 @@ class EntryCardHeader extends StatelessWidget {
     );
   }
 }
-
 class EntryFieldLabel extends StatelessWidget {
   const EntryFieldLabel(this.label, {super.key, this.required = false});
   final String label;
@@ -222,7 +212,6 @@ class EntryFieldLabel extends StatelessWidget {
     );
   }
 }
-
 class EntryUnderlineField extends StatelessWidget {
   const EntryUnderlineField({
     super.key,
@@ -236,7 +225,6 @@ class EntryUnderlineField extends StatelessWidget {
     this.readOnly = false,
     this.error,
   });
-
   final TextEditingController controller;
   final String hint;
   final String? prefix;
@@ -246,7 +234,6 @@ class EntryUnderlineField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final bool readOnly;
   final String? error;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -314,12 +301,10 @@ class EntryUnderlineField extends StatelessWidget {
     );
   }
 }
-
 class EntryNotesField extends StatelessWidget {
   const EntryNotesField({super.key, required this.controller, this.hint});
   final TextEditingController controller;
   final String? hint;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -349,7 +334,6 @@ class EntryNotesField extends StatelessWidget {
     );
   }
 }
-
 class EntryDropdownField<T> extends StatelessWidget {
   const EntryDropdownField({
     super.key,
@@ -360,25 +344,21 @@ class EntryDropdownField<T> extends StatelessWidget {
     this.enabled = true,
     this.error,
   });
-
   final T? value;
   final String hint;
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?>? onChanged;
   final bool enabled;
   final String? error;
-
   @override
   Widget build(BuildContext context) {
     final bool hasValue = items.any((item) => item.value == value);
     final T? safeValue = hasValue ? value : null;
-
     final borderColor = error != null
         ? _kRed
         : enabled
         ? _kBlue
         : _kGray;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -421,7 +401,6 @@ class EntryDropdownField<T> extends StatelessWidget {
     );
   }
 }
-
 class UnitSelectorField extends StatelessWidget {
   const UnitSelectorField({
     super.key,
@@ -431,13 +410,11 @@ class UnitSelectorField extends StatelessWidget {
     this.hint = 'Select Unit',
     this.error,
   });
-
   final String? value;
   final ValueChanged<String?> onChanged;
   final Map<String, List<String>>? units;
   final String hint;
   final String? error;
-
   @override
   Widget build(BuildContext context) {
     final bool hasValue = value != null && value!.isNotEmpty;
@@ -490,7 +467,6 @@ class UnitSelectorField extends StatelessWidget {
       ],
     );
   }
-
   void _showUnitSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -504,7 +480,6 @@ class UnitSelectorField extends StatelessWidget {
     );
   }
 }
-
 class _UnitPickerSheet extends StatefulWidget {
   const _UnitPickerSheet({
     required this.currentValue,
@@ -514,21 +489,17 @@ class _UnitPickerSheet extends StatefulWidget {
   final String? currentValue;
   final ValueChanged<String> onSelected;
   final Map<String, List<String>> units;
-
   @override
   State<_UnitPickerSheet> createState() => _UnitPickerSheetState();
 }
-
 class _UnitPickerSheetState extends State<_UnitPickerSheet> {
   final _searchCtrl = TextEditingController();
   String _query = '';
-
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
   }
-
   Map<String, List<String>> get _filtered {
     if (_query.isEmpty) return widget.units;
     final q = _query.toLowerCase();
@@ -539,12 +510,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
     });
     return result;
   }
-
   void _pick(BuildContext ctx, String unit) {
     Navigator.pop(ctx);
     widget.onSelected(unit);
   }
-
   Future<void> _addCustom(BuildContext ctx) async {
     final ctrl = TextEditingController();
     final confirmed = await showDialog<bool>(
@@ -587,12 +556,10 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
     }
     ctrl.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
     final botPad = MediaQuery.of(context).viewInsets.bottom;
-
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFF4F5FF),
@@ -616,7 +583,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
               ),
             ),
             const SizedBox(height: 6),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
               child: Row(
@@ -651,7 +617,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
               child: TextField(
@@ -674,7 +639,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
                 ),
               ),
             ),
-
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 360),
               child: filtered.isEmpty
@@ -770,7 +734,6 @@ class _UnitPickerSheetState extends State<_UnitPickerSheet> {
     );
   }
 }
-
 class ExecutionContextCard extends StatelessWidget {
   const ExecutionContextCard({
     super.key,
@@ -787,7 +750,6 @@ class ExecutionContextCard extends StatelessWidget {
     this.phaseError,
     this.activityError,
   });
-
   final String? selectedProjectId;
   final String? selectedFloor;
   final dynamic selectedPhase;
@@ -800,21 +762,18 @@ class ExecutionContextCard extends StatelessWidget {
   final String? floorError;
   final String? phaseError;
   final String? activityError;
-
   @override
   Widget build(BuildContext context) {
     return Builder(
       builder: (ctx) {
         final provider = ctx.watch<ProjectProvider>();
         final projects = provider.projects;
-
         final ProjectModel? selProject = selectedProjectId == null
             ? null
             : projects.cast<ProjectModel?>().firstWhere(
                 (p) => p?.id == selectedProjectId,
                 orElse: () => null,
               );
-
         const List<String> defaultFloors = [
           'Basement',
           'Ground Floor',
@@ -829,7 +788,6 @@ class ExecutionContextCard extends StatelessWidget {
         if (selectedFloor != null && !floors.contains(selectedFloor)) {
           floors.insert(0, selectedFloor!);
         }
-
         String? selPhaseName;
         if (selectedPhase is String) {
           selPhaseName = selectedPhase as String;
@@ -857,20 +815,16 @@ class ExecutionContextCard extends StatelessWidget {
             selPhaseName = selectedPhase.toString();
           }
         }
-
         List<String> visiblePhaseNames;
         List<String> activities;
-
         final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
         final bool hasNewWorkflow =
             projectPhases != null && projectPhases.isNotEmpty;
-
         if (hasNewWorkflow) {
           visiblePhaseNames = projectPhases
               .where((p) => p.activities.isNotEmpty)
               .map((p) => p.phaseName)
               .toList();
-
           final ProjectPhase? selPhase = selPhaseName != null
               ? projectPhases.cast<ProjectPhase?>().firstWhere(
                   (p) => p?.phaseName == selPhaseName,
@@ -893,7 +847,6 @@ class ExecutionContextCard extends StatelessWidget {
                     .where((p) => legacyPhaseNames.contains(p.name))
                     .toList();
           visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
-
           final ConstructionPhase? selPhase = selPhaseName != null
               ? allPhases.cast<ConstructionPhase?>().firstWhere(
                   (p) => p?.name == selPhaseName,
@@ -904,7 +857,6 @@ class ExecutionContextCard extends StatelessWidget {
               ? selPhase.allActivities.map<String>((a) => a.name).toList()
               : <String>[];
         }
-
         if (selPhaseName != null && !visiblePhaseNames.contains(selPhaseName)) {
           visiblePhaseNames.insert(0, selPhaseName);
         }
@@ -912,7 +864,6 @@ class ExecutionContextCard extends StatelessWidget {
             !activities.contains(selectedActivity)) {
           activities.insert(0, selectedActivity!);
         }
-
         return EntrySectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1011,7 +962,6 @@ class ExecutionContextCard extends StatelessWidget {
     );
   }
 }
-
 class CostSummaryCard extends StatelessWidget {
   const CostSummaryCard({
     super.key,
@@ -1019,11 +969,9 @@ class CostSummaryCard extends StatelessWidget {
     required this.label,
     required this.subtotals,
   });
-
   final double totalAmount;
   final String label;
   final List<(String, String)> subtotals;
-
   @override
   Widget build(BuildContext context) {
     return EntrySectionCard(
@@ -1071,7 +1019,6 @@ class CostSummaryCard extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 6),
           const Divider(color: Color(0xFFF0EEF8), thickness: 1),
           const SizedBox(height: 14),
@@ -1148,7 +1095,6 @@ class CostSummaryCard extends StatelessWidget {
     );
   }
 }
-
 class VoiceParseCard extends StatelessWidget {
   const VoiceParseCard({
     super.key,
@@ -1157,16 +1103,13 @@ class VoiceParseCard extends StatelessWidget {
     this.timestamp,
     this.entryTypeLabel = 'Material',
   });
-
   final String transcript;
   final double confidence;
   final String? timestamp;
   final String entryTypeLabel;
-
   @override
   Widget build(BuildContext context) {
     final ts = timestamp ?? TimeOfDay.now().format(context);
-
     return EntrySectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1291,7 +1234,6 @@ class VoiceParseCard extends StatelessWidget {
     );
   }
 }
-
 class EntrySubmitButton extends StatelessWidget {
   const EntrySubmitButton({
     super.key,
@@ -1300,12 +1242,10 @@ class EntrySubmitButton extends StatelessWidget {
     required this.isLoading,
     required this.onTap,
   });
-
   final String label;
   final IconData icon;
   final bool isLoading;
   final VoidCallback? onTap;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -1358,11 +1298,9 @@ class EntrySubmitButton extends StatelessWidget {
     );
   }
 }
-
 class EntryErrorText extends StatelessWidget {
   const EntryErrorText(this.message, {super.key});
   final String message;
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1378,13 +1316,10 @@ class EntryErrorText extends StatelessWidget {
     );
   }
 }
-
 enum PaymentStatus { paid, partial, pending, overdue }
-
 class PaymentStatusChip extends StatelessWidget {
   const PaymentStatusChip({super.key, required this.status});
   final PaymentStatus status;
-
   String get _label {
     switch (status) {
       case PaymentStatus.paid:
@@ -1397,7 +1332,6 @@ class PaymentStatusChip extends StatelessWidget {
         return 'Overdue';
     }
   }
-
   Color get _fg {
     switch (status) {
       case PaymentStatus.paid:
@@ -1410,7 +1344,6 @@ class PaymentStatusChip extends StatelessWidget {
         return const Color(0xFFDC2626);
     }
   }
-
   Color get _bg {
     switch (status) {
       case PaymentStatus.paid:
@@ -1423,7 +1356,6 @@ class PaymentStatusChip extends StatelessWidget {
         return const Color(0xFFFEE2E2);
     }
   }
-
   IconData get _icon {
     switch (status) {
       case PaymentStatus.paid:
@@ -1436,7 +1368,6 @@ class PaymentStatusChip extends StatelessWidget {
         return Icons.warning_amber_outlined;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1448,7 +1379,6 @@ class PaymentStatusChip extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        // mainAxisSize: MainAxisSize.min,
         children: [
           Icon(_icon, color: _fg, size: 16),
           const SizedBox(width: 4),
@@ -1458,8 +1388,6 @@ class PaymentStatusChip extends StatelessWidget {
               color: _fg,
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              // letterSpacing: 0.5,
-              // height: 1,
             ),
           ),
         ],
@@ -1467,7 +1395,6 @@ class PaymentStatusChip extends StatelessWidget {
     );
   }
 }
-
 class PaymentSummaryBanner extends StatelessWidget {
   const PaymentSummaryBanner({
     super.key,
@@ -1476,12 +1403,10 @@ class PaymentSummaryBanner extends StatelessWidget {
     required this.pendingCount,
     required this.onSettle,
   });
-
   final double totalBilled;
   final double totalPaid;
   final int pendingCount;
   final VoidCallback onSettle;
-
   @override
   Widget build(BuildContext context) {
     final outstanding = (totalBilled - totalPaid).clamp(0.0, double.infinity);
@@ -1489,7 +1414,6 @@ class PaymentSummaryBanner extends StatelessWidget {
         ? (totalPaid / totalBilled).clamp(0.0, 1.0)
         : 0.0;
     final pctLabel = '${(paidRatio * 100).toStringAsFixed(0)}%';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(18),
@@ -1599,7 +1523,6 @@ class PaymentSummaryBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
           Row(
             children: [
               _chip(Icons.check_circle_outline, '$pctLabel paid'),
@@ -1618,7 +1541,6 @@ class PaymentSummaryBanner extends StatelessWidget {
       ),
     );
   }
-
   Widget _chip(IconData icon, String label) {
     return Container(
       height: 24,
@@ -1646,7 +1568,6 @@ class PaymentSummaryBanner extends StatelessWidget {
     );
   }
 }
-
 Future<Map<String, dynamic>?> showPaymentSheet(
   BuildContext context, {
   required String entryTitle,
@@ -1663,7 +1584,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   final amountCtrl = TextEditingController(text: initialAmount != null ? initialAmount.toString() : '');
   final noteCtrl = TextEditingController(text: initialNote ?? '');
   final outstanding = (totalAmount - alreadyPaid).clamp(0.0, double.infinity);
-
   PaymentStatus selectedStatus = outstanding > 0
       ? (alreadyPaid > 0 ? PaymentStatus.partial : PaymentStatus.pending)
       : PaymentStatus.paid;
@@ -1674,25 +1594,20 @@ Future<Map<String, dynamic>?> showPaymentSheet(
   DateTime selectedPaymentDate = initialDate ?? DateTime.now();
   bool requestEsign = false;
   final emailCtrl = TextEditingController();
-
   bool isEsignPolling = false;
   bool isEsignCompleted = false;
   String esignStatusText = '';
-  
   Future<void> startEsignFlow(StateSetter ss) async {
-    
     final amt = double.tryParse(amountCtrl.text);
     if (amt == null || amt <= 0) {
       ss(() => amountError = 'Please enter a valid amount before requesting an E-Signature.');
       return;
     }
-    
     if (emailCtrl.text.isEmpty) return;
     ss(() {
       isEsignPolling = true;
       esignStatusText = 'Sending request...';
     });
-    
     final meta = {
       'projectName': entryTitle,
       'type': category,
@@ -1701,7 +1616,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
       'notes': noteCtrl.text.trim(),
       'date': selectedPaymentDate.toIso8601String(),
     };
-
     final res = await ApiService.requestEsignature(emailCtrl.text.trim(), meta);
     if (res == null || res['requestId'] == null) {
       ss(() {
@@ -1710,17 +1624,13 @@ Future<Map<String, dynamic>?> showPaymentSheet(
       });
       return;
     }
-    
     ss(() {
       esignStatusText = 'Waiting for client to sign...';
     });
-    
     final reqId = res['requestId'];
-    
     while (isEsignPolling) {
       await Future.delayed(const Duration(seconds: 3));
       if (!isEsignPolling) break;
-      
       final statusRes = await ApiService.checkEsignatureStatus(reqId);
       if (statusRes != null && statusRes['status'] == 'signed') {
         ss(() {
@@ -1733,8 +1643,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
       }
     }
   }
-
-
   const pMethods = [
     {'label': 'UPI', 'icon': Icons.phone_android_outlined},
     {'label': 'Cash', 'icon': Icons.money_outlined},
@@ -1742,7 +1650,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
     {'label': 'Card', 'icon': Icons.credit_card_outlined},
     {'label': 'Cheque', 'icon': Icons.description_outlined},
   ];
-
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
@@ -1752,7 +1659,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
       builder: (ctx, ss) {
         final inset = MediaQuery.of(ctx).viewInsets.bottom;
         final botPad = MediaQuery.of(ctx).padding.bottom;
-
         String helperText;
         if (selectedStatus == PaymentStatus.paid) {
           helperText = 'Full settlement — ${formatCurrency(outstanding)}';
@@ -1769,13 +1675,11 @@ Future<Map<String, dynamic>?> showPaymentSheet(
               ? 'Remaining: ${formatCurrency(rem)}'
               : 'Full settlement via partial recording';
         }
-
         return LayoutBuilder(
           builder: (ctx, constraints) {
             final parentW = constraints.maxWidth;
             final chipW = (parentW - 40) / 2;
             final fullW = parentW - 32;
-
             return Padding(
               padding: EdgeInsets.only(bottom: inset),
               child: Container(
@@ -1800,7 +1704,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                         ),
                       ),
                       const SizedBox(height: 12),
-
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
@@ -1836,7 +1739,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                         ),
                       ),
                       const SizedBox(height: 12),
-
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -1934,7 +1836,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                           ],
                         ),
                       ),
-
                       Flexible(
                         child: SingleChildScrollView(
                           physics: const ClampingScrollPhysics(),
@@ -2003,7 +1904,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                 ],
                               ),
                               const SizedBox(height: 16),
-
                               const _SheetSectionLabel(
                                 'ACTUAL AMOUNT PAID (₹)',
                               ),
@@ -2117,7 +2017,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                   ),
                                 ),
                               ),
-
                               const _SheetSectionLabel('PAYMENT METHOD'),
                               const SizedBox(height: 8),
                               Wrap(
@@ -2192,7 +2091,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                       style: const TextStyle(fontSize: 14, color: _kDark, fontWeight: FontWeight.w500),
                                     ),
                                   ),
-
                             if (requestEsign && !isEsignCompleted) ...[
                               const SizedBox(height: 8),
                               SizedBox(
@@ -2229,10 +2127,8 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                                  )
                                )
                             ],
-
                               ],
                               const SizedBox(height: 16),
-
                               const _SheetSectionLabel('PAYMENT RECEIPT'),
                               const SizedBox(height: 8),
                               GestureDetector(
@@ -2417,7 +2313,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
                           ),
                         ),
                       ),
-
                       Container(
                         padding: EdgeInsets.fromLTRB(
                           16,
@@ -2569,7 +2464,6 @@ Future<Map<String, dynamic>?> showPaymentSheet(
     ),
   );
 }
-
 class _SheetSectionLabel extends StatelessWidget {
   const _SheetSectionLabel(this.label);
   final String label;
@@ -2584,7 +2478,6 @@ class _SheetSectionLabel extends StatelessWidget {
     ),
   );
 }
-
 Widget _pStatusCard(
   StateSetter ss,
   PaymentStatus current,
@@ -2635,7 +2528,6 @@ Widget _pStatusCard(
     ),
   );
 }
-
 Widget _pMethodChip(
   String label,
   IconData icon,
@@ -2689,18 +2581,14 @@ Widget _pMethodChip(
     ),
   );
 }
-
 class InvoiceAttachmentCard extends StatelessWidget {
   final PickedAttachment? attachment;
   final String? fileName;
-
   const InvoiceAttachmentCard({super.key, this.attachment, this.fileName});
-
   @override
   Widget build(BuildContext context) {
     final name = attachment?.name ?? fileName;
     final hasDoc = name != null && name.isNotEmpty;
-
     if (!hasDoc) {
       return Container(
         width: double.infinity,
@@ -2754,11 +2642,9 @@ class InvoiceAttachmentCard extends StatelessWidget {
         ),
       );
     }
-
     IconData iconData = Icons.insert_drive_file_outlined;
     Color iconColor = const Color(0xFF546E7A);
     Color iconBg = const Color(0xFFECEFF1);
-
     final lowerName = name.toLowerCase();
     if (attachment != null) {
       iconData = attachment!.icon;
@@ -2785,7 +2671,6 @@ class InvoiceAttachmentCard extends StatelessWidget {
         iconBg = const Color(0xFFE8F5E9);
       }
     }
-
     return GestureDetector(
       onTap: () {
         if (hasDoc) {
@@ -2901,16 +2786,12 @@ class InvoiceAttachmentCard extends StatelessWidget {
     );
   }
 }
-
 class PaymentReceiptCard extends StatelessWidget {
   final String? fileName;
-
   const PaymentReceiptCard({super.key, this.fileName});
-
   @override
   Widget build(BuildContext context) {
     final hasDoc = fileName != null && fileName!.isNotEmpty;
-
     if (!hasDoc) {
       return Container(
         width: double.infinity,
@@ -2964,12 +2845,10 @@ class PaymentReceiptCard extends StatelessWidget {
         ),
       );
     }
-
     final lowerName = fileName!.toLowerCase();
     IconData iconData = Icons.receipt_long_outlined;
     Color iconColor = const Color(0xFF15803D);
     Color iconBg = const Color(0xFFDCFCE7);
-
     if (lowerName.endsWith('.pdf')) {
       iconData = Icons.picture_as_pdf_outlined;
       iconColor = const Color(0xFFE53935);
@@ -2981,7 +2860,6 @@ class PaymentReceiptCard extends StatelessWidget {
       iconColor = const Color(0xFF15803D);
       iconBg = const Color(0xFFDCFCE7);
     }
-
     return GestureDetector(
       onTap: () => Navigator.pushNamed(
         context,

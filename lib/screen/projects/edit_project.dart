@@ -11,23 +11,19 @@ import 'dart:convert';
 import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
-
 class EditProjectScreen extends StatefulWidget {
   const EditProjectScreen({super.key, required this.project});
   final ProjectModel project;
   @override
   State<EditProjectScreen> createState() => _EditProjectScreenState();
 }
-
 class _EditProjectScreenState extends State<EditProjectScreen> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
-
   final _scrollController = ScrollController();
   final _formKey = GlobalKey<FormState>();
-
   late final TextEditingController _nameCtrl;
   late final TextEditingController _cityCtrl;
   late final TextEditingController _mapAddressCtrl;
@@ -42,32 +38,24 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   late final TextEditingController _budgetMiscCtrl;
   late final TextEditingController _customSubTypeCtrl;
   final _customStageNameCtrl = TextEditingController();
-
   late DateTime _startDate;
   DateTime? _expectedEndDate;
   late String _projectStatus;
   late String _landUnit;
-
   String? _mainBuildingType;
   String? _buildingSubType;
   bool _isCustomSubType = false;
   String? _buildingTypeError;
-
   late List<String> _selectedFloorChips;
-
   late int _room1BHKCount, _room2BHKCount, _room3BHKCount, _roomCustomCount;
   late int _bathWesternCount,
       _bathIndianCount,
       _bathCommonCount,
       _bathAttachedCount;
   late Set<String> _additionalConfigs;
-
   late ProjectModel _currentProject;
-
   late List<ConstructionPhase> _phases;
-
   Map<String, ProjectActivity> _existingActivityById = {};
-
   bool _saving = false;
   bool _loading = true;
   bool _basicExpanded = true;
@@ -81,7 +69,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   bool _electricalExpanded = true;
   bool _terraceExpanded = true;
   bool _datesExpanded = true;
-
   static const Map<String, List<String>> _buildingSubTypes = {
     'Residential': [
       '1 BHK',
@@ -101,7 +88,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     'Commercial': ['Shop', 'Office', 'Complex', 'Plaza', 'Other (Custom)'],
     'Industrial': ['Factory', 'Warehouse', 'Other (Custom)'],
   };
-
   final List<String> _statusOptions = [
     'Planning',
     'In Progress',
@@ -109,7 +95,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     'Completed',
     'Cancelled',
   ];
-
   final List<String> _floorChipOptions = [
     'Ground',
     '1st',
@@ -119,7 +104,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     'Terrace',
     'Head Room',
   ];
-
   static const _kAddlConfigEdit = [
     'Balcony',
     'Car Parking',
@@ -186,10 +170,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     'Overhead Tank',
     'Solar Panels',
   ];
-
   String _normalizeFloor(String f) {
     final lower = f.trim().toLowerCase();
-
     const shortLabels = [
       'Ground',
       '1st',
@@ -202,7 +184,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     for (final label in shortLabels) {
       if (f.trim() == label) return label;
     }
-
     if (lower.contains('ground')) return 'Ground';
     if (lower.startsWith('1') ||
         lower.contains('first') ||
@@ -226,10 +207,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     }
     if (lower.contains('terrace')) return 'Terrace';
     if (lower.contains('head') || lower.contains('room')) return 'Head Room';
-
     return f.trim();
   }
-
   String _resolveStatus(String? raw) {
     if (raw == null || raw.isEmpty) return 'Planning';
     final lower = raw
@@ -237,16 +216,13 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         .toLowerCase()
         .replaceAll(' ', '')
         .replaceAll('_', '');
-
     if (lower == 'active') return 'In Progress';
     if (lower == 'onhold') return 'On Hold';
     if (lower == 'completed') return 'Completed';
     if (lower == 'reviewneeded') return 'On Hold';
-
     if (lower == 'planning') return 'Planning';
     if (lower == 'inprogress') return 'In Progress';
     if (lower == 'cancelled') return 'Cancelled';
-
     if (lower.contains('progress') || lower.contains('active')) {
       return 'In Progress';
     }
@@ -254,7 +230,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     if (lower.contains('complet')) return 'Completed';
     if (lower.contains('cancel')) return 'Cancelled';
     if (lower.contains('plan')) return 'Planning';
-
     for (final opt in [
       'Planning',
       'In Progress',
@@ -266,11 +241,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     }
     return 'Planning';
   }
-
   @override
   void initState() {
     super.initState();
-
     _nameCtrl = TextEditingController();
     _cityCtrl = TextEditingController();
     _mapAddressCtrl = TextEditingController();
@@ -299,14 +272,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _landUnit = 'Sq ft';
     _currentProject = widget.project;
     _phases = buildDefaultPhases();
-
     _populateFrom(widget.project);
     _fetchFreshAndPopulate();
   }
-
   void _populateFrom(ProjectModel p) {
     _currentProject = p;
-
     _nameCtrl.text = p.name;
     _cityCtrl.text = p.city.isNotEmpty
         ? p.city
@@ -330,15 +300,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _budgetMiscCtrl.text = p.budgetMisc != null && p.budgetMisc! > 0
         ? p.budgetMisc!.toStringAsFixed(0)
         : '';
-
     _startDate = p.startDate;
     _expectedEndDate = p.expectedEndDate;
     _projectStatus = _resolveStatus(p.projectStatus);
-
     _landUnit = p.landUnit ?? 'Sq ft';
     const landUnits = ['Sq ft', 'Sq m', 'Acres', 'Hectares'];
     if (!landUnits.contains(_landUnit)) _landUnit = 'Sq ft';
-
     _mainBuildingType = null;
     _buildingSubType = null;
     _isCustomSubType = false;
@@ -350,7 +317,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       } else if (raw.contains('Business/Commercial')) {
         raw = raw.replaceFirst('Business/Commercial', 'Commercial');
       }
-
       final sepIndex = raw.contains('→')
           ? raw.indexOf('→')
           : raw.contains('/')
@@ -359,7 +325,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       if (sepIndex != -1) {
         final mainPart = raw.substring(0, sepIndex).trim();
         final subPart = raw.substring(sepIndex + 1).trim();
-
         if (_buildingSubTypes.containsKey(mainPart)) {
           _mainBuildingType = mainPart;
           if (subPart.isNotEmpty && subPart != 'General') {
@@ -379,13 +344,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         }
       }
     }
-
     final rawFloors = p.floors ?? [];
     _selectedFloorChips = rawFloors
         .map((f) => _normalizeFloor(f))
         .where((f) => _floorChipOptions.contains(f))
         .toList();
-
     _room1BHKCount = p.room1BHK ?? 0;
     _room2BHKCount = p.room2BHK ?? 0;
     _room3BHKCount = p.room3BHK ?? 0;
@@ -394,9 +357,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _bathIndianCount = p.bathIndian ?? 0;
     _bathCommonCount = p.bathCommon ?? 0;
     _bathAttachedCount = p.bathAttached ?? 0;
-
     _additionalConfigs = Set<String>.from(p.selectedFeatures ?? []);
-
     _existingActivityById = {};
     final existingPhaseNames = <String>{};
     for (final ph in p.selectedPhases ?? <ProjectPhase>[]) {
@@ -410,9 +371,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         _existingActivityById[matchKey] = act;
       }
     }
-
     final freshPhases = buildDefaultPhases();
-
     for (final phase in freshPhases) {
       bool phaseHasSelection = false;
       for (final act in phase.allActivities) {
@@ -442,7 +401,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         phase.isExpanded = true;
       }
     }
-
     for (final ph in p.selectedPhases ?? <ProjectPhase>[]) {
       final idx = freshPhases.indexWhere((cp) => cp.name == ph.phaseName);
       if (idx == -1) {
@@ -504,10 +462,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         }
       }
     }
-
     _phases = freshPhases;
   }
-
   Future<void> _fetchFreshAndPopulate() async {
     try {
       final fresh = await ApiService.fetchProjectById(widget.project.id);
@@ -519,10 +475,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         return;
       }
     } catch (_) {}
-
     if (mounted) setState(() => _loading = false);
   }
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -542,7 +496,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     _customStageNameCtrl.dispose();
     super.dispose();
   }
-
   Future<void> _pickDate({
     required DateTime initial,
     required ValueChanged<DateTime> onPicked,
@@ -567,7 +520,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       });
     }
   }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_mainBuildingType == null) {
@@ -583,9 +535,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       final bEq = parseBudget(_budgetEquipmentCtrl);
       final bMisc = parseBudget(_budgetMiscCtrl);
       final budgetTotal = bMat + bLab + bEq + bMisc;
-
       String? nn(String s) => s.trim().isEmpty ? null : s.trim();
-
       String? effectiveSubType = _buildingSubType;
       if (_isCustomSubType && _customSubTypeCtrl.text.trim().isNotEmpty) {
         effectiveSubType = _customSubTypeCtrl.text.trim();
@@ -596,11 +546,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             ? '$_mainBuildingType → $effectiveSubType'
             : _mainBuildingType;
       }
-
       final finalFloors = _selectedFloorChips.isEmpty
           ? <String>['Ground']
           : List<String>.from(_selectedFloorChips);
-
       final selectedPhaseNamesList = _phases
           .where((ph) => ph.isSelected)
           .map((ph) => ph.name)
@@ -610,12 +558,10 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           .where((a) => a.isSelected)
           .map((a) => a.key)
           .toList();
-
       final existingPhasesByName = <String, ProjectPhase>{
         for (final ph in _currentProject.selectedPhases ?? <ProjectPhase>[])
           ph.phaseName: ph,
       };
-
       final selectedPhasesList = _phases
           .where(
             (ph) => ph.isSelected && ph.allActivities.any((a) => a.isSelected),
@@ -652,13 +598,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             );
           })
           .toList();
-
       final completedActivityKeysList = selectedPhasesList
           .expand((ph) => ph.activities)
           .where((a) => a.completed)
           .map((a) => a.id)
           .toList();
-
       final updated = _currentProject.copyWith(
         name: _nameCtrl.text.trim(),
         city: _cityCtrl.text.trim(),
@@ -698,7 +642,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         selectedPhases: selectedPhasesList,
         completedActivityKeys: completedActivityKeysList,
       );
-
       await context.read<ProjectProvider>().updateProject(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -719,7 +662,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       if (mounted) setState(() => _saving = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -790,7 +732,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             if (_loading)
               Container(
                 width: double.infinity,
@@ -867,7 +808,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Basic Information',
                         isExpanded: _basicExpanded,
@@ -971,7 +911,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Building Type',
                         isExpanded: _buildingExpanded,
@@ -1081,7 +1020,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Land & Floors',
                         isExpanded: _landExpanded,
@@ -1138,7 +1076,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                             const SizedBox(height: 20),
                             _label('Floors Included'),
                             const SizedBox(height: 12),
-
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
@@ -1178,7 +1115,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                                 );
                               }).toList(),
                             ),
-
                             if (_selectedFloorChips.isNotEmpty) ...[
                               const SizedBox(height: 10),
                               Text(
@@ -1194,7 +1130,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Rooms & Bathrooms',
                         isExpanded: _roomsExpanded,
@@ -1290,7 +1225,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Additional Configuration',
                         isExpanded: _addlExpanded,
@@ -1299,7 +1233,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kAddlConfigEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Utility & Services',
                         isExpanded: _utilityExpanded,
@@ -1309,7 +1242,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kUtilityEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Gas Connection',
                         isExpanded: _gasExpanded,
@@ -1318,7 +1250,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kGasEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Kitchen Requirements',
                         isExpanded: _kitchenExpanded,
@@ -1328,7 +1259,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kKitchenEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Electrical & Plumbing',
                         isExpanded: _electricalExpanded,
@@ -1338,7 +1268,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kElectricalEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Terrace & Interior',
                         isExpanded: _terraceExpanded,
@@ -1348,7 +1277,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         child: _buildCheckboxGrid(_kTerraceEdit),
                       ),
                       const SizedBox(height: 16),
-
                       _buildAccordion(
                         title: 'Dates, Budget & Status',
                         isExpanded: _datesExpanded,
@@ -1544,10 +1472,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       _buildCsvImportExportCard(),
                       const SizedBox(height: 16),
-
                       _buildConstructionPhasesCard(),
                     ],
                   ),
@@ -1597,7 +1523,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _groupContainer({
     required IconData icon,
     required String title,
@@ -1634,7 +1559,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -1686,7 +1610,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _buildAccordion({
     required String title,
     required bool isExpanded,
@@ -1750,7 +1673,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _label(String text, {IconData? icon, bool uppercase = false}) {
     final tw = Text(
       uppercase ? text.toUpperCase() : text,
@@ -1771,7 +1693,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ],
     );
   }
-
   Widget _field({
     required TextEditingController controller,
     required String hint,
@@ -1820,7 +1741,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _buildDropdown({
     required String? value,
     required String hint,
@@ -1828,7 +1748,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     ValueChanged<String?>? onChanged,
   }) {
     final bool disabled = onChanged == null;
-
     final safeValue = (value != null && items.contains(value)) ? value : null;
     return Container(
       height: 48,
@@ -1869,7 +1788,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _counter(
     String title,
     int value, {
@@ -1935,7 +1853,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ],
     );
   }
-
   Widget _buildCheckboxGrid(List<String> options) {
     return LayoutBuilder(
       builder: (ctx, constraints) {
@@ -1990,7 +1907,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       },
     );
   }
-
   Widget _datePicker({
     DateTime? date,
     String? hint,
@@ -2035,7 +1951,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   Widget _buildConstructionPhasesCard() {
     final int total = _phases.fold(0, (s, p) => s + p.allActivities.length);
     final int done = _phases.fold(0, (s, p) => s + p.selectedCount);
@@ -2168,7 +2083,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ],
     );
   }
-
   Widget _buildPhaseAccordion(int index, ConstructionPhase phase) {
     return Container(
       key: ValueKey('phase_${phase.name}_$index'),
@@ -2428,7 +2342,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   void _showAddCustomStageDialog() {
     _customStageNameCtrl.clear();
     showDialog(
@@ -2497,11 +2410,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       ),
     );
   }
-
   void _showAddCustomActivityDialog(ConstructionPhase phase) {
     final ctrl = TextEditingController();
     final focusNode = FocusNode();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -2577,9 +2488,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       focusNode.dispose();
     });
   }
-
   bool _isUploadingCsv = false;
-
   Future<void> _downloadTemplate() async {
     final List<List<dynamic>> csvRows = [
       [
@@ -2597,7 +2506,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         'Total_Amount',
       ],
     ];
-
     for (final phase in _phases) {
       if (!phase.isSelected) continue;
       int slNo = 1;
@@ -2607,13 +2515,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         final double labAmt = act.budgetLabour ?? 0.0;
         final double eqAmt = act.budgetEquipment ?? 0.0;
         final double totAmt = matAmt + labAmt + eqAmt;
-
         final double qty = act.qty ?? 1.0;
         final String unit = act.unit ?? '';
         final double matRate = act.materialRate ?? 0.0;
         final double labRate = act.labourRate ?? 0.0;
         final double eqRate = act.equipmentRate ?? 0.0;
-
         csvRows.add([
           phase.name,
           slNo++,
@@ -2630,11 +2536,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         ]);
       }
     }
-
     final csvContent = const ListToCsvConverter().convert(csvRows);
     final filename =
         '${widget.project.name.replaceAll(' ', '_')}_phases_template.csv';
-
     try {
       await saveAndShareCsv(
         csvContent: csvContent,
@@ -2660,7 +2564,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       }
     }
   }
-
   Future<void> _uploadCsv() async {
     setState(() => _isUploadingCsv = true);
     try {
@@ -2669,57 +2572,43 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         allowedExtensions: ['csv'],
         withData: true,
       );
-
       if (result == null || result.files.isEmpty) {
         setState(() => _isUploadingCsv = false);
         return;
       }
-
       final fileBytes = result.files.first.bytes;
       if (fileBytes == null) {
         throw Exception("Failed to read file data");
       }
-
       final csvString = utf8.decode(fileBytes);
       final List<List<dynamic>> parsedCsv = const CsvToListConverter().convert(
         csvString,
       );
-
       if (parsedCsv.isEmpty || parsedCsv.length <= 1) {
         throw Exception("CSV file is empty or missing headers");
       }
-
       final headers = parsedCsv.first
           .map((h) => h.toString().trim().toLowerCase())
           .toList();
       final phaseIdx = headers.indexOf('phase');
       final particularIdx = headers.indexOf('particular');
-
       int qtyIdx = headers.indexOf('total_qty');
       if (qtyIdx == -1) qtyIdx = headers.indexOf('qty');
-
       final unitIdx = headers.indexOf('unit');
       final matRateIdx = headers.indexOf('material_rate');
-
       int matAmtIdx = headers.indexOf('budget_material_amount');
       if (matAmtIdx == -1) matAmtIdx = headers.indexOf('material_amount');
-
       final labRateIdx = headers.indexOf('labour_rate');
-
       int labAmtIdx = headers.indexOf('budget_labour_amount');
       if (labAmtIdx == -1) labAmtIdx = headers.indexOf('labour_amount');
-
       final eqRateIdx = headers.indexOf('equipment_rate');
-
       int eqAmtIdx = headers.indexOf('budget_equipment_amount');
       if (eqAmtIdx == -1) eqAmtIdx = headers.indexOf('equipment_amount');
-
       if (phaseIdx == -1 || particularIdx == -1) {
         throw Exception(
           "CSV is missing required 'Phase' or 'Particular' column headers",
         );
       }
-
       double? parseVal(dynamic v) {
         if (v == null) return null;
         if (v is num) return v.toDouble();
@@ -2728,49 +2617,41 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         final clean = str.replaceAll(RegExp(r'[^\d\.]'), '');
         return double.tryParse(clean);
       }
-
       int updatedCount = 0;
       double materialSum = 0.0;
       double labourSum = 0.0;
       double equipmentSum = 0.0;
-
       for (int i = 1; i < parsedCsv.length; i++) {
         final row = parsedCsv[i];
         final maxIdx = phaseIdx > particularIdx ? phaseIdx : particularIdx;
         if (row.length <= maxIdx) continue;
-
         final String phaseName = row[phaseIdx].toString().trim();
         final String activityName = row[particularIdx].toString().trim();
         if (phaseName.isEmpty || activityName.isEmpty) continue;
-
         final double? qty = qtyIdx != -1 && qtyIdx < row.length
             ? parseVal(row[qtyIdx])
             : null;
         final String unit = unitIdx != -1 && unitIdx < row.length
             ? row[unitIdx].toString().trim()
             : '';
-
         final double? matRate = matRateIdx != -1 && matRateIdx < row.length
             ? parseVal(row[matRateIdx])
             : null;
         double? matAmt = matAmtIdx != -1 && matAmtIdx < row.length
             ? parseVal(row[matAmtIdx])
             : null;
-
         final double? labRate = labRateIdx != -1 && labRateIdx < row.length
             ? parseVal(row[labRateIdx])
             : null;
         double? labAmt = labAmtIdx != -1 && labAmtIdx < row.length
             ? parseVal(row[labAmtIdx])
             : null;
-
         final double? eqRate = eqRateIdx != -1 && eqRateIdx < row.length
             ? parseVal(row[eqRateIdx])
             : null;
         double? eqAmt = eqAmtIdx != -1 && eqAmtIdx < row.length
             ? parseVal(row[eqAmtIdx])
             : null;
-
         int phaseIndex = _phases.indexWhere(
           (p) => p.name.trim().toLowerCase() == phaseName.toLowerCase(),
         );
@@ -2781,15 +2662,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           _phases.add(newPhase);
           phaseIndex = _phases.length - 1;
         }
-
         final phase = _phases[phaseIndex];
         phase.isSelected = true;
         phase.isExpanded = true;
-
         final actIndex = phase.allActivities.indexWhere(
           (a) => a.name.trim().toLowerCase() == activityName.toLowerCase(),
         );
-
         if (actIndex != -1) {
           final act = phase.allActivities[actIndex];
           act.isSelected = true;
@@ -2834,7 +2712,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           equipmentSum += eqAmt ?? 0.0;
         }
       }
-
       _budgetMaterialCtrl.text = materialSum > 0
           ? materialSum.toStringAsFixed(0)
           : '';
@@ -2844,9 +2721,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       _budgetEquipmentCtrl.text = equipmentSum > 0
           ? equipmentSum.toStringAsFixed(0)
           : '';
-
       setState(() {});
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2870,7 +2745,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       setState(() => _isUploadingCsv = false);
     }
   }
-
   Widget _buildCsvImportExportCard() {
     return Container(
       padding: const EdgeInsets.all(16),
