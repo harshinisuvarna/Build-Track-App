@@ -39,7 +39,7 @@ class _ReportsViewState extends State<_ReportsView> {
     EntryType.labour,
     EntryType.equipment,
   };
-  final String _selectedStatus = 'All';
+  String _selectedStatus = 'All';
   DateTime? _startDate;
   DateTime? _endDate;
   String _datePreset = 'All Time';
@@ -978,12 +978,32 @@ class _ReportsViewState extends State<_ReportsView> {
       if (!_selectedTypes.contains(entry.type)) {
         return false;
       }
-      if (quickCategoryTab != 'All' && _reportGenerated) {
+      if (quickCategoryTab != 'All') {
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
+          final projectName = getProjectName(entry.projectId).toLowerCase();
           final descMatch = entry.description.toLowerCase().contains(query);
           final brandMatch = (entry.brand ?? '').toLowerCase().contains(query);
-          if (!descMatch && !brandMatch) return false;
+          final projectMatch = projectName.contains(query);
+          final floorMatch = (entry.floor ?? '').toLowerCase().contains(query);
+          final phaseMatch = (entry.phase ?? '').toLowerCase().contains(query);
+          final activityMatch = (entry.activity ?? '').toLowerCase().contains(query);
+          final amountMatch = entry.amount.toString().contains(query);
+          final statusMatch = _getPaymentStatusLabel(
+            entry.paymentStatus,
+            amount: entry.amount,
+            paidAmount: entry.paidAmount,
+          ).toLowerCase().contains(query);
+          if (!descMatch &&
+              !brandMatch &&
+              !projectMatch &&
+              !floorMatch &&
+              !phaseMatch &&
+              !activityMatch &&
+              !amountMatch &&
+              !statusMatch) {
+            return false;
+          }
         }
         if (_selectedItemName != null && _selectedItemName != 'All') {
           if (entry.description != _selectedItemName) return false;
@@ -1004,6 +1024,8 @@ class _ReportsViewState extends State<_ReportsView> {
         final typeMatch = entry.type.name.toLowerCase().contains(query);
         final statusMatch = _getPaymentStatusLabel(
           entry.paymentStatus,
+          amount: entry.amount,
+          paidAmount: entry.paidAmount,
         ).toLowerCase().contains(query);
         final dateMatch = _formatDateShort(
           entry.date,
@@ -1025,9 +1047,15 @@ class _ReportsViewState extends State<_ReportsView> {
           return false;
         }
       }
-      if (_selectedStatus != 'All' &&
-          entry.paymentStatus.toLowerCase() != _selectedStatus.toLowerCase()) {
-        return false;
+      if (_selectedStatus != 'All') {
+        final computedLabel = _getPaymentStatusLabel(
+          entry.paymentStatus,
+          amount: entry.amount,
+          paidAmount: entry.paidAmount,
+        );
+        if (computedLabel.toLowerCase() != _selectedStatus.toLowerCase()) {
+          return false;
+        }
       }
       if (_startDate != null) {
         final entryDate = DateTime(
@@ -1293,7 +1321,7 @@ class _ReportsViewState extends State<_ReportsView> {
                             _currentPage = 1;
                             _searchQuery = '';
                             _selectedItemName = null;
-                            _reportGenerated = false;
+                            _reportGenerated = true;
                             _searchController.clear();
                             _showSuggestions = false;
                             if (newTab == 'All') {
@@ -2157,29 +2185,56 @@ class _ReportsViewState extends State<_ReportsView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildProjectContextDropdown(
-                  label: 'Date Period',
-                  selectedLabel: _datePreset,
-                  items: const [
-                    PopupMenuItem(value: 'All Time', child: Text('All Time')),
-                    PopupMenuItem(value: 'Today', child: Text('Today')),
-                    PopupMenuItem(value: 'This Week', child: Text('This Week')),
-                    PopupMenuItem(
-                      value: 'This Month',
-                      child: Text('This Month'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildProjectContextDropdown(
+                        label: 'Date Period',
+                        selectedLabel: _datePreset,
+                        items: const [
+                          PopupMenuItem(value: 'All Time', child: Text('All Time')),
+                          PopupMenuItem(value: 'Today', child: Text('Today')),
+                          PopupMenuItem(value: 'This Week', child: Text('This Week')),
+                          PopupMenuItem(
+                            value: 'This Month',
+                            child: Text('This Month'),
+                          ),
+                          PopupMenuItem(
+                            value: 'Last 30 Days',
+                            child: Text('Last 30 Days'),
+                          ),
+                          PopupMenuItem(value: 'This Year', child: Text('This Year')),
+                          PopupMenuItem(value: 'Custom', child: Text('Custom Range')),
+                        ],
+                        onSelected: (val) {
+                          if (val != null) {
+                            _setDatePreset(val);
+                          }
+                        },
+                      ),
                     ),
-                    PopupMenuItem(
-                      value: 'Last 30 Days',
-                      child: Text('Last 30 Days'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildProjectContextDropdown(
+                        label: 'Payment Status',
+                        selectedLabel: _selectedStatus,
+                        items: const [
+                          PopupMenuItem(value: 'All', child: Text('All Statuses')),
+                          PopupMenuItem(value: 'Fully Paid', child: Text('Fully Paid')),
+                          PopupMenuItem(value: 'Partial', child: Text('Partial')),
+                          PopupMenuItem(value: 'Not Paid', child: Text('Not Paid')),
+                        ],
+                        onSelected: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedStatus = val;
+                              _currentPage = 1;
+                            });
+                          }
+                        },
+                      ),
                     ),
-                    PopupMenuItem(value: 'This Year', child: Text('This Year')),
-                    PopupMenuItem(value: 'Custom', child: Text('Custom Range')),
                   ],
-                  onSelected: (val) {
-                    if (val != null) {
-                      _setDatePreset(val);
-                    }
-                  },
                 ),
                 if (_datePreset == 'Custom') ...[
                   const SizedBox(height: 12),
@@ -2726,10 +2781,10 @@ class _ReportsViewState extends State<_ReportsView> {
       ),
     );
   }
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(String status, {double? amount, double? paidAmount}) {
     Color bg;
     Color text;
-    final label = _getPaymentStatusLabel(status);
+    final label = _getPaymentStatusLabel(status, amount: amount, paidAmount: paidAmount);
     switch (label) {
       case 'Fully Paid':
         bg = const Color(0xFFDCFCE7);
@@ -2813,7 +2868,11 @@ class _ReportsViewState extends State<_ReportsView> {
                   ),
                   _buildDetailRow(
                     'Status',
-                    _getPaymentStatusLabel(entry.paymentStatus),
+                    _getPaymentStatusLabel(
+                      entry.paymentStatus,
+                      amount: entry.amount,
+                      paidAmount: entry.paidAmount,
+                    ),
                   ),
                   _PaymentHistorySection(
                     entry: entry,
@@ -2989,7 +3048,13 @@ class _ReportsViewState extends State<_ReportsView> {
           Text(entry.unit ?? '—', style: const TextStyle(fontSize: 12)),
         );
       } else if (colName == 'Status') {
-        return DataCell(_buildStatusBadge(entry.paymentStatus));
+        return DataCell(
+          _buildStatusBadge(
+            entry.paymentStatus,
+            amount: entry.amount,
+            paidAmount: entry.paidAmount,
+          ),
+        );
       } else if (colName == 'Amount') {
         return DataCell(
           Text(
@@ -3866,13 +3931,21 @@ class _FullScreenLogsViewerState extends State<_FullScreenLogsViewer> {
     );
   }
 }
-String _getPaymentStatusLabel(String status) {
+String _getPaymentStatusLabel(String status, {double? amount, double? paidAmount}) {
+  if (amount != null && paidAmount != null && amount > 0) {
+    if (paidAmount >= amount) return 'Fully Paid';
+    if (paidAmount > 0) return 'Partial';
+  }
   switch (status.toLowerCase().trim()) {
     case 'paid':
     case 'fully paid':
     case 'fullypaid':
       return 'Fully Paid';
     case 'partial':
+    case 'partially paid':
+    case 'partiallypaid':
+    case 'partially':
+    case 'partpaid':
       return 'Partial';
     case 'pending':
     case 'not paid':

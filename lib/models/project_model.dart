@@ -152,7 +152,17 @@ class EntryModel {
       unit: j['unit']?.toString(),
       createdBy: createdBy,
       approvalStatus: j['approvalStatus']?.toString() ?? 'Pending',
-      paymentStatus: j['paymentStatus']?.toString() ?? 'Pending',
+      paymentStatus: (() {
+        final rawPaid = (j['paidAmount'] as num?)?.toDouble() ?? 0.0;
+        final rawAmt = (j['amount'] as num?)?.toDouble() ?? 0.0;
+        if (rawAmt > 0) {
+          if (rawPaid >= rawAmt) return 'Fully Paid';
+          if (rawPaid > 0) return 'Partial';
+        }
+        final rawStatus = j['paymentStatus']?.toString();
+        if (rawStatus != null && rawStatus.isNotEmpty) return rawStatus;
+        return 'Pending';
+      })(),
       approvedBy: j['approvedBy'] != null
           ? (j['approvedBy'] is Map
                 ? j['approvedBy']['name']?.toString() ??
