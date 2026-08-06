@@ -884,13 +884,15 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                         : null,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         widget.activity.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: done ? FontWeight.w600 : FontWeight.w500,
@@ -913,12 +915,16 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                               color: AppColors.success,
                             ),
                             const SizedBox(width: 3),
-                            Text(
-                              'Completed $dateLabel',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w600,
+                            Flexible(
+                              child: Text(
+                                'Completed $dateLabel',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -927,9 +933,10 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: 6,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
@@ -941,20 +948,20 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   child: Text(
                     done ? 'Done' : 'Pending',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w800,
                       color: done ? AppColors.success : const Color(0xFFF59E0B),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () => _openUpdateProgress(context),
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                      horizontal: 8,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.08),
@@ -967,7 +974,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     child: const Text(
                       'ADD',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary,
                         letterSpacing: 0.3,
@@ -976,14 +983,14 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                   ),
                 ),
                 if (done) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   GestureDetector(
                     onTap: () => _showActivityDetails(context),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                        horizontal: 8,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.success.withValues(alpha: 0.08),
@@ -996,7 +1003,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                       child: const Text(
                         'VIEW',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w800,
                           color: AppColors.success,
                           letterSpacing: 0.3,
@@ -1005,7 +1012,7 @@ class _TrackerActivityRowState extends State<_TrackerActivityRow> {
                     ),
                   ),
                 ],
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 AnimatedRotation(
                   turns: _isBudgetExpanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 180),

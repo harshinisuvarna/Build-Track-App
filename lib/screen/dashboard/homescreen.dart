@@ -2743,6 +2743,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                           project.id,
                         ) >
                         project.totalBudget * 0.9,
+                indicatorIcon: Icons.trending_up,
               ),
             ),
             const SizedBox(width: 12),
@@ -2751,8 +2752,11 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 'BUDGET',
                 project?.formattedBudget ?? '₹—',
                 'Remaining: ${project?.formattedRemaining ?? '—'}',
-                false,
+                project != null && project.remainingBudget < 0,
                 isInvoice: true,
+                indicatorIcon: (project != null && project.remainingBudget < 0)
+                    ? Icons.trending_down
+                    : Icons.trending_flat,
               ),
             ),
           ],
@@ -2766,36 +2770,29 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 project != null ? formatCurrency(_totalRevenueSum) : '₹—',
                 'Cash Inflow',
                 false,
+                indicatorIcon: Icons.trending_up,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _costCard(
-                'NET CASH FLOW',
-                project != null
-                    ? formatCurrency(
-                        _totalRevenueSum -
-                            context
-                                .read<ProjectProvider>()
-                                .totalSpentForProject(project.id),
-                      )
-                    : '₹—',
-                project != null
-                    ? (_totalRevenueSum -
-                                  context
-                                      .read<ProjectProvider>()
-                                      .totalSpentForProject(project.id) >=
-                              0
-                          ? 'Net Profit'
-                          : 'Net Loss')
-                    : '—',
-                project != null &&
-                    (_totalRevenueSum -
-                            context
-                                .read<ProjectProvider>()
-                                .totalSpentForProject(project.id) <
-                        0),
-                isInvoice: true,
+              child: Builder(
+                builder: (_) {
+                  final netCash = project != null
+                      ? (_totalRevenueSum -
+                          context
+                              .read<ProjectProvider>()
+                              .totalSpentForProject(project.id))
+                      : 0.0;
+                  final isLoss = netCash < 0;
+                  return _costCard(
+                    'NET CASH FLOW',
+                    project != null ? formatCurrency(netCash) : '₹—',
+                    project != null ? (isLoss ? 'Net Loss' : 'Net Profit') : '—',
+                    isLoss,
+                    isInvoice: !isLoss,
+                    indicatorIcon: isLoss ? Icons.trending_down : Icons.trending_up,
+                  );
+                },
               ),
             ),
           ],
@@ -3008,14 +3005,22 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     String sub,
     bool isOver, {
     bool isInvoice = false,
+    IconData? icon,
+    IconData? indicatorIcon,
   }) {
     final cardColor = Colors.white.withValues(alpha: 0.95);
     final accentColor = isOver
         ? Colors.redAccent
         : (isInvoice ? AppColors.primaryPurple : AppColors.primaryBlue);
-    final iconData = isInvoice
-        ? Icons.account_balance_wallet_outlined
-        : Icons.monetization_on_outlined;
+    final iconData = icon ??
+        (isInvoice
+            ? Icons.account_balance_wallet_outlined
+            : Icons.currency_rupee_rounded);
+    final pillIcon = indicatorIcon ??
+        (isInvoice
+            ? Icons.trending_flat
+            : (isOver ? Icons.trending_up : Icons.trending_down));
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -3049,7 +3054,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: accentColor.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
@@ -3075,18 +3080,16 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           ),
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isInvoice
-                      ? Icons.trending_flat
-                      : (isOver ? Icons.trending_up : Icons.trending_down),
+                  pillIcon,
                   size: 12,
                   color: accentColor,
                 ),

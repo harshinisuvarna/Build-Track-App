@@ -6,13 +6,21 @@ import 'save_helper_stub.dart'
     if (dart.library.html) 'save_helper_web.dart'
     if (dart.library.io) 'save_helper_mobile.dart';
 class ReportExportHelper {
-  static String _getPaymentStatusLabel(String status) {
+  static String _getPaymentStatusLabel(String status, {double? amount, double? paidAmount}) {
+    if (amount != null && paidAmount != null && amount > 0) {
+      if (paidAmount >= amount) return 'Fully Paid';
+      if (paidAmount > 0) return 'Partial';
+    }
     switch (status.toLowerCase().trim()) {
       case 'paid':
       case 'fully paid':
       case 'fullypaid':
         return 'Fully Paid';
       case 'partial':
+      case 'partially paid':
+      case 'partiallypaid':
+      case 'partially':
+      case 'partpaid':
         return 'Partial';
       case 'pending':
       case 'not paid':
@@ -184,7 +192,11 @@ class ReportExportHelper {
       final dateStr = _formatYmd(entry.date);
       final projectName = getProjectName(entry.projectId);
       final amount = entry.amount;
-      final status = _getPaymentStatusLabel(entry.paymentStatus);
+      final status = _getPaymentStatusLabel(
+        entry.paymentStatus,
+        amount: entry.amount,
+        paidAmount: entry.paidAmount,
+      );
       final payDateStr = entry.paymentDate != null
           ? _formatYmd(entry.paymentDate!)
           : '—';
@@ -393,7 +405,13 @@ class ReportExportHelper {
           } else if (col == 'Unit') {
             rowValues.add(e.unit ?? '—');
           } else if (col == 'Status') {
-            rowValues.add(_getPaymentStatusLabel(e.paymentStatus));
+            rowValues.add(
+              _getPaymentStatusLabel(
+                e.paymentStatus,
+                amount: e.amount,
+                paidAmount: e.paidAmount,
+              ),
+            );
           } else if (col == 'Amount') {
             rowValues.add(_formatIndianCurrency(e.amount));
           } else if (col == 'Rate' || col == 'Rate/Day' || col == 'Rent Rate') {
@@ -445,7 +463,11 @@ class ReportExportHelper {
           _formatIndianCurrency(rate ?? 0.0),
           qty != null ? qty.toStringAsFixed(1) : '—',
           e.unit ?? 'unit',
-          _getPaymentStatusLabel(e.paymentStatus),
+          _getPaymentStatusLabel(
+            e.paymentStatus,
+            amount: e.amount,
+            paidAmount: e.paidAmount,
+          ),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
@@ -482,7 +504,11 @@ class ReportExportHelper {
           e.description.isEmpty ? '—' : e.description,
           _formatIndianCurrency(rate ?? 0.0),
           days != null ? days.toStringAsFixed(1) : '—',
-          _getPaymentStatusLabel(e.paymentStatus),
+          _getPaymentStatusLabel(
+            e.paymentStatus,
+            amount: e.amount,
+            paidAmount: e.paidAmount,
+          ),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
@@ -519,7 +545,11 @@ class ReportExportHelper {
           e.description.isEmpty ? '—' : e.description,
           _formatIndianCurrency(rate ?? 0.0),
           duration != null ? duration.toStringAsFixed(1) : '—',
-          _getPaymentStatusLabel(e.paymentStatus),
+          _getPaymentStatusLabel(
+            e.paymentStatus,
+            amount: e.amount,
+            paidAmount: e.paidAmount,
+          ),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];
@@ -566,7 +596,11 @@ class ReportExportHelper {
           e.phase ?? '—',
           e.activity ?? '—',
           e.unit ?? '—',
-          _getPaymentStatusLabel(e.paymentStatus),
+          _getPaymentStatusLabel(
+            e.paymentStatus,
+            amount: e.amount,
+            paidAmount: e.paidAmount,
+          ),
           _formatIndianCurrency(e.amount),
           e.paymentDate != null ? _formatYmd(e.paymentDate!) : '—',
         ];

@@ -258,7 +258,14 @@ class ProjectProvider extends ChangeNotifier {
         createdBy = createdByRaw.toString();
       }
       final approvalStatusRaw = json['approvalStatus']?.toString() ?? 'Pending';
-      final paymentStatusRaw = json['paymentStatus']?.toString() ?? 'Pending';
+      String paymentStatusRaw = json['paymentStatus']?.toString() ?? 'Pending';
+      if (amount > 0) {
+        if (parsedPaidAmount >= amount) {
+          paymentStatusRaw = 'Fully Paid';
+        } else if (parsedPaidAmount > 0) {
+          paymentStatusRaw = 'Partial';
+        }
+      }
       final paymentDateRaw = json['paymentDate'] != null
           ? DateTime.tryParse(json['paymentDate'].toString())
           : null;
