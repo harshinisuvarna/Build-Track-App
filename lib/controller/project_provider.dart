@@ -664,11 +664,17 @@ class ProjectProvider extends ChangeNotifier {
         updated.toJson(),
       );
       if (response.statusCode == 200) {
-        final idx = _projects.indexWhere((p) => p.id == updated.id);
-        if (idx != -1) _projects[idx] = updated;
-        if (_selectedProject?.id == updated.id) {
-          _selectedProject = updated;
-          UserSession.projectId = updated.id;
+        final decoded = json.decode(response.body);
+        final Map<String, dynamic> projectJson = 
+            (decoded is Map && decoded.containsKey('project'))
+                ? decoded['project'] as Map<String, dynamic>
+                : decoded as Map<String, dynamic>;
+        final serverProject = ProjectModel.fromJson(projectJson);
+        final idx = _projects.indexWhere((p) => p.id == serverProject.id);
+        if (idx != -1) _projects[idx] = serverProject;
+        if (_selectedProject?.id == serverProject.id) {
+          _selectedProject = serverProject;
+          UserSession.projectId = serverProject.id;
         }
         _error = '';
       } else {

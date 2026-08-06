@@ -1672,6 +1672,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     final List<dynamic> attachments = tx['attachments'] is List
         ? tx['attachments'] as List
         : [];
+
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
       try {
@@ -2344,6 +2345,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         : [];
     final hasImage =
         attachments.isNotEmpty && attachments.first.toString().isNotEmpty;
+
     DateTime date = DateTime.now();
     if (tx['date'] != null) {
       try {
