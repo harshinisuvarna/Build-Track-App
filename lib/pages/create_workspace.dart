@@ -19,6 +19,12 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  
+  bool _isEmailVerified = false;
+  bool _otpSent = false;
+  bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
+  final _otpCtrl = TextEditingController();
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -26,6 +32,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
   @override
@@ -119,82 +126,141 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           hint: 'name@company.com',
           prefixIcon: Icons.mail_outline,
           keyboardType: TextInputType.emailAddress,
+          readOnly: _isEmailVerified,
         ),
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.primarySurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.18),
+        if (!_isEmailVerified && !_otpSent)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _isSendingOtp
+                  ? const CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: _sendOtp,
+                      child: const Text('Verify Email', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
             ),
           ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.admin_panel_settings_outlined,
-                color: AppColors.primary,
+        if (!_isEmailVerified && _otpSent) ...[
+          AppTextField(
+            label: 'Verification Code (OTP)',
+            controller: _otpCtrl,
+            hint: 'Enter 6-digit code',
+            prefixIcon: Icons.security,
+            keyboardType: TextInputType.number,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _sendOtp,
+                  child: const Text('Resend Code'),
+                ),
+                _isVerifyingOtp
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: _verifyOtp,
+                        child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+              ],
+            ),
+          ),
+        ],
+        if (_isEmailVerified)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+            child: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Email Verified', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        if (_isEmailVerified) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.admin_panel_settings_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'This account will be created as Workspace Admin.',
+                    style: AppTheme.body.copyWith(color: AppColors.textDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppTextField(
+            label: 'Password',
+            controller: _passCtrl,
+            hint: '••••••••',
+            prefixIcon: Icons.lock_outline,
+            obscureText: _obscurePass,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePass
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: AppColors.textLight,
                 size: 20,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'This account will be created as Workspace Admin.',
-                  style: AppTheme.body.copyWith(color: AppColors.textDark),
-                ),
+              onPressed: () => setState(() => _obscurePass = !_obscurePass),
+            ),
+          ),
+          AppTextField(
+            label: 'Confirm Password',
+            controller: _confirmCtrl,
+            hint: '••••••••',
+            prefixIcon: Icons.lock_outline,
+            obscureText: _obscureConfirm,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureConfirm
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: AppColors.textLight,
+                size: 20,
               ),
-            ],
-          ),
-        ),
-        AppTextField(
-          label: 'Password',
-          controller: _passCtrl,
-          hint: '••••••••',
-          prefixIcon: Icons.lock_outline,
-          obscureText: _obscurePass,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscurePass
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              color: AppColors.textLight,
-              size: 20,
+              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
             ),
-            onPressed: () => setState(() => _obscurePass = !_obscurePass),
           ),
-        ),
-        AppTextField(
-          label: 'Confirm Password',
-          controller: _confirmCtrl,
-          hint: '••••••••',
-          prefixIcon: Icons.lock_outline,
-          obscureText: _obscureConfirm,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscureConfirm
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              color: AppColors.textLight,
-              size: 20,
-            ),
-            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-          ),
-        ),
+        ],
       ],
     );
   }
   Widget _buildActions() {
     return Column(
       children: [
-        _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : AppButton(
-                label: 'Create Workspace',
-                icon: Icons.arrow_forward,
-                onPressed: _onCreatePressed,
-              ),
+        if (_isEmailVerified)
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : AppButton(
+                  label: 'Create Workspace',
+                  icon: Icons.arrow_forward,
+                  onPressed: _onCreatePressed,
+                ),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -218,7 +284,81 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       ],
     );
   }
+  void _sendOtp() async {
+    final email = _emailCtrl.text.trim();
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+    setState(() => _isSendingOtp = true);
+    try {
+      final response = await ApiService.post('/auth/send-registration-otp', {'email': email});
+      if (!mounted) return;
+      setState(() => _isSendingOtp = false);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() => _otpSent = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification code sent!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send verification code')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSendingOtp = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  void _verifyOtp() async {
+    final email = _emailCtrl.text.trim();
+    final otp = _otpCtrl.text.trim();
+    if (otp.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the OTP')),
+      );
+      return;
+    }
+    setState(() => _isVerifyingOtp = true);
+    try {
+      final response = await ApiService.post('/auth/verify-registration-otp', {'email': email, 'otp': otp});
+      if (!mounted) return;
+      setState(() => _isVerifyingOtp = false);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          _isEmailVerified = true;
+          _otpCtrl.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email verified successfully!'), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid verification code'), backgroundColor: AppColors.error),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isVerifyingOtp = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   void _onCreatePressed() async {
+    if (!_isEmailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please verify your email first')),
+      );
+      return;
+    }
     final name = _nameCtrl.text.trim();
     final company = _companyCtrl.text.trim();
     final email = _emailCtrl.text.trim();
