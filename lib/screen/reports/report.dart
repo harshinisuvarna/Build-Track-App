@@ -4166,9 +4166,50 @@ class _PaymentHistorySection extends StatefulWidget {
 }
 class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
   bool _viewAll = false;
+  List<Map<String, dynamic>>? _fetchedHistory;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.entry.paymentHistory.isEmpty && widget.entry.paidAmount > 0) {
+      _loadHistory();
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final tx = await ApiService.fetchTransactionById(widget.entry.id);
+      if (tx != null && tx['paymentHistory'] != null) {
+        final historyList = tx['paymentHistory'];
+        if (historyList is List) {
+          if (mounted) {
+            setState(() {
+              _fetchedHistory = List<Map<String, dynamic>>.from(
+                historyList.map((e) => Map<String, dynamic>.from(e as Map)),
+              );
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading payment history in report dialog: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final history = widget.entry.paymentHistory;
+    final history = _fetchedHistory ?? widget.entry.paymentHistory;
     Widget header = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -4199,7 +4240,32 @@ class _PaymentHistorySectionState extends State<_PaymentHistorySection> {
       ],
     );
     Widget content;
-    if (history.isEmpty) {
+    if (_isLoading) {
+      content = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 12,
+              width: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Loading payment history...',
+              style: TextStyle(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (history.isEmpty) {
       if (widget.entry.paidAmount > 0) {
         content = const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
