@@ -29,6 +29,7 @@ dependencies:
   in_app_purchase: ^3.2.0
   speech_to_text: ^7.0.0
   signature: ^6.3.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
