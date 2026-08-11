@@ -7,6 +7,8 @@ import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/screen/projects/add_project.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:showcaseview/showcaseview.dart';
 enum _ProjectStatus {
   planning,
   inProgress,
@@ -120,10 +122,40 @@ class ProjectStatusChip extends StatelessWidget {
 }
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      onFinish: () => UserSession.markModuleVisited('ProjectsScreen'),
+      builder: (context) => const _ProjectsScreenContent(),
+    );
+  }
+}
+
+class _ProjectsScreenContent extends StatefulWidget {
+  const _ProjectsScreenContent();
+  @override
+  State<_ProjectsScreenContent> createState() => _ProjectsScreenContentState();
+}
+
+class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
   static const textGray = AppColors.textLight;
+
+  final GlobalKey _fabKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!UserSession.visitedModules.contains('ProjectsScreen')) {
+        ShowCaseWidget.of(context).startShowCase([_fabKey]);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProjectProvider>();
@@ -131,15 +163,20 @@ class ProjectsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: bgColor,
       floatingActionButton: canCreate
-          ? FloatingActionButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddProjectScreen()),
+          ? Showcase(
+              key: _fabKey,
+              title: 'Add Project',
+              description: 'Tap here to create a new project.',
+              child: FloatingActionButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddProjectScreen()),
+                ),
+                backgroundColor: primaryBlue,
+                shape: const CircleBorder(),
+                elevation: 4,
+                child: const Icon(Icons.add, color: Colors.white, size: 30),
               ),
-              backgroundColor: primaryBlue,
-              shape: const CircleBorder(),
-              elevation: 4,
-              child: const Icon(Icons.add, color: Colors.white, size: 30),
             )
           : null,
       body: SafeArea(
@@ -148,9 +185,30 @@ class ProjectsScreen extends StatelessWidget {
           children: [
             AppTopBar(
               title: 'BuildTrack',
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: const ProfileAvatar(radius: 18),
+              rightWidget: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => ShowCaseWidget.of(context).startShowCase([_fabKey]),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.help_outline,
+                        color: AppColors.primary,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
+                    child: const ProfileAvatar(radius: 18),
+                  ),
+                ],
               ),
             ),
             Expanded(child: _buildBody(context, provider)),

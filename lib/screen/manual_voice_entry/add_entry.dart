@@ -15,12 +15,25 @@ import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
     if (dart.library.html) 'package:buildtrack_mobile/screen/reports/save_helper_web.dart'
     if (dart.library.io) 'package:buildtrack_mobile/screen/reports/save_helper_mobile.dart';
 import 'package:flutter/material.dart';
-class AddEntryScreen extends StatefulWidget {
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
+class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
   @override
-  State<AddEntryScreen> createState() => _AddEntryScreenState();
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      onFinish: () => UserSession.markModuleVisited('AddEntryScreen'),
+      builder: (context) => const _AddEntryScreenContent(),
+    );
+  }
 }
-class _AddEntryScreenState extends State<AddEntryScreen> {
+
+class _AddEntryScreenContent extends StatefulWidget {
+  const _AddEntryScreenContent();
+  @override
+  State<_AddEntryScreenContent> createState() => _AddEntryScreenContentState();
+}
+class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
   static const primaryBlue = AppColors.primary;
   static const bgColor = AppColors.gradientStart;
   static const textDark = AppColors.textDark;
@@ -48,10 +61,17 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     'Notes',
   ];
   late Map<String, bool> _columnVisibility;
+  final GlobalKey _csvKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _columnVisibility = {for (var c in _customColumns) c: true};
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!UserSession.visitedModules.contains('AddEntryScreen')) {
+        ShowCaseWidget.of(context).startShowCase([_csvKey]);
+      }
+    });
   }
   List<Map<String, dynamic>> get _entries {
     final items = <Map<String, dynamic>>[];
@@ -1218,15 +1238,20 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextButton.icon(
-                onPressed: _isUploadingCsv ? null : _openCustomizeColumnsSheet,
-                icon: const Icon(Icons.settings_outlined, size: 16),
-                label: const Text('Customize Template Columns'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  textStyle: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+              Showcase(
+                key: _csvKey,
+                title: 'Customize Template',
+                description: 'You can adjust which columns appear in the CSV.',
+                child: TextButton.icon(
+                  onPressed: _isUploadingCsv ? null : _openCustomizeColumnsSheet,
+                  icon: const Icon(Icons.settings_outlined, size: 16),
+                  label: const Text('Customize Template Columns'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    textStyle: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -1288,9 +1313,30 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
               onLeftTap: Navigator.canPop(context)
                   ? () => Navigator.pop(context)
                   : null,
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: const ProfileAvatar(radius: 18),
+              rightWidget: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => ShowCaseWidget.of(context).startShowCase([_csvKey]),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.help_outline,
+                        color: AppColors.primary,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
+                    child: const ProfileAvatar(radius: 18),
+                  ),
+                ],
               ),
             ),
             Expanded(

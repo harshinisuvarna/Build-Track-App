@@ -19,6 +19,9 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
+
 String relativeTimeLabel(DateTime date) {
   final now = DateTime.now();
   final diff = now.difference(date);
@@ -53,12 +56,80 @@ String relativeTimeLabel(DateTime date) {
     return '${date.day} ${months[date.month - 1]}';
   }
 }
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      onFinish: () => UserSession.markModuleVisited('HomeScreen'),
+      builder: (context) => const _HomeScreenContent(),
+    );
+  }
 }
-class _HomeScreenState extends State<HomeScreen> {
+
+class _HomeScreenContent extends StatefulWidget {
+  const _HomeScreenContent();
+  @override
+  State<_HomeScreenContent> createState() => _HomeScreenContentState();
+}
+class _HomeScreenContentState extends State<_HomeScreenContent> {
+  List<GlobalKey> _getShowcaseKeys({bool isReplay = false}) {
+    final keys = <GlobalKey>[];
+    keys.add(ShowcaseKeys.sidebarMenu);
+    if (isReplay || !UserSession.hasCreatedProject) {
+      keys.add(ShowcaseKeys.projects);
+    }
+    if (isReplay || !UserSession.hasAddedEntry) {
+      keys.add(ShowcaseKeys.addEntry);
+    }
+    if (isReplay || !UserSession.hasViewedReports) {
+      keys.add(ShowcaseKeys.reports);
+    }
+    keys.add(ShowcaseKeys.helpButton);
+    return keys;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final isBrandNewUser = !UserSession.hasCreatedProject && !UserSession.hasAddedEntry;
+      if (UserSession.visitedModules.isEmpty && isBrandNewUser) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Welcome to BuildTrack!'),
+            content: const Text(
+                'You will find a Help (?) button on every page. Click it whenever you need a step-by-step guide.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _startHomeScreenTour();
+                },
+                child: const Text('Got it!'),
+              )
+            ],
+          ),
+        );
+      } else {
+        // Only run automatic tour if it's a new user who hasn't seen it yet
+        if (isBrandNewUser) {
+          _startHomeScreenTour();
+        }
+      }
+    });
+  }
+
+  void _startHomeScreenTour() {
+    if (!UserSession.visitedModules.contains('HomeScreen')) {
+      final keysToShow = _getShowcaseKeys();
+      if (keysToShow.isNotEmpty) {
+        ShowCaseWidget.of(context).startShowCase(keysToShow);
+      }
+    }
+  }
+
   void _showEntryOptions(BuildContext context, String type) {
     Navigator.pushNamed(context, '/add-entry');
   }
@@ -117,6 +188,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: AppColors.textDark),
               ),
               onTap: () => Navigator.pushNamed(context, '/profile'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: AppColors.textDark),
+              title: const Text(
+                'App Guidelines',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                final keysToShow = _getShowcaseKeys(isReplay: true);
+                if (keysToShow.isNotEmpty) {
+                  ShowCaseWidget.of(context).startShowCase(keysToShow);
+                }
+              },
             ),
             ListTile(
               leading: Container(
@@ -211,13 +296,41 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Builder(
           builder: (ctx) => Column(
             children: [
-              AppTopBar(
-                title: 'BuildTrack',
-                leftIcon: Icons.menu,
-                onLeftTap: () => Scaffold.of(ctx).openDrawer(),
-                rightWidget: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              Showcase(
+                key: ShowcaseKeys.sidebarMenu,
+                description: 'Tap the menu icon to access Logs, Inventory, Subscriptions, and Roles.',
+                child: AppTopBar(
+                  title: 'BuildTrack',
+                  leftIcon: Icons.menu,
+                  onLeftTap: () => Scaffold.of(ctx).openDrawer(),
+                  rightWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Showcase(
+                        key: ShowcaseKeys.helpButton,
+                        description: 'Tap here anytime to replay this tour and get help.',
+                        child: GestureDetector(
+                          onTap: () {
+                            final keysToShow = _getShowcaseKeys(isReplay: true);
+                            if (keysToShow.isNotEmpty) {
+                              ShowCaseWidget.of(context).startShowCase(keysToShow);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.help_outline,
+                              color: AppColors.primary,
+                              size: 19,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
                           Navigator.pushNamed(context, '/notifications'),
@@ -242,7 +355,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Expanded(
+            ),
+            Expanded(
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
