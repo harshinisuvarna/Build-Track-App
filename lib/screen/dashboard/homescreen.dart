@@ -19,6 +19,9 @@ import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
+
 String relativeTimeLabel(DateTime date) {
   final now = DateTime.now();
   final diff = now.difference(date);
@@ -53,12 +56,103 @@ String relativeTimeLabel(DateTime date) {
     return '${date.day} ${months[date.month - 1]}';
   }
 }
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], 
+      enableAutoScroll: true,
+      onFinish: () => UserSession.markModuleVisited('HomeScreen'),
+      builder: (context) => const _HomeScreenContent(),
+    );
+  }
 }
-class _HomeScreenState extends State<HomeScreen> {
+
+class _HomeScreenContent extends StatefulWidget {
+  const _HomeScreenContent();
+  @override
+  State<_HomeScreenContent> createState() => _HomeScreenContentState();
+}
+class _HomeScreenContentState extends State<_HomeScreenContent> {
+  List<GlobalKey> _getShowcaseKeys({bool isReplay = false}) {
+    final keys = <GlobalKey>[];
+    keys.add(ShowcaseKeys.sidebarMenu);
+    if (isReplay || !UserSession.hasCreatedProject) {
+      keys.add(ShowcaseKeys.projects);
+    }
+    keys.add(ShowcaseKeys.inventoryTab);
+    keys.add(ShowcaseKeys.profileIcon);
+    keys.add(ShowcaseKeys.progress);
+    keys.add(ShowcaseKeys.dashboardTotalCost);
+    keys.add(ShowcaseKeys.dashboardTotalBudget);
+    keys.add(ShowcaseKeys.dashboardTotalRevenue);
+    keys.add(ShowcaseKeys.dashboardNetCashFlow);
+    if (isReplay || !UserSession.hasAddedEntry) {
+      keys.add(ShowcaseKeys.addEntry);
+    }
+    keys.add(ShowcaseKeys.recentEntries);
+    if (isReplay || !UserSession.hasViewedReports) {
+      keys.add(ShowcaseKeys.reports);
+    }
+    keys.add(ShowcaseKeys.quickAddEntry);
+    keys.add(ShowcaseKeys.helpButton);
+    return keys;
+  }
+
+  bool _tourChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  void _checkTour(ProjectProvider provider) {
+    if (_tourChecked) return;
+    if (!provider.projectsLoaded) return;
+    _tourChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (provider.projects.isNotEmpty || UserSession.hasAddedEntry) {
+        UserSession.markAllModulesVisited();
+      } else {
+        if (UserSession.visitedModules.isEmpty) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Welcome to BuildTrack!'),
+              content: const Text(
+                  'You will find a Help (?) button on every page. Click it whenever you need a step-by-step guide.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _startHomeScreenTour();
+                  },
+                  child: const Text('Got it!'),
+                )
+              ],
+            ),
+          );
+        } else {
+          _startHomeScreenTour();
+        }
+      }
+    });
+  }
+
+  void _startHomeScreenTour() {
+    if (UserSession.visitedModules.isEmpty || !UserSession.visitedModules.contains('HomeScreen')) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          final keysToShow = _getShowcaseKeys();
+          if (keysToShow.isNotEmpty) {
+            ShowCaseWidget.of(context).startShowCase(keysToShow);
+          }
+        }
+      });
+    }
+  }
+
   void _showEntryOptions(BuildContext context, String type) {
     Navigator.pushNamed(context, '/add-entry');
   }
@@ -117,6 +211,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: AppColors.textDark),
               ),
               onTap: () => Navigator.pushNamed(context, '/profile'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: AppColors.textDark),
+              title: const Text(
+                'App Guidelines',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                final keysToShow = _getShowcaseKeys(isReplay: true);
+                if (keysToShow.isNotEmpty) {
+                  ShowcaseView.get().startShowCase(keysToShow);
+                }
+              },
             ),
             ListTile(
               leading: Container(
@@ -204,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   @override
   Widget build(BuildContext context) {
+    _checkTour(context.watch<ProjectProvider>());
     return NurofinScaffold(
       drawer: _buildDrawer(context),
       body: SafeArea(
@@ -211,13 +320,49 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Builder(
           builder: (ctx) => Column(
             children: [
-              AppTopBar(
-                title: 'BuildTrack',
-                leftIcon: Icons.menu,
-                onLeftTap: () => Scaffold.of(ctx).openDrawer(),
-                rightWidget: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              Showcase(
+                key: ShowcaseKeys.sidebarMenu,
+                description: 'Tap the menu icon to access Logs, Inventory, Subscriptions, and Roles.',
+                tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                textColor: Colors.white,
+                tooltipBorderRadius: BorderRadius.circular(16),
+                tooltipPadding: const EdgeInsets.all(16),
+                child: AppTopBar(
+                  title: 'BuildTrack',
+                  leftIcon: Icons.menu,
+                  onLeftTap: () => Scaffold.of(ctx).openDrawer(),
+                  rightWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Showcase(
+                        key: ShowcaseKeys.helpButton,
+                        description: 'Tap here anytime to replay this tour and get help.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: GestureDetector(
+                          onTap: () {
+                            final keysToShow = _getShowcaseKeys(isReplay: true);
+                            if (keysToShow.isNotEmpty) {
+                              ShowcaseView.get().startShowCase(keysToShow);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.help_outline,
+                              color: AppColors.primary,
+                              size: 19,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
                           Navigator.pushNamed(context, '/notifications'),
@@ -235,14 +380,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
-                      child: const ProfileAvatar(radius: 17),
+                    Showcase(
+                      key: ShowcaseKeys.profileIcon,
+                      description: 'Tap your profile icon to view your account details and settings.',
+                      tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                      textColor: Colors.white,
+                      tooltipBorderRadius: BorderRadius.circular(16),
+                      tooltipPadding: const EdgeInsets.all(16),
+                      child: GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/profile'),
+                        child: const ProfileAvatar(radius: 17),
+                      ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
+            ),
+            Expanded(
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -2529,9 +2683,16 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         const SizedBox(height: 16),
         const ApprovalsAlertWidget(),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
+        Showcase(
+          key: ShowcaseKeys.progress,
+          description: 'Track your overall project completion here',
+          tooltipBackgroundColor: const Color(0xFF1E1E2C),
+          textColor: Colors.white,
+          tooltipBorderRadius: BorderRadius.circular(16),
+          tooltipPadding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
@@ -2712,51 +2873,68 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               ),
             ],
           ),
+          ),
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
-              child: _costCard(
-                'TOTAL COST',
-                project != null
-                    ? formatCurrency(
-                        context.read<ProjectProvider>().totalSpentForProject(
-                          project.id,
-                        ),
-                      )
-                    : '₹—',
-                project != null
-                    ? () {
-                        final paid = context
-                            .read<ProjectProvider>()
-                            .totalSpentForProject(project.id);
-                        final budget = project.totalBudget;
-                        final pct = budget > 0
-                            ? (paid / budget * 100).toStringAsFixed(0)
-                            : '0';
-                        return '$pct% Used';
-                      }()
-                    : '—',
-                project != null &&
-                    context.read<ProjectProvider>().totalSpentForProject(
-                          project.id,
-                        ) >
-                        project.totalBudget * 0.9,
-                indicatorIcon: Icons.trending_up,
+              child: Showcase(
+                key: ShowcaseKeys.dashboardTotalCost,
+                description: 'Track your total funds spent across all categories for this project.',
+                tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                textColor: Colors.white,
+                tooltipBorderRadius: BorderRadius.circular(16),
+                tooltipPadding: const EdgeInsets.all(16),
+                child: _costCard(
+                  'TOTAL COST',
+                  project != null
+                      ? formatCurrency(
+                          context.read<ProjectProvider>().totalSpentForProject(
+                            project.id,
+                          ),
+                        )
+                      : '₹—',
+                  project != null
+                      ? () {
+                          final paid = context
+                              .read<ProjectProvider>()
+                              .totalSpentForProject(project.id);
+                          final budget = project.totalBudget;
+                          final pct = budget > 0
+                              ? (paid / budget * 100).toStringAsFixed(0)
+                              : '0';
+                          return '$pct% Used';
+                        }()
+                      : '—',
+                  project != null &&
+                      context.read<ProjectProvider>().totalSpentForProject(
+                            project.id,
+                          ) >
+                          project.totalBudget * 0.9,
+                  indicatorIcon: Icons.trending_up,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _costCard(
-                'BUDGET',
-                project?.formattedBudget ?? '₹—',
-                'Remaining: ${project?.formattedRemaining ?? '—'}',
-                project != null && project.remainingBudget < 0,
-                isInvoice: true,
-                indicatorIcon: (project != null && project.remainingBudget < 0)
-                    ? Icons.trending_down
-                    : Icons.trending_flat,
+              child: Showcase(
+                key: ShowcaseKeys.dashboardTotalBudget,
+                description: 'Track the total allocated budget and remaining balance for this project.',
+                tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                textColor: Colors.white,
+                tooltipBorderRadius: BorderRadius.circular(16),
+                tooltipPadding: const EdgeInsets.all(16),
+                child: _costCard(
+                  'BUDGET',
+                  project?.formattedBudget ?? '₹—',
+                  'Remaining: ${project?.formattedRemaining ?? '—'}',
+                  project != null && project.remainingBudget < 0,
+                  isInvoice: true,
+                  indicatorIcon: (project != null && project.remainingBudget < 0)
+                      ? Icons.trending_down
+                      : Icons.trending_flat,
+                ),
               ),
             ),
           ],
@@ -2765,12 +2943,20 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         Row(
           children: [
             Expanded(
-              child: _costCard(
-                'TOTAL REVENUE',
-                project != null ? formatCurrency(_totalRevenueSum) : '₹—',
-                'Cash Inflow',
-                false,
-                indicatorIcon: Icons.trending_up,
+              child: Showcase(
+                key: ShowcaseKeys.dashboardTotalRevenue,
+                description: 'View the total revenue inflow recorded for this project.',
+                tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                textColor: Colors.white,
+                tooltipBorderRadius: BorderRadius.circular(16),
+                tooltipPadding: const EdgeInsets.all(16),
+                child: _costCard(
+                  'TOTAL REVENUE',
+                  project != null ? formatCurrency(_totalRevenueSum) : '₹—',
+                  'Cash Inflow',
+                  false,
+                  indicatorIcon: Icons.trending_up,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -2784,13 +2970,21 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                               .totalSpentForProject(project.id))
                       : 0.0;
                   final isLoss = netCash < 0;
-                  return _costCard(
-                    'NET CASH FLOW',
-                    project != null ? formatCurrency(netCash) : '₹—',
-                    project != null ? (isLoss ? 'Net Loss' : 'Net Profit') : '—',
-                    isLoss,
-                    isInvoice: !isLoss,
-                    indicatorIcon: isLoss ? Icons.trending_down : Icons.trending_up,
+                  return Showcase(
+                    key: ShowcaseKeys.dashboardNetCashFlow,
+                    description: 'See your net profit or loss calculated instantly.',
+                    tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                    textColor: Colors.white,
+                    tooltipBorderRadius: BorderRadius.circular(16),
+                    tooltipPadding: const EdgeInsets.all(16),
+                    child: _costCard(
+                      'NET CASH FLOW',
+                      project != null ? formatCurrency(netCash) : '₹—',
+                      project != null ? (isLoss ? 'Net Loss' : 'Net Profit') : '—',
+                      isLoss,
+                      isInvoice: !isLoss,
+                      indicatorIcon: isLoss ? Icons.trending_down : Icons.trending_up,
+                    ),
                   );
                 },
               ),
@@ -2804,7 +2998,15 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ],
         _buildSpeakUpdate(context),
         const SizedBox(height: 16),
-        _buildRecentActivity(context),
+        Showcase(
+          key: ShowcaseKeys.recentEntries,
+          description: 'Quickly view or edit your most recently added entries',
+          tooltipBackgroundColor: const Color(0xFF1E1E2C),
+          textColor: Colors.white,
+          tooltipBorderRadius: BorderRadius.circular(16),
+          tooltipPadding: const EdgeInsets.all(16),
+          child: _buildRecentActivity(context),
+        ),
       ],
     );
   }
@@ -3117,10 +3319,17 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     );
   }
   Widget _buildSpeakUpdate(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: AppGradients.primaryButton,
+    return Showcase(
+      key: ShowcaseKeys.quickAddEntry,
+      description: 'Quickly add a new entry from here.',
+      tooltipBackgroundColor: const Color(0xFF1E1E2C),
+      textColor: Colors.white,
+      tooltipBorderRadius: BorderRadius.circular(16),
+      tooltipPadding: const EdgeInsets.all(16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: AppGradients.primaryButton,
         boxShadow: [
           BoxShadow(
             color: AppColors.primaryBlue.withValues(alpha: 0.35),
@@ -3215,6 +3424,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

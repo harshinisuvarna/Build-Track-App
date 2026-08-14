@@ -7,6 +7,8 @@ import 'package:buildtrack_mobile/screen/profile/payment_webview_screen.dart';
 import 'package:buildtrack_mobile/services/billing_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 class _PlanInfo {
   const _PlanInfo({
     required this.plan,
@@ -148,6 +150,33 @@ class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], 
+      enableAutoScroll: true,
+      onFinish: () => UserSession.markModuleVisited('subscription'),
+      builder: (context) => const _SubscriptionScreenContent(),
+    );
+  }
+}
+class _SubscriptionScreenContent extends StatefulWidget {
+  const _SubscriptionScreenContent();
+  @override
+  State<_SubscriptionScreenContent> createState() => _SubscriptionScreenContentState();
+}
+class _SubscriptionScreenContentState extends State<_SubscriptionScreenContent> {
+  final GlobalKey _plansKey = GlobalKey();
+  final GlobalKey _ctaKey = GlobalKey();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!UserSession.visitedModules.contains('subscription')) {
+        ShowCaseWidget.of(context).startShowCase([_plansKey, _ctaKey]);
+      }
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
     final sub = context.watch<SubscriptionProvider>();
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -166,18 +195,24 @@ class SubscriptionScreen extends StatelessWidget {
                       _ErrorBanner(message: sub.error),
                       const SizedBox(height: 20),
                     ],
-                    ...List.generate(_plans.length, (i) {
-                      final plan = _plans[i];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: _PlanCard(
-                          info: plan,
-                          isCurrentPlan: sub.currentPlan == plan.plan,
-                          isPurchasing: sub.isPurchasing,
-                          onUpgrade: () => _onUpgrade(context, sub, plan),
-                        ),
-                      );
-                    }),
+                    Showcase(
+                      key: _plansKey,
+                      description: 'Choose the plan that fits your business needs.',
+                      child: Column(
+                        children: List.generate(_plans.length, (i) {
+                          final plan = _plans[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: _PlanCard(
+                              info: plan,
+                              isCurrentPlan: sub.currentPlan == plan.plan,
+                              isPurchasing: sub.isPurchasing,
+                              onUpgrade: () => _onUpgrade(context, sub, plan),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _onRestore(context, sub),
@@ -222,10 +257,21 @@ class SubscriptionScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             icon: const Icon(Icons.close_rounded, color: AppColors.textDark),
             onPressed: () => Navigator.maybePop(context),
+          ),
+          Showcase(
+            key: _ctaKey,
+            description: 'Get help and understand how this screen works.',
+            child: IconButton(
+              icon: const Icon(Icons.help_outline, color: AppColors.textDark),
+              onPressed: () {
+                ShowCaseWidget.of(context).startShowCase([_plansKey, _ctaKey]);
+              },
+            ),
           ),
         ],
       ),

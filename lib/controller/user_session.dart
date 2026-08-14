@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:buildtrack_mobile/services/api_service.dart';
 enum UserRole { admin, supervisor, mason }
 class UserSession extends ChangeNotifier {
   static final UserSession _instance = UserSession._();
@@ -12,6 +13,11 @@ class UserSession extends ChangeNotifier {
   static String? _profilePhoto;
   static String _rawRoleName = '';
   static List<String> _overseesRoles = [];
+  static List<String> _visitedModules = [];
+  static bool _hasSkippedTour = false;
+  static bool _hasCreatedProject = false;
+  static bool _hasAddedEntry = false;
+  static bool _hasViewedReports = false;
   static List<String> _projectIds = [];
   static String get projectId =>
       _projectIds.isNotEmpty ? _projectIds.first : '';
@@ -35,6 +41,57 @@ class UserSession extends ChangeNotifier {
   static bool get isAdmin => _role == UserRole.admin;
   static bool get isSupervisor => _role == UserRole.supervisor;
   static bool get isMason => _role == UserRole.mason;
+  static bool get hasSkippedTour => _hasSkippedTour;
+  static bool get hasCreatedProject => _hasCreatedProject;
+  static bool get hasAddedEntry => _hasAddedEntry;
+  static bool get hasViewedReports => _hasViewedReports;
+  static List<String> get visitedModules => List.unmodifiable(_visitedModules);
+
+  static Future<void> skipTour() async {
+    _hasSkippedTour = true;
+    await _persist();
+    _instance.notifyListeners();
+  }
+
+  static Future<void> markModuleVisited(String moduleName) async {
+    if (_visitedModules.contains(moduleName)) return;
+    _visitedModules.add(moduleName);
+    await _persist();
+    _instance.notifyListeners();
+
+    try {
+      await ApiService.post('/users/onboarding/visit-module', {'moduleName': moduleName});
+    } catch (e) {
+      debugPrint('[UserSession] markModuleVisited error: $e');
+    }
+  }
+
+  static Future<void> markAllModulesVisited() async {
+    _visitedModules = [
+      'HomeScreen',
+      'AddProjectScreen',
+      'Settings',
+      'AssignRole',
+      'AddEntryScreen',
+      'ApprovalDashboard',
+      'AssignTaskPage',
+      'InventoryPage',
+      'VoiceAssistant',
+      'AuditLogsPage',
+      'ProjectDetailPage',
+      'FinancialReport',
+      'SubscriptionPage',
+      'ProjectsScreen',
+      'profile',
+      'inventory',
+      'subscription',
+      'assign_task',
+      'ai_voice_entry'
+    ];
+    await _persist();
+    _instance.notifyListeners();
+  }
+
   static bool hasProjectAccess(String pid) {
     if (isAdmin) return true;
     return _projectIds.any((id) => id.trim() == pid.trim());
@@ -81,6 +138,50 @@ class UserSession extends ChangeNotifier {
     } else {
       _overseesRoles = [];
     }
+    
+    final onboarding = user['onboarding'];
+    if (onboarding is Map) {
+      _hasSkippedTour = onboarding['hasSkippedTour'] == true;
+      _hasCreatedProject = onboarding['hasCreatedProject'] == true;
+      _hasAddedEntry = onboarding['hasAddedEntry'] == true;
+      _hasViewedReports = onboarding['hasViewedReports'] == true;
+      if (onboarding['visitedModules'] is List) {
+        _visitedModules = (onboarding['visitedModules'] as List).map((e) => e.toString()).toList();
+      } else {
+        _visitedModules = [];
+      }
+    } else {
+      _hasSkippedTour = user['hasSkippedTour'] == true;
+      _hasCreatedProject = false;
+      _hasAddedEntry = false;
+      _hasViewedReports = false;
+      _visitedModules = [];
+    }
+
+    if ((_projectIds.isNotEmpty || _hasAddedEntry || _hasCreatedProject) && _visitedModules.isEmpty) {
+      _visitedModules = [
+        'HomeScreen',
+        'AddProjectScreen',
+        'Settings',
+        'AssignRole',
+        'AddEntryPage',
+        'ApprovalDashboard',
+        'AssignTaskPage',
+        'InventoryPage',
+        'VoiceAssistant',
+        'AuditLogsPage',
+        'ProjectDetailPage',
+        'FinancialReport',
+        'SubscriptionPage',
+        'profile',
+        'inventory',
+        'subscription',
+        'assign_task',
+        'ai_voice_entry'
+      ];
+    }
+
+    
     _profilePhoto = user['profilePhoto']?.toString();
     _initialized = true;
     await _persist();
@@ -123,6 +224,15 @@ class UserSession extends ChangeNotifier {
       } else {
         _overseesRoles = [];
       }
+      _hasSkippedTour = data['hasSkippedTour'] == true;
+      _hasCreatedProject = data['hasCreatedProject'] == true;
+      _hasAddedEntry = data['hasAddedEntry'] == true;
+      _hasViewedReports = data['hasViewedReports'] == true;
+      if (data['visitedModules'] is List) {
+        _visitedModules = (data['visitedModules'] as List).map((e) => e.toString()).toList();
+      } else {
+        _visitedModules = [];
+      }
       _initialized = true;
       _instance.notifyListeners();
       debugPrint(
@@ -143,6 +253,11 @@ class UserSession extends ChangeNotifier {
     _overseesRoles = [];
     _permissions = [];
     _profilePhoto = null;
+    _hasSkippedTour = false;
+    _hasCreatedProject = false;
+    _hasAddedEntry = false;
+    _hasViewedReports = false;
+    _visitedModules = [];
     _initialized = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kSessionKey);
@@ -170,6 +285,11 @@ class UserSession extends ChangeNotifier {
     _projectIds = merged;
     _overseesRoles = List<String>.from(overseesRoles);
     _permissions = List<String>.from(permissions);
+    _hasSkippedTour = false;
+    _hasCreatedProject = false;
+    _hasAddedEntry = false;
+    _hasViewedReports = false;
+    _visitedModules = [];
     _initialized = true;
     _instance.notifyListeners();
   }
@@ -229,6 +349,11 @@ class UserSession extends ChangeNotifier {
           'projectId': projectId,
           'permissions': _permissions,
           'overseesRoles': _overseesRoles,
+          'hasSkippedTour': _hasSkippedTour,
+          'hasCreatedProject': _hasCreatedProject,
+          'hasAddedEntry': _hasAddedEntry,
+          'hasViewedReports': _hasViewedReports,
+          'visitedModules': _visitedModules,
           'profilePhoto': _profilePhoto,
         }),
       );
