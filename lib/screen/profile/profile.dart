@@ -16,6 +16,8 @@ import 'package:buildtrack_mobile/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:buildtrack_mobile/common/utils/image_pick_helper.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
 class ProfileUserData {
   const ProfileUserData({
     required this.name,
@@ -52,6 +54,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ProfileUserData? _user;
   bool _isLoadingProfile = true;
   String? _profileError;
+  final GlobalKey _settingsCardKey = GlobalKey();
+  final GlobalKey _teamAccessKey = GlobalKey();
+  final GlobalKey _logoutKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -230,40 +235,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    return AppSubScreenLayout(
-      title: 'Profile',
-      scrollable: true,
-      child: _isLoadingProfile
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 60),
-              child: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+    return ShowCaseWidget(
+      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], enableAutoScroll: true, 
+      builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
+          if (_projProvider.projectsLoaded && _projProvider.projects.isEmpty && !UserSession.visitedModules.contains('profile')) {
+            UserSession.markModuleVisited('profile');
+            final keys = <GlobalKey>[
+              ShowcaseKeys.profileFields,
+              _settingsCardKey,
+              ShowcaseKeys.profileSubscription,
+              if (RoleManager.canViewTeamAccess) _teamAccessKey,
+              _logoutKey,
+            ];
+            ShowCaseWidget.of(context).startShowCase(keys);
+          }
+        });
+        return AppSubScreenLayout(
+            title: 'Profile',
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.help_outline, color: Colors.black87),
+                onPressed: () {
+                  final keys = <GlobalKey>[
+                    ShowcaseKeys.profileFields,
+                    _settingsCardKey,
+                    ShowcaseKeys.profileSubscription,
+                    if (RoleManager.canViewTeamAccess) _teamAccessKey,
+                    _logoutKey,
+                  ];
+                  ShowCaseWidget.of(context).startShowCase(keys);
+                },
               ),
-            )
-          : Column(
-              children: [
-                if (_profileError != null) ...[
-                  _ErrorBanner(message: _profileError!),
-                  const SizedBox(height: 12),
-                ],
-                _buildProfileCard(_user!),
-                const SizedBox(height: AppTheme.spacingLg),
-                SubscriptionCard(showUpgradeButton: RoleManager.isAdmin),
-                const SizedBox(height: AppTheme.spacingLg),
-                _buildSettingsCard(),
-                const SizedBox(height: AppTheme.spacingLg),
-                if (RoleManager.canViewTeamAccess) ...[
-                  _buildTeamAccessSection(),
-                  const SizedBox(height: AppTheme.spacingLg),
-                ],
-                _buildActions(),
-                const SizedBox(height: AppTheme.spacingLg),
-                Text(
-                  'BuildTrack Version 2.4.0 (2024)',
-                  style: AppTheme.caption.copyWith(color: Colors.grey.shade600),
-                ),
-              ],
-            ),
+            ],
+            scrollable: true,
+            child: _isLoadingProfile
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      if (_profileError != null) ...[
+                        _ErrorBanner(message: _profileError!),
+                        const SizedBox(height: 12),
+                      ],
+                      Showcase(
+                        key: ShowcaseKeys.profileFields,
+                        description: 'This is your profile summary and role.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: _buildProfileCard(_user!),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Showcase(
+                        key: ShowcaseKeys.profileSubscription,
+                        description: 'View your current subscription plan and limits.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: SubscriptionCard(showUpgradeButton: RoleManager.isAdmin),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Showcase(
+                        key: _settingsCardKey,
+                        description: 'Manage your profile and notification settings here.',
+                        child: _buildSettingsCard(),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      if (RoleManager.canViewTeamAccess) ...[
+                        Showcase(
+                          key: _teamAccessKey,
+                          description: 'Assign roles and manage team access from here.',
+                          child: _buildTeamAccessSection(),
+                        ),
+                        const SizedBox(height: AppTheme.spacingLg),
+                      ],
+                      Showcase(
+                        key: _logoutKey,
+                        description: 'Click here to log out securely.',
+                        child: _buildActions(),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Text(
+                        'BuildTrack Version 2.4.0 (2024)',
+                        style: AppTheme.caption.copyWith(color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+          );
+      },
     );
   }
   Widget _buildProfileCard(ProfileUserData user) {
@@ -744,3 +811,4 @@ class _ErrorBanner extends StatelessWidget {
     );
   }
 }
+

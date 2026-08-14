@@ -65,6 +65,33 @@ class UserSession extends ChangeNotifier {
       debugPrint('[UserSession] markModuleVisited error: $e');
     }
   }
+
+  static Future<void> markAllModulesVisited() async {
+    _visitedModules = [
+      'HomeScreen',
+      'AddProjectScreen',
+      'Settings',
+      'AssignRole',
+      'AddEntryScreen',
+      'ApprovalDashboard',
+      'AssignTaskPage',
+      'InventoryPage',
+      'VoiceAssistant',
+      'AuditLogsPage',
+      'ProjectDetailPage',
+      'FinancialReport',
+      'SubscriptionPage',
+      'ProjectsScreen',
+      'profile',
+      'inventory',
+      'subscription',
+      'assign_task',
+      'ai_voice_entry'
+    ];
+    await _persist();
+    _instance.notifyListeners();
+  }
+
   static bool hasProjectAccess(String pid) {
     if (isAdmin) return true;
     return _projectIds.any((id) => id.trim() == pid.trim());
@@ -145,7 +172,12 @@ class UserSession extends ChangeNotifier {
         'AuditLogsPage',
         'ProjectDetailPage',
         'FinancialReport',
-        'SubscriptionPage'
+        'SubscriptionPage',
+        'profile',
+        'inventory',
+        'subscription',
+        'assign_task',
+        'ai_voice_entry'
       ];
     }
 

@@ -7,6 +7,9 @@ import 'package:buildtrack_mobile/screen/reports/report_export_helper.dart';
 import 'package:buildtrack_mobile/screen/reports/csv_import_helper.dart';
 import 'package:buildtrack_mobile/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
+import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,7 +19,22 @@ class ReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => ReportProvider()..refresh(),
-      child: const _ReportsView(),
+      child: ShowCaseWidget(
+        enableAutoScroll: true,
+        globalTooltipActions: const [
+          TooltipActionButton(
+            type: TooltipDefaultActionType.skip,
+            backgroundColor: Colors.transparent,
+            textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)
+          ),
+          TooltipActionButton(
+            type: TooltipDefaultActionType.next,
+            backgroundColor: AppColors.primary,
+            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+          )
+        ],
+        builder: (context) => const _ReportsView(),
+      ),
     );
   }
 }
@@ -28,6 +46,8 @@ class _ReportsView extends StatefulWidget {
 }
 
 class _ReportsViewState extends State<_ReportsView> {
+  final GlobalKey _chartsKey = GlobalKey();
+  final GlobalKey _exportBtnKey = GlobalKey();
   bool _linked = false;
   String _selectedProjectId = 'all';
   String? _selectedFloor;
@@ -106,6 +126,23 @@ class _ReportsViewState extends State<_ReportsView> {
     'Remaining',
     'Payment Date',
   ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!UserSession.visitedModules.contains('ReportsScreen')) {
+        ShowCaseWidget.of(context).startShowCase([
+          ShowcaseKeys.reportAskAI,
+          ShowcaseKeys.reportFilters,
+          _chartsKey,
+          ShowcaseKeys.reportCSV,
+          ShowcaseKeys.helpButton,
+        ]);
+        UserSession.visitedModules.add('ReportsScreen');
+      }
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -1260,9 +1297,35 @@ class _ReportsViewState extends State<_ReportsView> {
           children: [
             AppTopBar(
               title: 'Reports',
-              rightWidget: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/profile'),
-                child: const ProfileAvatar(radius: 18),
+              rightWidget: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Showcase(
+                    key: ShowcaseKeys.helpButton,
+                    description: 'Tap here anytime to replay this tour and get help.',
+                    tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                    textColor: Colors.white,
+                    tooltipBorderRadius: BorderRadius.circular(16),
+                    tooltipPadding: const EdgeInsets.all(16),
+                    child: IconButton(
+                      icon: const Icon(Icons.help_outline, color: AppColors.primary),
+                      onPressed: () {
+                        ShowCaseWidget.of(context).startShowCase([
+                          ShowcaseKeys.reportAskAI,
+                          ShowcaseKeys.reportFilters,
+                          _chartsKey,
+                          ShowcaseKeys.reportCSV,
+                          ShowcaseKeys.helpButton,
+                        ]);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
+                    child: const ProfileAvatar(radius: 18),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -1275,9 +1338,25 @@ class _ReportsViewState extends State<_ReportsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _AskAiBanner(projectName: provider.selectedProjectName),
+                      Showcase(
+                        key: ShowcaseKeys.reportAskAI,
+                        description: 'Ask AI about costs, missing entries, or anything related to this report.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: _AskAiBanner(projectName: provider.selectedProjectName),
+                      ),
                       const SizedBox(height: 18),
-                      _buildFiltersCard(context, projectProvider),
+                      Showcase(
+                        key: ShowcaseKeys.reportFilters,
+                        description: 'Filter your reports by project, date, status and more.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: _buildFiltersCard(context, projectProvider),
+                      ),
                       const SizedBox(height: 20),
                       const Text(
                         'Filtered Cost Summary',
@@ -1289,7 +1368,14 @@ class _ReportsViewState extends State<_ReportsView> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      GridView.count(
+                      Showcase(
+                        key: _chartsKey,
+                        description: 'View a quick financial summary based on your filters.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: GridView.count(
                         crossAxisCount: 3,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -1336,6 +1422,7 @@ class _ReportsViewState extends State<_ReportsView> {
                             icon: Icons.precision_manufacturing_outlined,
                           ),
                         ],
+                      ),
                       ),
                       const SizedBox(height: 10),
                       _CategoryTabs(
@@ -1895,7 +1982,15 @@ class _ReportsViewState extends State<_ReportsView> {
                           ),
                         ),
                       const SizedBox(height: 20),
-                      _buildCsvImportCard(quickCategoryTab, activeCols),
+                      Showcase(
+                        key: ShowcaseKeys.reportCSV,
+                        description: 'Use this to export data to CSV or import bulk entries from a CSV file.',
+                        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                        textColor: Colors.white,
+                        tooltipBorderRadius: BorderRadius.circular(16),
+                        tooltipPadding: const EdgeInsets.all(16),
+                        child: _buildCsvImportCard(quickCategoryTab, activeCols),
+                      ),
                       const SizedBox(height: 8),
                     ],
                   ),

@@ -111,12 +111,20 @@ class AppBottomNav extends StatelessWidget {
                   child: _entryButton(context, nav),
                 ),
               if (nav.isRouteEnabled('/inventory'))
-                _navItem(
-                  context,
-                  nav,
-                  '/inventory',
-                  Icons.inventory_2_outlined,
-                  'INVENTORY',
+                Showcase(
+                  key: ShowcaseKeys.inventoryTab,
+                  description: 'Manage your materials, tools, and inventory here.',
+                  tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                  textColor: Colors.white,
+                  tooltipBorderRadius: BorderRadius.circular(16),
+                  tooltipPadding: const EdgeInsets.all(16),
+                  child: _navItem(
+                    context,
+                    nav,
+                    '/inventory',
+                    Icons.inventory_2_outlined,
+                    'INVENTORY',
+                  ),
                 ),
               if (nav.isRouteEnabled('/reports'))
                 Showcase(

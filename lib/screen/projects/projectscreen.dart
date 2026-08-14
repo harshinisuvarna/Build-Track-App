@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
 enum _ProjectStatus {
   planning,
   inProgress,
@@ -126,6 +127,7 @@ class ProjectsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
+      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], enableAutoScroll: true, 
       onFinish: () => UserSession.markModuleVisited('ProjectsScreen'),
       builder: (context) => const _ProjectsScreenContent(),
     );
@@ -150,8 +152,18 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!UserSession.visitedModules.contains('ProjectsScreen')) {
-        ShowCaseWidget.of(context).startShowCase([_fabKey]);
+      final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
+      if (_projProvider.projectsLoaded && !UserSession.visitedModules.contains('ProjectsScreen')) {
+        final keys = <GlobalKey>[];
+        if (RoleManager.canAssignRoles) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
+        if (_projProvider.projects.isEmpty) {
+          keys.add(_fabKey);
+        } else {
+          keys.add(ShowcaseKeys.projectsCard);
+        }
+        if (keys.isNotEmpty) {
+          ShowCaseWidget.of(context).startShowCase(keys);
+        }
       }
     });
   }
@@ -188,8 +200,45 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
               rightWidget: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (RoleManager.canAssignRoles)
+                    Showcase(
+                      key: ShowcaseKeys.projectsAssignRoleBtn,
+                      description: 'Click here to assign roles to this project',
+                      tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                      textColor: Colors.white,
+                      tooltipBorderRadius: BorderRadius.circular(16),
+                      tooltipPadding: const EdgeInsets.all(16),
+                      child: GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/assign-role'),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.people_outline,
+                            color: AppColors.primary,
+                            size: 19,
+                          ),
+                        ),
+                      ),
+                    ),
                   GestureDetector(
-                    onTap: () => ShowCaseWidget.of(context).startShowCase([_fabKey]),
+                    onTap: () {
+                      final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
+                      final keys = <GlobalKey>[];
+                      if (RoleManager.canAssignRoles) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
+                      if (_projProvider.projects.isEmpty) {
+                        keys.add(_fabKey);
+                      } else {
+                        keys.add(ShowcaseKeys.projectsCard);
+                      }
+                      if (keys.isNotEmpty) {
+                        ShowCaseWidget.of(context).startShowCase(keys);
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
@@ -299,11 +348,25 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
               ],
             ),
             const SizedBox(height: 20),
-            ...provider.projects.map(
-              (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _projectCard(context, p, provider),
-              ),
+            ...provider.projects.asMap().entries.map(
+              (entry) {
+                final isFirst = entry.key == 0;
+                final p = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: isFirst
+                      ? Showcase(
+                          key: ShowcaseKeys.projectsCard,
+                          description: 'Tap on any project card to view detailed analytics and logs',
+                          tooltipBackgroundColor: const Color(0xFF1E1E2C),
+                          textColor: Colors.white,
+                          tooltipBorderRadius: BorderRadius.circular(16),
+                          tooltipPadding: const EdgeInsets.all(16),
+                          child: _projectCard(context, p, provider),
+                        )
+                      : _projectCard(context, p, provider),
+                );
+              },
             ),
           ],
         ),
@@ -447,3 +510,4 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
     );
   }
 }
+

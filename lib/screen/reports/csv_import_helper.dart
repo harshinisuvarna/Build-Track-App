@@ -143,6 +143,11 @@ class CsvImportHelper {
     int failedCount = 0;
     final List<String> errors = [];
     final totalRows = parsedCsv.length - 1;
+    if (totalRows > 100) {
+      throw Exception(
+        'CSV file exceeds the maximum limit of 100 rows (Found $totalRows rows). Please reduce the number of entries and try again.',
+      );
+    }
     for (int i = 1; i < parsedCsv.length; i++) {
       final row = parsedCsv[i];
       if (row.isEmpty ||

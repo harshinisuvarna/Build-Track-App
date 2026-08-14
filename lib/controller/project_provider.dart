@@ -21,6 +21,7 @@ class ProjectProvider extends ChangeNotifier {
   String? _selectedActivity;
   String? _selectedActivityId;
   bool _isLoading = false;
+  bool _projectsLoaded = false;
   String _error = '';
   bool _entriesLoading = false;
   bool get entriesLoading => _entriesLoading;
@@ -34,6 +35,7 @@ class ProjectProvider extends ChangeNotifier {
   String? get selectedActivity => _selectedActivity;
   String? get selectedActivityId => _selectedActivityId;
   bool get isLoading => _isLoading;
+  bool get projectsLoaded => _projectsLoaded;
   String get error => _error;
   bool get hasProjects => _projects.isNotEmpty;
   int get projectCount => _projects.length;
@@ -590,6 +592,7 @@ class ProjectProvider extends ChangeNotifier {
       }
       await _backfillCompletedActivities();
       await _persistEntries();
+      _projectsLoaded = true;
       _error = '';
       notifyListeners();
     } catch (e, st) {
@@ -619,6 +622,7 @@ class ProjectProvider extends ChangeNotifier {
       if (_selectedProject != null) {
         UserSession.projectId = _selectedProject!.id;
       }
+      _projectsLoaded = true;
       _error = '';
     } catch (e) {
       _error = 'Failed to fetch projects: $e';
@@ -1131,6 +1135,7 @@ class ProjectProvider extends ChangeNotifier {
     _phases = [];
     _selectedProject = null;
     _isLoading = false;
+    _projectsLoaded = false;
     _error = '';
     notifyListeners();
   }

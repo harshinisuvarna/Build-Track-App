@@ -17,11 +17,14 @@ import 'package:buildtrack_mobile/screen/reports/save_helper_stub.dart'
 import 'package:flutter/material.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:buildtrack_mobile/controller/user_session.dart';
+import 'package:buildtrack_mobile/controller/showcase_keys.dart';
+
 class AddEntryScreen extends StatelessWidget {
   const AddEntryScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
+      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], enableAutoScroll: true, 
       onFinish: () => UserSession.markModuleVisited('AddEntryScreen'),
       builder: (context) => const _AddEntryScreenContent(),
     );
@@ -68,8 +71,16 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
     super.initState();
     _columnVisibility = {for (var c in _customColumns) c: true};
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
       if (!UserSession.visitedModules.contains('AddEntryScreen')) {
-        ShowCaseWidget.of(context).startShowCase([_csvKey]);
+        final keys = <GlobalKey>[];
+        if (RoleManager.canManageExpenses) keys.add(ShowcaseKeys.addEntryMaterial);
+        if (RoleManager.canAddEntries) keys.add(ShowcaseKeys.addEntryLabour);
+        if (RoleManager.canManageEquipmentMaster) keys.add(ShowcaseKeys.addEntryEquipment);
+        keys.add(ShowcaseKeys.addEntryCSV);
+        keys.add(_csvKey);
+        ShowCaseWidget.of(context).startShowCase(keys);
+        UserSession.visitedModules.add('AddEntryScreen');
       }
     });
   }
@@ -1137,16 +1148,23 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
     }
   }
   Widget _buildCsvImportCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return Showcase(
+      key: ShowcaseKeys.addEntryCSV,
+      description: 'Upload bulk entries via CSV. Download templates and upload completed files here.',
+      tooltipBackgroundColor: const Color(0xFF1E1E2C),
+      textColor: Colors.white,
+      tooltipBorderRadius: BorderRadius.circular(16),
+      tooltipPadding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
           ),
         ],
         border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
@@ -1297,7 +1315,7 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
           ),
         ],
       ),
-    );
+    ));
   }
   @override
   Widget build(BuildContext context) {
@@ -1317,7 +1335,7 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () => ShowCaseWidget.of(context).startShowCase([_csvKey]),
+                    onTap: () => ShowcaseView.get().startShowCase([_csvKey]),
                     child: Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
@@ -1393,7 +1411,20 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
     };
     final Color iconColor = iconColors[type] ?? primaryBlue;
     final Color iconBg = iconBgColors[type] ?? const Color(0xFFF0F2F8);
-    return AppCard(
+    GlobalKey? showcaseKey;
+    String description = '';
+    if (type == 'material') {
+      showcaseKey = ShowcaseKeys.addEntryMaterial;
+      description = 'Log concrete, steel, lumber, or site-specific procurement items.';
+    } else if (type == 'labour') {
+      showcaseKey = ShowcaseKeys.addEntryLabour;
+      description = 'Track crew hours, specialized trade performance, and site presence.';
+    } else if (type == 'equipment') {
+      showcaseKey = ShowcaseKeys.addEntryEquipment;
+      description = 'Record heavy machinery runtime, fuel logs, and maintenance events.';
+    }
+
+    Widget cardContent = AppCard(
       onTap: () => _navigateToContext(context, type),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1437,6 +1468,19 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
         ],
       ),
     );
+
+    if (showcaseKey != null) {
+      return Showcase(
+        key: showcaseKey,
+        description: description,
+        tooltipBackgroundColor: const Color(0xFF1E1E2C),
+        textColor: Colors.white,
+        tooltipBorderRadius: BorderRadius.circular(16),
+        tooltipPadding: const EdgeInsets.all(16),
+        child: cardContent,
+      );
+    }
+    return cardContent;
   }
   Future<void> _openCustomizeColumnsSheet() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -1641,3 +1685,4 @@ class _CustomizeTemplateSheetState extends State<CustomizeTemplateSheet> {
     );
   }
 }
+
