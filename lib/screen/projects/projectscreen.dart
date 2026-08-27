@@ -155,7 +155,7 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
       final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
       if (_projProvider.projectsLoaded && !UserSession.visitedModules.contains('ProjectsScreen')) {
         final keys = <GlobalKey>[];
-        if (RoleManager.canAssignRoles) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
+        if (RoleManager.canAssignTasks) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
         if (_projProvider.projects.isEmpty) {
           keys.add(_fabKey);
         } else {
@@ -200,16 +200,16 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
               rightWidget: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (RoleManager.canAssignRoles)
+                  if (RoleManager.canAssignTasks)
                     Showcase(
                       key: ShowcaseKeys.projectsAssignRoleBtn,
-                      description: 'Click here to assign roles to this project',
+                      description: 'Click here to assign work/tasks to this project',
                       tooltipBackgroundColor: const Color(0xFF1E1E2C),
                       textColor: Colors.white,
                       tooltipBorderRadius: BorderRadius.circular(16),
                       tooltipPadding: const EdgeInsets.all(16),
                       child: GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/assign-role'),
+                        onTap: () => Navigator.pushNamed(context, '/assign-task'),
                         child: Container(
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.all(7),
@@ -218,7 +218,7 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.people_outline,
+                            Icons.assignment_outlined,
                             color: AppColors.primary,
                             size: 19,
                           ),
@@ -229,7 +229,7 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
                     onTap: () {
                       final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
                       final keys = <GlobalKey>[];
-                      if (RoleManager.canAssignRoles) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
+                      if (RoleManager.canAssignTasks) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
                       if (_projProvider.projects.isEmpty) {
                         keys.add(_fabKey);
                       } else {

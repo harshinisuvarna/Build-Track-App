@@ -138,7 +138,7 @@ class _ReportsViewState extends State<_ReportsView> {
           ShowcaseKeys.reportCSV,
           ShowcaseKeys.helpButton,
         ]);
-        UserSession.visitedModules.add('ReportsScreen');
+        UserSession.markModuleVisited('ReportsScreen');
       }
     });
   }
@@ -771,25 +771,25 @@ class _ReportsViewState extends State<_ReportsView> {
                   const SizedBox(height: 6),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 150),
-                    width: double.maxFinite,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey[200]!),
                     ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: result.errors.length,
-                      itemBuilder: (c, idx) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          result.errors[idx],
-                          style: TextStyle(
-                            color: Colors.red[800],
-                            fontSize: 12,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: result.errors.map((err) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            err,
+                            style: TextStyle(
+                              color: Colors.red[800],
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
+                        )).toList(),
                       ),
                     ),
                   ),

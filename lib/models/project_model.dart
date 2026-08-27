@@ -57,6 +57,7 @@ class EntryModel {
     required this.date,
     this.description = '',
     this.brand,
+    this.quantity,
     this.ratePerUnit,
     this.floor,
     this.phase,
@@ -81,6 +82,7 @@ class EntryModel {
   final DateTime date;
   final String description;
   final String? brand;
+  final double? quantity;
   final double? ratePerUnit;
   final String? floor;
   final String? phase;
@@ -132,18 +134,34 @@ class EntryModel {
     } else if (raw != null) {
       createdBy = raw.toString();
     }
+    String desc = j['title']?.toString() ?? j['materialName']?.toString() ?? j['description']?.toString() ?? j['name']?.toString() ?? '';
+    
+    final typeStr = (j['type']?.toString() ?? '').toLowerCase();
+    if ((typeStr == 'labour' || typeStr == 'wages') && j['worker'] != null && j['worker'] is Map) {
+      final workerName = j['worker']['name']?.toString() ?? '';
+      if (workerName.isNotEmpty) {
+        desc = workerName + (desc.isNotEmpty ? ' - $desc' : '');
+      }
+    } else if (j['supplier'] != null) {
+      final supplier = j['supplier']?.toString() ?? '';
+      if (supplier.isNotEmpty) {
+        desc = supplier + (desc.isNotEmpty ? ' - $desc' : '');
+      }
+    }
+
     return EntryModel(
-      id: j['id']?.toString() ?? '',
-      projectId: j['projectId']?.toString() ?? '',
+      id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
+      projectId: j['project']?.toString() ?? j['projectId']?.toString() ?? '',
       type: EntryType.values.firstWhere(
-        (e) => e.name == j['type'],
+        (e) => e.name.toLowerCase() == (j['type']?.toString() ?? '').toLowerCase(),
         orElse: () => EntryType.material,
       ),
       amount: (j['amount'] as num?)?.toDouble() ?? 0.0,
-      date: DateTime.tryParse(j['date']?.toString() ?? '') ?? DateTime.now(),
-      description: j['description']?.toString() ?? '',
+      date: DateTime.tryParse(j['date']?.toString() ?? j['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      description: desc,
       brand: j['brand']?.toString(),
-      ratePerUnit: (j['ratePerUnit'] as num?)?.toDouble(),
+      quantity: (j['quantity'] as num?)?.toDouble(),
+      ratePerUnit: (j['rate'] as num?)?.toDouble() ?? (j['ratePerUnit'] as num?)?.toDouble(),
       floor: j['floor']?.toString(),
       phase: j['phase']?.toString(),
       phaseId: j['phaseId']?.toString(),

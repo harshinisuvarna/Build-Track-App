@@ -138,7 +138,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
           ShowcaseKeys.assignRolePermissions,
           ShowcaseKeys.assignRoleProjectDropdown,
         ]);
-        UserSession.visitedModules.add('AssignRolesScreen');
+        UserSession.markModuleVisited('AssignRolesScreen');
       }
     });
   }

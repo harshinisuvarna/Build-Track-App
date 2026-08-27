@@ -80,7 +80,7 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
         keys.add(ShowcaseKeys.addEntryCSV);
         keys.add(_csvKey);
         ShowCaseWidget.of(context).startShowCase(keys);
-        UserSession.visitedModules.add('AddEntryScreen');
+        UserSession.markModuleVisited('AddEntryScreen');
       }
     });
   }
