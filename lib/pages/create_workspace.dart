@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
 import 'package:buildtrack_mobile/common/themes/app_theme.dart';
 import 'package:buildtrack_mobile/common/widgets/app_layout.dart';
@@ -405,6 +406,10 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         _isLoading = false;
       });
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // Cache the email so it's ready when they log in
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_email', email);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Workspace created successfully! Please log in.'),

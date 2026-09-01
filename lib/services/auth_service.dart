@@ -27,6 +27,7 @@ class AuthService {
         await prefs.setString('jwt_token', token);
         final roleStr = user['role']?.toString() ?? 'Mason';
         await prefs.setString('user_role', roleStr);
+        await prefs.setString('cached_email', email); // Cache the email for auto-fill
         await UserSession.fromLoginResponse(user);
         debugPrint(
           '[AuthService] Login OK — role=$roleStr '
