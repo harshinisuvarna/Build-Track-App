@@ -564,7 +564,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       };
       final selectedPhasesList = _phases
           .where(
-            (ph) => ph.isSelected && ph.allActivities.any((a) => a.isSelected),
+            (ph) => ph.isSelected && (ph.isCustom || ph.allActivities.any((a) => a.isSelected)),
           )
           .map((ph) {
             final existingId = existingPhasesByName[ph.name]?.id;
@@ -2386,8 +2386,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               final name = _customStageNameCtrl.text.trim();
               if (name.isEmpty) return;
               setState(
-                () =>
-                    _phases.add(ConstructionPhase(name: name, isCustom: true)),
+                () {
+                  final newPhase = ConstructionPhase(name: name, isCustom: true);
+                  newPhase.isSelected = true;
+                  newPhase.isExpanded = true;
+                  _phases.add(newPhase);
+                },
               );
               Navigator.pop(ctx);
             },
