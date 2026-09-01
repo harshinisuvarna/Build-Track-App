@@ -815,46 +815,44 @@ class ExecutionContextCard extends StatelessWidget {
             selPhaseName = selectedPhase.toString();
           }
         }
-        List<String> visiblePhaseNames;
+        final List<String> projectPhaseNames = (selProject?.selectedPhases ??
+                const <ProjectPhase>[])
+            .where((p) => p.activities.isNotEmpty)
+            .map((p) => p.phaseName)
+            .toList();
+        final List<String> legacyPhaseNames =
+            List<String>.from(selProject?.selectedPhaseNames ?? const []);
+        final Set<String> mergedPhaseNames = <String>{
+          ...projectPhaseNames,
+          ...legacyPhaseNames,
+        };
+        if (mergedPhaseNames.isEmpty) {
+          mergedPhaseNames
+              .addAll(buildDefaultPhases().map((p) => p.name));
+        }
+        List<String> visiblePhaseNames = mergedPhaseNames.toList();
         List<String> activities;
-        final List<ProjectPhase>? projectPhases = selProject?.selectedPhases;
-        final bool hasNewWorkflow =
-            projectPhases != null && projectPhases.isNotEmpty;
-        if (hasNewWorkflow) {
-          visiblePhaseNames = projectPhases
-              .where((p) => p.activities.isNotEmpty)
-              .map((p) => p.phaseName)
-              .toList();
-          final ProjectPhase? selPhase = selPhaseName != null
-              ? projectPhases.cast<ProjectPhase?>().firstWhere(
-                  (p) => p?.phaseName == selPhaseName,
-                  orElse: () => null,
-                )
-              : null;
-          activities = selPhase != null
-              ? selPhase.activities.map((a) => a.name).toList()
-              : <String>[];
+        final ProjectPhase? selPhase = selPhaseName != null
+            ? (selProject?.selectedPhases ?? const <ProjectPhase>[])
+                  .cast<ProjectPhase?>()
+                  .firstWhere(
+                    (p) => p?.phaseName == selPhaseName,
+                    orElse: () => null,
+                  )
+            : null;
+        if (selPhase != null) {
+          activities = selPhase.activities.map((a) => a.name).toList();
         } else {
-          final List<ConstructionPhase> allPhases = buildDefaultPhases();
-          final List<String>? legacyPhaseNames =
-              selProject?.selectedPhaseNames != null
-              ? List<String>.from(selProject!.selectedPhaseNames!)
-              : null;
-          final List<ConstructionPhase> visiblePhases =
-              (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
-              ? allPhases
-              : allPhases
-                    .where((p) => legacyPhaseNames.contains(p.name))
-                    .toList();
-          visiblePhaseNames = visiblePhases.map((p) => p.name).toList();
-          final ConstructionPhase? selPhase = selPhaseName != null
-              ? allPhases.cast<ConstructionPhase?>().firstWhere(
+          final ConstructionPhase? defaultSelPhase = selPhaseName != null
+              ? buildDefaultPhases().cast<ConstructionPhase?>().firstWhere(
                   (p) => p?.name == selPhaseName,
                   orElse: () => null,
                 )
               : null;
-          activities = selPhase != null
-              ? selPhase.allActivities.map<String>((a) => a.name).toList()
+          activities = defaultSelPhase != null
+              ? defaultSelPhase.allActivities
+                    .map<String>((a) => a.name)
+                    .toList()
               : <String>[];
         }
         if (selPhaseName != null && !visiblePhaseNames.contains(selPhaseName)) {

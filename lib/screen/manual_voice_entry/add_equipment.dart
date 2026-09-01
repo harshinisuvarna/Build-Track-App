@@ -327,6 +327,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       context,
       listen: false,
     );
+    if (_selectedProjectId != null && _selectedProjectId!.isNotEmpty) {
+      await projectProvider.refreshProject(_selectedProjectId!);
+    }
     final ProjectModel? project = _selectedProjectId == null
         ? null
         : projectProvider.projects.cast<ProjectModel?>().firstWhere(
@@ -337,25 +340,21 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _phases = [];
       return;
     }
-    final List<ProjectPhase>? projectPhases = project.selectedPhases;
-    final bool hasNewWorkflow =
-        projectPhases != null && projectPhases.isNotEmpty;
-    if (hasNewWorkflow) {
-      _phases = projectPhases
-          .where((p) => p.activities.isNotEmpty)
-          .map((p) => p.phaseName)
-          .toList();
-    } else {
-      final List<ConstructionPhase> allPhases = buildDefaultPhases();
-      final List<String>? legacyPhaseNames = project.selectedPhaseNames != null
-          ? List<String>.from(project.selectedPhaseNames!)
-          : null;
-      final List<ConstructionPhase> visiblePhases =
-          (legacyPhaseNames == null || legacyPhaseNames.isEmpty)
-          ? allPhases
-          : allPhases.where((p) => legacyPhaseNames.contains(p.name)).toList();
-      _phases = visiblePhases.map((p) => p.name).toList();
+    final List<String> projectPhaseNames = (project.selectedPhases ??
+            const <ProjectPhase>[])
+        .where((p) => p.activities.isNotEmpty)
+        .map((p) => p.phaseName)
+        .toList();
+    final List<String> legacyPhaseNames =
+        List<String>.from(project.selectedPhaseNames ?? const []);
+    final Set<String> mergedPhaseNames = <String>{
+      ...projectPhaseNames,
+      ...legacyPhaseNames,
+    };
+    if (mergedPhaseNames.isEmpty) {
+      mergedPhaseNames.addAll(buildDefaultPhases().map((p) => p.name));
     }
+    _phases = mergedPhaseNames.toList();
   }
   Future<void> _loadActivities(dynamic phase) async {
     final projectProvider = Provider.of<ProjectProvider>(
@@ -380,22 +379,23 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ''
               : phase.toString());
     final List<ProjectPhase>? projectPhases = project.selectedPhases;
-    final bool hasNewWorkflow =
-        projectPhases != null && projectPhases.isNotEmpty;
-    if (hasNewWorkflow) {
-      final ProjectPhase? selPhase = projectPhases
-          .cast<ProjectPhase?>()
-          .firstWhere((p) => p?.phaseName == phaseName, orElse: () => null);
-      _activities = selPhase != null
-          ? selPhase.activities.map((a) => a.name).toList()
-          : <String>[];
+    final ProjectPhase? selPhase = phaseName.isEmpty
+        ? null
+        : (projectPhases ?? const <ProjectPhase>[])
+              .cast<ProjectPhase?>()
+              .firstWhere((p) => p?.phaseName == phaseName, orElse: () => null);
+    if (selPhase != null) {
+      _activities = selPhase.activities.map((a) => a.name).toList();
     } else {
       final List<ConstructionPhase> allPhases = buildDefaultPhases();
-      final ConstructionPhase? selPhase = allPhases
-          .cast<ConstructionPhase?>()
-          .firstWhere((p) => p?.name == phaseName, orElse: () => null);
-      _activities = selPhase != null
-          ? selPhase.allActivities.map<String>((a) => a.name).toList()
+      final ConstructionPhase? defaultSelPhase = phaseName.isEmpty
+          ? null
+          : allPhases.cast<ConstructionPhase?>().firstWhere(
+              (p) => p?.name == phaseName,
+              orElse: () => null,
+            );
+      _activities = defaultSelPhase != null
+          ? defaultSelPhase.allActivities.map<String>((a) => a.name).toList()
           : <String>[];
     }
   }
@@ -837,6 +837,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           : pId.toString();
     }
     debugPrint('resolvedProjectId => $resolvedProjectId');
+    if (resolvedProjectId != null && resolvedProjectId.isNotEmpty) {
+      await projectProvider.refreshProject(resolvedProjectId);
+    }
     final String floorName = _extractString(latest, [
       'floor',
       'floorName',

@@ -604,6 +604,30 @@ class ProjectProvider extends ChangeNotifier {
       );
     }
   }
+  Future<ProjectModel?> refreshProject(String projectId) async {
+    try {
+      final fresh = await ApiService.fetchProjectById(projectId);
+      if (fresh == null) return null;
+      final idx = _projects.indexWhere(
+        (p) => p.id.trim() == projectId.trim(),
+      );
+      if (idx != -1) {
+        _projects[idx] = fresh;
+      } else {
+        _projects.add(fresh);
+      }
+      if (_selectedProject?.id.trim() == projectId.trim()) {
+        _selectedProject = fresh;
+      }
+      await _persistProjects();
+      UserSession.projectId = fresh.id;
+      notifyListeners();
+      return fresh;
+    } catch (e) {
+      dev.log('refreshProject error: $e');
+      return null;
+    }
+  }
   Future<void> fetchProjects() async {
     _setLoading(true);
     try {

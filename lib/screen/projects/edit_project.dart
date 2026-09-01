@@ -462,6 +462,17 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         }
       }
     }
+    for (final name in p.selectedPhaseNames ?? const <String>[]) {
+      final nameKey = name.trim().toLowerCase();
+      final alreadyRestored =
+          freshPhases.any((cp) => cp.name.trim().toLowerCase() == nameKey);
+      if (!alreadyRestored) {
+        final customPhase = ConstructionPhase(name: name, isCustom: true);
+        customPhase.isSelected = true;
+        customPhase.isExpanded = true;
+        freshPhases.add(customPhase);
+      }
+    }
     _phases = freshPhases;
   }
   Future<void> _fetchFreshAndPopulate() async {
@@ -2183,6 +2194,19 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                       ),
                     ),
                   ),
+                  GestureDetector(
+                    onTap: () => _showRenamePhaseDialog(phase),
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: textGray,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   AnimatedRotation(
                     turns: phase.isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 180),
@@ -2341,6 +2365,97 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         ],
       ),
     );
+  }
+  void _showRenamePhaseDialog(ConstructionPhase phase) {
+    final ctrl = TextEditingController(text: phase.name);
+    final focusNode = FocusNode();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Edit Phase',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: textDark,
+          ),
+        ),
+        content: TextField(
+          controller: ctrl,
+          focusNode: focusNode,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter name',
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: primaryBlue, width: 2),
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFDDE0E8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: textGray.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.isEmpty) return;
+              final dup = _phases.any(
+                (p) =>
+                    p != phase &&
+                    p.name.trim().toLowerCase() == name.toLowerCase(),
+              );
+              if (dup) return;
+              setState(() {
+                final idx = _phases.indexWhere((p) => p == phase);
+                final renamed = ConstructionPhase(
+                  name: name,
+                  isCustom: true,
+                  activities: List<ConstructionActivity>.of(phase.activities),
+                  groups: List<ConstructionActivityGroup>.of(phase.groups),
+                  isExpanded: phase.isExpanded,
+                  isSelected: phase.isSelected,
+                );
+                if (idx != -1) {
+                  _phases[idx] = renamed;
+                } else {
+                  _phases.add(renamed);
+                }
+              });
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).then((_) {
+      ctrl.dispose();
+      focusNode.dispose();
+    });
   }
   void _showAddCustomStageDialog() {
     _customStageNameCtrl.clear();
