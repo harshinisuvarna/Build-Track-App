@@ -41,6 +41,9 @@ class _ExecutionContextScreenState extends State<ExecutionContextScreen> {
     _selectedPhaseId = provider.selectedPhaseId;
     _selectedActivity = provider.selectedActivity;
     _selectedActivityId = provider.selectedActivityId;
+    if (_selectedProjectId != null && _selectedProjectId!.isNotEmpty) {
+      provider.refreshProject(_selectedProjectId!);
+    }
   }
   bool get _canContinue =>
       _selectedProjectId != null &&
