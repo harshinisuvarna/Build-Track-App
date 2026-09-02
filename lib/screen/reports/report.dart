@@ -130,7 +130,7 @@ class _ReportsViewState extends State<_ReportsView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!UserSession.visitedModules.contains('ReportsScreen')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('ReportsScreen')) {
         ShowCaseWidget.of(context).startShowCase([
           ShowcaseKeys.reportAskAI,
           ShowcaseKeys.reportFilters,

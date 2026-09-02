@@ -31,6 +31,7 @@ dependencies:
   signature: ^6.3.0
   url_launcher: ^6.3.2
   showcaseview: ^5.1.0
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:

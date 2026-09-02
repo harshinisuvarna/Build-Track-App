@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buildtrack_mobile/models/project_model.dart';
 import 'package:buildtrack_mobile/config/api_config.dart';
 import 'package:flutter/foundation.dart';
+
 class ApiService {
   static List<ProjectModel>? mockProjects;
   static String get baseUrl => ApiConfig.baseUrl;
+
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? prefs.getString('jwt_token');
@@ -15,6 +19,61 @@ class ApiService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
+
+  // --- OFFLINE SYNC LOGIC ---
+  static const String _offlineQueueKey = 'offline_post_queue';
+
+  static Future<void> _queueOfflinePost(String endpoint, Map<String, dynamic> body) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueStr = prefs.getString(_offlineQueueKey) ?? '[]';
+      final queue = List<Map<String, dynamic>>.from(jsonDecode(queueStr));
+      queue.add({
+        'endpoint': endpoint,
+        'body': body,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      await prefs.setString(_offlineQueueKey, jsonEncode(queue));
+      if (kDebugMode) debugPrint('Queued offline request to $endpoint');
+    } catch (e) {
+      if (kDebugMode) debugPrint('Failed to queue offline request: $e');
+    }
+  }
+
+  static Future<void> syncOfflineEntries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueStr = prefs.getString(_offlineQueueKey);
+      if (queueStr == null || queueStr == '[]') return;
+
+      final queue = List<Map<String, dynamic>>.from(jsonDecode(queueStr));
+      if (queue.isEmpty) return;
+
+      if (kDebugMode) debugPrint('Syncing ${queue.length} offline entries...');
+      final List<Map<String, dynamic>> remainingQueue = [];
+      final headers = await _getHeaders();
+
+      for (var req in queue) {
+        try {
+          final url = '$baseUrl${req['endpoint']}';
+          final response = await http
+              .post(Uri.parse(url), headers: headers, body: jsonEncode(req['body']))
+              .timeout(const Duration(seconds: 30));
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            if (kDebugMode) debugPrint('Synced: ${req['endpoint']}');
+          } else {
+            remainingQueue.add(req);
+          }
+        } catch (e) {
+          remainingQueue.add(req);
+        }
+      }
+      await prefs.setString(_offlineQueueKey, jsonEncode(remainingQueue));
+    } catch (e) {
+      if (kDebugMode) debugPrint('Failed to sync offline entries: $e');
+    }
+  }
+
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
@@ -22,10 +81,13 @@ class ApiService {
     final response = await http
         .get(Uri.parse(url), headers: headers)
         .timeout(const Duration(seconds: 90));
-    debugPrint('Status: ${response.statusCode}');
-    debugPrint('Body: ${response.body}');
+    
+    // Opportunistically sync
+    syncOfflineEntries();
+    
     return response;
   }
+
   static Future<http.Response> post(
     String endpoint,
     Map<String, dynamic> body,
@@ -33,13 +95,25 @@ class ApiService {
     final headers = await _getHeaders();
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [POST]: $url');
-    debugPrint('Payload: ${jsonEncode(body)}');
-    final response = await http
-        .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 90));
-    debugPrint('Status: ${response.statusCode}');
-    debugPrint('Body: ${response.body}');
-    return response;
+    
+    try {
+      final response = await http
+          .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 90));
+      debugPrint('Status: ${response.statusCode}');
+      
+      // Opportunistically sync
+      syncOfflineEntries();
+      
+      return response;
+    } catch (e) {
+      if (e is SocketException || e is TimeoutException || e.toString().contains('Failed host lookup')) {
+        debugPrint('Network error caught. Queuing request for offline sync.');
+        await _queueOfflinePost(endpoint, body);
+        return http.Response(jsonEncode({'message': 'Queued for offline sync', 'offline': true}), 201);
+      }
+      rethrow;
+    }
   }
   static Future<http.Response> put(
     String endpoint,
@@ -999,15 +1073,44 @@ class ApiService {
     }
     return null;
   }
-  static Future<bool> submitEsignature(String token, String signatureData) async {
+  static Future<List<dynamic>> getNotifications() async {
     try {
-      final response = await post(
-        '/esign/submit',
-        {'token': token, 'signatureData': signatureData},
-      );
+      final response = await get('/notifications');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('getNotifications error: $e');
+    }
+    return [];
+  }
+
+  static Future<bool> markNotificationAsRead(String id) async {
+    try {
+      final response = await put('/notifications/$id/read', {});
       return response.statusCode == 200;
     } catch (e) {
-      if (kDebugMode) debugPrint('submitEsignature error: $e');
+      if (kDebugMode) debugPrint('markNotificationAsRead error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> markAllNotificationsAsRead() async {
+    try {
+      final response = await put('/notifications/read-all', {});
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('markAllNotificationsAsRead error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> clearAllNotifications() async {
+    try {
+      final response = await delete('/notifications/all');
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('clearAllNotifications error: $e');
       return false;
     }
   }

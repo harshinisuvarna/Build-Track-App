@@ -113,7 +113,7 @@ class _ChooseEntryModeScreenState extends State<ChooseEntryModeScreen>
       _contextArgs['activity']?.toString() ??
       '—';
   void _startTour(BuildContext context) {
-    if (!UserSession.visitedModules.contains('AddEntryMode')) {
+    if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('AddEntryMode')) {
       ShowCaseWidget.of(context).startShowCase([ShowcaseKeys.addEntryVoiceTab, ShowcaseKeys.addEntryManualTab]);
     }
   }

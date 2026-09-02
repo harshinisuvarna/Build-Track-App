@@ -58,7 +58,7 @@ class _InventoryScreenContentState extends State<_InventoryScreenContent> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().loadInventory(_selectedProjectId ?? '');
-      if (UserSession.visitedModules.isEmpty || !UserSession.visitedModules.contains('InventoryScreen')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('InventoryScreen')) {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             ShowCaseWidget.of(context).startShowCase([

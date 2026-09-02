@@ -170,7 +170,7 @@ class _SubscriptionScreenContentState extends State<_SubscriptionScreenContent> 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!UserSession.visitedModules.contains('subscription')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('subscription')) {
         ShowCaseWidget.of(context).startShowCase([_plansKey, _ctaKey]);
       }
     });

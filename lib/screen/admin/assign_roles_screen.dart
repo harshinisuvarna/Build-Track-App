@@ -131,7 +131,7 @@ class _AssignRolesScreenState extends State<AssignRolesScreen> {
     super.initState();
     _fetchProjects();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!UserSession.visitedModules.contains('AssignRolesScreen')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('AssignRolesScreen')) {
         ShowCaseWidget.of(context).startShowCase([
           ShowcaseKeys.assignRoleUserDetails,
           ShowcaseKeys.assignRoleRoleDropdown,

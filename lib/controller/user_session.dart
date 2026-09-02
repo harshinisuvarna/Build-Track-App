@@ -160,6 +160,7 @@ class UserSession extends ChangeNotifier {
     }
 
     if ((_projectIds.isNotEmpty || _hasAddedEntry || _hasCreatedProject) && _visitedModules.isEmpty) {
+      _hasSkippedTour = true;
       _visitedModules = [
         'HomeScreen',
         'AddProjectScreen',

@@ -153,7 +153,7 @@ class _ProjectsScreenContentState extends State<_ProjectsScreenContent> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
-      if (_projProvider.projectsLoaded && !UserSession.visitedModules.contains('ProjectsScreen')) {
+      if (_projProvider.projectsLoaded && !UserSession.hasSkippedTour && !UserSession.visitedModules.contains('ProjectsScreen')) {
         final keys = <GlobalKey>[];
         if (RoleManager.canAssignTasks) keys.add(ShowcaseKeys.projectsAssignRoleBtn);
         if (_projProvider.projects.isEmpty) {

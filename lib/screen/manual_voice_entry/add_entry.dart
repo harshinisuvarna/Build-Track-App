@@ -72,7 +72,7 @@ class _AddEntryScreenContentState extends State<_AddEntryScreenContent> {
     _columnVisibility = {for (var c in _customColumns) c: true};
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
-      if (!UserSession.visitedModules.contains('AddEntryScreen')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('AddEntryScreen')) {
         final keys = <GlobalKey>[];
         if (RoleManager.canManageExpenses) keys.add(ShowcaseKeys.addEntryMaterial);
         if (RoleManager.canAddEntries) keys.add(ShowcaseKeys.addEntryLabour);

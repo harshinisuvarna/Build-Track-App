@@ -67,7 +67,7 @@ class _AssignTaskScreenContentState extends State<_AssignTaskScreenContent> {
           provider.selectProject(project);
         }
       }
-      if (!UserSession.visitedModules.contains('AssignTaskScreen')) {
+      if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('AssignTaskScreen')) {
         ShowCaseWidget.of(context).startShowCase([_helpKey]);
       }
     });

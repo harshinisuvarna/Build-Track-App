@@ -141,7 +141,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   }
 
   void _startHomeScreenTour() {
-    if (UserSession.visitedModules.isEmpty || !UserSession.visitedModules.contains('HomeScreen')) {
+    if (!UserSession.hasSkippedTour && !UserSession.visitedModules.contains('HomeScreen')) {
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
           final keysToShow = _getShowcaseKeys();

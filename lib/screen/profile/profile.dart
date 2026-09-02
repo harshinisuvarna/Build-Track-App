@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final _projProvider = Provider.of<ProjectProvider>(context, listen: false);
-          if (_projProvider.projectsLoaded && _projProvider.projects.isEmpty && !UserSession.visitedModules.contains('profile')) {
+          if (_projProvider.projectsLoaded && _projProvider.projects.isEmpty && !UserSession.hasSkippedTour && !UserSession.visitedModules.contains('profile')) {
             UserSession.markModuleVisited('profile');
             final keys = <GlobalKey>[
               ShowcaseKeys.profileFields,
