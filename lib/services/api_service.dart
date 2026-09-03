@@ -106,14 +106,11 @@ class ApiService {
       syncOfflineEntries();
       
       return response;
-    } catch (e) {
-      if (e is SocketException || e is TimeoutException || e.toString().contains('Failed host lookup')) {
-        debugPrint('Network error caught. Queuing request for offline sync.');
+      } catch (e) {
+        debugPrint('Network/API error caught: $e. Queuing request for offline sync.');
         await _queueOfflinePost(endpoint, body);
         return http.Response(jsonEncode({'message': 'Queued for offline sync', 'offline': true}), 201);
       }
-      rethrow;
-    }
   }
   static Future<http.Response> put(
     String endpoint,
@@ -776,8 +773,8 @@ class ApiService {
         final decoded = json.decode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map) {
-          return (decoded['transactions'] ?? decoded['data'] ?? [])
-              as List<dynamic>;
+          final list = (decoded['transactions'] ?? decoded['data'] ?? []) as List<dynamic>;
+          return list.where((tx) => tx['type'] == type).toList();
         }
       }
       return [];
@@ -807,8 +804,8 @@ class ApiService {
           if (d is List) {
             projectTxs = d;
           } else if (d is Map) {
-            projectTxs =
-                (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+            final list = (d['transactions'] ?? d['data'] ?? []) as List<dynamic>;
+            projectTxs = list.where((tx) => tx['type'] == type).toList();
           }
         }
       } catch (_) {}

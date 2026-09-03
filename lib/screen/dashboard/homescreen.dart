@@ -440,16 +440,9 @@ class _TaskCard extends StatelessWidget {
         final phases = proj.selectedPhases ?? [];
         for (var phase in phases) {
           for (var act in phase.activities) {
-            if (act.name == task.activityName) {
-              if (act.completed) {
-                displayStatus = 'Completed';
-              } else if (proj.progress > 0) {
-                displayStatus = 'Work in Progress';
-              } else {
-                displayStatus = 'Not Started';
+              if (act.name == task.activityName) {
+                break;
               }
-              break;
-            }
           }
         }
       }
@@ -3848,7 +3841,7 @@ class _SupervisorDashboardState extends State<_SupervisorDashboard> {
           ..._tasks.map(
             (task) => _TaskCard(
               task: task,
-              onEdit: () => _showEditTaskDialog(context, task, () {
+              onEdit: () => Navigator.pushNamed(context, '/update-progress', arguments: {'task': task}).then((_) {
                 if (context.mounted) _loadAll();
               }),
             ),
@@ -4672,7 +4665,7 @@ class _MasonDashboardState extends State<_MasonDashboard> {
             (task) => _TaskCard(
               task: task,
               onEdit: task.status != 'Completed'
-                  ? () => _showEditTaskDialog(context, task, () {
+                  ? () => Navigator.pushNamed(context, '/update-progress', arguments: {'task': task}).then((_) {
                       if (context.mounted) _loadTasks();
                     })
                   : null,
