@@ -23,7 +23,7 @@ class ApiService {
   // --- OFFLINE SYNC LOGIC ---
   static const String _offlineQueueKey = 'offline_post_queue';
 
-  static Future<void> _queueOfflinePost(String endpoint, Map<String, dynamic> body) async {
+  static Future<void> _queueOfflineRequest(String endpoint, Map<String, dynamic> body, {String method = 'POST'}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final queueStr = prefs.getString(_offlineQueueKey) ?? '[]';
@@ -31,10 +31,11 @@ class ApiService {
       queue.add({
         'endpoint': endpoint,
         'body': body,
+        'method': method,
         'timestamp': DateTime.now().toIso8601String(),
       });
       await prefs.setString(_offlineQueueKey, jsonEncode(queue));
-      if (kDebugMode) debugPrint('Queued offline request to $endpoint');
+      if (kDebugMode) debugPrint('Queued offline $method request to $endpoint');
     } catch (e) {
       if (kDebugMode) debugPrint('Failed to queue offline request: $e');
     }
@@ -56,9 +57,17 @@ class ApiService {
       for (var req in queue) {
         try {
           final url = '$baseUrl${req['endpoint']}';
-          final response = await http
-              .post(Uri.parse(url), headers: headers, body: jsonEncode(req['body']))
-              .timeout(const Duration(seconds: 30));
+          final method = req['method'] as String? ?? 'POST';
+          http.Response response;
+          if (method == 'PUT') {
+            response = await http
+                .put(Uri.parse(url), headers: headers, body: jsonEncode(req['body']))
+                .timeout(const Duration(seconds: 30));
+          } else {
+            response = await http
+                .post(Uri.parse(url), headers: headers, body: jsonEncode(req['body']))
+                .timeout(const Duration(seconds: 30));
+          }
           if (response.statusCode >= 200 && response.statusCode < 300) {
             if (kDebugMode) debugPrint('Synced: ${req['endpoint']}');
           } else {
@@ -108,7 +117,7 @@ class ApiService {
       return response;
       } catch (e) {
         debugPrint('Network/API error caught: $e. Queuing request for offline sync.');
-        await _queueOfflinePost(endpoint, body);
+        await _queueOfflineRequest(endpoint, body, method: 'POST');
         return http.Response(jsonEncode({'message': 'Queued for offline sync', 'offline': true}), 201);
       }
   }
@@ -120,12 +129,22 @@ class ApiService {
     final url = '$baseUrl$endpoint';
     debugPrint('API Request [PUT]: $url');
     debugPrint('Payload: ${jsonEncode(body)}');
-    final response = await http
-        .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 90));
-    debugPrint('Status: ${response.statusCode}');
-    debugPrint('Body: ${response.body}');
-    return response;
+    try {
+      final response = await http
+          .put(Uri.parse(url), headers: headers, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 90));
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
+      
+      // Opportunistically sync
+      syncOfflineEntries();
+      
+      return response;
+    } catch (e) {
+      debugPrint('Network/API error caught: $e. Queuing request for offline sync.');
+      await _queueOfflineRequest(endpoint, body, method: 'PUT');
+      return http.Response(jsonEncode({'message': 'Queued for offline sync', 'offline': true}), 200);
+    }
   }
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();

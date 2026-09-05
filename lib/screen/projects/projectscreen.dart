@@ -1,4 +1,5 @@
 import 'package:buildtrack_mobile/common/themes/app_colors.dart';
+import 'package:buildtrack_mobile/controller/nav_controller.dart';
 import 'package:buildtrack_mobile/common/widgets/app_widgets.dart';
 import 'package:buildtrack_mobile/common/widgets/common_widgets.dart';
 import 'package:buildtrack_mobile/controller/project_provider.dart';
@@ -122,13 +123,41 @@ class ProjectStatusChip extends StatelessWidget {
   }
 }
 class ProjectsScreen extends StatelessWidget {
-  const ProjectsScreen({super.key});
+  ProjectsScreen({super.key});
+  final GlobalKey<ShowCaseWidgetState> _showcaseKey = GlobalKey<ShowCaseWidgetState>();
 
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
-      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], enableAutoScroll: true, 
-      onFinish: () => UserSession.markModuleVisited('ProjectsScreen'),
+      key: _showcaseKey,
+      globalTooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.skip, 
+          backgroundColor: Colors.transparent, 
+          textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+          onTap: () {
+            UserSession.skipTour();
+            _showcaseKey.currentState?.dismiss();
+          }
+        ), 
+        const TooltipActionButton(
+          type: TooltipDefaultActionType.next, 
+          backgroundColor: AppColors.primary, 
+          textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+        )
+      ], 
+      enableAutoScroll: true,
+      onFinish: () {
+        UserSession.markModuleVisited('ProjectsScreen');
+        if (UserSession.globalTourActive) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (context.mounted) {
+              final nav = Provider.of<NavController>(context, listen: false);
+              nav.setRoute('/add-entry', context);
+            }
+          });
+        }
+      },
       builder: (context) => const _ProjectsScreenContent(),
     );
   }

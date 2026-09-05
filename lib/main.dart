@@ -106,7 +106,7 @@ class MyApp extends StatelessWidget {
             settings: RouteSettings(name: initialRouteName),
             builder: (context) {
               if (initialRouteName == '/home') {
-                return const HomeScreen();
+                return HomeScreen();
               }
               return const LoginScreen();
             },
@@ -123,13 +123,13 @@ class MyApp extends StatelessWidget {
         '/subscription': (_) => const SubscriptionScreen(),
         '/payment-webview': (context) =>
             PaymentWebViewScreen(paymentParams: const {}),
-        '/home': (_) => const HomeScreen(),
-        '/projects': (_) => const ProjectsScreen(),
-        '/add-entry': (_) => const AddEntryScreen(),
+        '/home': (_) => HomeScreen(),
+        '/projects': (_) => ProjectsScreen(),
+        '/add-entry': (_) => AddEntryScreen(),
         '/execution-context': (_) => const ExecutionContextScreen(),
         '/choose-entry-mode': (_) => const ChooseEntryModeScreen(),
-        '/inventory': (_) => const InventoryScreen(),
-        '/reports': (_) => const ReportsScreen(),
+        '/inventory': (_) => InventoryScreen(),
+        '/reports': (_) => ReportsScreen(),
         '/assign-role': (_) => const AssignRolesScreen(),
         '/assign-task': (_) => const AssignTaskScreen(),
         '/project-detail': (_) => const ProjectDetailScreen(),

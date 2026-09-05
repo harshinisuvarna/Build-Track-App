@@ -52,7 +52,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       )
       ..loadHtmlString(
         _buildPaymentHtml(),
-        baseUrl: 'https://build-track.onrender.com/',
+        baseUrl: 'https://buildtrack-api.nurofin.com/',
       );
   }
   String _buildPaymentHtml() {

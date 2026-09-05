@@ -6,6 +6,6 @@ class ApiConfig {
   );
   static String get baseUrl {
     //return 'http://localhost:5001/api';
-    return 'https://build-track.onrender.com/api';
+    return 'https://buildtrack-api.nurofin.com/api';
   }
 }

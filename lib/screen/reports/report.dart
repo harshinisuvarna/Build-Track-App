@@ -14,26 +14,41 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
+  ReportsScreen({super.key});
+  final GlobalKey<ShowCaseWidgetState> _showcaseKey = GlobalKey<ShowCaseWidgetState>();
+
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ReportProvider()..refresh(),
-      child: ShowCaseWidget(
-        enableAutoScroll: true,
-        globalTooltipActions: const [
-          TooltipActionButton(
-            type: TooltipDefaultActionType.skip,
-            backgroundColor: Colors.transparent,
-            textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)
-          ),
-          TooltipActionButton(
-            type: TooltipDefaultActionType.next,
-            backgroundColor: AppColors.primary,
-            textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-          )
-        ],
-        builder: (context) => const _ReportsView(),
+    return Scaffold(
+      body: ChangeNotifierProvider(
+        create: (_) => ReportProvider()..refresh(),
+        child: ShowCaseWidget(
+          key: _showcaseKey,
+          enableAutoScroll: true,
+          globalTooltipActions: [
+            TooltipActionButton(
+              type: TooltipDefaultActionType.skip,
+              backgroundColor: Colors.transparent,
+              textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+              onTap: () {
+                UserSession.skipTour();
+                _showcaseKey.currentState?.dismiss();
+              }
+            ),
+            const TooltipActionButton(
+              type: TooltipDefaultActionType.next,
+              backgroundColor: AppColors.primary,
+              textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            )
+          ],
+          onFinish: () {
+            UserSession.markModuleVisited('ReportScreen');
+            if (UserSession.globalTourActive) {
+              UserSession.setGlobalTourActive(false);
+            }
+          },
+          builder: (context) => const _ReportsView(),
+        ),
       ),
     );
   }

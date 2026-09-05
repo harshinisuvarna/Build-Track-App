@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:buildtrack_mobile/controller/showcase_keys.dart';
+import 'package:buildtrack_mobile/controller/nav_controller.dart';
 
 String relativeTimeLabel(DateTime date) {
   final now = DateTime.now();
@@ -56,14 +57,43 @@ String relativeTimeLabel(DateTime date) {
     return '${date.day} ${months[date.month - 1]}';
   }
 }
+
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
+  final GlobalKey<ShowCaseWidgetState> _showcaseKey = GlobalKey<ShowCaseWidgetState>();
+  
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
-      globalTooltipActions: const [TooltipActionButton(type: TooltipDefaultActionType.skip, backgroundColor: Colors.transparent, textStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), TooltipActionButton(type: TooltipDefaultActionType.next, backgroundColor: AppColors.primary, textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))], 
+      key: _showcaseKey,
+      globalTooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.skip, 
+          backgroundColor: Colors.transparent, 
+          textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+          onTap: () {
+            UserSession.skipTour();
+            _showcaseKey.currentState?.dismiss();
+          }
+        ), 
+        const TooltipActionButton(
+          type: TooltipDefaultActionType.next, 
+          backgroundColor: AppColors.primary, 
+          textStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+        )
+      ], 
       enableAutoScroll: true,
-      onFinish: () => UserSession.markModuleVisited('HomeScreen'),
+      onFinish: () {
+        UserSession.markModuleVisited('HomeScreen');
+        if (UserSession.globalTourActive) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (context.mounted) {
+              final nav = Provider.of<NavController>(context, listen: false);
+              nav.setRoute('/projects', context);
+            }
+          });
+        }
+      },
       builder: (context) => const _HomeScreenContent(),
     );
   }
@@ -115,25 +145,35 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
       if (provider.projects.isNotEmpty || UserSession.hasAddedEntry) {
         UserSession.markAllModulesVisited();
       } else {
-        if (UserSession.visitedModules.isEmpty) {
+        if (!UserSession.appTourPrompted) {
           showDialog(
             context: context,
+            barrierDismissible: false,
             builder: (context) => AlertDialog(
               title: const Text('Welcome to BuildTrack!'),
-              content: const Text(
-                  'You will find a Help (?) button on every page. Click it whenever you need a step-by-step guide.'),
+              content: const Text('Do you want an app tour to help you get started?'),
               actions: [
                 TextButton(
                   onPressed: () {
+                    UserSession.markAppTourPrompted();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('No'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    UserSession.markAppTourPrompted();
+                    UserSession.resetTour();
+                    UserSession.setGlobalTourActive(true);
                     Navigator.pop(context);
                     _startHomeScreenTour();
                   },
-                  child: const Text('Got it!'),
+                  child: const Text('Yes', style: TextStyle(fontWeight: FontWeight.bold)),
                 )
               ],
             ),
           );
-        } else {
+        } else if (UserSession.globalTourActive && !UserSession.visitedModules.contains('HomeScreen')) {
           _startHomeScreenTour();
         }
       }
@@ -456,92 +496,92 @@ class _TaskCard extends StatelessWidget {
       statusColor = Colors.orange;
       statusBg = Colors.orange.withValues(alpha: 0.1);
     }
-    return AppCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppColors.textDark,
+    return GestureDetector(
+      onTap: displayStatus != 'Completed' ? onEdit : null,
+      child: AppCard(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppColors.textDark,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  displayStatus,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    displayStatus,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
                   ),
                 ),
-              ),
-              if (displayStatus != 'Completed' && onEdit != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: onEdit,
-                  child: const Icon(
+                if (displayStatus != 'Completed' && onEdit != null) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
                     Icons.edit,
                     size: 18,
                     color: AppColors.primary,
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-          const SizedBox(height: 6),
-          if (task.description.isNotEmpty) ...[
-            Text(
-              task.description,
-              style: const TextStyle(fontSize: 13, color: AppColors.textLight),
             ),
             const SizedBox(height: 6),
-          ],
-          Row(
-            children: [
-              const Icon(
-                Icons.person_outline,
-                size: 14,
-                color: AppColors.textLight,
-              ),
-              const SizedBox(width: 4),
+            if (task.description.isNotEmpty) ...[
               Text(
-                'Assigned to: ${task.assignee ?? "Unassigned"}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textLight,
-                ),
+                task.description,
+                style: const TextStyle(fontSize: 13, color: AppColors.textLight),
               ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.location_on_outlined,
-                size: 14,
-                color: AppColors.textLight,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                task.floorName ?? 'On Site',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textLight,
-                ),
-              ),
+              const SizedBox(height: 6),
             ],
-          ),
-        ],
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 14,
+                  color: AppColors.textLight,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Assigned to: ${task.assignee ?? "Unassigned"}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 14,
+                  color: AppColors.textLight,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  task.floorName ?? 'On Site',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

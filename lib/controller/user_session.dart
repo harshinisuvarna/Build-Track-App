@@ -18,6 +18,9 @@ class UserSession extends ChangeNotifier {
   static bool _hasCreatedProject = false;
   static bool _hasAddedEntry = false;
   static bool _hasViewedReports = false;
+  static bool _globalTourActive = false;
+  static bool _appTourPrompted = false;
+
   static List<String> _projectIds = [];
   static String get projectId =>
       _projectIds.isNotEmpty ? _projectIds.first : '';
@@ -45,10 +48,32 @@ class UserSession extends ChangeNotifier {
   static bool get hasCreatedProject => _hasCreatedProject;
   static bool get hasAddedEntry => _hasAddedEntry;
   static bool get hasViewedReports => _hasViewedReports;
+  static bool get globalTourActive => _globalTourActive;
+  static bool get appTourPrompted => _appTourPrompted;
   static List<String> get visitedModules => List.unmodifiable(_visitedModules);
 
   static Future<void> skipTour() async {
     _hasSkippedTour = true;
+    _globalTourActive = false;
+    await _persist();
+    _instance.notifyListeners();
+  }
+
+  static Future<void> resetTour() async {
+    _hasSkippedTour = false;
+    _visitedModules = [];
+    await _persist();
+    _instance.notifyListeners();
+  }
+
+  static Future<void> setGlobalTourActive(bool active) async {
+    _globalTourActive = active;
+    await _persist();
+    _instance.notifyListeners();
+  }
+  
+  static Future<void> markAppTourPrompted() async {
+    _appTourPrompted = true;
     await _persist();
     _instance.notifyListeners();
   }
@@ -117,6 +142,9 @@ class UserSession extends ChangeNotifier {
     final rawRoleStr = user['role']?.toString() ?? '';
     _rawRoleName = _toDisplayName(rawRoleStr);
     _role = _parseRole(rawRoleStr);
+    _globalTourActive = false;
+    _appTourPrompted = false;
+    
     final rawIds = user['projectIds'];
     if (rawIds is List) {
       _projectIds = rawIds
@@ -261,10 +289,16 @@ class UserSession extends ChangeNotifier {
     _hasCreatedProject = false;
     _hasAddedEntry = false;
     _hasViewedReports = false;
+    _globalTourActive = false;
+    _appTourPrompted = false;
     _visitedModules = [];
     _initialized = false;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kSessionKey);
+    final cachedEmail = prefs.getString('cached_email');
+    await prefs.clear();
+    if (cachedEmail != null) {
+      await prefs.setString('cached_email', cachedEmail);
+    }
     _instance.notifyListeners();
     debugPrint('[UserSession] cleared');
   }
@@ -357,6 +391,8 @@ class UserSession extends ChangeNotifier {
           'hasCreatedProject': _hasCreatedProject,
           'hasAddedEntry': _hasAddedEntry,
           'hasViewedReports': _hasViewedReports,
+          'globalTourActive': _globalTourActive,
+          'appTourPrompted': _appTourPrompted,
           'visitedModules': _visitedModules,
           'profilePhoto': _profilePhoto,
         }),
